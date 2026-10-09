@@ -5,6 +5,7 @@
 //! TODO(render): a `page_render` tool (page to PNG) once `markupcraft-render` exposes rendering.
 
 mod attachments;
+mod batch;
 mod bookmarks;
 mod compare;
 mod doc;
@@ -12,19 +13,25 @@ mod docprops;
 mod edit;
 mod export;
 mod files;
+mod fill;
 mod flatten;
 mod forms;
+mod layers;
+mod legend;
 mod links;
 mod marks;
 mod markups;
 mod ocr;
 mod pages;
+mod prefs;
 mod redact;
 mod scale;
 mod search;
 mod security;
 mod sign;
+mod spaces;
 mod spell;
+mod stamps;
 mod takeoff;
 mod visual;
 mod xfdf;
@@ -145,6 +152,42 @@ pub static TOOLS: &[&Tool] = &[
     &takeoff::CUTOUT_DELETE,
     &takeoff::CELL_SET,
     &takeoff::COLUMNS_SET,
+    &layers::LIST,
+    &layers::CREATE,
+    &layers::RENAME,
+    &layers::DELETE,
+    &layers::SET,
+    &layers::ASSIGN,
+    &layers::MARKUPS,
+    &spaces::LIST,
+    &spaces::ADD,
+    &spaces::EDIT,
+    &spaces::DELETE,
+    &spaces::TALLY,
+    &spaces::EXPORT,
+    &spaces::IMPORT,
+    &fill::DYNAMIC_FILL,
+    &fill::HATCH,
+    &legend::ADD,
+    &legend::LIST,
+    &legend::UPDATE,
+    &stamps::LIST,
+    &stamps::CREATE,
+    &stamps::REMOVE,
+    &stamps::ADD,
+    &prefs::GET,
+    &prefs::SET,
+    &prefs::PROFILES,
+    &prefs::SWITCH,
+    &prefs::DELETE,
+    &prefs::EXPORT,
+    &prefs::IMPORT,
+    &batch::SET_SAVE,
+    &batch::SET_SHEETS,
+    &batch::SUMMARY,
+    &batch::LINK,
+    &batch::SLIP,
+    &batch::APPLY,
 ];
 
 pub fn find(name: &str) -> Option<&'static Tool> {
@@ -325,6 +368,7 @@ pub(crate) fn markup_json(m: &Markup) -> Value {
         "unit": m.unit(),
         "scale": m.scale.as_ref().map(|s| s.ratio.clone()),
         "columns": m.column_data,
+        "hatch": m.hatch.map(|h| h.style.name()),
         "unsaved": m.dirty,
     })
 }

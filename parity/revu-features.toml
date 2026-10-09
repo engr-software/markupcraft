@@ -518,9 +518,10 @@ section = "Area and volume tools"
 name = "Hatch fill"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:112"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["dynamic_fill_makes_areas_spaces_and_hatch", "hatch_saves_into_the_appearance_and_reads_back"]
+notes = "markup_hatch: six line hatches (our own key /PCHatch) drawn into the appearance, clipped to the shape and its cutouts."
 
 [[feature]]
 id = "meas-042"
@@ -676,9 +677,10 @@ section = "Count"
 name = "Count grouped per page or Space"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:135"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["spaces_add_column_tally_export_import", "spaces_name_markups_split_counts_and_round_trip"]
+notes = "space_tally: counted items per subject per page and space (each Count point in its own space)."
 
 [[feature]]
 id = "meas-055"
@@ -712,9 +714,10 @@ section = "Dynamic Fill and auto-detection"
 name = "Dynamic Fill"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:143"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["dynamic_fill_makes_areas_spaces_and_hatch", "fill_finds_the_room_and_its_column", "big_rooms_grow_the_window"]
+notes = "dynamic_fill traces the closed region of the page's vector linework around a point (planar graph of the segments, face walk); islands become cutouts. Vector linework only (no raster detection). Headless; no click-and-hold UI."
 
 [[feature]]
 id = "meas-058"
@@ -724,9 +727,10 @@ section = "Dynamic Fill and auto-detection"
 name = "Dynamic Fill outputs"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:144"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["dynamic_fill_makes_areas_spaces_and_hatch"]
+notes = "Area (with cutouts), Polygon, Perimeter or Space; not Polylength/Volume or several at once."
 
 [[feature]]
 id = "meas-059"
@@ -736,9 +740,10 @@ section = "Dynamic Fill and auto-detection"
 name = "Add Boundary"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:145"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["gaps_close_within_tolerance_and_open_rooms_fail"]
+notes = "dynamic_fill boundaries: extra polylines that close or split a room."
 
 [[feature]]
 id = "meas-060"
@@ -772,9 +777,10 @@ section = "Dynamic Fill and auto-detection"
 name = "Dynamic Fill settings"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:148"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["gaps_close_within_tolerance_and_open_rooms_fail"]
+notes = "Gap tolerance and cutouts on/off; no DPI/cursor settings (vector tracing has none)."
 
 [[feature]]
 id = "meas-063"
@@ -1472,9 +1478,10 @@ section = "Spaces (location grouping)"
 name = "Spaces"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:234"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["spaces_add_column_tally_export_import", "spaces_name_markups_split_counts_and_round_trip"]
+notes = "space_add/edit/delete/list: named polygons per page, stored as our page key /PCSpaces. No panel UI."
 
 [[feature]]
 id = "meas-119"
@@ -1484,9 +1491,10 @@ section = "Spaces (location grouping)"
 name = "Space column / group by Space"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:235"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["spaces_name_markups_split_counts_and_round_trip", "markups_take_the_innermost_space"]
+notes = "Markups List Space column (crates/model table): the innermost space containing the markup's centre, nested spaces as Outer > Inner; groups and filters like any column."
 
 [[feature]]
 id = "meas-120"
@@ -1496,9 +1504,10 @@ section = "Spaces (location grouping)"
 name = "Recalculate Space"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:236"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["spaces_name_markups_split_counts_and_round_trip"]
+notes = "The Space column is computed from the current geometry, so it is always recalculated."
 
 [[feature]]
 id = "meas-121"
@@ -1508,9 +1517,10 @@ section = "Spaces (location grouping)"
 name = "Space from Dynamic Fill"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:237"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["dynamic_fill_makes_areas_spaces_and_hatch", "dynamic_fill_makes_an_area_with_a_cutout"]
+notes = "dynamic_fill output space."
 
 [[feature]]
 id = "meas-122"
@@ -1532,9 +1542,10 @@ section = "Legends"
 name = "Ad-hoc legend"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:244"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["legends_list_subjects_and_follow_edits"]
+notes = "legend_add makes a legend of the page or document markups, filtered by subjects; not from an arbitrary selection or a tool set."
 
 [[feature]]
 id = "meas-124"
@@ -1544,9 +1555,10 @@ section = "Legends"
 name = "Legend scope"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:245"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["legends_list_subjects_and_follow_edits", "legend_lists_subjects_counts_totals_and_follows_edits"]
+notes = "Current page or all pages; no page range."
 
 [[feature]]
 id = "meas-125"
@@ -1556,9 +1568,10 @@ section = "Legends"
 name = "Legend columns"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:246"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["legends_list_subjects_and_follow_edits"]
+notes = "Symbol, Subject, Type, Count, Total columns in any order; not custom Markups List columns."
 
 [[feature]]
 id = "meas-126"
@@ -1568,9 +1581,10 @@ section = "Legends"
 name = "Legend appearance"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:247"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["legends_list_subjects_and_follow_edits"]
+notes = "Title on/off and font size; our own table style (no line/fill options yet)."
 
 [[feature]]
 id = "meas-127"
@@ -2092,9 +2106,10 @@ section = "B. Line and shape markups"
 name = "Shape fill hatch patterns"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:73"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["dynamic_fill_makes_areas_spaces_and_hatch", "hatch_lines_cover_the_box"]
+notes = "Diagonal, BackDiagonal, Horizontal, Vertical, Cross, DiagonalCross on Area, Polygon, Rectangle, Ellipse, Cloud, Volume."
 
 [[feature]]
 id = "mark-035"
@@ -2129,9 +2144,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Stamp library management"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:81"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["stamps_builtin_custom_dynamic_fields_and_images"]
+notes = "Stamp library in the config folder (stamps/library.json): stamp_list, stamp_create, stamp_remove; built-in designs are our own."
 
 [[feature]]
 id = "mark-038"
@@ -2141,9 +2157,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Create Stamp"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:82"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["stamps_builtin_custom_dynamic_fields_and_images"]
+notes = "stamp_create: text stamps (first line big, colour) or image stamps."
 
 [[feature]]
 id = "mark-039"
@@ -2153,9 +2170,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Dynamic stamp text"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:83"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["stamps_builtin_custom_dynamic_fields_and_images", "fields_expand_dates_pages_files_and_prompts"]
+notes = "{user} {date[:FMT]} {time[:FMT]} {datetime:FMT} {page} {pagenum} {pages} {file} {filename} {path} {prompt:Label=Default}, filled when placed. Times are UTC unless a time is given."
 
 [[feature]]
 id = "mark-040"
@@ -2177,9 +2195,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Stamp from image/PDF"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:85"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["stamps_builtin_custom_dynamic_fields_and_images"]
+notes = "Image stamps from a PNG (alpha as a soft mask) or a PDF page (copied as a form XObject), placed directly or from the library."
 
 [[feature]]
 id = "mark-042"
@@ -2189,9 +2208,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Image markup"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:86"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["stamps_builtin_custom_dynamic_fields_and_images"]
+notes = "A PNG placed as an image stamp annotation; no separate Image markup kind."
 
 [[feature]]
 id = "mark-043"
@@ -2335,9 +2355,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Legend"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:98"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["legends_list_subjects_and_follow_edits", "legend_lists_subjects_counts_totals_and_follows_edits"]
+notes = "A FreeText legend (/PCLegend) with our own table appearance and the table as /Contents; legend_update recomputes it after edits."
 
 [[feature]]
 id = "mark-055"
@@ -2347,9 +2368,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Spaces (markup-related)"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:99"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["spaces_add_column_tally_export_import"]
+notes = "Markups take the name of the space they are in (Space column)."
 
 [[feature]]
 id = "mark-056"
@@ -2359,9 +2381,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Dynamic Fill"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:100"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["dynamic_fill_makes_areas_spaces_and_hatch"]
+notes = "Headless dynamic_fill (vector linework); no canvas tool yet."
 
 [[feature]]
 id = "mark-057"
@@ -2599,9 +2622,10 @@ section = "D. Properties panel"
 name = "Appearance: Hatch"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:124"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["dynamic_fill_makes_areas_spaces_and_hatch"]
+notes = "Hatch style, spacing, width and colour through markup_hatch; no Properties panel control yet."
 
 [[feature]]
 id = "mark-076"
@@ -2685,10 +2709,10 @@ section = "D. Properties panel"
 name = "Layer property"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:131"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "Properties > Layer name (no Layers panel yet)."
+evidence = ["layers_create_assign_hide_filter_rename_delete"]
+notes = "Markup layer through layer_assign or the layer field of markup_edit; saved as /OC."
 
 [[feature]]
 id = "mark-084"
@@ -3314,9 +3338,10 @@ section = "F. Tool Chest"
 name = "Profiles"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:192"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_profiles_set_switch_export_import"]
+notes = "Profiles (see ui-100)."
 
 [[feature]]
 id = "mark-134"
@@ -3338,9 +3363,10 @@ section = "G. Layers (PDF optional content)"
 name = "Layers panel"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:199"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["layers_create_assign_hide_filter_rename_delete"]
+notes = "Layer data and tools (layer_list, layer_set, layer_assign...) over PDF optional content groups; no panel UI yet."
 
 [[feature]]
 id = "mark-136"
@@ -3350,9 +3376,10 @@ section = "G. Layers (PDF optional content)"
 name = "Toggle layer visibility"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:200"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["layers_create_assign_hide_filter_rename_delete", "layers_create_assign_state_save_and_reopen"]
+notes = "layer_set visible: the default configuration's /OFF list. Headless; no panel UI."
 
 [[feature]]
 id = "mark-137"
@@ -3362,9 +3389,10 @@ section = "G. Layers (PDF optional content)"
 name = "Add New Layer"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:201"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["layers_create_assign_hide_filter_rename_delete"]
+notes = "layer_create adds an /OCG to /OCProperties (/OCGs, /D /Order)."
 
 [[feature]]
 id = "mark-138"
@@ -3386,9 +3414,10 @@ section = "G. Layers (PDF optional content)"
 name = "Markup Layer"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:203"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["layers_create_assign_hide_filter_rename_delete", "layers_create_assign_state_save_and_reopen"]
+notes = "layer_assign puts markups on a layer: /OC on each annotation, written on save; the layer is created when new."
 
 [[feature]]
 id = "mark-140"
@@ -3398,9 +3427,10 @@ section = "G. Layers (PDF optional content)"
 name = "Isolate layer"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:204"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["layers_create_assign_hide_filter_rename_delete", "rename_delete_isolate_and_undo"]
+notes = "layer_set isolate: only that layer stays on."
 
 [[feature]]
 id = "mark-141"
@@ -3410,9 +3440,10 @@ section = "G. Layers (PDF optional content)"
 name = "Show All / Reset Layers"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:205"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["layers_create_assign_hide_filter_rename_delete", "rename_delete_isolate_and_undo"]
+notes = "layer_set show_all turns every layer on."
 
 [[feature]]
 id = "mark-142"
@@ -3434,9 +3465,10 @@ section = "G. Layers (PDF optional content)"
 name = "Show Print / Export layers"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:207"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["layers_create_assign_hide_filter_rename_delete"]
+notes = "Print state per layer (/Usage /Print /PrintState plus the /AS Print event); no Show Print/Export view filter."
 
 [[feature]]
 id = "mark-144"
@@ -3458,9 +3490,10 @@ section = "G. Layers (PDF optional content)"
 name = "Rename / Delete layer"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:209"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["layers_create_assign_hide_filter_rename_delete", "rename_delete_isolate_and_undo"]
+notes = "layer_rename (markups follow) and layer_delete (markups left on no layer, or deleted with it). Undoable."
 
 [[feature]]
 id = "mark-146"
@@ -3470,9 +3503,10 @@ section = "G. Layers (PDF optional content)"
 name = "Layer Properties"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:210"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["layers_create_assign_hide_filter_rename_delete", "layers_create_assign_state_save_and_reopen"]
+notes = "Visible, print and locked states (layer_set), saved in the file."
 
 [[feature]]
 id = "mark-147"
@@ -5266,9 +5300,10 @@ section = "Page operations"
 name = "Batch file list (shared)"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:218"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["batch_link_summary_sets_and_apply"]
+notes = "Batch tools take a file list or a set file."
 
 [[feature]]
 id = "doc-101"
@@ -5404,9 +5439,10 @@ section = "Batch tools"
 name = "Batch Link: search terms"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:239"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["batch_link_summary_sets_and_apply"]
+notes = "batch_link searches for the page labels (sheet numbers) of the files, whole words up to four words; no custom search terms or regular expressions."
 
 [[feature]]
 id = "doc-112"
@@ -5428,9 +5464,10 @@ section = "Batch tools"
 name = "Batch Link: destinations"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:241"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["batch_link_summary_sets_and_apply"]
+notes = "Links go to the labelled page: a page link in the same file, a GoToR link (relative file name) to a page of another file."
 
 [[feature]]
 id = "doc-114"
@@ -5440,9 +5477,10 @@ section = "Batch tools"
 name = "Batch Link: link options"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:242"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["batch_link_summary_sets_and_apply"]
+notes = "Border width, colour and padding; a place that already has a link is skipped (re-runs add nothing)."
 
 [[feature]]
 id = "doc-115"
@@ -5452,9 +5490,10 @@ section = "Batch tools"
 name = "Batch Link: save and report"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:243"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["batch_link_summary_sets_and_apply"]
+notes = "Each file is saved in place; the report lists links per file, places skipped and errors."
 
 [[feature]]
 id = "doc-116"
@@ -5464,9 +5503,10 @@ section = "Batch tools"
 name = "Batch Slip Sheet: matching"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:244"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["slip_sheet_replaces_matching_sheets_and_keeps_markups"]
+notes = "slip_sheet matches page labels, whole or the part before a filter (e.g. ' - '), case-insensitive by default."
 
 [[feature]]
 id = "doc-117"
@@ -5476,9 +5516,10 @@ section = "Batch tools"
 name = "Batch Slip Sheet: apply"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:245"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["slip_sheet_replaces_matching_sheets_and_keeps_markups"]
+notes = "Matching pages are replaced with the revised content; their markups, links and bookmarks stay. Undoable."
 
 [[feature]]
 id = "doc-118"
@@ -5488,9 +5529,10 @@ section = "Batch tools"
 name = "Batch Slip Sheet: leftovers and report"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:246"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["slip_sheet_replaces_matching_sheets_and_keeps_markups"]
+notes = "Unmatched new sheets are appended with their labels (or left out); the report lists matched, unmatched old and unmatched new sheets."
 
 [[feature]]
 id = "doc-119"
@@ -5512,9 +5554,10 @@ section = "Batch tools"
 name = "Batch Apply Stamp"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:248"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["batch_link_summary_sets_and_apply"]
+notes = "batch_apply with stamp_add over many files (in place or to an output folder)."
 
 [[feature]]
 id = "doc-121"
@@ -5524,9 +5567,10 @@ section = "Batch tools"
 name = "Batch Flatten / Unflatten"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:249"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["batch_link_summary_sets_and_apply"]
+notes = "batch_apply with markup_flatten; no unflatten."
 
 [[feature]]
 id = "doc-122"
@@ -5536,9 +5580,10 @@ section = "Batch tools"
 name = "Batch Summary"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:250"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["batch_link_summary_sets_and_apply"]
+notes = "batch_summary: one CSV of the Markups Lists of many files with a File column."
 
 [[feature]]
 id = "doc-123"
@@ -5560,9 +5605,10 @@ section = "Batch tools"
 name = "Batch Headers & Footers"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:252"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["batch_link_summary_sets_and_apply"]
+notes = "batch_apply with header_footer_add / watermark_add / bates_add."
 
 [[feature]]
 id = "doc-125"
@@ -5572,9 +5618,10 @@ section = "Batch tools"
 name = "Other batch processes"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:253"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["batch_link_summary_sets_and_apply"]
+notes = "batch_apply runs a list of document tools (flatten, marks, stamps, paste markups, add markups, layers, legends, page labels) on each file."
 
 [[feature]]
 id = "doc-126"
@@ -5584,9 +5631,10 @@ section = "Sets (many PDFs viewed as one)"
 name = "Create / open / save Set"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:259"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["batch_link_summary_sets_and_apply", "sets_sort_naturally_and_round_trip"]
+notes = "set_save writes our own JSON set (.pcset, relative paths); set_sheets reads it and can open every file."
 
 [[feature]]
 id = "doc-127"
@@ -5596,9 +5644,10 @@ section = "Sets (many PDFs viewed as one)"
 name = "Navigate a Set"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:260"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["batch_link_summary_sets_and_apply"]
+notes = "set_sheets lists every sheet (file, page, label) and opens the files; no Sets panel."
 
 [[feature]]
 id = "doc-128"
@@ -5608,9 +5657,10 @@ section = "Sets (many PDFs viewed as one)"
 name = "Set sorting"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:261"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["batch_link_summary_sets_and_apply", "sets_sort_naturally_and_round_trip"]
+notes = "File order, label (natural order) or file then label."
 
 [[feature]]
 id = "doc-129"
@@ -5632,9 +5682,10 @@ section = "Sets (many PDFs viewed as one)"
 name = "Carry markups to new revision"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:263"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["slip_sheet_replaces_matching_sheets_and_keeps_markups"]
+notes = "Slip Sheet keeps the old sheets' markups on the revised pages."
 
 [[feature]]
 id = "doc-131"
@@ -7494,9 +7545,10 @@ section = "4. Spaces, Links, Signatures panels"
 name = "Spaces panel"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:144"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["spaces_add_column_tally_export_import"]
+notes = "Spaces data and tools; no panel UI yet."
 
 [[feature]]
 id = "ui-063"
@@ -7506,9 +7558,10 @@ section = "4. Spaces, Links, Signatures panels"
 name = "Add Space"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:145"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["spaces_add_column_tally_export_import"]
+notes = "space_add (outline points, name, colour, opacity). Headless."
 
 [[feature]]
 id = "ui-064"
@@ -7518,9 +7571,10 @@ section = "4. Spaces, Links, Signatures panels"
 name = "Highlight / edit spaces"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:146"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["spaces_add_column_tally_export_import"]
+notes = "space_edit renames and reshapes; highlighting is UI work still to do."
 
 [[feature]]
 id = "ui-065"
@@ -7530,9 +7584,10 @@ section = "4. Spaces, Links, Signatures panels"
 name = "Space column in Markups List"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:147"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["spaces_name_markups_split_counts_and_round_trip"]
+notes = "Space column in the Markups List table (crates/model)."
 
 [[feature]]
 id = "ui-066"
@@ -7542,9 +7597,10 @@ section = "4. Spaces, Links, Signatures panels"
 name = "Split counts by space"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:148"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["spaces_add_column_tally_export_import"]
+notes = "space_tally splits counts by space."
 
 [[feature]]
 id = "ui-067"
@@ -7952,9 +8008,10 @@ section = "6. Profiles and keyboard shortcut customization"
 name = "Profiles"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:192"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_profiles_set_switch_export_import", "profiles_save_switch_export_import"]
+notes = "Profiles: one JSON file per profile in the user's config folder (prefs_*, profile_* tools). Holds preferences, not window layouts yet."
 
 [[feature]]
 id = "ui-101"
@@ -7964,9 +8021,10 @@ section = "6. Profiles and keyboard shortcut customization"
 name = "Switch profile"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:193"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_profiles_set_switch_export_import"]
+notes = "profile_switch (a new profile copies the current preferences or starts from defaults)."
 
 [[feature]]
 id = "ui-102"
@@ -7976,9 +8034,10 @@ section = "6. Profiles and keyboard shortcut customization"
 name = "Save profile"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:194"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_profiles_set_switch_export_import"]
+notes = "prefs_set saves into the active (or named) profile at once."
 
 [[feature]]
 id = "ui-103"
@@ -7988,9 +8047,10 @@ section = "6. Profiles and keyboard shortcut customization"
 name = "Manage profiles"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:195"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_profiles_set_switch_export_import"]
+notes = "profile_list, profile_delete (not the active profile)."
 
 [[feature]]
 id = "ui-104"
@@ -8000,9 +8060,10 @@ section = "6. Profiles and keyboard shortcut customization"
 name = "Export / import profile"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:196"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_profiles_set_switch_export_import"]
+notes = "prefs_export / prefs_import (JSON, validated on import)."
 
 [[feature]]
 id = "ui-105"
@@ -8420,9 +8481,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Preferences dialog"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:251"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_profiles_set_switch_export_import"]
+notes = "Preferences model (author, units, precision, colours, snapping, autosave, save mode, recent files, theme) with validation and storage; no dialog yet."
 
 [[feature]]
 id = "ui-140"
@@ -8432,9 +8494,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "General > Options: user name"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:252"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_profiles_set_switch_export_import"]
+notes = "author preference; new markups take it."
 
 [[feature]]
 id = "ui-141"
@@ -8468,9 +8531,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "General > Document: recovery and save mode"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:255"
-status = "missing"
+status = "partial"
 cpp = "partial"
-evidence = []
+evidence = ["profiles_save_switch_export_import"]
+notes = "autosave_minutes and save_mode stored; not acted on yet."
 
 [[feature]]
 id = "ui-144"
@@ -8552,9 +8616,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "General > Grid & Snap"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:262"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_profiles_set_switch_export_import"]
+notes = "Grid and snap preferences stored (content, markup, grid, spacing, sensitivity); the canvas does not read them yet."
 
 [[feature]]
 id = "ui-151"

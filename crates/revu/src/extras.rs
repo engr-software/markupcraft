@@ -55,6 +55,7 @@ pub fn review_author() -> String {
 
 /// Per-annotation extras, called once per annotation while loading.
 pub fn read_markup(cos: &CosDoc, a: &Dict, m: &mut Markup) {
+    crate::hatch::read(cos, a, m);
     m.irt = a.reference(b"IRT").map(|r| (r.num, r.generation));
     m.group = String::new();
     if pdf::name(a.get(b"RT")) == "Group" {
@@ -89,6 +90,7 @@ pub fn read_document(cos: &CosDoc, doc: &mut Document) {
     doc.columns_changed = false;
     fold_replies(cos, doc);
     finish_groups(doc);
+    crate::spaces::read(cos, doc);
 }
 
 fn catalog(cos: &CosDoc) -> Option<(ObjRef, Dict)> {
@@ -452,7 +454,9 @@ pub fn remove_from_group(doc: &mut Document, indices: &[usize]) -> usize {
 // ---- writing ---------------------------------------------------------------------------
 
 /// Per-annotation extras, called after the annotation's own keys were written.
-pub fn write_markup(_cos: &mut CosDoc, a: &mut Dict, m: &mut Markup, _page: ObjRef) {
+pub fn write_markup(cos: &mut CosDoc, a: &mut Dict, m: &mut Markup, _page: ObjRef) {
+    crate::layers::write_oc(cos, a, m);
+    crate::hatch::write(cos, a, m);
     if m.column_data.is_empty() {
         pdf::remove(a, "PCColumnData");
     } else {

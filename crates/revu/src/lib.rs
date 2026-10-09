@@ -15,10 +15,13 @@
 
 pub mod ap;
 pub mod extras;
+pub mod hatch;
 pub mod kinds;
+pub mod layers;
 pub mod pdf;
 pub mod read;
 pub mod scale;
+pub mod spaces;
 pub mod write;
 
 use std::path::{Path, PathBuf};

@@ -26,6 +26,7 @@
 )]
 
 pub mod attachments;
+pub mod batch;
 pub mod blank;
 pub mod bookmarks;
 pub mod boxes;
@@ -36,16 +37,21 @@ pub mod docprops;
 mod docutil;
 mod edit;
 pub mod export;
+pub mod fill;
 pub mod flatten;
 pub mod forms;
 pub mod geometry;
+pub mod hatch;
 pub mod labels;
+pub mod layers;
+pub mod legend;
 pub mod links;
 pub mod marks;
 mod numbering;
 pub mod ocr;
 pub mod overlay;
 pub mod pages;
+pub mod prefs;
 pub mod printout;
 pub mod props;
 pub mod raster;
@@ -56,8 +62,11 @@ pub mod search;
 pub mod security;
 mod session_ui;
 pub mod signatures;
+pub mod spaces;
 pub mod spell;
+pub mod stamps;
 pub mod synthetic;
+pub mod vectors;
 pub mod visual;
 pub mod xfdf;
 

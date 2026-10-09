@@ -17,7 +17,9 @@ pub mod caption;
 pub mod columns;
 pub mod csv;
 pub mod formula;
+pub mod hatch;
 pub mod measure_extras;
+pub mod spaces;
 pub mod table;
 
 use std::collections::BTreeMap;
@@ -308,6 +310,8 @@ pub struct Markup {
     pub cloud: f64,
     /// `/BM /Multiply`
     pub multiply: bool,
+    /// hatch lines inside a closed shape (`/PCHatch`)
+    pub hatch: Option<hatch::Hatch>,
     pub text: TextStyle,
 
     // geometry, PDF user space (bottom-left origin)
@@ -402,6 +406,7 @@ impl Default for Markup {
             line_end: "None".into(),
             cloud: 0.0,
             multiply: false,
+            hatch: None,
             text: TextStyle::default(),
             pts: Vec::new(),
             rect: Rect::default(),
@@ -569,6 +574,8 @@ pub struct PageInfo {
     pub scale_changed: bool,
     /// `/PageLabels` label ("" = none)
     pub label: String,
+    /// Spaces (named regions) on this page
+    pub spaces: Vec<spaces::Space>,
 }
 
 impl Default for PageInfo {
@@ -582,6 +589,7 @@ impl Default for PageInfo {
             scale: None,
             scale_changed: false,
             label: String::new(),
+            spaces: Vec::new(),
         }
     }
 }

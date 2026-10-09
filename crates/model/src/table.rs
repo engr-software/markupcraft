@@ -320,6 +320,7 @@ impl<'a> MarkupTable<'a> {
             "lock" => check_cell(m.locked(), "Locked"),
             "color" => Cell::text(m.color.hex()),
             "layer" => Cell::text(&m.layer),
+            "space" => Cell::text(crate::spaces::space_path(self.doc, m)),
             "comments" => Cell::text(comments(m)),
             "type" => Cell::text(m.kind.name()),
             "id" => Cell::text(&m.id),
@@ -383,7 +384,7 @@ impl<'a> MarkupTable<'a> {
                 }
                 _ => Cell::default(),
             },
-            // space, wallarea, slope: no data in the model yet (blank).
+            // wallarea, slope: no data in the model yet (blank).
             _ => Cell::default(),
         }
     }

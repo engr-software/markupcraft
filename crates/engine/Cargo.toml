@@ -29,3 +29,6 @@ pdfcraft-xfdf = { workspace = true }
 pdfcraft-optimize = { workspace = true }
 pdfcraft-render = { workspace = true }
 image = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+pdfcraft-content = { workspace = true }

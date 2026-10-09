@@ -86,6 +86,8 @@ pub struct Automation {
     /// shared between documents, so markups paste from one into another
     clipboard: Vec<Markup>,
     author: String,
+    /// preferences, profiles and the stamp library (None = the user's config folder)
+    config_dir: Option<PathBuf>,
 }
 
 impl Default for Automation {
@@ -103,6 +105,7 @@ impl Automation {
             root: None,
             clipboard: Vec::new(),
             author: String::new(),
+            config_dir: None,
         }
     }
 
@@ -123,6 +126,22 @@ impl Automation {
     pub fn with_author(mut self, author: &str) -> Self {
         self.author = author.to_string();
         self
+    }
+
+    /// Keep preferences, profiles and the stamp library in `dir` instead of the user's config
+    /// folder.
+    pub fn with_config_dir(mut self, dir: impl Into<PathBuf>) -> Self {
+        self.config_dir = Some(dir.into());
+        self
+    }
+
+    /// The config folder the preference and stamp tools use.
+    pub fn config_dir(&self) -> Result<PathBuf> {
+        match &self.config_dir {
+            Some(d) => Ok(d.clone()),
+            None => markupcraft_engine::prefs::default_config_dir()
+                .ok_or_else(|| failed("no config folder (set MARKUPCRAFT_CONFIG_DIR)")),
+        }
     }
 
     pub fn root(&self) -> Option<&Path> {

@@ -2353,6 +2353,7 @@ dependencies = [
  "markupcraft-revu",
  "pdfcraft-annot",
  "pdfcraft-compare",
+ "pdfcraft-content",
  "pdfcraft-edit",
  "pdfcraft-fonts",
  "pdfcraft-forms",
@@ -2364,6 +2365,8 @@ dependencies = [
  "pdfcraft-render",
  "pdfcraft-sign",
  "pdfcraft-xfdf",
+ "serde",
+ "serde_json",
  "thiserror 2.0.21",
 ]
 

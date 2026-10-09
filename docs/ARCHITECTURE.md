@@ -80,3 +80,4 @@ Measurements are ordinary annotations plus Revu keys:
   Recent Tools live for the session. The desktop app loads it; tests and the headless `shot`
   example use an in-memory chest.
 - File dialogs run on their own threads (`dialogs.rs`); the frame loop polls for answers.
+  `/PCArcs`, `/PCColumns`, `/PCColumnData`, `/PCStamp`, `/PCHatch`, `/PCLegend`, page `/PCSpaces`.

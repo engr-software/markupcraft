@@ -9,21 +9,21 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | Area | Rows | Proven | Have | Partial | Missing | Excluded | C++ have | C++ partial |
 |---|---|---|---|---|---|---|---|---|
-| Measurement and takeoff | 134 | 2 | 39 | 17 | 76 | 0 | 47 | 17 |
-| Markup tools, Properties, Tool Chest, layers, Markups List | 192 | 0 | 66 | 35 | 91 | 0 | 86 | 23 |
-| Documents, pages, batch, print, search, security | 217 | 0 | 28 | 29 | 154 | 6 | 38 | 23 |
-| Compare/overlay, interface, preferences, mouse, Studio | 226 | 0 | 20 | 10 | 165 | 31 | 24 | 22 |
+| Measurement and takeoff | 134 | 2 | 47 | 23 | 62 | 0 | 47 | 17 |
+| Markup tools, Properties, Tool Chest, layers, Markups List | 192 | 0 | 83 | 38 | 71 | 0 | 86 | 23 |
+| Documents, pages, batch, print, search, security | 217 | 0 | 39 | 35 | 137 | 6 | 38 | 23 |
+| Compare/overlay, interface, preferences, mouse, Studio | 226 | 0 | 29 | 15 | 151 | 31 | 24 | 22 |
 | Default keyboard shortcuts | 177 | 0 | 74 | 0 | 103 | 0 | 11 | 18 |
-| **All** | 946 | 2 | 227 | 91 | 589 | 37 | 206 | 103 |
+| **All** | 946 | 2 | 272 | 111 | 524 | 37 | 206 | 103 |
 
 ### By priority (rows in scope)
 
 | Priority | Proven | Have | Partial | Missing |
 |---|---|---|---|---|
-| P0 | 2 | 58 | 27 | 54 |
-| P1 | 0 | 54 | 37 | 126 |
-| P2 | 0 | 26 | 10 | 173 |
-| P3 | 0 | 15 | 17 | 133 |
+| P0 | 2 | 60 | 27 | 52 |
+| P1 | 0 | 74 | 47 | 96 |
+| P2 | 0 | 47 | 18 | 144 |
+| P3 | 0 | 17 | 19 | 129 |
 
 ## Measurement and takeoff
 
@@ -86,7 +86,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | meas-038 | Ellipse Cutout | P1 | missing | have |  |
 | meas-039 | Edit / delete cutout | P1 | partial | have | Right-click > Delete Cutout and the cutout_delete tool; editing cutout vertices not yet. |
 | meas-040 | Cutout to its own measurement | P3 | missing | missing |  |
-| meas-041 | Hatch fill | P2 | missing | missing |  |
+| meas-041 | Hatch fill | P2 | have | missing | `dynamic_fill_makes_areas_spaces_and_hatch` `hatch_saves_into_the_appearance_and_reads_back` markup_hatch: six line hatches (our own key /PCHatch) drawn into the appearance, clipped to the shape and its cutouts. |
 | meas-042 | Rotate measurement | P3 | missing | missing |  |
 
 ### Circular and angular tools
@@ -109,7 +109,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | meas-051 | Delete one item from a count group | P0 | missing | have |  |
 | meas-052 | Split / merge counts | P2 | missing | missing |  |
 | meas-053 | Count dimensions | P3 | missing | missing |  |
-| meas-054 | Count grouped per page or Space | P1 | missing | partial |  |
+| meas-054 | Count grouped per page or Space | P1 | have | partial | `spaces_add_column_tally_export_import` `spaces_name_markups_split_counts_and_round_trip` space_tally: counted items per subject per page and space (each Count point in its own space). |
 | meas-055 | Live count preview | P2 | missing | missing |  |
 | meas-056 | Count statuses | P3 | missing | missing |  |
 
@@ -117,12 +117,12 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| meas-057 | Dynamic Fill | P1 | missing | missing |  |
-| meas-058 | Dynamic Fill outputs | P1 | missing | missing |  |
-| meas-059 | Add Boundary | P1 | missing | missing |  |
+| meas-057 | Dynamic Fill | P1 | have | missing | `dynamic_fill_makes_areas_spaces_and_hatch` `fill_finds_the_room_and_its_column` `big_rooms_grow_the_window` dynamic_fill traces the closed region of the page's vector linework around a point (planar graph of the segments, face walk); islands become cutouts. Vector linework only (no raster detection). Headless; no click-and-hold UI. |
+| meas-058 | Dynamic Fill outputs | P1 | partial | missing | `dynamic_fill_makes_areas_spaces_and_hatch` Area (with cutouts), Polygon, Perimeter or Space; not Polylength/Volume or several at once. |
+| meas-059 | Add Boundary | P1 | have | missing | `gaps_close_within_tolerance_and_open_rooms_fail` dynamic_fill boundaries: extra polylines that close or split a room. |
 | meas-060 | Clear fill / boundaries | P1 | missing | missing |  |
 | meas-061 | Drag-to-encircle fill | P2 | missing | missing |  |
-| meas-062 | Dynamic Fill settings | P2 | missing | missing |  |
+| meas-062 | Dynamic Fill settings | P2 | partial | missing | `gaps_close_within_tolerance_and_open_rooms_fail` Gap tolerance and cutouts on/off; no DPI/cursor settings (vector tracing has none). |
 | meas-063 | Visual Search | P1 | have | missing | `visual_search_finds_symbols_and_counts_them` Tool visual_search. |
 | meas-064 | Apply Count to Visual Search results | P0 | have | missing | `visual_search_finds_symbols_and_counts_them` action count: one Count measurement per page with a point on each hit. |
 | meas-065 | Count from text search | P1 | missing | have |  |
@@ -208,20 +208,20 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| meas-118 | Spaces | P1 | missing | missing |  |
-| meas-119 | Space column / group by Space | P1 | missing | missing |  |
-| meas-120 | Recalculate Space | P2 | missing | missing |  |
-| meas-121 | Space from Dynamic Fill | P2 | missing | missing |  |
+| meas-118 | Spaces | P1 | have | missing | `spaces_add_column_tally_export_import` `spaces_name_markups_split_counts_and_round_trip` space_add/edit/delete/list: named polygons per page, stored as our page key /PCSpaces. No panel UI. |
+| meas-119 | Space column / group by Space | P1 | have | missing | `spaces_name_markups_split_counts_and_round_trip` `markups_take_the_innermost_space` Markups List Space column (crates/model table): the innermost space containing the markup's centre, nested spaces as Outer > Inner; groups and filters like any column. |
+| meas-120 | Recalculate Space | P2 | have | missing | `spaces_name_markups_split_counts_and_round_trip` The Space column is computed from the current geometry, so it is always recalculated. |
+| meas-121 | Space from Dynamic Fill | P2 | have | missing | `dynamic_fill_makes_areas_spaces_and_hatch` `dynamic_fill_makes_an_area_with_a_cutout` dynamic_fill output space. |
 
 ### Legends
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | meas-122 | Tool-set legend | P1 | missing | missing |  |
-| meas-123 | Ad-hoc legend | P2 | missing | missing |  |
-| meas-124 | Legend scope | P1 | missing | missing |  |
-| meas-125 | Legend columns | P1 | missing | missing |  |
-| meas-126 | Legend appearance | P2 | missing | missing |  |
+| meas-123 | Ad-hoc legend | P2 | partial | missing | `legends_list_subjects_and_follow_edits` legend_add makes a legend of the page or document markups, filtered by subjects; not from an arbitrary selection or a tool set. |
+| meas-124 | Legend scope | P1 | partial | missing | `legends_list_subjects_and_follow_edits` `legend_lists_subjects_counts_totals_and_follows_edits` Current page or all pages; no page range. |
+| meas-125 | Legend columns | P1 | partial | missing | `legends_list_subjects_and_follow_edits` Symbol, Subject, Type, Count, Total columns in any order; not custom Markups List columns. |
+| meas-126 | Legend appearance | P2 | partial | missing | `legends_list_subjects_and_follow_edits` Title on/off and font size; our own table style (no line/fill options yet). |
 | meas-127 | Legend distribution | P3 | missing | missing |  |
 
 ### Export, reporting and Excel
@@ -280,7 +280,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-031 | Eraser | P2 | missing | missing |  |
 | mark-032 | Shift-constrain while drawing | P0 | have | have | `shift_constrains_a_line_and_a_drag_makes_an_arrow` `shift_constrains_to_45_degrees` |
 | mark-033 | Spacebar pan while drawing | P1 | missing | have |  |
-| mark-034 | Shape fill hatch patterns | P2 | missing | missing |  |
+| mark-034 | Shape fill hatch patterns | P2 | have | missing | `dynamic_fill_makes_areas_spaces_and_hatch` `hatch_lines_cover_the_box` Diagonal, BackDiagonal, Horizontal, Vertical, Cross, DiagonalCross on Area, Polygon, Rectangle, Ellipse, Cloud, Volume. |
 | mark-035 | Flag | P3 | missing | missing |  |
 
 ### C. Stamps, images, links, attachments, capture
@@ -288,12 +288,12 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | mark-036 | Stamp tool | P1 | have | partial | `stamp_places_the_chosen_design` Click to place (or drag the box) the design chosen in Tool Chest > Stamps; our own designs. |
-| mark-037 | Stamp library management | P2 | missing | missing |  |
-| mark-038 | Create Stamp | P2 | missing | missing |  |
-| mark-039 | Dynamic stamp text | P1 | missing | missing |  |
+| mark-037 | Stamp library management | P2 | have | missing | `stamps_builtin_custom_dynamic_fields_and_images` Stamp library in the config folder (stamps/library.json): stamp_list, stamp_create, stamp_remove; built-in designs are our own. |
+| mark-038 | Create Stamp | P2 | have | missing | `stamps_builtin_custom_dynamic_fields_and_images` stamp_create: text stamps (first line big, colour) or image stamps. |
+| mark-039 | Dynamic stamp text | P1 | have | missing | `stamps_builtin_custom_dynamic_fields_and_images` `fields_expand_dates_pages_files_and_prompts` {user} {date[:FMT]} {time[:FMT]} {datetime:FMT} {page} {pagenum} {pages} {file} {filename} {path} {prompt:Label=Default}, filled when placed. Times are UTC unless a time is given. |
 | mark-040 | Interactive stamps | P2 | missing | missing |  |
-| mark-041 | Stamp from image/PDF | P2 | missing | missing |  |
-| mark-042 | Image markup | P2 | missing | missing |  |
+| mark-041 | Stamp from image/PDF | P2 | have | missing | `stamps_builtin_custom_dynamic_fields_and_images` Image stamps from a PNG (alpha as a soft mask) or a PDF page (copied as a form XObject), placed directly or from the library. |
+| mark-042 | Image markup | P2 | partial | missing | `stamps_builtin_custom_dynamic_fields_and_images` A PNG placed as an image stamp annotation; no separate Image markup kind. |
 | mark-043 | Image From Scanner | P3 | missing | missing |  |
 | mark-044 | Snapshot | P1 | have | have | `cli: markupcheck` `snapshot_copies_a_region_and_ctrl_v_pastes_it` Drag a region; Ctrl+V pastes it at the pointer. |
 | mark-045 | Copy Page to Snapshot | P3 | missing | have |  |
@@ -305,9 +305,9 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-051 | Capture Summary / Export Capture Media | P3 | missing | missing |  |
 | mark-052 | Symbols (Tool Chest items as symbols) | P0 | missing | have |  |
 | mark-053 | Sketch tools | P2 | missing | missing |  |
-| mark-054 | Legend | P1 | missing | missing |  |
-| mark-055 | Spaces (markup-related) | P2 | missing | missing |  |
-| mark-056 | Dynamic Fill | P1 | missing | missing |  |
+| mark-054 | Legend | P1 | have | missing | `legends_list_subjects_and_follow_edits` `legend_lists_subjects_counts_totals_and_follows_edits` A FreeText legend (/PCLegend) with our own table appearance and the table as /Contents; legend_update recomputes it after edits. |
+| mark-055 | Spaces (markup-related) | P2 | have | missing | `spaces_add_column_tally_export_import` Markups take the name of the space they are in (Space column). |
+| mark-056 | Dynamic Fill | P1 | have | missing | `dynamic_fill_makes_areas_spaces_and_hatch` Headless dynamic_fill (vector linework); no canvas tool yet. |
 
 ### D. Properties panel
 
@@ -331,14 +331,14 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-072 | Appearance: Line start / end | P1 | partial | missing | Properties > Start / End line endings. |
 | mark-073 | Appearance: Cloud style / intensity | P0 | partial | missing | Properties > Cloud intensity. |
 | mark-074 | Appearance: Blend mode | P1 | missing | missing |  |
-| mark-075 | Appearance: Hatch | P2 | missing | missing |  |
+| mark-075 | Appearance: Hatch | P2 | partial | missing | `dynamic_fill_makes_areas_spaces_and_hatch` Hatch style, spacing, width and colour through markup_hatch; no Properties panel control yet. |
 | mark-076 | Appearance: Font | P0 | partial | missing | Properties > Font, size, colour, bold, italic, underline. |
 | mark-077 | Appearance: Icon (note/attachment) | P3 | partial | missing | Properties > Note icon. |
 | mark-078 | Layout: X, Y | P2 | missing | missing |  |
 | mark-079 | Layout: Width, Height | P2 | missing | missing |  |
 | mark-080 | Layout: Rotation | P2 | missing | missing |  |
 | mark-081 | Interactive rotation handle | P2 | missing | missing |  |
-| mark-082 | Layer property | P1 | partial | missing | Properties > Layer name (no Layers panel yet). |
+| mark-082 | Layer property | P1 | have | missing | `layers_create_assign_hide_filter_rename_delete` Markup layer through layer_assign or the layer field of markup_edit; saved as /OC. |
 | mark-084 | Options: Set as Default | P0 | have | have | `set_as_default_styles_new_markups` |
 | mark-085 | Options: Add to Tool Chest | P0 | have | have | `context_menu_saves_a_look_to_the_tool_chest` |
 | mark-083 | Lock property | P1 | have | have | `extras_columns_status_replies_lock_round_trip` `properties_edit_every_selected_markup` Lock flag in the model and file; no UI. |
@@ -399,25 +399,25 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-130 | Pin tool set to toolbar | P2 | missing | missing |  |
 | mark-131 | Collapsed set flyout | P3 | missing | missing |  |
 | mark-132 | Shared tool set lock/checkout | P3 | missing | missing |  |
-| mark-133 | Profiles | P2 | missing | missing |  |
+| mark-133 | Profiles | P2 | have | missing | `preferences_profiles_set_switch_export_import` Profiles (see ui-100). |
 | mark-134 | Add markup to Tool Chest by drag | P1 | missing | missing |  |
 
 ### G. Layers (PDF optional content)
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| mark-135 | Layers panel | P1 | missing | missing |  |
-| mark-136 | Toggle layer visibility | P1 | missing | missing |  |
-| mark-137 | Add New Layer | P2 | missing | missing |  |
+| mark-135 | Layers panel | P1 | partial | missing | `layers_create_assign_hide_filter_rename_delete` Layer data and tools (layer_list, layer_set, layer_assign...) over PDF optional content groups; no panel UI yet. |
+| mark-136 | Toggle layer visibility | P1 | have | missing | `layers_create_assign_hide_filter_rename_delete` `layers_create_assign_state_save_and_reopen` layer_set visible: the default configuration's /OFF list. Headless; no panel UI. |
+| mark-137 | Add New Layer | P2 | have | missing | `layers_create_assign_hide_filter_rename_delete` layer_create adds an /OCG to /OCProperties (/OCGs, /D /Order). |
 | mark-138 | Layer hierarchy by drag | P3 | missing | missing |  |
-| mark-139 | Markup Layer | P1 | missing | missing |  |
-| mark-140 | Isolate layer | P1 | missing | missing |  |
-| mark-141 | Show All / Reset Layers | P2 | missing | missing |  |
+| mark-139 | Markup Layer | P1 | have | missing | `layers_create_assign_hide_filter_rename_delete` `layers_create_assign_state_save_and_reopen` layer_assign puts markups on a layer: /OC on each annotation, written on save; the layer is created when new. |
+| mark-140 | Isolate layer | P1 | have | missing | `layers_create_assign_hide_filter_rename_delete` `rename_delete_isolate_and_undo` layer_set isolate: only that layer stays on. |
+| mark-141 | Show All / Reset Layers | P2 | have | missing | `layers_create_assign_hide_filter_rename_delete` `rename_delete_isolate_and_undo` layer_set show_all turns every layer on. |
 | mark-142 | Layer configurations | P2 | missing | missing |  |
-| mark-143 | Show Print / Export layers | P3 | missing | missing |  |
+| mark-143 | Show Print / Export layers | P3 | partial | missing | `layers_create_assign_hide_filter_rename_delete` Print state per layer (/Usage /Print /PrintState plus the /AS Print event); no Show Print/Export view filter. |
 | mark-144 | Show layers on page only / alphabetical | P3 | missing | missing |  |
-| mark-145 | Rename / Delete layer | P2 | missing | missing |  |
-| mark-146 | Layer Properties | P3 | missing | missing |  |
+| mark-145 | Rename / Delete layer | P2 | have | missing | `layers_create_assign_hide_filter_rename_delete` `rename_delete_isolate_and_undo` layer_rename (markups follow) and layer_delete (markups left on no layer, or deleted with it). Undoable. |
+| mark-146 | Layer Properties | P3 | have | missing | `layers_create_assign_hide_filter_rename_delete` `layers_create_assign_state_save_and_reopen` Visible, print and locked states (layer_set), saved in the file. |
 | mark-147 | Import / Export layer to page | P3 | missing | missing |  |
 | mark-148 | Flatten/Unflatten markups on a layer | P3 | partial | missing | `flatten_markups_by_filter` Flatten markups of chosen layers (markup_flatten layers); no unflatten. |
 
@@ -615,7 +615,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-097 | Page setup / resize | P3 | partial | missing | `crop_boxes_and_page_resize` page_resize changes the media size (custom or paper name, orientation) around an anchor, keeping markups and scales in place; no content scaling, rotation or offsets. |
 | doc-098 | Deskew | P3 | missing | missing |  |
 | doc-099 | Page range picker (shared) | P1 | missing | have |  |
-| doc-100 | Batch file list (shared) | P2 | missing | missing |  |
+| doc-100 | Batch file list (shared) | P2 | partial | missing | `batch_link_summary_sets_and_apply` Batch tools take a file list or a set file. |
 | doc-101 | Signed / certified guard | P3 | missing | missing |  |
 
 ### Creating and combining PDFs
@@ -636,31 +636,31 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| doc-111 | Batch Link: search terms | P1 | missing | missing |  |
+| doc-111 | Batch Link: search terms | P1 | partial | missing | `batch_link_summary_sets_and_apply` batch_link searches for the page labels (sheet numbers) of the files, whole words up to four words; no custom search terms or regular expressions. |
 | doc-112 | Batch Link: term filters | P2 | missing | missing |  |
-| doc-113 | Batch Link: destinations | P1 | missing | missing |  |
-| doc-114 | Batch Link: link options | P2 | missing | missing |  |
-| doc-115 | Batch Link: save and report | P2 | missing | missing |  |
-| doc-116 | Batch Slip Sheet: matching | P1 | missing | missing |  |
-| doc-117 | Batch Slip Sheet: apply | P1 | missing | missing |  |
-| doc-118 | Batch Slip Sheet: leftovers and report | P2 | missing | missing |  |
+| doc-113 | Batch Link: destinations | P1 | have | missing | `batch_link_summary_sets_and_apply` Links go to the labelled page: a page link in the same file, a GoToR link (relative file name) to a page of another file. |
+| doc-114 | Batch Link: link options | P2 | partial | missing | `batch_link_summary_sets_and_apply` Border width, colour and padding; a place that already has a link is skipped (re-runs add nothing). |
+| doc-115 | Batch Link: save and report | P2 | have | missing | `batch_link_summary_sets_and_apply` Each file is saved in place; the report lists links per file, places skipped and errors. |
+| doc-116 | Batch Slip Sheet: matching | P1 | have | missing | `slip_sheet_replaces_matching_sheets_and_keeps_markups` slip_sheet matches page labels, whole or the part before a filter (e.g. ' - '), case-insensitive by default. |
+| doc-117 | Batch Slip Sheet: apply | P1 | have | missing | `slip_sheet_replaces_matching_sheets_and_keeps_markups` Matching pages are replaced with the revised content; their markups, links and bookmarks stay. Undoable. |
+| doc-118 | Batch Slip Sheet: leftovers and report | P2 | have | missing | `slip_sheet_replaces_matching_sheets_and_keeps_markups` Unmatched new sheets are appended with their labels (or left out); the report lists matched, unmatched old and unmatched new sheets. |
 | doc-119 | Batch Sign & Seal | P3 | missing | missing |  |
-| doc-120 | Batch Apply Stamp | P2 | missing | missing |  |
-| doc-121 | Batch Flatten / Unflatten | P2 | missing | missing |  |
-| doc-122 | Batch Summary | P0 | missing | partial |  |
+| doc-120 | Batch Apply Stamp | P2 | have | missing | `batch_link_summary_sets_and_apply` batch_apply with stamp_add over many files (in place or to an output folder). |
+| doc-121 | Batch Flatten / Unflatten | P2 | partial | missing | `batch_link_summary_sets_and_apply` batch_apply with markup_flatten; no unflatten. |
+| doc-122 | Batch Summary | P0 | have | partial | `batch_link_summary_sets_and_apply` batch_summary: one CSV of the Markups Lists of many files with a File column. |
 | doc-123 | Batch Print | P2 | missing | missing |  |
-| doc-124 | Batch Headers & Footers | P3 | missing | missing |  |
-| doc-125 | Other batch processes | P3 | missing | missing |  |
+| doc-124 | Batch Headers & Footers | P3 | have | missing | `batch_link_summary_sets_and_apply` batch_apply with header_footer_add / watermark_add / bates_add. |
+| doc-125 | Other batch processes | P3 | partial | missing | `batch_link_summary_sets_and_apply` batch_apply runs a list of document tools (flatten, marks, stamps, paste markups, add markups, layers, legends, page labels) on each file. |
 
 ### Sets (many PDFs viewed as one)
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| doc-126 | Create / open / save Set | P1 | missing | missing |  |
-| doc-127 | Navigate a Set | P1 | missing | missing |  |
-| doc-128 | Set sorting | P2 | missing | missing |  |
+| doc-126 | Create / open / save Set | P1 | have | missing | `batch_link_summary_sets_and_apply` `sets_sort_naturally_and_round_trip` set_save writes our own JSON set (.pcset, relative paths); set_sheets reads it and can open every file. |
+| doc-127 | Navigate a Set | P1 | partial | missing | `batch_link_summary_sets_and_apply` set_sheets lists every sheet (file, page, label) and opens the files; no Sets panel. |
+| doc-128 | Set sorting | P2 | have | missing | `batch_link_summary_sets_and_apply` `sets_sort_naturally_and_round_trip` File order, label (natural order) or file then label. |
 | doc-129 | Revision handling | P2 | missing | missing |  |
-| doc-130 | Carry markups to new revision | P2 | missing | missing |  |
+| doc-130 | Carry markups to new revision | P2 | have | missing | `slip_sheet_replaces_matching_sheets_and_keeps_markups` Slip Sheet keeps the old sheets' markups on the revised pages. |
 | doc-131 | Categories | P3 | missing | missing |  |
 | doc-132 | Tags | P2 | missing | missing |  |
 | doc-133 | Publish a Set | P2 | missing | missing |  |
@@ -896,11 +896,11 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| ui-062 | Spaces panel | P1 | missing | missing |  |
-| ui-063 | Add Space | P1 | missing | missing |  |
-| ui-064 | Highlight / edit spaces | P1 | missing | missing |  |
-| ui-065 | Space column in Markups List | P1 | missing | missing |  |
-| ui-066 | Split counts by space | P2 | missing | missing |  |
+| ui-062 | Spaces panel | P1 | partial | missing | `spaces_add_column_tally_export_import` Spaces data and tools; no panel UI yet. |
+| ui-063 | Add Space | P1 | have | missing | `spaces_add_column_tally_export_import` space_add (outline points, name, colour, opacity). Headless. |
+| ui-064 | Highlight / edit spaces | P1 | partial | missing | `spaces_add_column_tally_export_import` space_edit renames and reshapes; highlighting is UI work still to do. |
+| ui-065 | Space column in Markups List | P1 | have | missing | `spaces_name_markups_split_counts_and_round_trip` Space column in the Markups List table (crates/model). |
+| ui-066 | Split counts by space | P2 | have | missing | `spaces_add_column_tally_export_import` space_tally splits counts by space. |
 | ui-067 | Snapshot from space | P3 | missing | missing |  |
 | ui-068 | Links panel: Places | P2 | missing | missing |  |
 | ui-069 | Links panel: Hyperlinks list | P2 | missing | missing |  |
@@ -944,11 +944,11 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| ui-100 | Profiles | P1 | missing | missing |  |
-| ui-101 | Switch profile | P1 | missing | missing |  |
-| ui-102 | Save profile | P2 | missing | missing |  |
-| ui-103 | Manage profiles | P2 | missing | missing |  |
-| ui-104 | Export / import profile | P2 | missing | missing |  |
+| ui-100 | Profiles | P1 | have | missing | `preferences_profiles_set_switch_export_import` `profiles_save_switch_export_import` Profiles: one JSON file per profile in the user's config folder (prefs_*, profile_* tools). Holds preferences, not window layouts yet. |
+| ui-101 | Switch profile | P1 | have | missing | `preferences_profiles_set_switch_export_import` profile_switch (a new profile copies the current preferences or starts from defaults). |
+| ui-102 | Save profile | P2 | have | missing | `preferences_profiles_set_switch_export_import` prefs_set saves into the active (or named) profile at once. |
+| ui-103 | Manage profiles | P2 | have | missing | `preferences_profiles_set_switch_export_import` profile_list, profile_delete (not the active profile). |
+| ui-104 | Export / import profile | P2 | have | missing | `preferences_profiles_set_switch_export_import` prefs_export / prefs_import (JSON, validated on import). |
 | ui-105 | Keyboard Shortcuts dialog | P1 | missing | missing |  |
 | ui-106 | Single-key tool shortcuts | P0 | missing | partial |  |
 | ui-107 | Printable shortcut reference | P3 | missing | missing |  |
@@ -998,18 +998,18 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| ui-139 | Preferences dialog | P1 | missing | missing |  |
-| ui-140 | General > Options: user name | P0 | missing | missing |  |
+| ui-139 | Preferences dialog | P1 | partial | missing | `preferences_profiles_set_switch_export_import` Preferences model (author, units, precision, colours, snapping, autosave, save mode, recent files, theme) with validation and storage; no dialog yet. |
+| ui-140 | General > Options: user name | P0 | have | missing | `preferences_profiles_set_switch_export_import` author preference; new markups take it. |
 | ui-141 | General > Options: language, theme | P2 | missing | missing |  |
 | ui-142 | General > Options: startup | P2 | missing | missing |  |
-| ui-143 | General > Document: recovery and save mode | P1 | missing | partial |  |
+| ui-143 | General > Document: recovery and save mode | P1 | partial | partial | `profiles_save_switch_export_import` autosave_minutes and save_mode stored; not acted on yet. |
 | ui-144 | General > Document: default layout and fit | P2 | missing | missing |  |
 | ui-145 | General > Document: misc | P2 | missing | missing |  |
 | ui-146 | General > Navigation: wheel = zoom or scroll | P1 | missing | partial |  |
 | ui-147 | General > Navigation: wheel tuning | P2 | missing | missing |  |
 | ui-148 | General > Navigation: scrollbars | P3 | missing | missing |  |
 | ui-149 | General > Navigation: sync, 3D mouse, accelerators | P3 | missing | missing |  |
-| ui-150 | General > Grid & Snap | P1 | missing | missing |  |
+| ui-150 | General > Grid & Snap | P1 | partial | missing | `preferences_profiles_set_switch_export_import` Grid and snap preferences stored (content, markup, grid, spacing, sensitivity); the canvas does not read them yet. |
 | ui-151 | General > Spelling | P3 | partial | missing | `spell_check_flags_markup_text_with_suggestions` Language (dictionary name), ignore ALL-CAPS and accepted words are tool options; no preferences page or user dictionary file yet. |
 | ui-152 | Interface > File Access | P3 | missing | missing |  |
 | ui-153 | Interface > Markups List | P1 | missing | missing |  |
