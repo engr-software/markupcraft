@@ -175,11 +175,19 @@ version = "0.3.0"
 [[package]]
 name = "markupcraft-automation"
 version = "0.3.0"
+dependencies = [
+ "markupcraft-engine",
+ "markupcraft-measure",
+ "markupcraft-revu",
+ "serde_json",
+]
 
 [[package]]
 name = "markupcraft-cli"
 version = "0.3.0"
 dependencies = [
+ "markupcraft-automation",
+ "markupcraft-engine",
  "markupcraft-measure",
  "markupcraft-model",
  "markupcraft-revu",
@@ -189,6 +197,13 @@ dependencies = [
 [[package]]
 name = "markupcraft-engine"
 version = "0.3.0"
+dependencies = [
+ "markupcraft-geom",
+ "markupcraft-measure",
+ "markupcraft-model",
+ "markupcraft-revu",
+ "thiserror",
+]
 
 [[package]]
 name = "markupcraft-geom"
