@@ -62,12 +62,13 @@ fn menu_items(app: &mut AppState, ui: &mut egui::Ui, menu: &str) {
     for tool in &tools {
         let id = format!("tool.{}", tool.id);
         let on = app.tool == tool.id;
+        let keys = app.keys.keys_for(&id);
         item(
             app,
             ui,
             &id,
             tool.label,
-            tool.keys,
+            keys,
             app.has_doc() || matches!(tool.kind, ToolKind::Select | ToolKind::Pan),
             Some(on),
         );
@@ -116,7 +117,8 @@ fn menu_items(app: &mut AppState, ui: &mut egui::Ui, menu: &str) {
         } else {
             format!("{} (not yet)", c.label)
         };
-        item(app, ui, c.id, &label, c.keys, enabled, app.checked(c.id));
+        let keys = app.keys.keys_for(c.id);
+        item(app, ui, c.id, &label, keys, enabled, app.checked(c.id));
         if c.id == "file.open" {
             crate::shell::recent::menu(app, ui);
         }

@@ -32,6 +32,8 @@ pub enum Purpose {
     },
     /// A document feature's file (`features::Ask`).
     Feature(crate::features::Ask),
+    /// Editing features (`editing::dialog_answer`): a tag and its argument
+    Edit(&'static str, String),
 }
 
 struct Pending {
@@ -54,6 +56,8 @@ pub type Filter = (&'static str, &'static [&'static str]);
 pub const PDF: Filter = ("PDF", &["pdf"]);
 pub const CSV: Filter = ("CSV", &["csv"]);
 pub const XML: Filter = ("XML", &["xml"]);
+pub const TOOLSET: Filter = ("MarkupCraft tool set", &["mctools", "json"]);
+pub const KEYS: Filter = ("Keyboard shortcuts", &["json"]);
 
 impl Dialogs {
     /// A dialog is open.

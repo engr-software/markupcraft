@@ -11,6 +11,7 @@
 
 use markupcraft_geom::text::{layout_text, line_height, text_height_for, text_inset, to_win_ansi, widest_paragraph};
 use markupcraft_geom::{Point, Rect};
+use markupcraft_model::rich::{self, CharStyle, TextRun};
 use markupcraft_model::{Color, Kind, Markup, TextStyle};
 use pdfcraft_cos::{Dict, Document as CosDoc, Object};
 
@@ -270,14 +271,123 @@ pub fn rich_text(m: &Markup) -> String {
          xmlns=\"http://www.w3.org/1999/xhtml\">",
         xml_escape(&text_css(&m.text))
     );
+    let mut at = 0;
     for p in markupcraft_geom::text::paragraphs(&m.contents) {
+        let n = p.chars().count();
         if p.is_empty() {
             out += "<p />";
-        } else {
+        } else if m.rich.is_empty() {
             out += &format!("<p>{}</p>", xml_escape(&p));
+        } else {
+            out += "<p>";
+            let chars: Vec<char> = p.chars().collect();
+            let base = CharStyle::of(&m.text);
+            for (s, e, st) in rich::segments(&m.text, &m.rich, at, at + n) {
+                let t: String = chars.get(s - at..e - at).unwrap_or_default().iter().collect();
+                if st == base {
+                    out += &xml_escape(&t);
+                } else {
+                    out += &format!("<span style=\"{}\">{}</span>", span_css(&st), xml_escape(&t));
+                }
+            }
+            out += "</p>";
+        }
+        at += n + 1;
+        // "\r\n" counts as one separator in paragraphs() but two chars in the contents
+        if m.contents.chars().nth(at - 1) == Some('\r') && m.contents.chars().nth(at) == Some('\n') {
+            at += 1;
         }
     }
     out + "</body>"
+}
+
+/// A span's style: every property, so it reads the same over any base.
+fn span_css(s: &CharStyle) -> String {
+    format!(
+        "font-weight:{};font-style:{};text-decoration:{};color:{}",
+        if s.bold { "bold" } else { "normal" },
+        if s.italic { "italic" } else { "normal" },
+        if s.underline { "underline" } else { "none" },
+        s.color.hex()
+    )
+}
+
+/// The runs of an `/RC` body MarkupCraft wrote (`<span style>` inside `<p>`), against `base`.
+/// `None` when the body is not ours or has markup we do not read.
+pub fn read_rich_runs(rc: &str, base: &TextStyle) -> Option<Vec<TextRun>> {
+    if !rc.contains("MarkupCraft:") {
+        return None;
+    }
+    let body = rc.split_once("<body")?.1.split_once('>')?.1;
+    let body = body.rsplit_once("</body>").map_or(body, |(b, _)| b);
+    let mut runs = Vec::new();
+    let mut at = 0usize;
+    let mut first = true;
+    let mut rest = body;
+    while !rest.is_empty() {
+        if let Some(r) = rest.strip_prefix("<p />") {
+            if !first {
+                at += 1;
+            }
+            first = false;
+            rest = r;
+            continue;
+        }
+        let r = rest.strip_prefix("<p>")?;
+        if !first {
+            at += 1;
+        }
+        first = false;
+        let (inner, after) = r.split_once("</p>")?;
+        rest = after;
+        let mut s = inner;
+        while !s.is_empty() {
+            if let Some(span) = s.strip_prefix("<span style=\"") {
+                let (css, tail) = span.split_once("\">")?;
+                let (text, tail) = tail.split_once("</span>")?;
+                let n = xml_unescape(text).chars().count();
+                let mut st = base.clone();
+                parse_text_css(css, &mut st);
+                for decl in css.split(';') {
+                    match decl.split_once(':').map(|(k, v)| (k.trim(), v.trim())) {
+                        Some(("font-weight", "normal")) => st.bold = false,
+                        Some(("font-style", "normal")) => st.italic = false,
+                        Some(("text-decoration", "none")) => st.underline = false,
+                        _ => {}
+                    }
+                }
+                runs.push(TextRun {
+                    start: at,
+                    end: at + n,
+                    bold: st.bold,
+                    italic: st.italic,
+                    underline: st.underline,
+                    color: st.color,
+                });
+                at += n;
+                s = tail;
+            } else {
+                let end = s.find('<').unwrap_or(s.len());
+                if end == 0 {
+                    return None;
+                }
+                at += xml_unescape(s.get(..end)?).chars().count();
+                s = s.get(end..)?;
+            }
+        }
+        if runs.len() > rich::MAX_RUNS {
+            return None;
+        }
+    }
+    Some(rich::normalize(base, &runs, at))
+}
+
+fn xml_unescape(s: &str) -> String {
+    s.replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&apos;", "'")
+        .replace("&amp;", "&")
 }
 
 // ---------------------------------------------------------------------------- layout ---
@@ -344,6 +454,10 @@ fn draw_text(ap: &mut Ap, m: &Markup, extent: &mut Vec<Point>) {
     let st = &m.text;
     let f = font_of(st);
     let lines = layout_text(b, &m.contents, &f, st.align, text_inset(w));
+    if !m.rich.is_empty() {
+        draw_rich_lines(ap, m, &lines);
+        return;
+    }
     ap.op("[] 0 d BT /").op(f.res_name()).op(" ").nums(&[st.size], "Tf");
     ap.fill_rgb(&st.color).newline();
     for l in lines.iter().filter(|l| !l.text.is_empty()) {
@@ -363,6 +477,78 @@ fn draw_text(ap: &mut Ap, m: &Markup, extent: &mut Vec<Point>) {
         }
         ap.op("Q\n");
     }
+}
+
+/// Char offsets of each laid-out line in the contents (lines drop the spaces they wrap at).
+pub fn line_starts(contents: &str, lines: &[markupcraft_geom::text::TextLine]) -> Vec<usize> {
+    let chars: Vec<char> = contents.chars().collect();
+    let mut at = 0usize;
+    let mut out = Vec::with_capacity(lines.len());
+    for l in lines {
+        let want: Vec<char> = l.text.chars().collect();
+        let mut i = at;
+        while i < chars.len() {
+            if chars.get(i..i + want.len()) == Some(want.as_slice()) {
+                break;
+            }
+            i += 1;
+        }
+        let i = i.min(chars.len());
+        out.push(i);
+        at = i + want.len();
+    }
+    out
+}
+
+/// The lines of a markup with rich runs: each line in segments of one font and colour.
+fn draw_rich_lines(ap: &mut Ap, m: &Markup, lines: &[markupcraft_geom::text::TextLine]) {
+    let st = &m.text;
+    let starts = line_starts(&m.contents, lines);
+    let mut unders: Vec<(Point, Point, Color)> = Vec::new();
+    ap.op("[] 0 d BT\n");
+    for (l, s0) in lines.iter().zip(&starts) {
+        let n = l.text.chars().count();
+        let chars: Vec<char> = l.text.chars().collect();
+        let mut x = l.x;
+        for (s, e, cs) in rich::segments(st, &m.rich, *s0, s0 + n) {
+            let t: String = chars.get(s - s0..e - s0).unwrap_or_default().iter().collect();
+            let f = font_of(&TextStyle {
+                bold: cs.bold,
+                italic: cs.italic,
+                ..st.clone()
+            });
+            ap.op("/").op(f.res_name()).op(" ").nums(&[st.size], "Tf");
+            ap.fill_rgb(&cs.color).op(" 1 0 0 1 ").nums(&[x, l.y], "Tm");
+            ap.op(&format!("({}) Tj\n", Ap::text_literal(&to_win_ansi(&t))));
+            let w = markupcraft_geom::text::text_width(&t, &f);
+            if cs.underline {
+                let y = l.y - st.size * 0.12;
+                unders.push((Point::new(x, y), Point::new(x + w, y), cs.color));
+            }
+            x += w;
+        }
+    }
+    ap.op("ET\n");
+    for (a, b, c) in unders {
+        ap.op("q ").nums(&[(st.size / 16.0).max(0.5)], "w").stroke_rgb(&c);
+        ap.move_to(a).line_to(b).op("S Q\n");
+    }
+}
+
+/// Every font a text markup's appearance uses (its own, plus the rich runs' variants).
+pub fn fonts_used(m: &Markup) -> Vec<markupcraft_geom::text::Font> {
+    let mut out = vec![font_of(&m.text)];
+    for r in &m.rich {
+        let f = font_of(&TextStyle {
+            bold: r.bold,
+            italic: r.italic,
+            ..m.text.clone()
+        });
+        if !out.contains(&f) {
+            out.push(f);
+        }
+    }
+    out
 }
 
 fn write_text(a: &mut Dict, m: &Markup) {
@@ -396,6 +582,12 @@ fn read_text(cos: &CosDoc, a: &Dict, m: &mut Markup) {
         parse_text_css(&ds.to_text(), &mut m.text);
     }
     if !border {
+        m.color = m.text.color;
+    }
+    // Not Revu's (no /DS or /RC): a /C equal to the text colour would hide the text, so other
+    // writers' /C is taken as the border colour, as their viewers draw it.
+    if !a.contains(b"DS") && !a.contains(b"RC") && m.fill == Some(m.text.color) {
+        m.fill = None;
         m.color = m.text.color;
     }
     if m.kind == Kind::Callout {

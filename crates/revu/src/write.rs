@@ -65,7 +65,7 @@ fn appearance(cos: &mut CosDoc, m: &mut Markup, ak: &AnnotKind) -> Object {
     ap.op("Q\n");
 
     // The quantity, drawn like Revu does, so other viewers show it too.
-    let label = if m.kind.is_measurement() && m.kind != Kind::Count {
+    let label = if m.kind.is_measurement() && m.kind != Kind::Count && !m.hide_caption {
         m.quantity_text()
     } else {
         String::new()
@@ -97,8 +97,9 @@ fn appearance(cos: &mut CosDoc, m: &mut Markup, ak: &AnnotKind) -> Object {
     let mut fonts = pdf::dict(&[("Helv", type1_font("Helvetica"))]);
     if m.kind.is_text() || !m.stamp.is_empty() {
         // the markup's own font, under the resource name the kind's drawing uses
-        let f = kinds::common::font_of(&m.text);
-        pdf::set(&mut fonts, f.res_name(), type1_font(f.base_name()));
+        for f in kinds::text::fonts_used(m) {
+            pdf::set(&mut fonts, f.res_name(), type1_font(f.base_name()));
+        }
     }
     let res = pdf::dict(&[
         ("ExtGState", Object::Dict(pdf::dict(&[("GS0", Object::Dict(gs))]))),
@@ -189,6 +190,21 @@ pub fn write_annot(cos: &mut CosDoc, a: &mut Dict, m: &mut Markup, page: ObjRef)
     // Flags (Lock): written only when they differ from the file.
     if a.int(b"F").unwrap_or(0) != m.flags {
         pdf::set(a, "F", Object::Int(m.flags));
+    }
+    // Blend mode and Show Caption: written only when they differ from the file.
+    let own_blend = matches!(
+        m.kind,
+        Kind::Ink | Kind::Highlight | Kind::TextHighlight | Kind::Underline | Kind::Strikeout | Kind::Squiggly
+    );
+    if !own_blend && (pdf::name(a.get(b"BM")) == "Multiply") != m.multiply {
+        if m.multiply {
+            pdf::set(a, "BM", n("Multiply"));
+        } else {
+            pdf::remove(a, "BM");
+        }
+    }
+    if m.kind.is_measurement() && pdf::boolean(a.get(b"Cap")).unwrap_or(true) == m.hide_caption {
+        pdf::set(a, "Cap", Object::Bool(!m.hide_caption));
     }
     m.modified = pdf_date_now();
     pdf::set(a, "M", s(&m.modified));

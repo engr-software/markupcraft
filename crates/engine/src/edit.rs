@@ -67,7 +67,7 @@ impl Session {
             .ok_or_else(|| invalid("markup index out of range"))
     }
 
-    fn indices(&self, ids: &[String]) -> Result<Vec<usize>> {
+    pub(crate) fn indices(&self, ids: &[String]) -> Result<Vec<usize>> {
         if ids.is_empty() {
             return Err(invalid("no markups given (pass ids, or select some first)"));
         }
@@ -190,7 +190,7 @@ impl Session {
     }
 
     /// Add copies of `items` to `page` (each to its own page when `None`), moved by (dx, dy).
-    fn place_copies(
+    pub(crate) fn place_copies(
         &mut self,
         items: &[Markup],
         page: Option<usize>,
@@ -262,7 +262,7 @@ impl Session {
     }
 
     /// Run a geometry change on each markup, refusing locked or read-only ones.
-    fn geometry_edit(
+    pub(crate) fn geometry_edit(
         &mut self,
         ids: &[String],
         label: &str,

@@ -83,6 +83,12 @@ pub const fn alt(k: Key) -> Option<Keys> {
 pub const fn shift_alt(k: Key) -> Option<Keys> {
     Some(Keys::new(false, true, true, k))
 }
+pub const fn ctrl_alt(k: Key) -> Option<Keys> {
+    Some(Keys::new(true, false, true, k))
+}
+pub const fn ctrl_shift_alt(k: Key) -> Option<Keys> {
+    Some(Keys::new(true, true, true, k))
+}
 
 /// One command.
 #[derive(Debug, Clone, Copy)]
@@ -156,7 +162,7 @@ pub static COMMANDS: &[Command] = &[
     cmd("file.close_all", "Close All", "File", 1, ctrl_shift(Key::W), ""),
     cmd("file.save", "Save", "File", 2, ctrl(Key::S), "save"),
     cmd("file.save_as", "Save As...", "File", 2, ctrl_shift(Key::S), "file-down"),
-    cmd("file.save_all", "Save All", "File", 2, shift(Key::F2), ""),
+    cmd("file.save_all", "Save All", "File", 2, shift(Key::F2), "save-all"),
     cmd("file.refresh", "Refresh Document", "File", 2, shift(Key::F5), ""),
     cmd("file.clear_recent", "Clear Recent Files", "", 0, None, ""),
     cmd("file.print", "Print...", "File", 3, ctrl(Key::P), "printer"),
@@ -207,6 +213,7 @@ pub static COMMANDS: &[Command] = &[
     cmd("view.last_page", "Last Page", "View", 4, key(Key::End), "chevrons-right"),
     cmd("view.hide_markups", "Hide Markups", "View", 5, None, "eye-off"),
     cmd("view.show_grid", "Show Grid", "View", 5, shift(Key::F9), "grid-3x3"),
+    cmd("view.highlight_viewports", "Highlight Viewports", "View", 5, None, "frame"),
     // Markup (drawing tools come from the tool registry)
     cmd("markup.edit_text", "Edit Text", "Markup", 8, None, "type"),
     cmd("markup.autosize", "Autosize Text Box", "Markup", 8, alt(Key::Z), ""),
@@ -218,11 +225,33 @@ pub static COMMANDS: &[Command] = &[
     cmd("arrange.bring_forward", "Bring Forward", "Markup", 11, ctrl(Key::CloseBracket), ""),
     cmd("arrange.send_backward", "Send Backward", "Markup", 11, ctrl(Key::OpenBracket), ""),
     cmd("arrange.send_to_back", "Send to Back", "Markup", 11, ctrl_shift(Key::OpenBracket), ""),
+    cmd("arrange.align_left", "Align Left", "Markup", 13, ctrl_alt(Key::L), "align-start-vertical"),
+    cmd("arrange.align_center", "Align Center", "Markup", 13, ctrl_alt(Key::E), "align-center-vertical"),
+    cmd("arrange.align_right", "Align Right", "Markup", 13, ctrl_alt(Key::R), "align-end-vertical"),
+    cmd("arrange.align_top", "Align Top", "Markup", 13, ctrl_alt(Key::T), "align-start-horizontal"),
+    cmd("arrange.align_middle", "Align Middle", "Markup", 13, ctrl_alt(Key::M), "align-center-horizontal"),
+    cmd("arrange.align_bottom", "Align Bottom", "Markup", 13, ctrl_alt(Key::B), "align-end-horizontal"),
+    cmd("arrange.distribute_horizontal", "Distribute Horizontally", "Markup", 13, None, ""),
+    cmd("arrange.distribute_vertical", "Distribute Vertically", "Markup", 13, None, ""),
+    cmd("arrange.flip_horizontal", "Flip Horizontal", "Markup", 14, ctrl_alt(Key::H), "flip-horizontal-2"),
+    cmd("arrange.flip_vertical", "Flip Vertical", "Markup", 14, ctrl_alt(Key::V), "flip-vertical-2"),
+    cmd("markup.remove_from_group", "Remove From Group", "Markup", 10, ctrl_shift_alt(Key::G), ""),
+    cmd("markup.apply_to_all_pages", "Apply to All Pages", "Markup", 14, None, "copy-plus"),
+    cmd("markup.format_painter", "Format Painter", "Markup", 14, None, "paintbrush"),
+    cmd("edit.nudge_left", "Nudge Left", "", 0, key(Key::ArrowLeft), ""),
+    cmd("edit.nudge_right", "Nudge Right", "", 0, key(Key::ArrowRight), ""),
+    cmd("edit.nudge_up", "Nudge Up", "", 0, key(Key::ArrowUp), ""),
+    cmd("edit.nudge_down", "Nudge Down", "", 0, key(Key::ArrowDown), ""),
+    cmd("edit.nudge_left_far", "Nudge Left 10", "", 0, shift(Key::ArrowLeft), ""),
+    cmd("edit.nudge_right_far", "Nudge Right 10", "", 0, shift(Key::ArrowRight), ""),
+    cmd("edit.nudge_up_far", "Nudge Up 10", "", 0, shift(Key::ArrowUp), ""),
+    cmd("edit.nudge_down_far", "Nudge Down 10", "", 0, shift(Key::ArrowDown), ""),
     cmd("markup.set_default", "Set as Default", "Markup", 12, None, ""),
     cmd("markup.add_to_toolchest", "Add to Tool Chest", "Markup", 12, None, "wrench"),
     // Measure (the measurement tools come from the tool registry)
     // Tools (Select / Pan come from the tool registry)
     cmd("tools.keep_tool", "Keep Tool Selected", "Tools", 9, None, "pin"),
+    cmd("tools.customize_keys", "Customize Keyboard...", "Tools", 10, None, "keyboard"),
     // Document
     cmd("document.properties", "Document Properties", "Document", 1, ctrl(Key::D), "info"),
     cmd("document.rotate_cw", "Rotate Page Clockwise", "Document", 2, shift_alt(Key::Plus), "rotate-cw"),
@@ -382,6 +411,14 @@ mod tests {
             (k(n, s, a, Key::A), "tool.area"), (k(n, s, a, Key::C), "tool.count"),
             (k(n, s, a, Key::L), "tool.length"), (k(n, s, a, Key::P), "tool.perimeter"),
             (k(n, s, a, Key::Q), "tool.polylength"),
+            (k(n, s, a, Key::G), "tool.angle"), (k(n, s, a, Key::D), "tool.diameter"),
+            (k(n, s, a, Key::U), "tool.radius"), (k(n, s, a, Key::V), "tool.volume"),
+            // Arrange
+            (k(c, n, a, Key::B), "arrange.align_bottom"), (k(c, n, a, Key::E), "arrange.align_center"),
+            (k(c, n, a, Key::L), "arrange.align_left"), (k(c, n, a, Key::M), "arrange.align_middle"),
+            (k(c, n, a, Key::R), "arrange.align_right"), (k(c, n, a, Key::T), "arrange.align_top"),
+            (k(c, n, a, Key::H), "arrange.flip_horizontal"), (k(c, n, a, Key::V), "arrange.flip_vertical"),
+            (k(c, s, a, Key::G), "markup.remove_from_group"), (k(n, s, n, Key::F2), "file.save_all"),
             // Edit
             (k(c, n, n, Key::C), "edit.copy"), (k(c, n, n, Key::X), "edit.cut"),
             (k(n, n, n, Key::Delete), "edit.delete"), (k(c, n, n, Key::V), "edit.paste"),

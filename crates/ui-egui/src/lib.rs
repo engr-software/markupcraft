@@ -19,22 +19,28 @@
 pub mod actions;
 pub mod canvas;
 pub mod chest;
+pub mod chest_sets;
 pub mod chrome;
 pub mod commands;
 pub mod context_menu;
 pub mod dialogs;
 pub mod dock;
+pub mod editing;
 pub mod features;
 pub mod icon_data;
 pub mod icons;
 pub mod interact;
+pub mod keyprefs;
 pub mod painter;
 pub mod panels;
 pub mod prefs_ui;
+pub mod richedit;
 pub mod shell;
+pub mod sketch;
 pub mod snapping;
 pub mod theme;
 pub mod tools;
+pub mod viewports;
 pub mod windows;
 
 use std::path::{Path, PathBuf};
@@ -205,6 +211,10 @@ pub struct AppState {
     pub calibrate: Option<Calibrate>,
     /// Search, compare, spaces, layers, summary and the other document features.
     pub features: features::FeatureState,
+    /// Format Painter, Highlight Viewports, Sketch to Scale.
+    pub edit: editing::EditState,
+    /// The user's keyboard shortcuts.
+    pub keys: keyprefs::KeyPrefs,
     /// Commands to run at the end of the frame.
     queued: Vec<String>,
     /// Dock changes the state cannot make itself.
@@ -250,6 +260,8 @@ impl Default for AppState {
             prompts: Vec::new(),
             calibrate: None,
             features: Default::default(),
+            edit: Default::default(),
+            keys: Default::default(),
             queued: Vec::new(),
             panel_toggles: Vec::new(),
             panel_shows: Vec::new(),
@@ -480,6 +492,7 @@ impl AppState {
                         self.save_to(uid, &first, then_close);
                     }
                 }
+                Purpose::Edit(tag, arg) => self.status = editing::dialog_answer(self, tag, &arg, &first),
                 Purpose::ExportCsv | Purpose::ExportTotals | Purpose::ExportXml => {
                     self.status = panels::markups_list::export(self, &purpose, &first);
                 }
@@ -518,9 +531,13 @@ impl AppState {
         let doc = self.doc();
         let selected = doc.is_some_and(|d| !d.selection().is_empty());
         match id {
-            "file.open" | "file.exit" | "help.shortcuts" | "help.about" | "window.reset_layout" | "tools.keep_tool" => {
-                true
-            }
+            "file.open"
+            | "file.exit"
+            | "help.shortcuts"
+            | "help.about"
+            | "window.reset_layout"
+            | "tools.keep_tool"
+            | "tools.customize_keys" => true,
             "edit.undo" => doc.is_some_and(|d| d.session.can_undo()),
             "edit.redo" => doc.is_some_and(|d| d.session.can_redo()),
             "edit.paste" | "edit.paste_in_place" => doc.is_some_and(|d| !d.session.clipboard().is_empty()),
@@ -536,7 +553,7 @@ impl AppState {
             | "markup.add_to_toolchest"
             | "markup.edit_text"
             | "markup.autosize" => selected,
-            _ if id.starts_with("arrange.") => selected,
+            _ if id.starts_with("arrange.") || editing::needs_selection(id) => selected,
             "edit.deselect" => doc.is_some(),
             "window.next_document" | "window.prev_document" => self.docs.len() > 1,
             "tool.select" | "tool.pan" => true,
@@ -568,6 +585,7 @@ impl AppState {
             "snap.content" => Some(self.snaps.content),
             "snap.markup" => Some(self.snaps.markup),
             "tools.keep_tool" => Some(self.tool_locked),
+            "view.highlight_viewports" => Some(self.edit.highlight_viewports),
             _ => None,
         }
     }
@@ -646,6 +664,7 @@ impl AppState {
             drawing_mode,
             stamp: self.stamp,
             author: &self.author,
+            edit: &self.edit,
         }
     }
 
@@ -730,6 +749,7 @@ impl AppState {
                     };
                 }
                 CanvasAction::ShowPanel(p) => self.show_panel(p),
+                CanvasAction::NewViewport(page, r) => viewports::open_dialog(self, page, r),
             }
         }
     }
@@ -794,12 +814,14 @@ impl AppState {
                         drawing_mode,
                         stamp,
                         author: &author,
+                        edit: &self.edit,
                     };
                     if !interact::escape(d, &cx, &mut out) {
                         d.session.clear_selection();
                     }
                 }
                 self.apply_canvas_out(out);
+                editing::escape(self);
                 self.tool = "select";
                 self.active_item = None;
             }
@@ -931,6 +953,7 @@ impl AppState {
             "snap.content" => self.snaps.content = !self.snaps.content,
             "snap.markup" => self.snaps.markup = !self.snaps.markup,
             _ if features::handles(id) => features::run(self, id, ctx),
+            _ if editing::handles(id) => editing::run(self, id),
             _ if markupcraft_engine::commands::find(id).is_some() => {
                 if let Some(d) = self.doc_mut() {
                     let r = markupcraft_engine::commands::run(&mut d.session, id);
@@ -1055,6 +1078,8 @@ impl MarkupCraftApp {
         let mut app = Self::new();
         if let Some(dir) = chest::config_dir() {
             app.state.toolchest = ToolChest::load(&dir.join("toolchest.json"));
+            app.state.keys = keyprefs::KeyPrefs::load(&dir.join("keyboard.json"));
+            app.state.list.prefs = panels::list_views::ListPrefs::load(&dir.join("markups-list.json"));
             if let Some(e) = &app.state.toolchest.error {
                 app.state.status = e.clone();
             }
@@ -1086,10 +1111,10 @@ impl MarkupCraftApp {
     }
 
     fn shortcuts(&mut self, ctx: &egui::Context) {
-        if ctx.egui_wants_keyboard_input() {
+        if ctx.egui_wants_keyboard_input() || self.state.keys.capturing.is_some() {
             return;
         }
-        for (k, id) in commands::bindings() {
+        for (k, id) in self.state.keys.bindings() {
             if ctx.input_mut(|i| i.consume_shortcut(&k.shortcut())) {
                 self.state.queue(&id);
             }
@@ -1180,6 +1205,9 @@ impl eframe::App for MarkupCraftApp {
         windows::show(&mut self.state, &ctx);
         shell::windows(&mut self.state, &ctx);
         features::frame(&mut self.state, &ctx);
+        viewports::dialog(&mut self.state, &ctx);
+        sketch::bar(&mut self.state, &ctx);
+        keyprefs::window(&mut self.state, &ctx);
 
         for id in std::mem::take(&mut self.state.queued) {
             self.state.run(&id, &ctx);

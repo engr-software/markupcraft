@@ -58,6 +58,10 @@ pub struct ToolSet {
     pub collapsed: bool,
     #[serde(default)]
     pub items: Vec<ToolItem>,
+    /// Tool set scale: the scale its Drawing-mode items were drawn at (they are resized to the
+    /// page's scale when placed)
+    #[serde(default)]
+    pub scale: Option<markupcraft_model::Scale>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -67,6 +71,10 @@ struct FileFormat {
     sets: Vec<ToolSet>,
     #[serde(default)]
     defaults: BTreeMap<String, Markup>,
+    #[serde(default)]
+    view: crate::chest_sets::ChestView,
+    #[serde(default = "crate::chest_sets::default_icon_size")]
+    icon_size: f32,
 }
 
 /// The user's Tool Chest.
@@ -82,6 +90,10 @@ pub struct ToolChest {
     pub path: Option<PathBuf>,
     /// The last load or save problem.
     pub error: Option<String>,
+    /// Detail (rows) or Symbol (tiles) view
+    pub view: crate::chest_sets::ChestView,
+    /// Symbol view tile size, points
+    pub icon_size: f32,
     counter: u64,
 }
 
@@ -93,11 +105,14 @@ impl Default for ToolChest {
                 title: "My Tools".into(),
                 collapsed: false,
                 items: Vec::new(),
+                scale: None,
             }],
             recent: Vec::new(),
             defaults: BTreeMap::new(),
             path: None,
             error: None,
+            view: Default::default(),
+            icon_size: crate::chest_sets::default_icon_size(),
             counter: 0,
         }
     }
@@ -175,6 +190,8 @@ impl ToolChest {
             Ok(f) if f.format == "markupcraft-toolchest" => {
                 c.sets = f.sets;
                 c.defaults = f.defaults;
+                c.view = f.view;
+                c.icon_size = f.icon_size.clamp(16.0, 96.0);
                 c.sanitize();
             }
             Ok(_) | Err(_) => {
@@ -191,7 +208,7 @@ impl ToolChest {
 
     /// Keep what a hand-edited file may break within bounds: My Tools exists and comes first,
     /// ids are unique, templates point at tools that make their kind.
-    fn sanitize(&mut self) {
+    pub(crate) fn sanitize(&mut self) {
         if !self.sets.iter().any(|s| s.id == MY_TOOLS) {
             self.sets.insert(0, ToolChest::default().sets.remove(0));
         }
@@ -220,6 +237,8 @@ impl ToolChest {
             version: 1,
             sets: self.sets.clone(),
             defaults: self.defaults.clone(),
+            view: self.view,
+            icon_size: self.icon_size,
         };
         let r = serde_json::to_string_pretty(&f)
             .map_err(|e| e.to_string())
@@ -227,7 +246,7 @@ impl ToolChest {
         self.error = r.err();
     }
 
-    fn new_id(&mut self, prefix: &str) -> String {
+    pub(crate) fn new_id(&mut self, prefix: &str) -> String {
         self.counter += 1;
         // The clock keeps ids unique across sessions (the browser build has no system clock).
         #[cfg(not(target_arch = "wasm32"))]
@@ -307,6 +326,7 @@ impl ToolChest {
             title: title.into(),
             collapsed: false,
             items: Vec::new(),
+            scale: None,
         });
         self.save();
         id

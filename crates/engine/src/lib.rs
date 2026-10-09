@@ -25,6 +25,7 @@
     clippy::unreachable
 )]
 
+pub mod align;
 pub mod attachments;
 pub mod batch;
 pub mod blank;
@@ -68,6 +69,7 @@ pub mod stamps;
 pub mod summary;
 pub mod synthetic;
 pub mod vectors;
+pub mod viewports;
 pub mod visual;
 pub mod xfdf;
 

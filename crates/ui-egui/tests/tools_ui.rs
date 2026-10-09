@@ -545,6 +545,8 @@ fn properties_panel_edits_go_through_the_engine() {
     click(&mut h, (b.x0 + b.x1) / 2.0, (b.y0 + b.y1) / 2.0);
     assert_eq!(h.state().state.doc().unwrap().selection(), &[TEXT.to_string()]);
     let depth = h.state().state.doc().unwrap().session.undo_depth();
+    h.get_by_label("B").scroll_to_me();
+    h.run_steps(40);
     h.get_by_label("B").click();
     h.run_steps(3);
     assert!(find(&h, TEXT).text.bold);
@@ -722,6 +724,8 @@ fn properties_edit_every_selected_markup() {
     // Box select the square and the ellipse.
     drag(&mut h, (690.0, 720.0), (1010.0, 550.0));
     assert_eq!(h.state().state.doc().unwrap().selection().len(), 2);
+    h.get_by_label("Locked").scroll_to_me();
+    h.run_steps(40);
     h.get_by_label("Locked").click();
     h.run_steps(3);
     assert!(find(&h, SQUARE).locked());

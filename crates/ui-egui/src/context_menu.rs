@@ -120,13 +120,48 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, out: &mut CanvasOut) {
     }
     if !m.group.is_empty() {
         command(ui, out, "Ungroup", "markup.ungroup", true);
+        command(ui, out, "Remove From Group", "markup.remove_from_group", true);
     }
     ui.menu_button("Arrange", |ui| {
         command(ui, out, "Bring to Front", "arrange.bring_to_front", true);
         command(ui, out, "Bring Forward", "arrange.bring_forward", true);
         command(ui, out, "Send Backward", "arrange.send_backward", true);
         command(ui, out, "Send to Back", "arrange.send_to_back", true);
+        ui.separator();
+        command(ui, out, "Flip Horizontal", "arrange.flip_horizontal", writable);
+        command(ui, out, "Flip Vertical", "arrange.flip_vertical", writable);
     });
+    if ids.len() > 1 {
+        ui.menu_button("Align", |ui| {
+            for (label, id) in [
+                ("Align Left", "arrange.align_left"),
+                ("Align Center", "arrange.align_center"),
+                ("Align Right", "arrange.align_right"),
+                ("Align Top", "arrange.align_top"),
+                ("Align Middle", "arrange.align_middle"),
+                ("Align Bottom", "arrange.align_bottom"),
+            ] {
+                command(ui, out, label, id, true);
+            }
+            ui.separator();
+            command(
+                ui,
+                out,
+                "Distribute Horizontally",
+                "arrange.distribute_horizontal",
+                ids.len() > 2,
+            );
+            command(
+                ui,
+                out,
+                "Distribute Vertically",
+                "arrange.distribute_vertical",
+                ids.len() > 2,
+            );
+        });
+    }
+    command(ui, out, "Apply to All Pages", "markup.apply_to_all_pages", writable);
+    command(ui, out, "Format Painter", "markup.format_painter", single && writable);
 
     // Measurement and vertex items.
     if single && writable && !m.locked() {

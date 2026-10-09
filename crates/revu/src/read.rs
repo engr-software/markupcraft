@@ -185,6 +185,14 @@ fn read_markup_keys(cos: &CosDoc, a: &Dict, ap_n: Option<&Object>, m: &mut Marku
     }
     let rc = pdf::text(a.get(b"RC"));
     m.foreign_look = a.contains(b"Pattern") || rc.contains("<span");
+    if m.kind.is_text()
+        && rc.contains("<span")
+        && let Some(runs) = kinds::text::read_rich_runs(&rc, &m.text)
+    {
+        // Our own rich text: we draw it, so it stays editable.
+        m.rich = runs;
+        m.foreign_look = a.contains(b"Pattern");
+    }
 
     // Revu's /Rotation on a vertex shape: the /AP /N /Matrix turns the stored vertices about the
     // centre of /Rect. The /AP is what Revu shows, so follow its /Matrix and keep page-space

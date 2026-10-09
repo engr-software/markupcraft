@@ -160,6 +160,13 @@ pub fn paint_markup(p: &Painter, xf: &Xf, m: &Markup) {
         }
         Kind::Polyline | Kind::Polylength | Kind::Diameter | Kind::Radius | Kind::Angle => {
             let pts = screen(&m.pts);
+            if let Some((c, r)) = measure_extras::circle_of(m) {
+                let ring = screen(&measure_extras::ellipse_ring(c, r, r, 72));
+                if let Some(f) = fill {
+                    fill_polygon(p, &ring, f);
+                }
+                stroke_path(p, &ring, true, stroke, &m.dash, xf);
+            }
             stroke_path(p, &pts, false, stroke, &m.dash, xf);
             line_endings(p, &pts, m, stroke);
         }
@@ -282,6 +289,12 @@ pub fn paint_markup(p: &Painter, xf: &Xf, m: &Markup) {
                         p.line_segment([c - vec2(r, r), c + vec2(r, r)], st);
                         p.line_segment([c - vec2(r, -r), c + vec2(r, -r)], st);
                     }
+                    markupcraft_model::CountSymbol::Custom if !m.symbol_paths.is_empty() => {
+                        for path in measure_extras::symbol_paths_at(m, *q).iter().take(200) {
+                            let s: Vec<Pos2> = path.iter().map(|p| xf.to_screen(*p)).collect();
+                            p.add(Shape::line(s, Stroke::new(1.5, col)));
+                        }
+                    }
                     markupcraft_model::CountSymbol::Check => {
                         p.add(Shape::line(
                             vec![c + vec2(-r, 0.0), c + vec2(-r * 0.3, r * 0.7), c + vec2(r, -r)],
@@ -316,11 +329,81 @@ pub fn paint_markup(p: &Painter, xf: &Xf, m: &Markup) {
         }
         Kind::Other => {}
     }
+    if let Some(h) = m.hatch.filter(|h| h.valid()) {
+        paint_hatch(p, xf, m, &h);
+    }
     if m.kind.is_measurement() {
         if m.segment_values {
             paint_segment_values(p, xf, m);
         }
         paint_caption(p, xf, m);
+    }
+}
+
+/// The outline a hatch fills (user space).
+fn hatch_ring(m: &Markup) -> Vec<Point> {
+    match m.kind {
+        Kind::Rectangle => box_of(m).corners().to_vec(),
+        Kind::Ellipse => {
+            let b = box_of(m);
+            measure_extras::ellipse_ring(
+                Point::new((b.x0 + b.x1) / 2.0, (b.y0 + b.y1) / 2.0),
+                b.width() / 2.0,
+                b.height() / 2.0,
+                72,
+            )
+        }
+        _ => m.pts.clone(),
+    }
+}
+
+/// The parts of segment `a`-`b` inside the rings (even-odd), as parameter spans.
+pub fn clip_segment(a: Point, b: Point, rings: &[Vec<Point>]) -> Vec<(f64, f64)> {
+    let (dx, dy) = (b.x - a.x, b.y - a.y);
+    let mut ts: Vec<f64> = Vec::new();
+    for ring in rings {
+        let n = ring.len();
+        for i in 0..n {
+            let (Some(p), Some(q)) = (ring.get(i), ring.get((i + 1) % n)) else {
+                continue;
+            };
+            let (ex, ey) = (q.x - p.x, q.y - p.y);
+            let den = dx * ey - dy * ex;
+            if den.abs() < 1e-12 {
+                continue;
+            }
+            let t = ((p.x - a.x) * ey - (p.y - a.y) * ex) / den;
+            let u = ((p.x - a.x) * dy - (p.y - a.y) * dx) / den;
+            if (0.0..=1.0).contains(&t) && (0.0..1.0).contains(&u) {
+                ts.push(t);
+            }
+        }
+    }
+    ts.sort_by(f64::total_cmp);
+    ts.chunks(2)
+        .filter_map(|c| match c {
+            [s, e] if e - s > 1e-9 => Some((*s, *e)),
+            _ => None,
+        })
+        .collect()
+}
+
+fn paint_hatch(p: &Painter, xf: &Xf, m: &Markup, h: &markupcraft_model::hatch::Hatch) {
+    if !markupcraft_revu::hatch::hatchable(m.kind) {
+        return;
+    }
+    let mut rings = vec![hatch_ring(m)];
+    rings.extend(m.holes.iter().cloned());
+    let Some(b) = markupcraft_geom::bbox(rings.first().map_or(&[][..], |r| r.as_slice())) else {
+        return;
+    };
+    let col = color32(&h.color.unwrap_or(m.color), m.opacity);
+    let st = Stroke::new(xf.len(h.width).max(0.6), col);
+    for (a, e) in h.lines(b).into_iter().take(4000) {
+        for (t0, t1) in clip_segment(a, e, &rings) {
+            let at = |t: f64| Point::new(a.x + (e.x - a.x) * t, a.y + (e.y - a.y) * t);
+            p.line_segment([xf.to_screen(at(t0)), xf.to_screen(at(t1))], st);
+        }
     }
 }
 
@@ -402,10 +485,15 @@ pub fn paint_text_lines(p: &Painter, xf: &Xf, m: &Markup, b: markupcraft_geom::R
     let col = color32(&m.text.color, m.opacity);
     let clip = p.clip_rect().intersect(xf.rect_of(b).expand(2.0));
     let cp = p.with_clip_rect(clip);
-    for l in layout_text(b, &m.contents, &font, m.text.align, text_inset(m.line_width))
-        .iter()
-        .take(400)
-    {
+    let lines = layout_text(b, &m.contents, &font, m.text.align, text_inset(m.line_width));
+    if !m.rich.is_empty() {
+        let starts = markupcraft_revu::kinds::text::line_starts(&m.contents, &lines);
+        for (l, s0) in lines.iter().zip(&starts).take(400) {
+            rich_line(&cp, xf, m, l, *s0, size);
+        }
+        return;
+    }
+    for l in lines.iter().take(400) {
         text_line(
             &cp,
             xf.to_screen(Point::new(l.x, l.y)),
@@ -416,6 +504,38 @@ pub fn paint_text_lines(p: &Painter, xf: &Xf, m: &Markup, b: markupcraft_geom::R
             m.text.italic,
             m.text.underline,
         );
+    }
+}
+
+/// One laid-out line of a markup with rich runs: each segment in its own style, placed at the
+/// writer's x positions (bold is drawn twice, a hair apart, since the UI font has no bold face).
+fn rich_line(p: &Painter, xf: &Xf, m: &Markup, l: &markupcraft_geom::text::TextLine, s0: usize, size: f32) {
+    let chars: Vec<char> = l.text.chars().collect();
+    let n = chars.len();
+    let mut x = l.x;
+    for (s, e, cs) in markupcraft_model::rich::segments(&m.text, &m.rich, s0, s0 + n) {
+        let t: String = chars.get(s - s0..e - s0).unwrap_or_default().iter().collect();
+        let f = font_of(&markupcraft_model::TextStyle {
+            bold: cs.bold,
+            italic: cs.italic,
+            ..m.text.clone()
+        });
+        let col = color32(&cs.color, m.opacity);
+        let at = xf.to_screen(Point::new(x, l.y));
+        text_line(p, at, &t, size, col, family(m), cs.italic, cs.underline);
+        if cs.bold {
+            text_line(
+                p,
+                at + vec2((size / 24.0).max(0.5), 0.0),
+                &t,
+                size,
+                col,
+                family(m),
+                cs.italic,
+                false,
+            );
+        }
+        x += markupcraft_geom::text::text_width(&t, &f);
     }
 }
 
@@ -462,6 +582,9 @@ fn paint_stamp(p: &Painter, xf: &Xf, m: &Markup, stroke: Stroke, fill: Option<Co
 
 /// The measured value at the caption anchor.
 fn paint_caption(p: &Painter, xf: &Xf, m: &Markup) {
+    if m.hide_caption {
+        return;
+    }
     let text = match m.quantity_text() {
         t if !t.is_empty() => t,
         _ => m.contents.lines().next().unwrap_or_default().to_string(),
@@ -489,7 +612,7 @@ pub fn caption_rect(p: &Painter, xf: &Xf, m: &Markup, text: &str, size: f32) -> 
 
 /// The screen rectangle of a measurement's caption, `None` when it has none.
 pub fn caption_hit_rect(p: &Painter, xf: &Xf, m: &Markup) -> Option<Rect> {
-    if !m.kind.is_measurement() || m.kind == Kind::Count {
+    if !m.kind.is_measurement() || m.kind == Kind::Count || m.hide_caption {
         return None;
     }
     let text = m.quantity_text();
@@ -820,6 +943,29 @@ mod tests {
         let area: f32 = t.iter().map(|[a, b, c]| cross(l[*a], l[*b], l[*c]).abs() / 2.0).sum();
         assert!((area - 7.0).abs() < 1e-4);
         assert!(triangulate(&l[..2]).is_empty());
+    }
+
+    #[test]
+    fn hatch_lines_clip_to_the_shape() {
+        let sq = vec![
+            Point::new(0.0, 0.0),
+            Point::new(10.0, 0.0),
+            Point::new(10.0, 10.0),
+            Point::new(0.0, 10.0),
+        ];
+        let spans = clip_segment(Point::new(-5.0, 5.0), Point::new(15.0, 5.0), std::slice::from_ref(&sq));
+        assert_eq!(spans.len(), 1);
+        assert!((spans[0].0 - 0.25).abs() < 1e-9 && (spans[0].1 - 0.75).abs() < 1e-9);
+        let hole = vec![
+            Point::new(4.0, 4.0),
+            Point::new(6.0, 4.0),
+            Point::new(6.0, 6.0),
+            Point::new(4.0, 6.0),
+        ];
+        assert_eq!(
+            clip_segment(Point::new(-5.0, 5.0), Point::new(15.0, 5.0), &[sq, hole]).len(),
+            2
+        );
     }
 
     #[test]

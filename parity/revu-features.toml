@@ -180,10 +180,10 @@ section = "Viewports"
 name = "Add Viewport"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:75"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["viewport_wins_over_page_scale"]
-notes = "Revu viewports are read and used for the scale at a point; cannot be created yet."
+evidence = ["viewport_tool_asks_for_a_name_and_scale"]
+notes = "Measure > Add Viewport: drag a box, then name it and pick a preset or custom scale."
 
 [[feature]]
 id = "meas-015"
@@ -193,9 +193,10 @@ section = "Viewports"
 name = "Viewport label"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:76"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["viewport_tool_asks_for_a_name_and_scale", "viewport_edit_renames_rescales_copies_and_clears"]
+notes = "Named in the Add Viewport dialog; renamed in the Measurements panel."
 
 [[feature]]
 id = "meas-016"
@@ -205,9 +206,10 @@ section = "Viewports"
 name = "Viewport scale by preset / custom / calibrate"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:77"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["viewport_tool_asks_for_a_name_and_scale", "viewport_edit_renames_rescales_copies_and_clears"]
+notes = "Preset or custom scale when added, rescaled from the Measurements panel; calibrating inside a viewport not yet."
 
 [[feature]]
 id = "meas-017"
@@ -217,9 +219,10 @@ section = "Viewports"
 name = "Highlight Viewports"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:78"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["viewport_tool_asks_for_a_name_and_scale"]
+notes = "View > Highlight Viewports (and the Measurements panel checkbox) outlines each viewport with its name and scale."
 
 [[feature]]
 id = "meas-018"
@@ -229,9 +232,10 @@ section = "Viewports"
 name = "Delete / Clear All viewports"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:79"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["viewports_panel_renames_copies_and_clears", "rename_rescale_copy_and_clear"]
+notes = "Measurements panel: delete one, or Clear All (the page scale stays)."
 
 [[feature]]
 id = "meas-019"
@@ -241,9 +245,10 @@ section = "Viewports"
 name = "Apply viewports to other pages"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:80"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["viewports_panel_renames_copies_and_clears", "viewport_edit_renames_rescales_copies_and_clears"]
+notes = "Measurements panel > Copy to (all, or a range); viewport_edit copy_to."
 
 [[feature]]
 id = "meas-020"
@@ -394,9 +399,10 @@ section = "Area and volume tools"
 name = "Area by drag-rectangle"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:102"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["volume_and_area_by_rectangle"]
+notes = "Measure > Area (Rectangle): drag a box (or two clicks)."
 
 [[feature]]
 id = "meas-032"
@@ -406,10 +412,10 @@ section = "Area and volume tools"
 name = "Volume"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:103"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "Volume (code 132) read and computed as net area x depth; no tool."
+evidence = ["volume_and_area_by_rectangle"]
+notes = "Measure > Volume (Shift+Alt+V): an Area outline with a depth (1 unit until set in Properties)."
 
 [[feature]]
 id = "meas-033"
@@ -419,10 +425,10 @@ section = "Area and volume tools"
 name = "Depth"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:104"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "Depth stored on the markup and shown in the Depth column; no UI."
+evidence = ["measurement_caption_depth_and_count_symbol"]
+notes = "Properties > Depth on Area, Volume, Perimeter and Polylength."
 
 [[feature]]
 id = "meas-034"
@@ -432,9 +438,10 @@ section = "Area and volume tools"
 name = "Wall Area"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:105"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["measurement_caption_depth_and_count_symbol"]
+notes = "Properties shows the Wall Area (perimeter x depth) once a depth is set."
 
 [[feature]]
 id = "meas-035"
@@ -481,9 +488,10 @@ section = "Area and volume tools"
 name = "Ellipse Cutout"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:109"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["ellipse_cutout_cuts_an_ellipse"]
+notes = "Measure > Ellipse Cutout: drag an ellipse inside an Area; a 64-vertex hole."
 
 [[feature]]
 id = "meas-039"
@@ -543,9 +551,10 @@ section = "Circular and angular tools"
 name = "Diameter"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:119"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["angle_diameter_and_radius_tools_measure"]
+notes = "Measure > Diameter (Shift+Alt+D): the two ends of a diameter; the circle is drawn."
 
 [[feature]]
 id = "meas-044"
@@ -555,9 +564,10 @@ section = "Circular and angular tools"
 name = "Center Radius"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:120"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["angle_diameter_and_radius_tools_measure"]
+notes = "Measure > Center Radius (Shift+Alt+U): centre, then a point on the circle."
 
 [[feature]]
 id = "meas-045"
@@ -567,9 +577,10 @@ section = "Circular and angular tools"
 name = "3-Point Radius"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:121"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["angle_diameter_and_radius_tools_measure"]
+notes = "Measure > 3-Point Radius: three points on the circle; saved as a centre radius."
 
 [[feature]]
 id = "meas-046"
@@ -579,9 +590,10 @@ section = "Circular and angular tools"
 name = "Angle"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:122"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["angle_diameter_and_radius_tools_measure"]
+notes = "Measure > Angle (Shift+Alt+G): arm end, vertex, other arm end."
 
 [[feature]]
 id = "meas-047"
@@ -604,10 +616,10 @@ section = "Count"
 name = "Count symbol choice / scale"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:129"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = []
-notes = "Symbol and size in Properties; custom symbols not yet."
+evidence = ["measurement_caption_depth_and_count_symbol"]
+notes = "Symbol, size, and a custom symbol in Properties."
 
 [[feature]]
 id = "meas-049"
@@ -617,9 +629,10 @@ section = "Count"
 name = "Custom count symbol from any markup"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:130"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["measurement_caption_depth_and_count_symbol"]
+notes = "Select a Count and any other markup: Properties > Use the ... as the symbol."
 
 [[feature]]
 id = "meas-050"
@@ -840,9 +853,10 @@ section = "Sketch to Scale"
 name = "Polyline Sketch to Scale"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:158"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["sketch_to_scale_places_typed_lengths"]
+notes = "While drawing, the Sketch to Scale bar takes a length (feet-inches accepted) and angle; Enter or Add places the point."
 
 [[feature]]
 id = "meas-068"
@@ -852,9 +866,10 @@ section = "Sketch to Scale"
 name = "Polygon Sketch to Scale"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:159"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["sketch_to_scale_places_typed_lengths"]
+notes = "Polygon, Area, Perimeter, Volume and Cloud take typed segments; Finish closes."
 
 [[feature]]
 id = "meas-069"
@@ -864,9 +879,10 @@ section = "Sketch to Scale"
 name = "Rectangle Sketch to Scale"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:160"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["sketch_to_scale_places_typed_lengths"]
+notes = "Rectangle (and Area by rectangle): click the corner, type width and height."
 
 [[feature]]
 id = "meas-070"
@@ -876,9 +892,10 @@ section = "Sketch to Scale"
 name = "Ellipse Sketch to Scale"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:161"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["sketch_to_scale_places_typed_lengths"]
+notes = "Ellipse: click the corner, type width and height."
 
 [[feature]]
 id = "meas-071"
@@ -888,9 +905,10 @@ section = "Sketch to Scale"
 name = "Sketch angle mode"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:162"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["sketch_to_scale_places_typed_lengths", "angles_absolute_and_relative"]
+notes = "Absolute angles, or Relative to the previous segment."
 
 [[feature]]
 id = "meas-072"
@@ -1039,9 +1057,9 @@ section = "Measurement properties, captions and appearance"
 name = "Subject"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:184"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["list_set_cell_validates_input"]
+evidence = ["general_fields_take_typing_as_one_undo_step"]
 notes = "Properties > Subject (typing is one undo step); no UI test of typing yet."
 
 [[feature]]
@@ -1052,9 +1070,9 @@ section = "Measurement properties, captions and appearance"
 name = "Label"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:185"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["list_set_cell_validates_input"]
+evidence = ["general_fields_take_typing_as_one_undo_step"]
 notes = "Properties > Label; no UI test of typing yet."
 
 [[feature]]
@@ -1090,9 +1108,10 @@ section = "Measurement properties, captions and appearance"
 name = "Show Caption + Edit caption contents"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:188"
-status = "missing"
+status = "partial"
 cpp = "partial"
-evidence = []
+evidence = ["measurement_caption_depth_and_count_symbol", "hidden_and_captionless_markups_save_and_reopen"]
+notes = "Properties > Show Caption (/Cap); editing the caption's contents not yet."
 
 [[feature]]
 id = "meas-088"
@@ -1326,9 +1345,10 @@ section = "Tool Chest for takeoff"
 name = "Dynamic Tool Set Scaler"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:212"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["tool_chest_symbol_view_scale_export_and_import", "reorder_export_import_and_rescale"]
+notes = "A tool set's scale (header right-click > Scale): its Drawing-mode items placed on a page at another scale are resized to keep their real size."
 
 [[feature]]
 id = "meas-107"
@@ -1759,9 +1779,10 @@ section = "A. Text and comment markups"
 name = "Rich text editing in text markups"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:40"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["rich_text_saves_as_spans_and_reloads_editable", "toggle_and_merge", "runs_follow_edits", "replacing_a_word_keeps_runs"]
+notes = "In the text editor, Ctrl+B / Ctrl+I / Ctrl+U and the editor toolbar (bold, italic, underline, colour) style the selected characters; saved as /RC spans and drawn into the /AP; MarkupCraft's own spans reload editable (other writers' spans keep their look)."
 
 [[feature]]
 id = "mark-007"
@@ -2421,10 +2442,10 @@ section = "D. Properties panel"
 name = "General: Subject"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:108"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["list_set_cell_validates_input"]
-notes = "Properties > Subject; no UI test of typing yet."
+evidence = ["general_fields_take_typing_as_one_undo_step"]
+notes = "Properties > Subject; typing a word is one undo step."
 
 [[feature]]
 id = "mark-060"
@@ -2434,9 +2455,10 @@ section = "D. Properties panel"
 name = "General: Author"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:109"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["general_fields_take_typing_as_one_undo_step"]
+notes = "Properties > Author."
 
 [[feature]]
 id = "mark-061"
@@ -2446,9 +2468,10 @@ section = "D. Properties panel"
 name = "General: Date / modified"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:110"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["hidden_and_captionless_markups_save_and_reopen", "general_fields_take_typing_as_one_undo_step"]
+notes = "Properties > Date (modified; Not saved yet for new markups) and Created."
 
 [[feature]]
 id = "mark-062"
@@ -2458,10 +2481,10 @@ section = "D. Properties panel"
 name = "General: Label"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:111"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["list_set_cell_validates_input"]
-notes = "Properties > Label; no UI test of typing yet."
+evidence = ["general_fields_take_typing_as_one_undo_step"]
+notes = "Properties > Label."
 
 [[feature]]
 id = "mark-063"
@@ -2471,9 +2494,9 @@ section = "D. Properties panel"
 name = "General: Comments"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:112"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["general_fields_take_typing_as_one_undo_step"]
 notes = "Properties > Comments for non-text markups."
 
 [[feature]]
@@ -2484,9 +2507,10 @@ section = "D. Properties panel"
 name = "General: Reply count / status"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:113"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["general_fields_take_typing_as_one_undo_step"]
+notes = "Properties > Replies shows the count and the latest review state; no reply editing in the panel."
 
 [[feature]]
 id = "mark-065"
@@ -2522,10 +2546,10 @@ section = "D. Properties panel"
 name = "Appearance: Opacity"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:116"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "Properties > Opacity slider (one undo step per drag)."
+evidence = ["appearance_pickers_change_the_markup"]
+notes = "Properties > Opacity slider (one undo step per drag, or a typed value)."
 
 [[feature]]
 id = "mark-068"
@@ -2535,9 +2559,9 @@ section = "D. Properties panel"
 name = "Appearance: Fill opacity"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:117"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["appearance_pickers_change_the_markup"]
 notes = "Properties > Fill opacity slider."
 
 [[feature]]
@@ -2548,9 +2572,9 @@ section = "D. Properties panel"
 name = "Appearance: Line width"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:118"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["appearance_pickers_change_the_markup"]
 notes = "Properties > Line width."
 
 [[feature]]
@@ -2586,9 +2610,9 @@ section = "D. Properties panel"
 name = "Appearance: Line start / end"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:121"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["line_endings_cloud_and_text_style"]
 notes = "Properties > Start / End line endings."
 
 [[feature]]
@@ -2599,9 +2623,9 @@ section = "D. Properties panel"
 name = "Appearance: Cloud style / intensity"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:122"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["line_endings_cloud_and_text_style"]
 notes = "Properties > Cloud intensity."
 
 [[feature]]
@@ -2612,9 +2636,10 @@ section = "D. Properties panel"
 name = "Appearance: Blend mode"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:123"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["appearance_pickers_change_the_markup", "hidden_and_captionless_markups_save_and_reopen"]
+notes = "Properties > Blend mode Normal / Multiply (/BM)."
 
 [[feature]]
 id = "mark-075"
@@ -2624,10 +2649,10 @@ section = "D. Properties panel"
 name = "Appearance: Hatch"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:124"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["dynamic_fill_makes_areas_spaces_and_hatch"]
-notes = "Hatch style, spacing, width and colour through markup_hatch; no Properties panel control yet."
+evidence = ["appearance_pickers_change_the_markup", "hatch_lines_clip_to_the_shape"]
+notes = "Properties > Hatch style, spacing and colour on closed shapes; drawn live on the canvas."
 
 [[feature]]
 id = "mark-076"
@@ -2637,10 +2662,10 @@ section = "D. Properties panel"
 name = "Appearance: Font"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:125"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "Properties > Font, size, colour, bold, italic, underline."
+evidence = ["line_endings_cloud_and_text_style", "properties_panel_edits_go_through_the_engine"]
+notes = "Properties > Font, size, colour, bold, italic, underline, alignment."
 
 [[feature]]
 id = "mark-077"
@@ -2663,9 +2688,10 @@ section = "D. Properties panel"
 name = "Layout: X, Y"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:127"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["layout_moves_resizes_and_rotates"]
+notes = "Properties > Layout X, Y in inches from the page corner."
 
 [[feature]]
 id = "mark-079"
@@ -2675,9 +2701,10 @@ section = "D. Properties panel"
 name = "Layout: Width, Height"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:128"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["layout_moves_resizes_and_rotates"]
+notes = "Properties > Layout Width, Height."
 
 [[feature]]
 id = "mark-080"
@@ -2687,9 +2714,10 @@ section = "D. Properties panel"
 name = "Layout: Rotation"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:129"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["layout_moves_resizes_and_rotates"]
+notes = "Properties > Layout Rotation: quarter turns or any angle (boxes by quarter turns)."
 
 [[feature]]
 id = "mark-081"
@@ -2699,9 +2727,10 @@ section = "D. Properties panel"
 name = "Interactive rotation handle"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:130"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["rotation_handle_turns_a_markup"]
+notes = "A handle above the selected markup turns it about its centre; Shift snaps to 15 degrees, rectangles and ellipses turn by quarter turns."
 
 [[feature]]
 id = "mark-082"
@@ -2761,9 +2790,10 @@ section = "D. Properties panel"
 name = "Measurement properties"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:135"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["measurement_caption_depth_and_count_symbol"]
+notes = "Properties > Measurement: value, Show Caption, scale, units, precision, segment values, rise/drop, depth, wall area, circle area, count symbol."
 
 [[feature]]
 id = "mark-087"
@@ -2785,9 +2815,10 @@ section = "D. Properties panel"
 name = "Format Painter"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:137"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["format_painter_copies_a_look"]
+notes = "Markup > Format Painter (and right-click): clicks copy the selected markup's look onto other markups until Esc."
 
 [[feature]]
 id = "mark-089"
@@ -2797,9 +2828,10 @@ section = "D. Properties panel"
 name = "Flip Horizontal / Vertical"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:138"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["align_distribute_and_flip_from_the_keyboard", "align_distribute_flip_and_copy"]
+notes = "Markup > Flip Horizontal (Ctrl+Alt+H) / Vertical (Ctrl+Alt+V) about the selection's centre; text stays readable."
 
 [[feature]]
 id = "mark-090"
@@ -2809,9 +2841,10 @@ section = "D. Properties panel"
 name = "Hidden / no-view / no-print flags"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:139"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["a_multi_selection_shows_mixed_values_and_sets_them_all", "hidden_and_captionless_markups_save_and_reopen"]
+notes = "Properties > Options: Print, Hidden, No View (/F); hidden markups are not drawn."
 
 [[feature]]
 id = "mark-091"
@@ -2895,9 +2928,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Apply to All Pages / Paste to pages"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:151"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["apply_to_all_pages_and_remove_from_group", "markup_align_aligns_distributes_flips_and_copies_to_pages"]
+notes = "Markup > Apply to All Pages (right-click too); markup_align to_pages copies to chosen pages."
 
 [[feature]]
 id = "mark-098"
@@ -2943,9 +2977,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Nudge with arrow keys"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:155"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["arrow_keys_nudge_the_selection", "nudges_are_one_point_or_ten"]
+notes = "Arrow keys move the selection 1 point, Shift+arrow 10 points; one undo step per key."
 
 [[feature]]
 id = "mark-102"
@@ -2981,10 +3016,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Remove From Group"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:158"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["extras_remove_from_group"]
-notes = "remove_from_group (a group of one ends); no UI command."
+evidence = ["apply_to_all_pages_and_remove_from_group", "removing_the_last_but_one_member_ends_the_group"]
+notes = "Markup > Remove From Group (Ctrl+Shift+Alt+G), right-click on a grouped markup."
 
 [[feature]]
 id = "mark-105"
@@ -2994,9 +3029,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Align Left/Center/Right"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:159"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["align_distribute_and_flip_from_the_keyboard", "align_distribute_flip_and_copy", "markup_align_aligns_distributes_flips_and_copies_to_pages"]
+notes = "Markup > Align Left/Center/Right (Ctrl+Alt+L/E/R), right-click > Align; the joint extent of the selection."
 
 [[feature]]
 id = "mark-106"
@@ -3006,9 +3042,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Align Top/Middle/Bottom"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:160"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["align_distribute_and_flip_from_the_keyboard", "align_distribute_flip_and_copy"]
+notes = "Markup > Align Top/Middle/Bottom (Ctrl+Alt+T/M/B)."
 
 [[feature]]
 id = "mark-107"
@@ -3018,9 +3055,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Distribute horizontally/vertically"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:161"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["align_distribute_and_flip_from_the_keyboard", "align_distribute_flip_and_copy"]
+notes = "Markup > Distribute Horizontally/Vertically: equal gaps between three or more markups."
 
 [[feature]]
 id = "mark-108"
@@ -3243,9 +3281,10 @@ section = "F. Tool Chest"
 name = "Tool set scale"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:184"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["tool_chest_symbol_view_scale_export_and_import", "reorder_export_import_and_rescale"]
+notes = "Tool set header right-click > Scale; shown beside the set's name."
 
 [[feature]]
 id = "mark-126"
@@ -3255,9 +3294,10 @@ section = "F. Tool Chest"
 name = "Symbol view / Detail view"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:185"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["tool_chest_symbol_view_scale_export_and_import"]
+notes = "Detail (rows) or Symbol (icon tiles) view at the top of the Tool Chest; saved with the chest."
 
 [[feature]]
 id = "mark-127"
@@ -3267,9 +3307,10 @@ section = "F. Tool Chest"
 name = "Icon size slider"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:186"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["tool_chest_symbol_view_scale_export_and_import"]
+notes = "Symbol view: an icon size slider (16 to 96 points), saved with the chest."
 
 [[feature]]
 id = "mark-128"
@@ -3279,10 +3320,10 @@ section = "F. Tool Chest"
 name = "Manage Tool Sets"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:187"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = []
-notes = "New, rename, delete tool sets; reordering not yet."
+evidence = ["reorder_export_import_and_rescale"]
+notes = "New, rename, delete, Move Up / Move Down tool sets and items."
 
 [[feature]]
 id = "mark-129"
@@ -3292,9 +3333,10 @@ section = "F. Tool Chest"
 name = "Import / Export tool set (.btx)"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:188"
-status = "missing"
+status = "partial"
 cpp = "partial"
-evidence = []
+evidence = ["tool_chest_symbol_view_scale_export_and_import", "reorder_export_import_and_rescale"]
+notes = "Export / Import a tool set as MarkupCraft's own JSON (.mctools); Revu's .btx is not read or written."
 
 [[feature]]
 id = "mark-130"
@@ -3722,9 +3764,10 @@ section = "H. Markups List"
 name = "Save columns to profile"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:232"
-status = "missing"
+status = "partial"
 cpp = "partial"
-evidence = []
+evidence = ["views_and_widths_persist"]
+notes = "Column choices are saved in named views and column widths are remembered; Revu profiles are not."
 
 [[feature]]
 id = "mark-164"
@@ -3786,9 +3829,10 @@ section = "H. Markups List"
 name = "Saved filter configurations"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:237"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["markups_list_saves_views_and_copies_rows", "views_and_widths_persist"]
+notes = "Markups List > Views: save the current columns, sort, grouping, filters and search under a name; apply or delete saved views; kept in the settings folder."
 
 [[feature]]
 id = "mark-169"
@@ -3863,9 +3907,10 @@ section = "H. Markups List"
 name = "Copy rows"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:243"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["markups_list_saves_views_and_copies_rows"]
+notes = "Row right-click > Copy Rows: the selected markups' visible cells as tab-separated text."
 
 [[feature]]
 id = "mark-175"
@@ -4075,9 +4120,10 @@ section = "J. Customization"
 name = "Custom keyboard shortcuts"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:270"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["keyboard_shortcuts_can_be_changed", "parse_assign_and_round_trip"]
+notes = "Tools > Customize Keyboard: any command, tool or panel gets new keys (press them), Clear, Reset, Reset All, Import / Export; saved in keyboard.json; menus show the user's keys."
 
 [[feature]]
 id = "mark-192"
@@ -8169,9 +8215,10 @@ section = "6. Profiles and keyboard shortcut customization"
 name = "Keyboard Shortcuts dialog"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:197"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["keyboard_shortcuts_can_be_changed"]
+notes = "Tools > Customize Keyboard lists every command with its keys and edits them; profiles of shortcuts not yet."
 
 [[feature]]
 id = "ui-106"
@@ -9750,9 +9797,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Align Bottom (Ctrl + Alt + B)"
 source = "docs/revu_features/05_shortcuts.md:30"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound", "align_distribute_and_flip_from_the_keyboard"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9762,9 +9809,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Align Center (Ctrl + Alt + E)"
 source = "docs/revu_features/05_shortcuts.md:31"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound", "align_distribute_and_flip_from_the_keyboard"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9774,9 +9821,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Align Left (Ctrl + Alt + L)"
 source = "docs/revu_features/05_shortcuts.md:32"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound", "align_distribute_and_flip_from_the_keyboard"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9786,9 +9833,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Align Middle (Ctrl + Alt + M)"
 source = "docs/revu_features/05_shortcuts.md:33"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound", "align_distribute_and_flip_from_the_keyboard"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9798,9 +9845,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Align Right (Ctrl + Alt + R)"
 source = "docs/revu_features/05_shortcuts.md:34"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound", "align_distribute_and_flip_from_the_keyboard"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9810,9 +9857,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Align Top (Ctrl + Alt + T)"
 source = "docs/revu_features/05_shortcuts.md:35"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound", "align_distribute_and_flip_from_the_keyboard"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10026,9 +10073,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Flip Horizontal (Ctrl + Alt + H)"
 source = "docs/revu_features/05_shortcuts.md:53"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound", "align_distribute_and_flip_from_the_keyboard"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10038,9 +10085,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Flip Vertical (Ctrl + Alt + V)"
 source = "docs/revu_features/05_shortcuts.md:54"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound", "align_distribute_and_flip_from_the_keyboard"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10122,9 +10169,9 @@ area = "shortcuts"
 section = "Measure"
 name = "Angle (Shift + Alt + G)"
 source = "docs/revu_features/05_shortcuts.md:61"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound", "angle_diameter_and_radius_tools_measure"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10158,9 +10205,9 @@ area = "shortcuts"
 section = "Measure"
 name = "Diameter (Shift + Alt + D)"
 source = "docs/revu_features/05_shortcuts.md:64"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound", "angle_diameter_and_radius_tools_measure"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10230,9 +10277,9 @@ area = "shortcuts"
 section = "Measure"
 name = "Radius (Shift + Alt + U)"
 source = "docs/revu_features/05_shortcuts.md:70"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound", "angle_diameter_and_radius_tools_measure"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10242,9 +10289,9 @@ area = "shortcuts"
 section = "Measure"
 name = "Volume (Shift + Alt + V)"
 source = "docs/revu_features/05_shortcuts.md:71"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound", "volume_and_area_by_rectangle"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10362,9 +10409,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Remove From Group (Ctrl + Shift + Alt + G)"
 source = "docs/revu_features/05_shortcuts.md:81"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound", "apply_to_all_pages_and_remove_from_group"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]

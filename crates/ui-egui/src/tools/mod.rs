@@ -31,6 +31,48 @@ pub enum Role {
     Cutout,
     /// a cloud, then a callout pointing at it
     CloudPlus,
+    /// a dragged box that becomes a viewport (asks for its name and scale)
+    Viewport,
+    /// three points on a circle: a Radius measurement from its centre
+    Radius3,
+}
+
+/// The outline a press-drag-release draws.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DragShape {
+    Rect,
+    Ellipse,
+}
+
+/// Points of the outline dragged from `a` to `b` (a 4-vertex rectangle, or a 64-vertex
+/// ellipse), `None` when smaller than 2 points.
+pub fn drag_ring(shape: DragShape, a: Point, b: Point) -> Option<Vec<Point>> {
+    let r = drag_rect(a, b)?;
+    Some(match shape {
+        DragShape::Rect => vec![
+            Point::new(r.x0, r.y0),
+            Point::new(r.x1, r.y0),
+            Point::new(r.x1, r.y1),
+            Point::new(r.x0, r.y1),
+        ],
+        DragShape::Ellipse => markupcraft_model::measure_extras::ellipse_ring(
+            Point::new((r.x0 + r.x1) / 2.0, (r.y0 + r.y1) / 2.0),
+            r.width() / 2.0,
+            r.height() / 2.0,
+            64,
+        ),
+    })
+}
+
+/// The points a role's clicks make: a three-point radius becomes [centre, first point].
+pub fn role_points(role: Role, pts: &[Point]) -> Vec<Point> {
+    if role == Role::Radius3
+        && let [a, t, b] = pts
+        && let Some((c, _)) = markupcraft_model::measure_extras::circle_through(*a, *t, *b)
+    {
+        return vec![c, *a];
+    }
+    pts.to_vec()
 }
 
 #[derive(Clone, Copy)]
@@ -60,6 +102,9 @@ pub enum ToolKind {
     Note,
     /// Drag across page text (Highlight, Underline, Strikethrough).
     TextMarkup(Kind),
+    /// Press, drag, release an outline that becomes a polygon of `kind` (Area by rectangle),
+    /// a cutout (Ellipse Cutout) or a viewport.
+    Drag { kind: Kind, shape: DragShape, role: Role },
 }
 
 pub struct ToolDef {
@@ -79,9 +124,15 @@ impl ToolDef {
         match self.kind {
             ToolKind::Select | ToolKind::Pan => None,
             ToolKind::Points {
-                role: Role::Calibrate | Role::Cutout,
+                role: Role::Calibrate | Role::Cutout | Role::Viewport,
                 ..
             } => None,
+            ToolKind::Drag {
+                kind,
+                role: Role::Markup,
+                ..
+            } => Some(kind),
+            ToolKind::Drag { .. } => None,
             ToolKind::Points { kind, .. }
             | ToolKind::Box(kind)
             | ToolKind::Freehand(kind)
@@ -129,6 +180,14 @@ pub static TOOLS: &[&ToolDef] = &[
     &measure::PERIMETER,
     &measure::COUNT,
     &measure::CUTOUT,
+    &measure::AREA_RECT,
+    &measure::VOLUME,
+    &measure::DIAMETER,
+    &measure::RADIUS,
+    &measure::RADIUS3,
+    &measure::ANGLE,
+    &measure::ELLIPSE_CUTOUT,
+    &measure::VIEWPORT,
 ];
 
 pub fn find(id: &str) -> Option<&'static ToolDef> {
@@ -196,6 +255,12 @@ pub fn default_look(kind: Kind) -> Markup {
             m.fill = Some(Color::RED);
             m.fill_opacity = 0.2;
         }
+        Kind::Volume => {
+            m.fill = Some(Color::RED);
+            m.fill_opacity = 0.2;
+            // one unit deep until the user types the depth
+            m.depth = 1.0;
+        }
         Kind::Count => m.count_symbol = CountSymbol::Circle,
         Kind::Snapshot => m.line_width = 0.0,
         Kind::Stamp => {
@@ -221,6 +286,8 @@ pub fn apply_look(template: &Markup, m: &mut Markup) {
     m.line_end = template.line_end.clone();
     m.cloud = template.cloud;
     m.multiply = template.multiply;
+    m.hatch = template.hatch;
+    m.hide_caption = template.hide_caption;
     m.text = template.text.clone();
     m.subject = template.subject.clone();
     m.label = template.label.clone();
@@ -310,12 +377,16 @@ pub fn new_markup(kind: Kind, page: usize, pts: &[Point]) -> Option<Markup> {
                     v.push(*p);
                 }
             }
-            if matches!(kind, Kind::Area | Kind::Perimeter | Kind::Polygon | Kind::Cloud)
-                && v.len() > 3
+            if matches!(
+                kind,
+                Kind::Area | Kind::Perimeter | Kind::Polygon | Kind::Cloud | Kind::Volume
+            ) && v.len() > 3
                 && v.first().zip(v.last()).is_some_and(|(a, b)| a.dist(*b) < 0.01)
             {
                 v.pop();
             }
+            let (_, max) = markupcraft_engine::geometry::point_limits(kind);
+            v.truncate(max);
             if v.len() < min.max(2) {
                 return None;
             }

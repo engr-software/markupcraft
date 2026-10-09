@@ -19,6 +19,7 @@ pub mod csv;
 pub mod formula;
 pub mod hatch;
 pub mod measure_extras;
+pub mod rich;
 pub mod spaces;
 pub mod table;
 
@@ -255,7 +256,9 @@ pub struct SnapshotSource {
 
 /// Annotation flag bits (ISO 32000-1 §12.5.3).
 pub mod flags {
+    pub const HIDDEN: i64 = 2;
     pub const PRINT: i64 = 4;
+    pub const NO_VIEW: i64 = 32;
     pub const LOCKED: i64 = 128;
     pub const LOCKED_CONTENTS: i64 = 512;
 }
@@ -310,6 +313,8 @@ pub struct Markup {
     pub cloud: f64,
     /// `/BM /Multiply`
     pub multiply: bool,
+    /// rich text runs of a text markup (`/RC` spans), char offsets into `contents`
+    pub rich: Vec<rich::TextRun>,
     /// hatch lines inside a closed shape (`/PCHatch`)
     pub hatch: Option<hatch::Hatch>,
     pub text: TextStyle,
@@ -341,6 +346,8 @@ pub struct Markup {
     pub arcs: Vec<(usize, usize)>,
     /// depth for volume (first `/D` unit)
     pub depth: f64,
+    /// Show Caption off: the measured value is not drawn (`/Cap false`)
+    pub hide_caption: bool,
 
     // state
     /// `/F`
@@ -406,6 +413,7 @@ impl Default for Markup {
             line_end: "None".into(),
             cloud: 0.0,
             multiply: false,
+            rich: Vec::new(),
             hatch: None,
             text: TextStyle::default(),
             pts: Vec::new(),
@@ -421,6 +429,7 @@ impl Default for Markup {
             caption_offset: None,
             arcs: Vec::new(),
             depth: 0.0,
+            hide_caption: false,
             flags: flags::PRINT,
             dirty: false,
             stored_look: false,

@@ -288,6 +288,7 @@ fn pane_ui(app: &mut AppState, ui: &mut egui::Ui, rect: Rect) {
                     (t.cloned(), d)
                 };
                 let author = app.author.clone();
+                let edit = app.edit.clone();
                 let cx = CanvasCx {
                     tool,
                     wheel_zooms: app.wheel_zooms,
@@ -299,6 +300,7 @@ fn pane_ui(app: &mut AppState, ui: &mut egui::Ui, rect: Rect) {
                     drawing_mode,
                     stamp: app.stamp,
                     author: &author,
+                    edit: &edit,
                 };
                 let doc = app.docs.get_mut(app.active)?;
                 let out = canvas::show(ui, doc, &cx);
@@ -360,6 +362,7 @@ fn second_pane(app: &mut AppState, ui: &mut egui::Ui, rect: Rect) {
     }
     let tool = crate::tools::find(app.tool).unwrap_or(&crate::tools::select::TOOL);
     let author = app.author.clone();
+    let edit = app.edit.clone();
     let template = app.template().0.cloned();
     let Some(s) = &mut app.shell.split else { return };
     if let Some(u) = pick
@@ -389,6 +392,7 @@ fn second_pane(app: &mut AppState, ui: &mut egui::Ui, rect: Rect) {
         drawing_mode: false,
         stamp: app.stamp,
         author: &author,
+        edit: &edit,
     };
     let out = ui
         .scope_builder(egui::UiBuilder::new().max_rect(body).id_salt("split-pane"), |ui| {

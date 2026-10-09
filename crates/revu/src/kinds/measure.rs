@@ -9,8 +9,8 @@ use crate::ap::Ap;
 use crate::pdf::{self, n, points_arr, real, s};
 
 /// Keys Revu writes on every measurement (seen in Revu 21 files).
-pub fn measurement_keys(a: &mut Dict, _m: &Markup) {
-    pdf::set(a, "Cap", Object::Bool(true));
+pub fn measurement_keys(a: &mut Dict, m: &Markup) {
+    pdf::set(a, "Cap", Object::Bool(!m.hide_caption));
     pdf::set(a, "SlopeType", Object::Int(0));
     pdf::set(a, "PitchRun", Object::Int(12));
     let mut depth = Dict::new();
@@ -203,6 +203,9 @@ fn draw_count(ap: &mut Ap, m: &Markup, extent: &mut Vec<Point>) {
 
 /// Our keys for cutouts, count symbols and measurement polish, read back on load.
 pub fn read_takeoff_keys(_doc: &CosDoc, a: &Dict, m: &mut Markup) {
+    if m.kind.is_measurement() {
+        m.hide_caption = pdf::boolean(a.get(b"Cap")) == Some(false);
+    }
     if let Some(holes) = a.get(b"PCCutouts").and_then(Object::as_array) {
         for h in holes {
             let ring = pdf::points(Some(h));

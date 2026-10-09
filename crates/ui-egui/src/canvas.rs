@@ -562,6 +562,8 @@ pub struct CanvasCx<'a> {
     /// Stamp design for the Stamp tool.
     pub stamp: &'a str,
     pub author: &'a str,
+    /// Format Painter, Highlight Viewports, Sketch to Scale.
+    pub edit: &'a crate::editing::EditState,
 }
 
 /// Something the canvas asks the app to do (it cannot reach app state itself).
@@ -573,6 +575,8 @@ pub enum CanvasAction {
     SetDefault(Markup),
     /// Show a panel.
     ShowPanel(&'static str),
+    /// A viewport box was drawn on this page: ask for its name and scale.
+    NewViewport(usize, markupcraft_geom::Rect),
 }
 
 /// What happened on the canvas this frame.
@@ -987,7 +991,9 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
                     let mut frame = m.clone();
                     frame.contents.clear();
                     painter::paint_markup(&painter, xf, &frame);
-                } else if crate::actions::drawn_by_us(m) {
+                } else if crate::actions::drawn_by_us(m)
+                    && m.flags & (markupcraft_model::flags::HIDDEN | markupcraft_model::flags::NO_VIEW) == 0
+                {
                     snapshot_preview(&painter, view, pages, xf, m);
                     painter::paint_markup(&painter, xf, m);
                 }

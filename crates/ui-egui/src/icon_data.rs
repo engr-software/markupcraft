@@ -2,6 +2,54 @@
 //! One line per icon: add the SVG to `crates/ui-egui/assets/icons/` and a line here.
 
 pub static ICONS: &[(&str, &[u8])] = &[
+    ("pencil-ruler", include_bytes!("../assets/icons/pencil-ruler.svg")),
+    ("keyboard", include_bytes!("../assets/icons/keyboard.svg")),
+    ("arrow-down", include_bytes!("../assets/icons/arrow-down.svg")),
+    ("arrow-up", include_bytes!("../assets/icons/arrow-up.svg")),
+    ("download", include_bytes!("../assets/icons/download.svg")),
+    ("upload", include_bytes!("../assets/icons/upload.svg")),
+    ("spell-check", include_bytes!("../assets/icons/spell-check.svg")),
+    ("frame", include_bytes!("../assets/icons/frame.svg")),
+    (
+        "circle-dot-dashed",
+        include_bytes!("../assets/icons/circle-dot-dashed.svg"),
+    ),
+    ("triangle-right", include_bytes!("../assets/icons/triangle-right.svg")),
+    ("box", include_bytes!("../assets/icons/box.svg")),
+    ("radius", include_bytes!("../assets/icons/radius.svg")),
+    ("diameter", include_bytes!("../assets/icons/diameter.svg")),
+    ("save-all", include_bytes!("../assets/icons/save-all.svg")),
+    ("paintbrush", include_bytes!("../assets/icons/paintbrush.svg")),
+    ("copy-plus", include_bytes!("../assets/icons/copy-plus.svg")),
+    ("flip-vertical-2", include_bytes!("../assets/icons/flip-vertical-2.svg")),
+    (
+        "flip-horizontal-2",
+        include_bytes!("../assets/icons/flip-horizontal-2.svg"),
+    ),
+    (
+        "align-end-horizontal",
+        include_bytes!("../assets/icons/align-end-horizontal.svg"),
+    ),
+    (
+        "align-center-horizontal",
+        include_bytes!("../assets/icons/align-center-horizontal.svg"),
+    ),
+    (
+        "align-start-horizontal",
+        include_bytes!("../assets/icons/align-start-horizontal.svg"),
+    ),
+    (
+        "align-end-vertical",
+        include_bytes!("../assets/icons/align-end-vertical.svg"),
+    ),
+    (
+        "align-center-vertical",
+        include_bytes!("../assets/icons/align-center-vertical.svg"),
+    ),
+    (
+        "align-start-vertical",
+        include_bytes!("../assets/icons/align-start-vertical.svg"),
+    ),
     ("align-center", include_bytes!("../assets/icons/align-center.svg")),
     ("align-left", include_bytes!("../assets/icons/align-left.svg")),
     ("align-right", include_bytes!("../assets/icons/align-right.svg")),

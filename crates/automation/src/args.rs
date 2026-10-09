@@ -259,6 +259,12 @@ impl<'a> Args<'a> {
             depth: self.opt_num("depth")?,
             rise_drop: self.opt_num("rise_drop")?,
             scale: self.opt_scale("scale")?,
+            underline: self.opt_bool("underline")?,
+            multiply: self.opt_bool("multiply")?,
+            hidden: self.opt_bool("hidden")?,
+            print: self.opt_bool("print")?,
+            no_view: self.opt_bool("no_view")?,
+            show_caption: self.opt_bool("show_caption")?,
             ..Default::default()
         };
         // fill: a colour, or null / "none" for no fill. Present-and-null means "remove".

@@ -38,6 +38,8 @@ pub struct ListState {
     pub editing: Option<(String, String, String)>,
     /// Manage Columns: the custom columns being edited.
     pub columns_editor: Option<Vec<CustomColumn>>,
+    /// Saved views and column widths.
+    pub prefs: super::list_views::ListPrefs,
 }
 
 impl Default for ListState {
@@ -49,6 +51,7 @@ impl Default for ListState {
             },
             editing: None,
             columns_editor: None,
+            prefs: Default::default(),
         }
     }
 }
@@ -106,6 +109,7 @@ enum Act {
     SetCell(String, String, String),
     StartEdit(String, String, String),
     Command(&'static str),
+    CopyRows,
 }
 
 fn ui(app: &mut AppState, ui: &mut egui::Ui) {
@@ -207,6 +211,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                 list.view.filters.clear();
             }
         }
+        super::list_views::views_menu(ui, &mut list.view, &mut list.prefs);
         ui.menu_button("Export", |ui| {
             if ui.button("Markups (CSV)...").clicked() {
                 export = Some(Purpose::ExportCsv);
@@ -249,6 +254,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     let full = ui.available_rect_before_wrap();
     let table_rect = egui::Rect::from_min_max(full.min, egui::pos2(full.max.x, (full.max.y - footer).max(full.min.y)));
     let footer_rect = egui::Rect::from_min_max(egui::pos2(full.min.x, table_rect.max.y), full.max);
+    let mut widths: Vec<(String, f32)> = Vec::new();
     ui.scope_builder(egui::UiBuilder::new().max_rect(table_rect), |ui| {
         let mut builder = TableBuilder::new(ui)
             .max_scroll_height(room)
@@ -259,7 +265,10 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
             .auto_shrink([false, true])
             .cell_layout(egui::Layout::left_to_right(egui::Align::Center));
         for (k, &c) in cols.iter().enumerate() {
-            let w = table.columns().get(c).map_or(100.0, |col| col.width as f32);
+            let w = table
+                .columns()
+                .get(c)
+                .map_or(100.0, |col| list.prefs.width(&col.id).unwrap_or(col.width as f32));
             builder = if k + 1 == cols.len() {
                 builder.column(Column::remainder().at_least(60.0).clip(true))
             } else {
@@ -274,7 +283,8 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
             .header(22.0, |mut row| {
                 for &c in &cols {
                     let Some(col) = table.columns().get(c) else { continue };
-                    row.col(|ui| {
+                    let col_id = col.id.clone();
+                    let (cell, _) = row.col(|ui| {
                         let arrow = if view.sort_column == col.id {
                             if view.sort_descending { " v" } else { " ^" }
                         } else {
@@ -324,6 +334,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                             });
                         });
                     });
+                    widths.push((col_id, cell.width()));
                 }
             })
             .body(|body| {
@@ -358,6 +369,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                         Line::Markup(i) => {
                             let Some(m) = markups.get(*i) else { return };
                             row.set_selected(selection.contains(&m.id));
+                            let mut cell_resps: Vec<egui::Response> = Vec::new();
                             for &c in &cols {
                                 let Some(col) = table.columns().get(c) else { continue };
                                 let cell = table.cell(*i, c);
@@ -430,6 +442,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                                             } else {
                                                 ui.add(egui::Label::new(rt).sense(Sense::click()))
                                             };
+                                            cell_resps.push(lr.clone());
                                             if lr.double_clicked() && edit != CellEdit::None {
                                                 let start = if col.id == "comments" {
                                                     m.contents.clone()
@@ -448,6 +461,8 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                             if resp.clicked() {
                                 acts.push(Act::Select(*i, add));
                             }
+                            // A right-click on a cell's text opens the row's menu too.
+                            let resp = cell_resps.into_iter().fold(resp, |a, b| a.union(b));
                             resp.context_menu(|ui| {
                                 if !selection.contains(&m.id) {
                                     acts.push(Act::Select(*i, false));
@@ -478,6 +493,10 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                                     acts.push(Act::Command(cmd));
                                     ui.close();
                                 }
+                                if ui.button("Copy Rows").clicked() {
+                                    acts.push(Act::CopyRows);
+                                    ui.close();
+                                }
                                 if ui.button("Delete").clicked() {
                                     acts.push(Act::Command("edit.delete"));
                                     ui.close();
@@ -505,6 +524,10 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     });
 
     // ---- apply ----------------------------------------------------------------------------
+    // The last column fills the rest of the panel: its width is not the user's choice.
+    widths.pop();
+    let down = ui.input(|i| i.pointer.any_down());
+    list.prefs.note_widths(&widths, down);
     let mut commands: Vec<&'static str> = Vec::new();
     for a in acts {
         match a {
@@ -552,6 +575,22 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                 }
             }
             Act::Command(c) => commands.push(c),
+            Act::CopyRows => {
+                let sel = doc.selection().to_vec();
+                let idx: Vec<usize> = doc
+                    .session
+                    .doc()
+                    .markups
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, m)| sel.contains(&m.id))
+                    .map(|(i, _)| i)
+                    .collect();
+                let table = MarkupTable::new(doc.session.doc());
+                let text = super::list_views::rows_tsv(&table, &list.view, &idx);
+                ui.ctx().copy_text(text);
+                app.status = format!("Copied {} to the clipboard", actions::plural(idx.len(), "row"));
+            }
         }
     }
     if let Some(cols) = list.columns_editor.as_mut() {

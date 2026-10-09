@@ -26,7 +26,7 @@ use crate::canvas::{CanvasCx, CanvasOut};
 use crate::painter::{self, Xf};
 use crate::snapping::{self, Snapped};
 use crate::theme::Tokens;
-use crate::tools::{self, Role, ToolDef, ToolKind};
+use crate::tools::{self, DragShape, Role, ToolDef, ToolKind};
 
 /// The pointer within this many screen points of a handle grabs it.
 const HANDLE_REACH: f32 = 6.0;
@@ -60,6 +60,14 @@ pub enum Gesture {
         page: usize,
         start: Pos2,
     },
+    /// Turning the selected markup with its rotation handle about `pivot`.
+    Rotate {
+        id: String,
+        page: usize,
+        pivot: Point,
+        /// the pointer's angle about the pivot when the drag began (radians)
+        start: f64,
+    },
 }
 
 /// Where a drawing tool is.
@@ -73,6 +81,8 @@ pub enum Stage {
     CalloutTip,
     /// Cloud+: the cloud was added; the next click places its callout
     CloudPlus { cloud: String },
+    /// Sketch to Scale placed the last point: finish on the next frame
+    Typed,
 }
 
 /// A markup being drawn.
@@ -103,6 +113,8 @@ pub struct TextEditor {
     pub target: EditTarget,
     pub page: usize,
     pub text: String,
+    /// rich text runs of the text being typed (char offsets into `text`)
+    pub rich: Vec<markupcraft_model::rich::TextRun>,
     /// focus was requested
     pub opened: bool,
 }
@@ -310,6 +322,10 @@ fn draw_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mut 
     if doc.view.draft.as_ref().is_some_and(|d| d.tool != tool.id) {
         doc.view.draft = None;
     }
+    if doc.view.draft.as_ref().is_some_and(|d| d.stage == Stage::Typed) {
+        finish_typed(doc, cx, out);
+        return;
+    }
     let k = keys(ix.ui, doc.view.draft.is_some());
     // Show where the first point would snap.
     if doc.view.draft.is_none() {
@@ -329,7 +345,12 @@ fn draw_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mut 
             && let Some((page, xf)) = ix.page_at(s)
         {
             let at = snap_at(ix, doc, cx, page, xf.to_user(s), None).pt;
-            let m = crate::chest::place_copy(t, page, at);
+            let mut m = crate::chest::place_copy(t, page, at);
+            if let Some(set_scale) = &cx.edit.item_scale
+                && let Some(page_scale) = doc.session.doc().pages.get(page).and_then(|p| p.scale_at(at))
+            {
+                crate::chest_sets::rescale_copy(&mut m, set_scale, page_scale);
+            }
             add_markup(doc, tool, m, None, out);
         }
         return;
@@ -350,7 +371,13 @@ fn draw_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mut 
             (press, click, release, dbl, right, cur),
             &k,
         ),
+        ToolKind::Drag { kind, shape, role } => {
+            drag_tool(ix, doc, cx, out, (kind, shape, role), (press, click, release, cur));
+        }
         ToolKind::Box(kind) => {
+            if two_click_anchor(ix, doc, cx, click) {
+                return;
+            }
             if let Some(s) = press
                 && let Some((page, xf)) = ix.page_at(s)
             {
@@ -668,7 +695,7 @@ fn points_tool(
         m.dash = vec![4.0, 3.0];
         Some(m)
     } else {
-        tools::new_markup(kind, d.page, &pts).map(|mut m| {
+        tools::new_markup(kind, d.page, &tools::role_points(role, &pts)).map(|mut m| {
             m = styled(m, cx);
             if kind.is_measurement() && kind != Kind::Count {
                 let first = pts.first().copied().unwrap_or_default();
@@ -693,7 +720,7 @@ fn points_tool(
         ix.painter
             .circle_stroke(xf.to_screen(*p), 3.0, Stroke::new(1.5, ix.tokens.select));
     }
-    let readout = live_readout(doc, d.page, kind, role, &pts);
+    let readout = live_readout(doc, d.page, kind, role, &tools::role_points(role, &pts));
     if let (Some(text), Some(c)) = (readout, cur) {
         let galley = ix
             .painter
@@ -787,23 +814,7 @@ fn finish(doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mut CanvasOut, spec: (Kind,
             let ring: Vec<Point> = tools::new_markup(Kind::Polygon, d.page, &d.pts)
                 .map(|m| m.pts)
                 .unwrap_or_default();
-            let Some(first) = ring.first().copied() else {
-                out.status = Some("A cutout needs at least three points".into());
-                return;
-            };
-            let sel = doc.session.selection().to_vec();
-            let area = doc
-                .session
-                .doc()
-                .markups_on(d.page)
-                .filter(|m| measure_extras::can_have_cutouts(m.kind))
-                .filter(|m| markupcraft_geom::point_in_polygon(first, &m.pts))
-                .max_by_key(|m| sel.contains(&m.id))
-                .map(|m| m.id.clone());
-            out.status = Some(match area {
-                Some(id) => actions::report(doc.session.add_cutout(&id, ring), |_| "Added a cutout".into()),
-                None => "Draw the cutout inside an Area measurement".into(),
-            });
+            add_cutout_ring(doc, d.page, ring, out);
         }
         Role::CloudPlus => {
             if let Some(m) = tools::new_markup(kind, d.page, &d.pts)
@@ -820,12 +831,178 @@ fn finish(doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mut CanvasOut, spec: (Kind,
                 out.status = Some("Click where the callout text goes".into());
             }
         }
-        Role::Markup => match tools::new_markup(kind, d.page, &d.pts) {
+        Role::Viewport => {}
+        Role::Markup | Role::Radius3 => match tools::new_markup(kind, d.page, &tools::role_points(role, &d.pts)) {
             Some(m) => {
                 add_markup(doc, tool, styled(m, cx), None, out);
             }
             None => out.status = Some(format!("{}: not enough points", tool.label)),
         },
+    }
+}
+
+/// Cut `ring` out of the Area (or Volume) on `page` its first point is inside (the selected
+/// one first).
+fn add_cutout_ring(doc: &mut DocTab, page: usize, ring: Vec<Point>, out: &mut CanvasOut) {
+    let Some(first) = ring.first().copied().filter(|_| ring.len() >= 3) else {
+        out.status = Some("A cutout needs at least three points".into());
+        return;
+    };
+    let sel = doc.session.selection().to_vec();
+    let area = doc
+        .session
+        .doc()
+        .markups_on(page)
+        .filter(|m| measure_extras::can_have_cutouts(m.kind))
+        .filter(|m| markupcraft_geom::point_in_polygon(first, &m.pts))
+        .max_by_key(|m| sel.contains(&m.id))
+        .map(|m| m.id.clone());
+    out.status = Some(match area {
+        Some(id) => actions::report(doc.session.add_cutout(&id, ring), |_| "Added a cutout".into()),
+        None => "Draw the cutout inside an Area measurement".into(),
+    });
+}
+
+/// Box and drag tools: a click (no drag) sets the first corner, the next click (or a Sketch to
+/// Scale size) the opposite one. Returns whether the click was taken.
+fn two_click_anchor(ix: &Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, click: Option<Pos2>) -> bool {
+    let Some(s) = click else { return false };
+    match doc.view.draft.clone() {
+        Some(d) if d.stage == Stage::Points && d.pts.len() == 1 => {
+            if let Some(xf) = ix.xf(d.page) {
+                let a = d.pts.first().copied().unwrap_or_default();
+                let b = tool_point(ix, doc, cx, d.page, xf.to_user(s), Some(a), true);
+                if let Some(dr) = doc.view.draft.as_mut() {
+                    dr.pts.push(b);
+                    dr.stage = Stage::Typed;
+                }
+            }
+            true
+        }
+        None => {
+            let Some((page, xf)) = ix.page_at(s) else { return false };
+            let a = snap_at(ix, doc, cx, page, xf.to_user(s), None).pt;
+            doc.view.draft = Some(Draft {
+                tool: cx.tool.id,
+                page,
+                pts: vec![a],
+                stage: Stage::Points,
+            });
+            true
+        }
+        Some(_) => false,
+    }
+}
+
+/// Area by rectangle, Ellipse Cutout, Add Viewport: press, drag, release (or two clicks).
+fn drag_tool(
+    ix: &mut Input<'_>,
+    doc: &mut DocTab,
+    cx: &CanvasCx<'_>,
+    out: &mut CanvasOut,
+    spec: (Kind, DragShape, Role),
+    frame: (Option<Pos2>, Option<Pos2>, Option<Pos2>, Option<Pos2>),
+) {
+    let (kind, shape, role) = spec;
+    let (press, click, release, cur) = frame;
+    if two_click_anchor(ix, doc, cx, click) {
+        return;
+    }
+    if let Some(s) = press
+        && let Some((page, xf)) = ix.page_at(s)
+    {
+        let a = snap_at(ix, doc, cx, page, xf.to_user(s), None).pt;
+        doc.view.draft = Some(Draft {
+            tool: cx.tool.id,
+            page,
+            pts: vec![a],
+            stage: Stage::Dragging,
+        });
+    }
+    let Some(d) = doc.view.draft.clone() else { return };
+    let (Some(xf), Some(c)) = (ix.xf(d.page), release.or(cur)) else {
+        return;
+    };
+    let a = d.pts.first().copied().unwrap_or_default();
+    let b = tool_point(ix, doc, cx, d.page, xf.to_user(c), Some(a), true);
+    if release.is_some() && d.stage == Stage::Dragging {
+        if let Some(dr) = doc.view.draft.as_mut() {
+            dr.pts = vec![a, b];
+        }
+        finish_drag(doc, cx, out, spec);
+        return;
+    }
+    let Some(ring) = tools::drag_ring(shape, a, b) else {
+        return;
+    };
+    let mut m = Markup::new(
+        if role == Role::Markup { kind } else { Kind::Polygon },
+        d.page,
+        ring.clone(),
+    );
+    if role == Role::Markup {
+        if let Some(n) = tools::new_markup(kind, d.page, &ring) {
+            m = styled(n, cx);
+            m.scale = doc.session.doc().pages.get(d.page).and_then(|p| p.scale_at(a)).cloned();
+        }
+    } else {
+        m.color = markupcraft_model::Color::rgb(0.88, 0.06, 0.75);
+        m.dash = vec![4.0, 3.0];
+    }
+    preview(ix, d.page, &m);
+    if let Some(text) = live_readout(doc, d.page, kind, role, &ring) {
+        out.status = Some(text);
+    }
+}
+
+/// Finish a drag tool whose draft holds its two corners.
+fn finish_drag(doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mut CanvasOut, spec: (Kind, DragShape, Role)) {
+    let (kind, shape, role) = spec;
+    let Some(d) = doc.view.draft.take() else { return };
+    let (Some(a), Some(b)) = (d.pts.first().copied(), d.pts.get(1).copied()) else {
+        return;
+    };
+    let Some(ring) = tools::drag_ring(shape, a, b) else {
+        out.status = Some(format!("{}: drag a larger box", cx.tool.label));
+        return;
+    };
+    match role {
+        Role::Cutout => add_cutout_ring(doc, d.page, ring, out),
+        Role::Viewport => {
+            let r = URect::new(a.x, a.y, b.x, b.y).normalized();
+            out.actions.push(crate::canvas::CanvasAction::NewViewport(d.page, r));
+            out.done = true;
+        }
+        _ => match tools::new_markup(kind, d.page, &ring) {
+            Some(m) => {
+                add_markup(doc, cx.tool, styled(m, cx), None, out);
+            }
+            None => out.status = Some(format!("{}: drag a larger box", cx.tool.label)),
+        },
+    }
+}
+
+/// A draft Sketch to Scale completed: finish it like the tool would.
+fn finish_typed(doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mut CanvasOut) {
+    match cx.tool.kind {
+        ToolKind::Points {
+            kind,
+            closed,
+            finish_at,
+            role,
+        } => finish(doc, cx, out, (kind, closed, finish_at, role)),
+        ToolKind::Drag { kind, shape, role } => finish_drag(doc, cx, out, (kind, shape, role)),
+        ToolKind::Box(kind) => {
+            let Some(d) = doc.view.draft.take() else { return };
+            match tools::new_markup(kind, d.page, &d.pts) {
+                Some(m) if kind == Kind::Snapshot => snapshot_to_clipboard(doc, m, out),
+                Some(m) => {
+                    add_markup(doc, cx.tool, styled(m, cx), None, out);
+                }
+                None => out.status = Some(format!("{}: the size is too small", cx.tool.label)),
+            }
+        }
+        _ => doc.view.draft = None,
     }
 }
 
@@ -1063,6 +1240,7 @@ fn open_new_editor(doc: &mut DocTab, tool: &'static ToolDef, markup: Markup, gro
     doc.view.draft = None;
     doc.view.editor = Some(TextEditor {
         text: markup.contents.clone(),
+        rich: markup.rich.clone(),
         target: EditTarget::New {
             markup: Box::new(markup),
             tool: tool.id,
@@ -1083,6 +1261,7 @@ pub fn edit_existing(doc: &mut DocTab, id: &str) -> bool {
     }
     doc.view.editor = Some(TextEditor {
         text: m.contents.replace('\r', "\n"),
+        rich: m.rich.clone(),
         target: EditTarget::Existing(id.to_string()),
         page: m.page,
         opened: false,
@@ -1128,7 +1307,109 @@ fn editor_ui(ix: &mut Input<'_>, doc: &mut DocTab, out: &mut CanvasOut) {
         crate::theme::color32(&m.text.color, 1.0)
     };
     let mut text = ed.text.clone();
+    let mut runs = ed.rich.clone();
     let id = egui::Id::new("markupcraft-text-editor");
+    let edit_id = id.with("edit");
+    let ctx = ix.ui.ctx().clone();
+    crate::richedit::load_dictionary();
+    let rich_ok = m.kind.is_text();
+    // Ctrl+B / Ctrl+I / Ctrl+U style the selection.
+    if rich_ok {
+        use markupcraft_model::rich::StyleChange;
+        for (k, change) in [
+            (egui::Key::B, StyleChange::Bold),
+            (egui::Key::I, StyleChange::Italic),
+            (egui::Key::U, StyleChange::Underline),
+        ] {
+            if ctx.input_mut(|i| i.consume_key(egui::Modifiers::COMMAND, k)) {
+                runs = crate::richedit::restyle(&ctx, edit_id, &text, &m.text, &runs, change);
+            }
+        }
+    }
+    // The toolbar above the editor: styles, colour, spelling suggestions.
+    let mut keep_open = false;
+    let bar = egui::Area::new(id.with("bar"))
+        .fixed_pos(r.min - vec2(0.0, 30.0))
+        .order(egui::Order::Foreground)
+        .show(&ctx, |ui| {
+            egui::Frame::popup(ui.style())
+                .inner_margin(egui::Margin::same(2))
+                .show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        use markupcraft_model::rich::StyleChange;
+                        if rich_ok {
+                            for (letter, change, tip) in [
+                                ("B", StyleChange::Bold, "Bold (Ctrl+B)"),
+                                ("I", StyleChange::Italic, "Italic (Ctrl+I)"),
+                                ("U", StyleChange::Underline, "Underline (Ctrl+U)"),
+                            ] {
+                                let rt = match letter {
+                                    "B" => egui::RichText::new(letter).strong(),
+                                    "I" => egui::RichText::new(letter).italics(),
+                                    _ => egui::RichText::new(letter).underline(),
+                                };
+                                if ui.button(rt).on_hover_text(tip).clicked() {
+                                    runs = crate::richedit::restyle(&ctx, edit_id, &text, &m.text, &runs, change);
+                                    keep_open = true;
+                                }
+                            }
+                            for (name, c) in [
+                                ("Red", markupcraft_model::Color::RED),
+                                ("Black", markupcraft_model::Color::BLACK),
+                                ("Blue", markupcraft_model::Color::rgb(0.0, 0.0, 1.0)),
+                            ] {
+                                let (rect, resp) = ui.allocate_exact_size(vec2(16.0, 16.0), egui::Sense::click());
+                                ui.painter()
+                                    .rect_filled(rect.shrink(2.0), 2.0, crate::theme::color32(&c, 1.0));
+                                let resp = resp.on_hover_text(format!("{name} text"));
+                                resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, name));
+                                if resp.clicked() {
+                                    runs = crate::richedit::restyle(
+                                        &ctx,
+                                        edit_id,
+                                        &text,
+                                        &m.text,
+                                        &runs,
+                                        StyleChange::Color(c),
+                                    );
+                                    keep_open = true;
+                                }
+                            }
+                        }
+                        // Spelling: suggestions for the misspelled word at the cursor.
+                        let at = crate::richedit::cursor(&ctx, edit_id).unwrap_or(0);
+                        if let Some((s, e, word)) = crate::richedit::word_at(&text, at) {
+                            ui.separator();
+                            ui.label(egui::RichText::new(&word).color(Color32::from_rgb(200, 30, 30)));
+                            for sug in crate::richedit::suggestions(&word) {
+                                if ui.small_button(&sug).clicked() {
+                                    let (t, r) = crate::richedit::replace(&text, &runs, s, e, &sug);
+                                    text = t;
+                                    runs = r;
+                                    crate::richedit::set_cursor(&ctx, edit_id, s + sug.chars().count());
+                                    keep_open = true;
+                                }
+                            }
+                        }
+                    });
+                });
+        });
+    let bar_hovered = bar.response.contains_pointer()
+        || ctx.layer_id_at(ctx.pointer_hover_pos().unwrap_or_default()) == Some(bar.response.layer_id);
+    let before = text.clone();
+    let base = m.text.clone();
+    let layout_runs = runs.clone();
+    let wrap = (r.width() - 6.0).max(40.0);
+    let mut layouter = |ui: &egui::Ui, buf: &dyn egui::TextBuffer, _w: f32| {
+        let job = crate::richedit::layout_job(buf.as_str(), &base, &layout_runs, size, wrap);
+        let mut job = job;
+        if !rich_ok {
+            for s in &mut job.sections {
+                s.format.color = color;
+            }
+        }
+        ui.fonts_mut(|f| f.layout_job(job))
+    };
     let area = egui::Area::new(id)
         .fixed_pos(r.min)
         .order(egui::Order::Foreground)
@@ -1140,20 +1421,28 @@ fn editor_ui(ix: &mut Input<'_>, doc: &mut DocTab, out: &mut CanvasOut) {
                 .show(ui, |ui| {
                     ui.set_min_size(r.size().max(vec2(40.0, 20.0)));
                     egui::TextEdit::multiline(&mut text)
-                        .id(id.with("edit"))
+                        .id(edit_id)
                         .font(FontId::proportional(size))
                         .text_color(color)
-                        .desired_width((r.width() - 6.0).max(40.0))
+                        .desired_width(wrap)
                         .desired_rows(1)
                         .frame(egui::Frame::NONE)
+                        .layouter(&mut layouter)
                         .show(ui)
                         .response
                 })
                 .inner
         });
     let resp = area.inner;
+    if text != before {
+        runs = markupcraft_model::rich::rebase(&runs, &before, &text);
+    }
+    if keep_open || bar_hovered {
+        ctx.memory_mut(|mem| mem.request_focus(edit_id));
+    }
     if let Some(e) = doc.view.editor.as_mut() {
         e.text = text;
+        e.rich = runs;
         if !e.opened {
             resp.request_focus();
             e.opened = true;
@@ -1167,7 +1456,7 @@ fn editor_ui(ix: &mut Input<'_>, doc: &mut DocTab, out: &mut CanvasOut) {
             return;
         }
     }
-    if resp.lost_focus() || (!resp.has_focus() && !resp.gained_focus()) {
+    if !(keep_open || bar_hovered) && (resp.lost_focus() || (!resp.has_focus() && !resp.gained_focus())) {
         commit_editor(doc, out);
     }
 }
@@ -1187,6 +1476,8 @@ pub fn commit_editor(doc: &mut DocTab, out: &mut CanvasOut) {
                 out.done = true;
                 return;
             }
+            let n = text.chars().count();
+            markup.rich = markupcraft_model::rich::normalize(&markup.text, &ed.rich, n);
             markup.contents = text;
             if let Some(t) = tools::find(tool) {
                 add_markup(doc, t, *markup, group_with, out);
@@ -1196,7 +1487,8 @@ pub fn commit_editor(doc: &mut DocTab, out: &mut CanvasOut) {
             let Some(m) = doc.session.doc().find(&id).cloned() else {
                 return;
             };
-            if m.contents == text {
+            let rich = markupcraft_model::rich::normalize(&m.text, &ed.rich, text.chars().count());
+            if m.contents == text && m.rich == rich {
                 return;
             }
             let mut sized = m.clone();
@@ -1207,6 +1499,7 @@ pub fn commit_editor(doc: &mut DocTab, out: &mut CanvasOut) {
             doc.session.set_merge_key(Some("edit-text"));
             let patch = markupcraft_engine::MarkupPatch {
                 contents: Some(text),
+                rich: m.kind.is_text().then_some(rich),
                 ..Default::default()
             };
             let mut r = doc
@@ -1350,6 +1643,41 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
     let mods = ix.ui.input(|i| i.modifiers);
     let add = mods.shift || mods.command;
     doc.view.draft = None;
+
+    // Format Painter: a click copies the look onto the markup under the pointer.
+    if let Some(template) = cx.edit.painter.as_ref() {
+        if let Some(s) = ix.resp.hover_pos()
+            && ix.page_at(s).is_some()
+        {
+            ix.ui.ctx().set_cursor_icon(egui::CursorIcon::Cell);
+        }
+        if let Some(s) = click.or(press)
+            && let Some((page, xf)) = ix.page_at(s)
+        {
+            let tol = f64::from(PICK / xf.k.max(1e-6));
+            if let Some(id) = top_hit(doc, page, xf.to_user(s), tol) {
+                crate::editing::paint_format(doc, template, &id, out);
+            }
+        }
+        return;
+    }
+
+    // The rotation handle of a single selected markup.
+    if let Some(s) = press
+        && let Some((id, page, pivot)) = rotate_handle_at(ix, doc, s)
+        && let Some(xf) = ix.xf(page)
+    {
+        let at = xf.to_user(s);
+        doc.view.gesture = Some(Gesture::Rotate {
+            id,
+            page,
+            pivot,
+            start: (at.y - pivot.y).atan2(at.x - pivot.x),
+        });
+        doc.view.preview.clear();
+    }
+    let rotating = matches!(doc.view.gesture, Some(Gesture::Rotate { .. }));
+    let press = press.filter(|_| !rotating);
 
     // Press: a caption (Shift), a handle of the selection, a markup, else a box.
     if let Some(s) = press {
@@ -1551,6 +1879,26 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
                 }
             }
         }
+        Some(Gesture::Rotate { id, page, pivot, start }) => {
+            if let (Some(xf), Some(c), Some(m)) = (ix.xf(page), end, doc.session.doc().find(&id).cloned()) {
+                let now = xf.to_user(c);
+                let deg = rotation_degrees(&m, start, (now.y - pivot.y).atan2(now.x - pivot.x), mods.shift);
+                if release.is_some() {
+                    doc.view.preview.clear();
+                    if deg.abs() > 1e-9 {
+                        let r = doc.session.rotate_markups(std::slice::from_ref(&id), deg, Some(pivot));
+                        out.status = Some(actions::report(r, |_| format!("Rotated {deg:.0}\u{b0}")));
+                    }
+                } else {
+                    let mut p = m.clone();
+                    if markupcraft_engine::geometry::rotate(&mut p, deg, pivot).is_ok() {
+                        doc.view.preview.insert(id, p);
+                    }
+                    out.status = Some(format!("Rotate {deg:.1}\u{b0}"));
+                    ix.ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+                }
+            }
+        }
         Some(Gesture::Box { page, start }) => {
             if let Some(c) = end {
                 let r = Rect::from_two_pos(start, c);
@@ -1581,6 +1929,8 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
         doc.view.snapped = None;
     }
 
+    paint_rotate_handle(ix, doc);
+
     // Hover cursor over markups and captions.
     if doc.view.gesture.is_none()
         && let Some(s) = ix.resp.hover_pos()
@@ -1593,6 +1943,75 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
             ix.ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
         }
     }
+}
+
+// ---- rotation handle -------------------------------------------------------------------------
+
+/// Screen distance of the rotation handle above the selection's top edge.
+const ROTATE_GAP: f32 = 22.0;
+
+/// Kinds turned with the handle: free rotation for outlines; boxes by quarter turns.
+fn rotatable(m: &Markup) -> bool {
+    movable(m)
+        && !m.pts.is_empty()
+        && (!uses_rect(m.kind) || markupcraft_engine::geometry::is_box(m.kind))
+        && !matches!(
+            m.kind,
+            Kind::TextHighlight | Kind::Underline | Kind::Strikeout | Kind::Squiggly | Kind::Count
+        )
+}
+
+/// The single selected markup with a rotation handle: (id, page, pivot, top, handle).
+fn rotate_handle(ix: &Input<'_>, doc: &DocTab) -> Option<(String, usize, Point, Pos2, Pos2)> {
+    let [id] = doc.session.selection() else { return None };
+    let m = doc.session.doc().find(id)?;
+    if !rotatable(m) {
+        return None;
+    }
+    let xf = ix.xf(m.page)?;
+    let shown = doc.view.preview.get(id).unwrap_or(m);
+    let r = xf.rect_of(actions::markup_bbox(shown));
+    let top = egui::pos2(r.center().x, r.top() - 3.0);
+    let handle = egui::pos2(r.center().x, r.top() - ROTATE_GAP);
+    Some((id.clone(), m.page, actions::center_of(m), top, handle))
+}
+
+fn rotate_handle_at(ix: &Input<'_>, doc: &DocTab, s: Pos2) -> Option<(String, usize, Point)> {
+    let (id, page, pivot, _, h) = rotate_handle(ix, doc)?;
+    (h.distance(s) <= HANDLE_REACH + 1.0).then_some((id, page, pivot))
+}
+
+fn paint_rotate_handle(ix: &Input<'_>, doc: &DocTab) {
+    let Some((_, _, _, top, h)) = rotate_handle(ix, doc) else {
+        return;
+    };
+    let st = Stroke::new(1.2, ix.tokens.select);
+    ix.painter.line_segment([top, h], st);
+    ix.painter.circle_filled(h, 4.5, Color32::WHITE);
+    ix.painter.circle_stroke(h, 4.5, st);
+    if ix.resp.hover_pos().is_some_and(|p| p.distance(h) <= HANDLE_REACH + 1.0) {
+        ix.ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
+    }
+}
+
+/// Degrees to turn for a drag from angle `a0` to `a1` (radians, counter-clockwise): Shift
+/// snaps to 15 degrees, boxes to quarter turns.
+pub fn rotation_degrees(m: &Markup, a0: f64, a1: f64, shift: bool) -> f64 {
+    let mut d = (a1 - a0).to_degrees();
+    while d > 180.0 {
+        d -= 360.0;
+    }
+    while d < -180.0 {
+        d += 360.0;
+    }
+    let step = if markupcraft_engine::geometry::is_box(m.kind) {
+        90.0
+    } else if shift {
+        15.0
+    } else {
+        0.0
+    };
+    if step > 0.0 { (d / step).round() * step } else { d }
 }
 
 // ---- context menu ----------------------------------------------------------------------------

@@ -56,6 +56,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
         return;
     };
     let st = &mut app.measure;
+    let edit = &mut app.edit;
     let page = doc.view.current;
     let count = doc.session.page_count();
     let Some(info) = doc.session.doc().pages.get(page).cloned() else {
@@ -170,30 +171,10 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
             });
 
         // Viewports.
-        let partial: Vec<(usize, &markupcraft_model::Viewport)> = info
-            .viewports
-            .iter()
-            .enumerate()
-            .filter(|(_, v)| v.bbox.normalized() != info.media.normalized())
-            .collect();
-        if !partial.is_empty() {
-            ui.add_space(10.0);
-            ui.label(RichText::new("Viewports").strong());
-            let mut delete = None;
-            for (i, v) in partial {
-                ui.horizontal(|ui| {
-                    let name = if v.name.is_empty() { "Viewport" } else { v.name.as_str() };
-                    ui.label(format!("{name}: {}", v.scale.ratio));
-                    if crate::icons::button(ui, "trash-2", 18.0, false, "Delete viewport").clicked() {
-                        delete = Some(i);
-                    }
-                });
-            }
-            if let Some(i) = delete {
-                status = Some(actions::report(doc.session.delete_viewport(page, i), |_| {
-                    "Viewport deleted".into()
-                }));
-            }
+        if let Some(s) =
+            crate::viewports::panel_section(ui, doc, page, &mut edit.viewports_panel, &mut edit.highlight_viewports)
+        {
+            status = Some(s);
         }
 
         // Totals of the selection.

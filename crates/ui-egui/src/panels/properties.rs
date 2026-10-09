@@ -1,7 +1,8 @@
 //! Properties (Alt+P): the selected markups' fields, grouped like Revu's panel (General,
 //! Appearance, Text, Measurement, Layout, Options). A change applies to every selected markup
 //! MarkupCraft can write; a slider drag or a typed word is one undo step (the engine merges a
-//! gesture's edits). With nothing selected: the page and its scale.
+//! gesture's edits). With several markups selected, a field whose values differ shows "Mixed"
+//! until it is set. With nothing selected: the page and its scale.
 
 use egui::{Grid, RichText};
 use markupcraft_engine::MarkupPatch;
@@ -10,7 +11,8 @@ use markupcraft_measure::units::{
     display_unit_choices, precision_choices, scale_display_unit, scale_precision, scale_presets, set_display_unit,
     set_precision,
 };
-use markupcraft_model::{Color, CountSymbol, Kind, Markup, review_statuses};
+use markupcraft_model::hatch::{Hatch, HatchStyle};
+use markupcraft_model::{Color, CountSymbol, Kind, Markup, flags, review_statuses};
 
 use super::{PanelDef, Slot};
 use crate::actions::{self, box_of, editable};
@@ -40,6 +42,9 @@ pub const FONTS: &[&str] = &["Helvetica", "Times", "Courier"];
 
 pub const NOTE_ICONS: &[&str] = &["Comment", "Note", "Key", "Help", "NewParagraph", "Paragraph", "Insert"];
 
+/// What a field shows when the selected markups disagree.
+pub const MIXED: &str = "Mixed";
+
 /// The name of a dash array.
 pub fn line_style_name(dash: &[f64]) -> &'static str {
     LINE_STYLES
@@ -51,6 +56,31 @@ pub fn line_style_name(dash: &[f64]) -> &'static str {
 /// Edits gathered while the panel draws, applied after: (merge key, patch).
 type Edits = Vec<(&'static str, MarkupPatch)>;
 
+/// Changes that are not a property patch (geometry, hatch, layer), applied after drawing.
+#[derive(Debug, Clone, PartialEq)]
+enum Change {
+    Hatch(Option<Hatch>),
+    Layer(String),
+    Move(f64, f64),
+    Resize(markupcraft_geom::Rect),
+    Rotate(f64),
+    Symbol(Vec<Vec<markupcraft_geom::Point>>),
+}
+
+/// The selected markups the panel describes.
+struct Sel<'a> {
+    first: &'a Markup,
+    all: &'a [Markup],
+}
+
+impl Sel<'_> {
+    /// The selected markups disagree on this value.
+    fn mixed<T: PartialEq>(&self, f: impl Fn(&Markup) -> T) -> bool {
+        let v = f(self.first);
+        self.all.iter().any(|m| f(m) != v)
+    }
+}
+
 fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     let mut actions_out: Vec<&'static str> = Vec::new();
@@ -60,25 +90,23 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     };
     egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
         let ids = doc.selection().to_vec();
-        let first = ids.iter().find_map(|id| doc.session.doc().find(id)).cloned();
-        let Some(m) = first else {
+        let all: Vec<Markup> = ids
+            .iter()
+            .filter_map(|id| doc.session.doc().find(id))
+            .cloned()
+            .collect();
+        let Some(m) = all.first().cloned() else {
             page_info(ui, doc, &t);
             return;
         };
+        let sel = Sel { first: &m, all: &all };
         let n = ids.len();
         let title = if n == 1 {
             m.kind.name().to_string()
+        } else if !sel.mixed(|m| m.kind) {
+            format!("{n} {} markups", m.kind.name())
         } else {
-            let kinds: std::collections::BTreeSet<&str> = ids
-                .iter()
-                .filter_map(|id| doc.session.doc().find(id))
-                .map(|m| m.kind.name())
-                .collect();
-            if kinds.len() == 1 {
-                format!("{n} {} markups", m.kind.name())
-            } else {
-                format!("{n} markups")
-            }
+            format!("{n} markups")
         };
         ui.add_space(4.0);
         ui.label(RichText::new(title).strong().size(14.0));
@@ -89,11 +117,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
             .collect();
         let writable = !targets.is_empty();
         if !writable {
-            let why = if ids
-                .iter()
-                .filter_map(|id| doc.session.doc().find(id))
-                .any(|m| m.locked())
-            {
+            let why = if all.iter().any(Markup::locked) {
                 "Locked: unlock it to change its properties."
             } else {
                 "Shown from the file. Editing this kind comes with its writer."
@@ -102,20 +126,22 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
         }
         ui.add_space(4.0);
         let mut edits: Edits = Vec::new();
+        let mut changes: Vec<Change> = Vec::new();
+        let layers: Vec<String> = doc.session.layers().into_iter().map(|l| l.name).collect();
         ui.add_enabled_ui(writable, |ui| {
-            general(ui, &m, &mut edits);
-            appearance(ui, &m, &mut edits);
+            general(ui, &sel, &layers, &mut edits, &mut changes);
+            appearance(ui, &sel, &mut edits, &mut changes);
             if m.kind.is_text() || m.kind == Kind::Stamp || m.kind.is_measurement() {
-                text(ui, &m, &mut edits);
+                text(ui, &sel, &mut edits);
             }
             if m.kind.is_measurement() {
-                measurement(ui, &m, &mut edits);
+                measurement(ui, &sel, &mut edits, &mut changes);
             }
             if m.kind == Kind::Note {
-                note(ui, &m, &mut edits);
+                note(ui, &sel, &mut edits);
             }
+            layout(ui, &sel, &mut changes);
         });
-        layout(ui, &m);
         egui::CollapsingHeader::new("Options")
             .default_open(true)
             .show(ui, |ui| {
@@ -124,6 +150,29 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                     let r = doc.session.set_locked(&ids, locked);
                     app_status(doc, r.map(|_| ()));
                 }
+                ui.add_enabled_ui(writable, |ui| {
+                    for (label, bit, key) in [
+                        ("Print", flags::PRINT, "print"),
+                        ("Hidden", flags::HIDDEN, "hidden"),
+                        ("No View", flags::NO_VIEW, "no-view"),
+                    ] {
+                        let mut on = m.flags & bit != 0;
+                        let text = if sel.mixed(|x| x.flags & bit != 0) {
+                            format!("{label} ({MIXED})")
+                        } else {
+                            label.to_string()
+                        };
+                        if ui.checkbox(&mut on, text).changed() {
+                            let mut p = MarkupPatch::default();
+                            match key {
+                                "print" => p.print = Some(on),
+                                "hidden" => p.hidden = Some(on),
+                                _ => p.no_view = Some(on),
+                            }
+                            edits.push((key, p));
+                        }
+                    }
+                });
                 ui.horizontal(|ui| {
                     if ui.add_enabled(n == 1, egui::Button::new("Set as Default")).clicked() {
                         actions_out.push("markup.set_default");
@@ -132,8 +181,17 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                         actions_out.push("markup.add_to_toolchest");
                     }
                 });
+                ui.horizontal(|ui| {
+                    if ui
+                        .add_enabled(writable && n == 1, egui::Button::new("Format Painter"))
+                        .clicked()
+                    {
+                        actions_out.push("markup.format_painter");
+                    }
+                });
             });
         apply(doc, &targets, edits);
+        apply_changes(doc, &targets, changes);
     });
     for a in actions_out {
         app.queue(a);
@@ -161,6 +219,59 @@ fn apply(doc: &mut DocTab, targets: &[String], edits: Edits) {
     }
 }
 
+fn apply_changes(doc: &mut DocTab, targets: &[String], changes: Vec<Change>) {
+    if targets.is_empty() {
+        return;
+    }
+    for c in changes {
+        let r = match c {
+            Change::Hatch(h) => {
+                doc.session.set_merge_key(Some("hatch"));
+                let hatchable: Vec<String> = targets
+                    .iter()
+                    .filter(|id| {
+                        doc.session
+                            .doc()
+                            .find(id)
+                            .is_some_and(|m| markupcraft_revu::hatch::hatchable(m.kind))
+                    })
+                    .cloned()
+                    .collect();
+                doc.session.set_hatch(&hatchable, h).map(|_| ())
+            }
+            Change::Layer(name) => doc.session.assign_layer(targets, &name).map(|_| ()),
+            Change::Move(dx, dy) => {
+                doc.session.set_merge_key(Some("layout-move"));
+                doc.session.move_markups(targets, dx, dy).map(|_| ())
+            }
+            Change::Resize(r) => {
+                doc.session.set_merge_key(Some("layout-size"));
+                match targets.first() {
+                    Some(id) => doc.session.resize_markup(id, r),
+                    None => Ok(()),
+                }
+            }
+            Change::Rotate(deg) => doc.session.rotate_markups(targets, deg, None).map(|_| ()),
+            Change::Symbol(paths) => {
+                let counts: Vec<String> = targets
+                    .iter()
+                    .filter(|id| doc.session.doc().find(id).is_some_and(|m| m.kind == Kind::Count))
+                    .cloned()
+                    .collect();
+                let p = MarkupPatch {
+                    symbol_paths: Some(paths),
+                    ..Default::default()
+                };
+                doc.session.set_properties(&counts, &p).map(|_| ())
+            }
+        };
+        doc.session.set_merge_key(None);
+        if let Err(e) = r {
+            log::info!("properties: {e}");
+        }
+    }
+}
+
 fn section(ui: &mut egui::Ui, title: &str, id: &str, body: impl FnOnce(&mut egui::Ui)) {
     egui::CollapsingHeader::new(title).default_open(true).show(ui, |ui| {
         Grid::new(id)
@@ -171,20 +282,40 @@ fn section(ui: &mut egui::Ui, title: &str, id: &str, body: impl FnOnce(&mut egui
     });
 }
 
+/// A row label; mixed values add a faint "Mixed" note under it.
+fn label(ui: &mut egui::Ui, text: &str, mixed: bool) {
+    if mixed {
+        ui.vertical(|ui| {
+            ui.label(text);
+            ui.label(RichText::new(MIXED).weak().italics().size(10.0));
+        });
+    } else {
+        ui.label(text);
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 fn text_row(
     ui: &mut egui::Ui,
-    label: &str,
-    value: &str,
+    label_text: &str,
+    sel: &Sel<'_>,
+    get: fn(&Markup) -> &str,
     key: &'static str,
     edits: &mut Edits,
     set: fn(String) -> MarkupPatch,
 ) {
-    ui.label(label);
-    let mut v = value.to_string();
-    if ui
-        .add(egui::TextEdit::singleline(&mut v).desired_width(f32::INFINITY))
-        .changed()
-    {
+    let mixed = sel.mixed(|m| get(m).to_string());
+    label(ui, label_text, mixed);
+    let mut v = if mixed {
+        String::new()
+    } else {
+        get(sel.first).to_string()
+    };
+    let mut te = egui::TextEdit::singleline(&mut v).desired_width(f32::INFINITY);
+    if mixed {
+        te = te.hint_text(MIXED);
+    }
+    if ui.add(te).changed() {
         edits.push((key, set(v)));
     }
     ui.end_row();
@@ -197,32 +328,106 @@ fn color_button(ui: &mut egui::Ui, c: &Color) -> Option<Color> {
         .then(|| Color::rgb(f64::from(rgb[0]), f64::from(rgb[1]), f64::from(rgb[2])))
 }
 
-fn general(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
+fn general(ui: &mut egui::Ui, sel: &Sel<'_>, layers: &[String], edits: &mut Edits, changes: &mut Vec<Change>) {
+    let m = sel.first;
     section(ui, "General", "props-general", |ui| {
-        text_row(ui, "Subject", &m.subject, "subject", edits, |v| MarkupPatch {
-            subject: Some(v),
-            ..Default::default()
-        });
-        text_row(ui, "Label", &m.label, "label", edits, |v| MarkupPatch {
-            label: Some(v),
-            ..Default::default()
-        });
-        text_row(ui, "Author", &m.author, "author", edits, |v| MarkupPatch {
-            author: Some(v),
-            ..Default::default()
-        });
-        if !m.kind.is_measurement() && !m.kind.is_text() {
-            text_row(ui, "Comments", &m.contents, "contents", edits, |v| MarkupPatch {
-                contents: Some(v),
+        text_row(
+            ui,
+            "Subject",
+            sel,
+            |m| &m.subject,
+            "subject",
+            edits,
+            |v| MarkupPatch {
+                subject: Some(v),
                 ..Default::default()
-            });
+            },
+        );
+        text_row(
+            ui,
+            "Label",
+            sel,
+            |m| &m.label,
+            "label",
+            edits,
+            |v| MarkupPatch {
+                label: Some(v),
+                ..Default::default()
+            },
+        );
+        text_row(
+            ui,
+            "Author",
+            sel,
+            |m| &m.author,
+            "author",
+            edits,
+            |v| MarkupPatch {
+                author: Some(v),
+                ..Default::default()
+            },
+        );
+        if !m.kind.is_measurement() && !m.kind.is_text() {
+            text_row(
+                ui,
+                "Comments",
+                sel,
+                |m| &m.contents,
+                "contents",
+                edits,
+                |v| MarkupPatch {
+                    contents: Some(v),
+                    ..Default::default()
+                },
+            );
         }
-        text_row(ui, "Layer", &m.layer, "layer", edits, |v| MarkupPatch {
-            layer: Some(v),
-            ..Default::default()
+        // Layer: one of the document's layers, a new name, or none.
+        let mixed = sel.mixed(|m| m.layer.clone());
+        label(ui, "Layer", mixed);
+        let shown = if mixed {
+            MIXED.to_string()
+        } else if m.layer.is_empty() {
+            "None".to_string()
+        } else {
+            m.layer.clone()
+        };
+        ui.horizontal(|ui| {
+            egui::ComboBox::from_id_salt("prop-layer")
+                .selected_text(shown)
+                .width(110.0)
+                .show_ui(ui, |ui| {
+                    if ui.selectable_label(m.layer.is_empty() && !mixed, "None").clicked() {
+                        changes.push(Change::Layer(String::new()));
+                    }
+                    for l in layers {
+                        if ui.selectable_label(!mixed && m.layer == *l, l).clicked() {
+                            changes.push(Change::Layer(l.clone()));
+                        }
+                    }
+                });
+            let id = ui.id().with("new-layer");
+            let mut name: String = ui.data_mut(|d| d.get_temp::<String>(id).unwrap_or_default());
+            let r = ui.add(
+                egui::TextEdit::singleline(&mut name)
+                    .hint_text("New layer")
+                    .desired_width(80.0),
+            );
+            if r.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) && !name.trim().is_empty() {
+                changes.push(Change::Layer(name.trim().to_string()));
+                name.clear();
+            }
+            ui.data_mut(|d| d.insert_temp(id, name));
         });
-        ui.label("Status");
-        let current = if m.status.is_empty() { "None" } else { m.status.as_str() };
+        ui.end_row();
+        let mixed = sel.mixed(|m| m.status.clone());
+        label(ui, "Status", mixed);
+        let current = if mixed {
+            MIXED
+        } else if m.status.is_empty() {
+            "None"
+        } else {
+            m.status.as_str()
+        };
         egui::ComboBox::from_id_salt("prop-status")
             .selected_text(current)
             .show_ui(ui, |ui| {
@@ -239,7 +444,8 @@ fn general(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
                 }
             });
         ui.end_row();
-        ui.label("Checkmark");
+        let mixed = sel.mixed(|m| m.checked);
+        label(ui, "Checkmark", mixed);
         let mut c = m.checked;
         if ui.checkbox(&mut c, "").changed() {
             edits.push((
@@ -251,15 +457,39 @@ fn general(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
             ));
         }
         ui.end_row();
-        ui.label("Date");
-        ui.label(markupcraft_model::table::revu_date(&m.modified));
+        label(ui, "Date", sel.mixed(|m| m.modified.clone()));
+        let date = markupcraft_model::table::revu_date(&m.modified);
+        ui.label(match (date.is_empty(), m.in_file()) {
+            (false, _) => date,
+            (true, true) => "Not recorded".to_string(),
+            (true, false) => "Not saved yet".to_string(),
+        });
+        ui.end_row();
+        if !m.created.is_empty() {
+            ui.label("Created");
+            ui.label(markupcraft_model::table::revu_date(&m.created));
+            ui.end_row();
+        }
+        ui.label("Replies");
+        let last = m
+            .state_replies
+            .last()
+            .map(|r| r.state.clone())
+            .filter(|s| !s.is_empty())
+            .unwrap_or_default();
+        ui.label(if last.is_empty() {
+            format!("{}", m.replies.len())
+        } else {
+            format!("{} ({last})", m.replies.len())
+        });
         ui.end_row();
     });
 }
 
-fn appearance(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
+fn appearance(ui: &mut egui::Ui, sel: &Sel<'_>, edits: &mut Edits, changes: &mut Vec<Change>) {
+    let m = sel.first;
     section(ui, "Appearance", "props-appearance", |ui| {
-        ui.label("Color");
+        label(ui, "Color", sel.mixed(|m| m.color));
         if let Some(c) = color_button(ui, &m.color) {
             edits.push((
                 "color",
@@ -275,7 +505,7 @@ fn appearance(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
             || m.fill.is_some()
             || matches!(m.kind, Kind::Text | Kind::Callout | Kind::Stamp);
         if fillable {
-            ui.label("Fill");
+            label(ui, "Fill", sel.mixed(|m| m.fill));
             ui.horizontal(|ui| {
                 let mut on = m.fill.is_some();
                 if ui.checkbox(&mut on, "").changed() {
@@ -300,7 +530,11 @@ fn appearance(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
                 }
             });
             ui.end_row();
-            ui.label("Fill opacity");
+            label(
+                ui,
+                "Fill opacity",
+                sel.mixed(|m| (m.fill_opacity * 100.0).round() as i64),
+            );
             let mut fo = (m.fill_opacity * 100.0).round();
             if ui.add(egui::Slider::new(&mut fo, 0.0..=100.0).suffix(" %")).changed() {
                 edits.push((
@@ -314,7 +548,7 @@ fn appearance(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
             ui.end_row();
         }
 
-        ui.label("Opacity");
+        label(ui, "Opacity", sel.mixed(|m| (m.opacity * 100.0).round() as i64));
         let mut op = (m.opacity * 100.0).round();
         if ui.add(egui::Slider::new(&mut op, 0.0..=100.0).suffix(" %")).changed() {
             edits.push((
@@ -327,8 +561,34 @@ fn appearance(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
         }
         ui.end_row();
 
+        let mixed = sel.mixed(|m| m.multiply);
+        label(ui, "Blend mode", mixed);
+        let current = if mixed {
+            MIXED
+        } else if m.multiply {
+            "Multiply"
+        } else {
+            "Normal"
+        };
+        egui::ComboBox::from_id_salt("prop-blend")
+            .selected_text(current)
+            .show_ui(ui, |ui| {
+                for (name, on) in [("Normal", false), ("Multiply", true)] {
+                    if ui.selectable_label(current == name, name).clicked() {
+                        edits.push((
+                            "blend",
+                            MarkupPatch {
+                                multiply: Some(on),
+                                ..Default::default()
+                            },
+                        ));
+                    }
+                }
+            });
+        ui.end_row();
+
         if !matches!(m.kind, Kind::TextHighlight | Kind::Note | Kind::Snapshot) {
-            ui.label("Line width");
+            label(ui, "Line width", sel.mixed(|m| m.line_width.to_bits()));
             let mut w = m.line_width;
             if ui
                 .add(egui::DragValue::new(&mut w).range(0.0..=72.0).speed(0.1).suffix(" pt"))
@@ -344,8 +604,9 @@ fn appearance(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
             }
             ui.end_row();
 
-            ui.label("Line style");
-            let current = line_style_name(&m.dash);
+            let mixed = sel.mixed(|m| m.dash.iter().map(|d| d.to_bits()).collect::<Vec<_>>());
+            label(ui, "Line style", mixed);
+            let current = if mixed { MIXED } else { line_style_name(&m.dash) };
             egui::ComboBox::from_id_salt("prop-dash")
                 .selected_text(current)
                 .show_ui(ui, |ui| {
@@ -369,21 +630,37 @@ fn appearance(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
             Kind::Line | Kind::Arrow | Kind::Polyline | Kind::Length | Kind::Polylength | Kind::Callout
         ) {
             if m.kind != Kind::Callout {
-                ending_row(ui, "Start", &m.line_start, "start", edits, |v| MarkupPatch {
-                    line_start: Some(v),
-                    ..Default::default()
-                });
+                ending_row(
+                    ui,
+                    "Start",
+                    sel,
+                    |m| &m.line_start,
+                    "start",
+                    edits,
+                    |v| MarkupPatch {
+                        line_start: Some(v),
+                        ..Default::default()
+                    },
+                );
             }
-            ending_row(ui, "End", &m.line_end, "end", edits, |v| MarkupPatch {
-                line_end: Some(v),
-                ..Default::default()
-            });
+            ending_row(
+                ui,
+                "End",
+                sel,
+                |m| &m.line_end,
+                "end",
+                edits,
+                |v| MarkupPatch {
+                    line_end: Some(v),
+                    ..Default::default()
+                },
+            );
         }
         if matches!(
             m.kind,
             Kind::Cloud | Kind::Polygon | Kind::Area | Kind::Perimeter | Kind::Rectangle
         ) {
-            ui.label("Cloud");
+            label(ui, "Cloud", sel.mixed(|m| m.cloud.to_bits()));
             let mut c = m.cloud;
             if ui.add(egui::Slider::new(&mut c, 0.0..=2.0).step_by(0.1)).changed() {
                 edits.push((
@@ -396,20 +673,98 @@ fn appearance(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
             }
             ui.end_row();
         }
+        if markupcraft_revu::hatch::hatchable(m.kind) {
+            hatch_rows(ui, sel, changes);
+        }
     });
+}
+
+fn hatch_rows(ui: &mut egui::Ui, sel: &Sel<'_>, changes: &mut Vec<Change>) {
+    let m = sel.first;
+    let mixed = sel.mixed(|m| m.hatch.map(|h| h.style));
+    label(ui, "Hatch", mixed);
+    let current = if mixed {
+        MIXED.to_string()
+    } else {
+        m.hatch.map_or("None".to_string(), |h| h.style.name().to_string())
+    };
+    egui::ComboBox::from_id_salt("prop-hatch")
+        .selected_text(current)
+        .show_ui(ui, |ui| {
+            if ui.selectable_label(m.hatch.is_none(), "None").clicked() {
+                changes.push(Change::Hatch(None));
+            }
+            for s in HatchStyle::ALL {
+                if ui
+                    .selectable_label(m.hatch.is_some_and(|h| h.style == s), s.name())
+                    .clicked()
+                {
+                    let mut h = m.hatch.unwrap_or_default();
+                    h.style = s;
+                    changes.push(Change::Hatch(Some(h)));
+                }
+            }
+        });
+    ui.end_row();
+    if let Some(h) = m.hatch {
+        ui.label("Hatch spacing");
+        let mut sp = h.spacing;
+        if ui
+            .add(
+                egui::DragValue::new(&mut sp)
+                    .range(0.5..=200.0)
+                    .speed(0.2)
+                    .suffix(" pt"),
+            )
+            .changed()
+        {
+            changes.push(Change::Hatch(Some(Hatch { spacing: sp, ..h })));
+        }
+        ui.end_row();
+        ui.label("Hatch color");
+        ui.horizontal(|ui| {
+            let mut own = h.color.is_some();
+            if ui
+                .checkbox(&mut own, "")
+                .on_hover_text("Off: the line colour")
+                .changed()
+            {
+                changes.push(Change::Hatch(Some(Hatch {
+                    color: own.then_some(m.color),
+                    ..h
+                })));
+            }
+            if let Some(c) = &h.color
+                && let Some(c) = color_button(ui, c)
+            {
+                changes.push(Change::Hatch(Some(Hatch { color: Some(c), ..h })));
+            }
+        });
+        ui.end_row();
+    }
 }
 
 fn ending_row(
     ui: &mut egui::Ui,
-    label: &str,
-    value: &str,
+    label_text: &str,
+    sel: &Sel<'_>,
+    get: fn(&Markup) -> &str,
     key: &'static str,
     edits: &mut Edits,
     set: fn(String) -> MarkupPatch,
 ) {
-    ui.label(label);
+    let mixed = sel.mixed(|m| get(m).to_string());
+    label(ui, label_text, mixed);
+    let value = get(sel.first);
+    let shown = if mixed {
+        MIXED
+    } else if value.is_empty() {
+        "None"
+    } else {
+        value
+    };
     egui::ComboBox::from_id_salt(("prop-ending", key))
-        .selected_text(if value.is_empty() { "None" } else { value })
+        .selected_text(shown)
         .show_ui(ui, |ui| {
             for e in LINE_ENDINGS {
                 if ui.selectable_label(value == *e, *e).clicked() {
@@ -420,11 +775,14 @@ fn ending_row(
     ui.end_row();
 }
 
-fn text(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
-    section(ui, "Text", "props-text", |ui| {
-        ui.label("Font");
+fn text(ui: &mut egui::Ui, sel: &Sel<'_>, edits: &mut Edits) {
+    let m = sel.first;
+    let title = if m.kind.is_measurement() { "Caption" } else { "Text" };
+    section(ui, title, "props-text", |ui| {
+        let mixed = sel.mixed(|m| m.text.font.clone());
+        label(ui, "Font", mixed);
         egui::ComboBox::from_id_salt("prop-font")
-            .selected_text(&m.text.font)
+            .selected_text(if mixed { MIXED } else { m.text.font.as_str() })
             .show_ui(ui, |ui| {
                 for f in FONTS {
                     if ui.selectable_label(m.text.font == *f, *f).clicked() {
@@ -439,7 +797,7 @@ fn text(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
                 }
             });
         ui.end_row();
-        ui.label("Size");
+        label(ui, "Size", sel.mixed(|m| m.text.size.to_bits()));
         let mut s = m.text.size;
         if ui
             .add(
@@ -459,7 +817,7 @@ fn text(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
             ));
         }
         ui.end_row();
-        ui.label("Text color");
+        label(ui, "Text color", sel.mixed(|m| m.text.color));
         if let Some(c) = color_button(ui, &m.text.color) {
             edits.push((
                 "text-color",
@@ -470,7 +828,11 @@ fn text(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
             ));
         }
         ui.end_row();
-        ui.label("Style");
+        label(
+            ui,
+            "Style",
+            sel.mixed(|m| (m.text.bold, m.text.italic, m.text.underline)),
+        );
         ui.horizontal(|ui| {
             let flags = [
                 ("bold", "B", m.text.bold),
@@ -499,7 +861,7 @@ fn text(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
         });
         ui.end_row();
         if m.kind.is_text() {
-            ui.label("Alignment");
+            label(ui, "Alignment", sel.mixed(|m| m.text.align));
             ui.horizontal(|ui| {
                 for (i, icon, tip) in [
                     (0, "align-left", "Left"),
@@ -522,15 +884,41 @@ fn text(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
     });
 }
 
-fn measurement(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
+fn measurement(ui: &mut egui::Ui, sel: &Sel<'_>, edits: &mut Edits, changes: &mut Vec<Change>) {
+    let m = sel.first;
     section(ui, "Measurement", "props-measure", |ui| {
         ui.label("Value");
         let q = m.quantity_text();
         ui.label(RichText::new(if q.is_empty() { "No scale".into() } else { q }).strong());
         ui.end_row();
+        if let Some(extra) = derived_values(m) {
+            for (k, v) in extra {
+                ui.label(k);
+                ui.label(v);
+                ui.end_row();
+            }
+        }
         if m.kind != Kind::Count {
-            ui.label("Scale");
-            let current = m.scale.as_ref().map_or("Not set", |s| s.ratio.as_str()).to_string();
+            let mixed = sel.mixed(|m| m.hide_caption);
+            label(ui, "Caption", mixed);
+            let mut show = !m.hide_caption;
+            if ui.checkbox(&mut show, "Show Caption").changed() {
+                edits.push((
+                    "show-caption",
+                    MarkupPatch {
+                        show_caption: Some(show),
+                        ..Default::default()
+                    },
+                ));
+            }
+            ui.end_row();
+            let mixed = sel.mixed(|m| m.scale.as_ref().map(|s| s.ratio.clone()));
+            label(ui, "Scale", mixed);
+            let current = if mixed {
+                MIXED.to_string()
+            } else {
+                m.scale.as_ref().map_or("Not set", |s| s.ratio.as_str()).to_string()
+            };
             egui::ComboBox::from_id_salt("prop-scale")
                 .selected_text(&current)
                 .width(150.0)
@@ -596,7 +984,7 @@ fn measurement(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
             }
         }
         if matches!(m.kind, Kind::Polylength | Kind::Perimeter | Kind::Area | Kind::Volume) {
-            ui.label("Segments");
+            label(ui, "Segments", sel.mixed(|m| m.segment_values));
             let mut on = m.segment_values;
             if ui.checkbox(&mut on, "Show Segment Values").changed() {
                 edits.push((
@@ -610,7 +998,7 @@ fn measurement(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
             ui.end_row();
         }
         if m.kind == Kind::Polylength {
-            ui.label("Rise/Drop");
+            label(ui, "Rise/Drop", sel.mixed(|m| m.rise_drop.to_bits()));
             let mut v = m.rise_drop;
             if ui.add(egui::DragValue::new(&mut v).speed(0.1)).changed() {
                 edits.push((
@@ -623,8 +1011,8 @@ fn measurement(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
             }
             ui.end_row();
         }
-        if matches!(m.kind, Kind::Area | Kind::Volume) {
-            ui.label("Depth");
+        if matches!(m.kind, Kind::Area | Kind::Volume | Kind::Perimeter | Kind::Polylength) {
+            label(ui, "Depth", sel.mixed(|m| m.depth.to_bits()));
             let mut v = m.depth;
             if ui
                 .add(egui::DragValue::new(&mut v).speed(0.1).range(0.0..=1.0e6))
@@ -646,9 +1034,14 @@ fn measurement(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
             }
         }
         if m.kind == Kind::Count {
-            ui.label("Symbol");
+            let mixed = sel.mixed(|m| m.count_symbol);
+            label(ui, "Symbol", mixed);
             egui::ComboBox::from_id_salt("prop-symbol")
-                .selected_text(format!("{:?}", m.count_symbol))
+                .selected_text(if mixed {
+                    MIXED.to_string()
+                } else {
+                    format!("{:?}", m.count_symbol)
+                })
                 .show_ui(ui, |ui| {
                     for s in [
                         CountSymbol::Circle,
@@ -668,7 +1061,21 @@ fn measurement(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
                     }
                 });
             ui.end_row();
-            ui.label("Symbol size");
+            // A custom symbol from another selected markup.
+            if let Some(other) = sel.all.iter().find(|o| o.kind != Kind::Count) {
+                ui.label("");
+                if ui
+                    .button(format!("Use the {} as the symbol", other.kind.name()))
+                    .on_hover_text("The selected markup's outline becomes this count's symbol")
+                    .clicked()
+                {
+                    changes.push(Change::Symbol(markupcraft_model::measure_extras::symbol_from_markup(
+                        other,
+                    )));
+                }
+                ui.end_row();
+            }
+            label(ui, "Symbol size", sel.mixed(|m| m.symbol_scale.to_bits()));
             let mut v = m.symbol_scale;
             if ui
                 .add(egui::Slider::new(&mut v, 0.25..=8.0).logarithmic(true))
@@ -685,7 +1092,7 @@ fn measurement(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
             ui.end_row();
         }
         if m.caption_offset.is_some() {
-            ui.label("Caption");
+            ui.label("Caption position");
             if ui.button("Reset position").clicked() {
                 edits.push((
                     "caption",
@@ -700,9 +1107,27 @@ fn measurement(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
     });
 }
 
-fn note(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
+/// Values derived from a measurement (wall area, circle area and circumference).
+fn derived_values(m: &Markup) -> Option<Vec<(&'static str, String)>> {
+    use markupcraft_model::measure_extras::{circle_area, circle_circumference, wall_area};
+    let s = m.scale.as_ref().filter(|s| s.valid())?;
+    let mut out = Vec::new();
+    if let Some(w) = wall_area(m) {
+        out.push(("Wall area", markupcraft_model::format_value(w, &s.area)));
+    }
+    if let Some(a) = circle_area(m) {
+        out.push(("Area", markupcraft_model::format_value(a, &s.area)));
+    }
+    if let Some(c) = circle_circumference(m) {
+        out.push(("Circumference", markupcraft_model::format_value(c, &s.dist)));
+    }
+    (!out.is_empty()).then_some(out)
+}
+
+fn note(ui: &mut egui::Ui, sel: &Sel<'_>, edits: &mut Edits) {
+    let m = sel.first;
     section(ui, "Note", "props-note", |ui| {
-        ui.label("Icon");
+        label(ui, "Icon", sel.mixed(|m| m.icon.clone()));
         egui::ComboBox::from_id_salt("prop-icon")
             .selected_text(if m.icon.is_empty() { "Comment" } else { m.icon.as_str() })
             .show_ui(ui, |ui| {
@@ -719,33 +1144,91 @@ fn note(ui: &mut egui::Ui, m: &Markup, edits: &mut Edits) {
                 }
             });
         ui.end_row();
-        text_row(ui, "Comment", &m.contents, "contents", edits, |v| MarkupPatch {
-            contents: Some(v),
-            ..Default::default()
-        });
+        text_row(
+            ui,
+            "Comment",
+            sel,
+            |m| &m.contents,
+            "contents",
+            edits,
+            |v| MarkupPatch {
+                contents: Some(v),
+                ..Default::default()
+            },
+        );
     });
 }
 
-fn layout(ui: &mut egui::Ui, m: &Markup) {
+/// Layout: position and size in inches from the page's lower-left corner, and rotation.
+fn layout(ui: &mut egui::Ui, sel: &Sel<'_>, changes: &mut Vec<Change>) {
+    let m = sel.first;
     egui::CollapsingHeader::new("Layout")
         .default_open(false)
         .show(ui, |ui| {
+            let single = sel.all.len() == 1;
             let b = if actions::uses_rect(m.kind) {
                 box_of(m)
             } else {
                 actions::markup_bbox(m)
             };
+            let geometry = markupcraft_engine::props::geometry_editable(m);
             Grid::new("props-layout").num_columns(2).show(ui, |ui| {
-                for (k, v) in [
-                    ("X", b.x0 / 72.0),
-                    ("Y", b.y0 / 72.0),
-                    ("Width", b.width() / 72.0),
-                    ("Height", b.height() / 72.0),
-                ] {
-                    ui.label(k);
-                    ui.label(format!("{v:.3} in"));
+                let mut v = [b.x0 / 72.0, b.y0 / 72.0, b.width() / 72.0, b.height() / 72.0];
+                let names = ["X", "Y", "Width", "Height"];
+                let mut changed = [false; 4];
+                for (i, k) in names.iter().enumerate() {
+                    ui.label(*k);
+                    let enabled = single && geometry && (i < 2 || b.width() > 0.0 && b.height() > 0.0);
+                    if let Some(x) = v.get_mut(i) {
+                        let r = ui.add_enabled(
+                            enabled,
+                            egui::DragValue::new(x).speed(0.01).max_decimals(3).suffix(" in"),
+                        );
+                        if let Some(c) = changed.get_mut(i) {
+                            *c = r.changed();
+                        }
+                    }
                     ui.end_row();
                 }
+                let [x, y, w, h] = v;
+                if changed[0] || changed[1] {
+                    changes.push(Change::Move(x * 72.0 - b.x0, y * 72.0 - b.y0));
+                }
+                if (changed[2] || changed[3]) && w > 0.0 && h > 0.0 {
+                    changes.push(Change::Resize(markupcraft_geom::Rect::new(
+                        b.x0,
+                        b.y0,
+                        b.x0 + w * 72.0,
+                        b.y0 + h * 72.0,
+                    )));
+                }
+                ui.label("Rotation");
+                ui.horizontal(|ui| {
+                    ui.add_enabled_ui(geometry, |ui| {
+                        if ui
+                            .button("\u{27f2} 90\u{b0}")
+                            .on_hover_text("Rotate counterclockwise")
+                            .clicked()
+                        {
+                            changes.push(Change::Rotate(90.0));
+                        }
+                        if ui
+                            .button("\u{27f3} 90\u{b0}")
+                            .on_hover_text("Rotate clockwise")
+                            .clicked()
+                        {
+                            changes.push(Change::Rotate(-90.0));
+                        }
+                        let id = ui.id().with("rotate-by");
+                        let mut deg: f64 = ui.data_mut(|d| d.get_temp::<f64>(id).unwrap_or(15.0));
+                        ui.add(egui::DragValue::new(&mut deg).range(-360.0..=360.0).suffix("\u{b0}"));
+                        ui.data_mut(|d| d.insert_temp(id, deg));
+                        if ui.button("Rotate").clicked() && deg != 0.0 {
+                            changes.push(Change::Rotate(deg));
+                        }
+                    });
+                });
+                ui.end_row();
                 ui.label("Page");
                 ui.label(format!("{}", m.page + 1));
                 ui.end_row();
@@ -813,5 +1296,16 @@ mod tests {
             assert_eq!(line_style_name(d), *name);
         }
         assert_eq!(line_style_name(&[7.0, 7.0]), "Custom");
+    }
+
+    #[test]
+    fn mixed_compares_every_selected_markup() {
+        let a = Markup::new(Kind::Line, 0, Vec::new());
+        let mut b = a.clone();
+        b.subject = "Other".into();
+        let all = [a.clone(), b];
+        let s = Sel { first: &a, all: &all };
+        assert!(s.mixed(|m| m.subject.clone()));
+        assert!(!s.mixed(|m| m.kind));
     }
 }

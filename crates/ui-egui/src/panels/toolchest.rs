@@ -8,6 +8,7 @@ use egui::{RichText, Sense, vec2};
 
 use super::{PanelDef, Slot};
 use crate::chest::{MY_TOOLS, Mode, ToolItem};
+use crate::chest_sets::ChestView;
 use crate::commands::alt;
 use crate::theme::{Tokens, color32};
 use crate::tools::{TOOLS, ToolDef};
@@ -36,6 +37,12 @@ enum Act {
     DeleteSet(String),
     RenameSet(String, String),
     Stamp(&'static str),
+    MoveSet(String, i32),
+    MoveItem(String, String, i32),
+    SetScale(String, Option<markupcraft_model::Scale>),
+    Export(String),
+    Import,
+    View(ChestView, f32),
 }
 
 const RENAME: &str = "markupcraft-chest-rename";
@@ -50,6 +57,7 @@ fn row(
     swatch: Option<egui::Color32>,
 ) -> egui::Response {
     let (rect, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 26.0), Sense::click());
+    resp.widget_info(|| egui::WidgetInfo::selected(egui::WidgetType::Button, true, active, label));
     let p = ui.painter();
     if active {
         p.rect_filled(rect, t.radius, t.accent_soft);
@@ -110,15 +118,23 @@ fn item_row(
         Mode::Drawing => "drawing",
         Mode::Properties => "",
     };
-    let r = row(
-        ui,
-        t,
-        tool.icon,
-        &it.name,
-        hint,
-        active,
-        Some(color32(&it.markup.color, 1.0)),
-    );
+    let r = if app.toolchest.view == ChestView::Symbol {
+        let size = app.toolchest.icon_size;
+        let r = crate::icons::button(ui, tool.icon, size, active, &it.name);
+        let swatch = egui::Rect::from_center_size(r.rect.right_bottom() - vec2(4.0, 4.0), vec2(7.0, 7.0));
+        ui.painter().rect_filled(swatch, 2.0, color32(&it.markup.color, 1.0));
+        r
+    } else {
+        row(
+            ui,
+            t,
+            tool.icon,
+            &it.name,
+            hint,
+            active,
+            Some(color32(&it.markup.color, 1.0)),
+        )
+    };
     if r.double_clicked() {
         acts.push(Act::Use(set.into(), it.id.clone(), true));
     } else if r.clicked() {
@@ -153,6 +169,16 @@ fn item_row(
                 }
             }
         });
+        if s != "recent" {
+            if ui.button("Move Up").clicked() {
+                acts.push(Act::MoveItem(s.clone(), i.clone(), -1));
+                ui.close();
+            }
+            if ui.button("Move Down").clicked() {
+                acts.push(Act::MoveItem(s.clone(), i.clone(), 1));
+                ui.close();
+            }
+        }
         if ui.button("Rename").clicked() {
             acts.push(Act::StartRename(s.clone(), i.clone(), it.name.clone()));
             ui.close();
@@ -187,6 +213,19 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                 app.tool_locked = keep;
             }
         });
+        ui.horizontal(|ui| {
+            let mut view = app.toolchest.view;
+            let mut size = app.toolchest.icon_size;
+            ui.selectable_value(&mut view, ChestView::Detail, "Detail");
+            ui.selectable_value(&mut view, ChestView::Symbol, "Symbol");
+            if view == ChestView::Symbol {
+                ui.add(egui::Slider::new(&mut size, 16.0..=96.0).show_value(false))
+                    .on_hover_text("Icon size");
+            }
+            if view != app.toolchest.view || (size - app.toolchest.icon_size).abs() > 0.01 {
+                acts.push(Act::View(view, size));
+            }
+        });
         // Recent Tools
         egui::CollapsingHeader::new(RichText::new("Recent Tools").strong())
             .default_open(true)
@@ -198,13 +237,27 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                             .size(11.0),
                     );
                 }
-                for it in app.toolchest.recent.clone() {
-                    item_row(ui, &t, app, "recent", &it, &sets, &mut acts);
-                }
+                ui.horizontal_wrapped(|ui| {
+                    if app.toolchest.view == ChestView::Detail {
+                        ui.vertical(|ui| {
+                            for it in app.toolchest.recent.clone() {
+                                item_row(ui, &t, app, "recent", &it, &sets, &mut acts);
+                            }
+                        });
+                    } else {
+                        for it in app.toolchest.recent.clone() {
+                            item_row(ui, &t, app, "recent", &it, &sets, &mut acts);
+                        }
+                    }
+                });
             });
         // My Tools and the user's sets
         for set in app.toolchest.sets.clone() {
-            let header = egui::CollapsingHeader::new(RichText::new(&set.title).strong())
+            let title = match &set.scale {
+                Some(s) => format!("{}  ({})", set.title, s.ratio),
+                None => set.title.clone(),
+            };
+            let header = egui::CollapsingHeader::new(RichText::new(title).strong())
                 .id_salt(("chest-set", &set.id))
                 .default_open(!set.collapsed)
                 .show(ui, |ui| {
@@ -216,12 +269,48 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                         };
                         ui.label(RichText::new(hint).color(t.text_faint).size(11.0));
                     }
-                    for it in &set.items {
-                        item_row(ui, &t, app, &set.id, it, &sets, &mut acts);
+                    if app.toolchest.view == ChestView::Symbol {
+                        ui.horizontal_wrapped(|ui| {
+                            for it in &set.items {
+                                item_row(ui, &t, app, &set.id, it, &sets, &mut acts);
+                            }
+                        });
+                    } else {
+                        for it in &set.items {
+                            item_row(ui, &t, app, &set.id, it, &sets, &mut acts);
+                        }
                     }
                 });
-            if set.id != MY_TOOLS {
-                header.header_response.context_menu(|ui| {
+            header.header_response.context_menu(|ui| {
+                ui.menu_button("Scale", |ui| {
+                    if ui.selectable_label(set.scale.is_none(), "None").clicked() {
+                        acts.push(Act::SetScale(set.id.clone(), None));
+                        ui.close();
+                    }
+                    egui::ScrollArea::vertical().max_height(240.0).show(ui, |ui| {
+                        for p in markupcraft_measure::units::scale_presets() {
+                            let on = set.scale.as_ref().is_some_and(|s| s.ratio == p.scale.ratio);
+                            if ui.selectable_label(on, &p.name).clicked() {
+                                acts.push(Act::SetScale(set.id.clone(), Some(p.scale.clone())));
+                                ui.close();
+                            }
+                        }
+                    });
+                });
+                if ui.button("Export...").clicked() {
+                    acts.push(Act::Export(set.id.clone()));
+                    ui.close();
+                }
+                if set.id != MY_TOOLS {
+                    ui.separator();
+                    if ui.button("Move Up").clicked() {
+                        acts.push(Act::MoveSet(set.id.clone(), -1));
+                        ui.close();
+                    }
+                    if ui.button("Move Down").clicked() {
+                        acts.push(Act::MoveSet(set.id.clone(), 1));
+                        ui.close();
+                    }
                     let renaming: Option<String> = ui.data(|d| d.get_temp(egui::Id::new(("set-rename", &set.id))));
                     let mut title = renaming.unwrap_or_else(|| set.title.clone());
                     ui.horizontal(|ui| {
@@ -238,12 +327,17 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                         acts.push(Act::DeleteSet(set.id.clone()));
                         ui.close();
                     }
-                });
+                }
+            });
+        }
+        ui.horizontal(|ui| {
+            if ui.button("New Tool Set").clicked() {
+                acts.push(Act::NewSet);
             }
-        }
-        if ui.button("New Tool Set").clicked() {
-            acts.push(Act::NewSet);
-        }
+            if ui.button("Import...").clicked() {
+                acts.push(Act::Import);
+            }
+        });
         ui.add_space(6.0);
         // Stamps
         egui::CollapsingHeader::new(RichText::new("Stamps").strong())
@@ -279,6 +373,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     for a in acts {
         match a {
             Act::Use(set, item, keep) => {
+                app.edit.item_scale = app.toolchest.item_set_scale(&set).cloned();
                 app.use_item(&set, &item);
                 if keep {
                     app.tool_locked = true;
@@ -329,6 +424,23 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                     app.toolchest.rename_set(&id, title.trim());
                 }
             }
+            Act::MoveSet(id, d) => app.toolchest.move_set(&id, d),
+            Act::MoveItem(set, item, d) => app.toolchest.move_item(&set, &item, d),
+            Act::SetScale(id, s) => app.toolchest.set_scale(&id, s),
+            Act::View(v, size) => app.toolchest.set_view(v, size),
+            Act::Export(id) => {
+                let name = app.toolchest.find_set(&id).map_or("Tools".into(), |s| s.title.clone());
+                app.dialogs.save(
+                    crate::dialogs::Purpose::Edit("export_toolset", id),
+                    crate::dialogs::TOOLSET,
+                    &format!("{name}.mctools"),
+                );
+            }
+            Act::Import => app.dialogs.open(
+                crate::dialogs::Purpose::Edit("import_toolset", String::new()),
+                crate::dialogs::TOOLSET,
+                false,
+            ),
             Act::Stamp(id) => {
                 app.stamp = id;
                 app.set_tool("stamp");

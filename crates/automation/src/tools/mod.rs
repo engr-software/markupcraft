@@ -17,6 +17,7 @@ mod fill;
 mod flatten;
 mod forms;
 mod layers;
+mod layout;
 mod legend;
 mod links;
 mod marks;
@@ -34,6 +35,7 @@ mod spell;
 mod stamps;
 mod summary;
 mod takeoff;
+mod viewports;
 mod visual;
 mod xfdf;
 
@@ -71,6 +73,7 @@ pub static TOOLS: &[&Tool] = &[
     &markups::DELETE,
     &markups::DUPLICATE,
     &markups::ARRANGE,
+    &layout::ALIGN,
     &markups::COPY,
     &markups::PASTE,
     &markups::GROUP,
@@ -80,6 +83,7 @@ pub static TOOLS: &[&Tool] = &[
     &scale::CALIBRATE,
     &scale::VIEWPORT_ADD,
     &scale::VIEWPORT_DELETE,
+    &viewports::VIEWPORT_EDIT,
     &scale::MEASURE,
     &pages::ROTATE,
     &pages::DELETE,
@@ -321,6 +325,12 @@ pub(crate) fn markup_props(mut extra: Value) -> Value {
         o.insert("text_color".into(), color());
         o.insert("bold".into(), b("Bold text."));
         o.insert("italic".into(), b("Italic text."));
+        o.insert("underline".into(), b("Underlined text."));
+        o.insert("multiply".into(), b("Blend mode Multiply (true) or Normal (false)."));
+        o.insert("hidden".into(), b("Hidden flag (not shown or printed)."));
+        o.insert("print".into(), b("Print flag (printed with the page)."));
+        o.insert("no_view".into(), b("NoView flag (printed but not shown)."));
+        o.insert("show_caption".into(), b("Show a measurement's value caption."));
         o.insert("depth".into(), num("Volume depth, in the scale's first unit."));
         o.insert(
             "rise_drop".into(),

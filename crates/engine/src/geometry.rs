@@ -142,6 +142,33 @@ pub fn rotate(m: &mut Markup, degrees: f64, c: Point) -> Result<()> {
     Ok(())
 }
 
+/// Mirror the shape about the vertical line `x = axis` (`horizontal`) or the horizontal line
+/// `y = axis`. Text stays readable: only the outline, leader and caption offset mirror.
+pub fn flip(m: &mut Markup, horizontal: bool, axis: f64) -> Result<()> {
+    if !axis.is_finite() {
+        return Err(invalid("the flip axis must be a number"));
+    }
+    let f = |p: Point| {
+        if horizontal {
+            Point::new(2.0 * axis - p.x, p.y)
+        } else {
+            Point::new(p.x, 2.0 * axis - p.y)
+        }
+    };
+    each_point(m, f);
+    if let Some(o) = &mut m.caption_offset {
+        *o = if horizontal {
+            Point::new(-o.x, o.y)
+        } else {
+            Point::new(o.x, -o.y)
+        };
+    }
+    m.rect = map_rect(&m.rect, f);
+    normalize(m);
+    m.dirty = true;
+    Ok(())
+}
+
 /// Scale the shape so its points' bounding box becomes `to`.
 pub fn resize(m: &mut Markup, to: Rect) -> Result<()> {
     let to = to.normalized();

@@ -184,6 +184,18 @@ pub struct MarkupPatch {
     pub caption_offset: Option<Option<Point>>,
     /// Note icon (`/Name`)
     pub icon: Option<String>,
+    /// Blend mode: Multiply (`true`) or Normal
+    pub multiply: Option<bool>,
+    /// annotation flags (`/F`): Hidden, Print, NoView
+    pub hidden: Option<bool>,
+    pub print: Option<bool>,
+    pub no_view: Option<bool>,
+    /// Show Caption of a measurement
+    pub show_caption: Option<bool>,
+    /// a custom count symbol (outlines around the item's centre); sets the symbol to Custom
+    pub symbol_paths: Option<Vec<Vec<Point>>>,
+    /// rich text runs of a text markup (char offsets into its contents)
+    pub rich: Option<Vec<markupcraft_model::rich::TextRun>>,
 }
 
 fn unit_range(name: &str, v: Option<f64>) -> Result<()> {
@@ -282,6 +294,20 @@ impl MarkupPatch {
             return Err(invalid("the caption offset must be finite numbers"));
         }
         text_len("icon", &self.icon)?;
+        if let Some(r) = &self.rich
+            && (r.len() > markupcraft_model::rich::MAX_RUNS || r.iter().any(|t| t.start > t.end))
+        {
+            return Err(invalid("rich text: at most 10000 runs, each start before its end"));
+        }
+        if let Some(paths) = &self.symbol_paths {
+            let n: usize = paths.iter().map(Vec::len).sum();
+            if paths.len() > 1000 || n > 20_000 || paths.iter().flatten().any(|p| !(p.x.is_finite() && p.y.is_finite()))
+            {
+                return Err(invalid(
+                    "a count symbol is at most 1000 outlines of 20000 finite points",
+                ));
+            }
+        }
         for (k, v) in &self.columns {
             if k.is_empty() || k.len() > 256 || v.len() > MAX_TEXT {
                 return Err(invalid(
@@ -401,6 +427,32 @@ impl MarkupPatch {
         }
         if let Some(v) = &self.icon {
             m.icon = v.clone();
+        }
+        if let Some(v) = self.multiply {
+            m.multiply = v;
+        }
+        let mut flag = |bit: i64, on: Option<bool>| {
+            if let Some(on) = on {
+                m.flags = if on { m.flags | bit } else { m.flags & !bit };
+            }
+        };
+        flag(markupcraft_model::flags::HIDDEN, self.hidden);
+        flag(markupcraft_model::flags::PRINT, self.print);
+        flag(markupcraft_model::flags::NO_VIEW, self.no_view);
+        if let Some(v) = self.show_caption {
+            m.hide_caption = !v;
+        }
+        if let Some(runs) = &self.rich {
+            let n = self.contents.as_deref().unwrap_or(&m.contents).chars().count();
+            m.rich = markupcraft_model::rich::normalize(&m.text, runs, n);
+        }
+        if let Some(paths) = &self.symbol_paths {
+            m.symbol_paths = paths.clone();
+            m.count_symbol = if paths.is_empty() {
+                CountSymbol::Circle
+            } else {
+                CountSymbol::Custom
+            };
         }
         if self.locked == Some(true) {
             m.set_locked(true);
