@@ -15,6 +15,7 @@
 
 pub mod caption;
 pub mod columns;
+pub mod measure_extras;
 
 use std::collections::BTreeMap;
 
@@ -456,6 +457,9 @@ impl Markup {
                 self.pts.len() as f64
             });
         }
+        if self.kind == Kind::Angle {
+            return measure_extras::angle_of(self);
+        }
         let s = self.scale.as_ref().filter(|s| s.valid())?;
         match self.kind {
             Kind::Area => {
@@ -468,13 +472,8 @@ impl Markup {
             Kind::Length => Some(s.length_of(&self.pts, false)),
             Kind::Polylength => Some(s.length_of(&self.pts, false) + self.rise_drop.abs()),
             Kind::Perimeter => Some(s.length_of(&self.pts, true)),
-            Kind::Volume => {
-                let mut a = s.area_of(&self.pts);
-                for h in &self.holes {
-                    a -= s.area_of(h);
-                }
-                Some(a.max(0.0) * self.depth)
-            }
+            Kind::Volume => measure_extras::volume_of(self),
+            Kind::Diameter | Kind::Radius => measure_extras::circle_measure(self),
             _ => None,
         }
     }
@@ -494,6 +493,9 @@ impl Markup {
         if self.kind == Kind::Count {
             return "ea".into();
         }
+        if self.kind == Kind::Angle {
+            return "\u{b0}".into();
+        }
         let Some(fa) = self.quantity_formats() else {
             return String::new();
         };
@@ -510,6 +512,9 @@ impl Markup {
         let Some(q) = self.quantity() else { return String::new() };
         if self.kind == Kind::Count {
             return format!("{}", q as i64);
+        }
+        if self.kind == Kind::Angle {
+            return measure_extras::format_angle(q);
         }
         match self.quantity_formats() {
             Some(fa) => format_value(q, fa),

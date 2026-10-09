@@ -5,6 +5,7 @@
 //! `/Measure`, `/Contents`, `/AP`, `/Rect` ...) is written by `write::write_annot`.
 
 pub mod measure;
+pub mod measure_more;
 pub mod plain;
 
 use markupcraft_geom::{Point, Rect};
@@ -79,6 +80,10 @@ pub static REGISTRY: &[&AnnotKind] = &[
     &plain::RECTANGLE,
     &plain::ELLIPSE,
     &plain::INK,
+    &measure_more::VOLUME,
+    &measure_more::DIAMETER,
+    &measure_more::RADIUS,
+    &measure_more::ANGLE,
 ];
 
 static FALLBACK: AnnotKind = AnnotKind::new(Kind::Other, "Polygon", None, 0, false);
@@ -95,6 +100,16 @@ pub fn classify(sub: &str, it: &str, code_: i64) -> Kind {
     }
     if code_ == code::VOLUME {
         return Kind::Volume;
+    }
+    if code_ == code::DIAMETER {
+        return if it == measure_more::RADIUS_INTENT {
+            Kind::Radius
+        } else {
+            Kind::Diameter
+        };
+    }
+    if code_ == code::ANGLE {
+        return Kind::Angle;
     }
     match sub {
         "Polygon" => match it {
