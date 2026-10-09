@@ -106,8 +106,27 @@ fn contents(cos: &CosDoc, page: ObjRef) -> Vec<Object> {
     }
 }
 
+/// How flattened markups are written.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct FlattenOptions {
+    /// Keep the markups so Document > Unflatten can restore them (Revu's recovery option).
+    pub recoverable: bool,
+    /// Put the flattened drawing on this layer (an optional content group, made if needed).
+    pub layer: Option<String>,
+}
+
+/// The tag on a stream of flattened markups, and the page key listing what can be restored.
+const FLAT_TAG: &[u8] = b"PCFlattened";
+const UNFLATTEN_KEY: &[u8] = b"PCUnflatten";
+
 /// Burn the annotations whose object or `/NM` is chosen into their pages. Returns how many.
-fn flatten(cos: &mut CosDoc, objs: &HashSet<ObjRef>, ids: &HashSet<String>) -> Result<usize> {
+fn flatten(
+    cos: &mut CosDoc,
+    objs: &HashSet<ObjRef>,
+    ids: &HashSet<String>,
+    opts: &FlattenOptions,
+    layer: Option<ObjRef>,
+) -> Result<usize> {
     let pages = page_objs(cos)?;
     let mut drawn = 0usize;
     for page in pages {
@@ -176,6 +195,7 @@ fn flatten(cos: &mut CosDoc, objs: &HashSet<ObjRef>, ids: &HashSet<String>) -> R
             .filter(|e| !e.as_ref().is_some_and(|r| gone.contains(&r)))
             .cloned()
             .collect();
+        let list_order: Vec<ObjRef> = list.iter().filter_map(Object::as_ref).collect();
         if !content.is_empty() {
             let pd = cos.dict(&Object::Ref(page)).unwrap_or_default();
             let mut res = pd.get(b"Resources").and_then(|r| cos.dict(r)).unwrap_or_default();
@@ -184,28 +204,181 @@ fn flatten(cos: &mut CosDoc, objs: &HashSet<ObjRef>, ids: &HashSet<String>) -> R
                 xo.set(k.clone().into_bytes(), Object::Ref(*v));
             }
             res.set(b"XObject".to_vec(), Object::Dict(xo));
-            let open = cos.add(Object::Stream(Stream::from_raw(Dict::new(), b"q\n".to_vec())));
-            let mut body = b"\nQ\n".to_vec();
-            body.extend_from_slice(content.as_bytes());
-            let close = cos.add(Object::Stream(Stream::flate(Dict::new(), &body)));
-            let mut list = vec![Object::Ref(open)];
-            list.extend(contents(cos, page));
-            list.push(Object::Ref(close));
+            if let Some(oc) = layer {
+                let mut props = res.get(b"Properties").and_then(|x| cos.dict(x)).unwrap_or_default();
+                props.set(b"MCFlatLayer".to_vec(), Object::Ref(oc));
+                res.set(b"Properties".to_vec(), Object::Dict(props));
+                content = format!("/OC /MCFlatLayer BDC\n{content}EMC\n");
+            }
+            let mut list = contents(cos, page);
+            let wrapped = |c: &Object| matches!(&*cos.resolve(c), Object::Stream(s) if s.dict.get(b"PCWrap").is_some());
+            if !list.first().is_some_and(wrapped) {
+                let mut wrap = Dict::new();
+                wrap.set(b"PCWrap".to_vec(), Object::Bool(true));
+                let open = cos.add(Object::Stream(Stream::from_raw(wrap.clone(), b"q\n".to_vec())));
+                let close = cos.add(Object::Stream(Stream::from_raw(wrap, b"\nQ\n".to_vec())));
+                list.insert(0, Object::Ref(open));
+                list.push(Object::Ref(close));
+            }
+            let mut tag = Dict::new();
+            tag.set(FLAT_TAG.to_vec(), Object::Bool(true));
+            let flat = cos.add(Object::Stream(Stream::flate(tag, content.as_bytes())));
+            list.push(Object::Ref(flat));
+            let pd = cos.dict(&Object::Ref(page)).unwrap_or_default();
+            let mut records: Vec<Object> = pd
+                .get(UNFLATTEN_KEY)
+                .map(|r| cos.resolve(r))
+                .and_then(|r| r.as_array().cloned())
+                .unwrap_or_default();
+            if opts.recoverable {
+                let mut rec = Dict::new();
+                rec.set(b"S".to_vec(), Object::Ref(flat));
+                let refs: Vec<Object> = list_order
+                    .iter()
+                    .filter(|r| gone.contains(r))
+                    .map(|r| Object::Ref(*r))
+                    .collect();
+                rec.set(b"Annots".to_vec(), Object::Array(refs));
+                records.push(Object::Dict(rec));
+            }
             cos.update_dict(page, |d| {
                 d.set(b"Resources".to_vec(), Object::Dict(res));
                 d.set(b"Contents".to_vec(), Object::Array(list));
+                if !records.is_empty() {
+                    d.set(UNFLATTEN_KEY.to_vec(), Object::Array(records));
+                }
             })?;
-            crate::unflatten::record(cos, page, (open, close), std::mem::take(&mut undo))?;
+            crate::unflatten::record(cos, page, (flat, flat), std::mem::take(&mut undo))?;
         }
         set_annots(cos, page, kept)?;
     }
     Ok(drawn)
 }
 
+/// Unflatten records of a page: (flattened stream, annotations).
+fn records(cos: &CosDoc, page: ObjRef) -> Vec<(Option<ObjRef>, Vec<Object>)> {
+    cos.dict(&Object::Ref(page))
+        .and_then(|d| d.get(UNFLATTEN_KEY).map(|r| cos.resolve(r)))
+        .and_then(|r| r.as_array().cloned())
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|r| cos.dict(r))
+        .map(|d| {
+            let annots = d
+                .get(b"Annots")
+                .map(|a| cos.resolve(a))
+                .and_then(|a| a.as_array().cloned())
+                .unwrap_or_default();
+            (d.reference(b"S"), annots)
+        })
+        .collect()
+}
+
+/// Remove recoverable flattened markups from the page contents.
+fn strip_flattened(cos: &mut CosDoc) -> Result<usize> {
+    let mut n = 0;
+    for page in page_objs(cos)? {
+        let recoverable: HashSet<ObjRef> = records(cos, page).into_iter().filter_map(|r| r.0).collect();
+        if recoverable.is_empty() {
+            continue;
+        }
+        let list = contents(cos, page);
+        let kept: Vec<Object> = list
+            .iter()
+            .filter(|c| !c.as_ref().is_some_and(|r| recoverable.contains(&r)))
+            .cloned()
+            .collect();
+        n += list.len() - kept.len();
+        cos.update_dict(page, |d| d.set(b"Contents".to_vec(), Object::Array(kept)))?;
+    }
+    Ok(n)
+}
+
+/// A PDF without its recoverable flattened markups (what Compare and Overlay see unless asked
+/// to include them). The bytes come back unchanged when there are none or the file cannot be
+/// read.
+pub fn without_flattened(bytes: std::sync::Arc<Vec<u8>>) -> std::sync::Arc<Vec<u8>> {
+    let Ok(mut cos) = CosDoc::open(bytes.clone()) else {
+        return bytes;
+    };
+    match strip_flattened(&mut cos) {
+        Ok(n) if n > 0 => match markupcraft_revu::cos::write_full(&cos, &crate::docutil::save_options()) {
+            Ok(b) => std::sync::Arc::new(b),
+            Err(_) => bytes,
+        },
+        _ => bytes,
+    }
+}
+
 impl Session {
     /// Flatten the markups `filter` picks; returns how many were flattened. Undoable until
     /// saved; the next save rewrites the file in full.
     pub fn flatten_markups(&mut self, filter: &FlattenFilter) -> Result<usize> {
+        self.flatten_markups_with(filter, &FlattenOptions::default())
+    }
+
+    /// How many flattened markups Document > Unflatten could restore on `pages` (empty = all).
+    pub fn recoverable_flattened(&self, pages: &[usize]) -> usize {
+        let Ok(objs) = page_objs(&self.file.cos) else { return 0 };
+        objs.iter()
+            .enumerate()
+            .filter(|(i, _)| pages.is_empty() || pages.contains(i))
+            .map(|(_, p)| records(&self.file.cos, *p).iter().map(|r| r.1.len()).sum::<usize>())
+            .sum()
+    }
+
+    /// Document > Unflatten: restore markups flattened with recovery on `pages` (0-based;
+    /// empty = all). Returns how many annotations came back. Undoable.
+    pub fn unflatten(&mut self, pages: &[usize]) -> Result<usize> {
+        for p in pages {
+            self.page(*p)?;
+        }
+        if self.recoverable_flattened(pages) == 0 {
+            return Err(invalid("there are no recoverable flattened markups on those pages"));
+        }
+        let pages = pages.to_vec();
+        self.graph_edit("Unflatten", |cos, _| {
+            let mut restored = 0;
+            for (i, page) in page_objs(cos)?.into_iter().enumerate() {
+                if !pages.is_empty() && !pages.contains(&i) {
+                    continue;
+                }
+                let recs = records(cos, page);
+                if recs.is_empty() {
+                    continue;
+                }
+                let streams: HashSet<ObjRef> = recs.iter().filter_map(|r| r.0).collect();
+                let mut annots = annots_of(cos, page);
+                for (_, list) in &recs {
+                    for a in list {
+                        if a.as_ref().is_some() && !annots.contains(a) {
+                            annots.push(a.clone());
+                            restored += 1;
+                        }
+                    }
+                }
+                let kept: Vec<Object> = contents(cos, page)
+                    .into_iter()
+                    .filter(|c| !c.as_ref().is_some_and(|r| streams.contains(&r)))
+                    .collect();
+                cos.update_dict(page, |d| {
+                    d.set(b"Contents".to_vec(), Object::Array(kept));
+                    d.remove(UNFLATTEN_KEY);
+                    d.remove(b"PCFlattened");
+                })?;
+                set_annots(cos, page, annots)?;
+            }
+            cos.require_full_save();
+            Ok(restored)
+        })
+    }
+
+    /// Flatten with options: recoverable (Unflatten can restore them) and onto a layer.
+    pub fn flatten_markups_with(&mut self, filter: &FlattenFilter, opts: &FlattenOptions) -> Result<usize> {
+        let layer_name = match &opts.layer {
+            Some(l) => Some(crate::layers::check_name(l)?),
+            None => None,
+        };
         for p in &filter.pages {
             self.page(*p)?;
         }
@@ -233,7 +406,14 @@ impl Session {
                 .filter(|m| ids.contains(&m.id) && m.obj.0 != 0)
                 .map(|m| ObjRef::new(m.obj.0, m.obj.1))
                 .collect();
-            let n = flatten(cos, &objs, &ids)?;
+            let layer = match &layer_name {
+                Some(n) => Some(
+                    markupcraft_revu::layers::ensure_group(cos, n)
+                        .ok_or_else(|| invalid("the layer could not be made"))?,
+                ),
+                None => None,
+            };
+            let n = flatten(cos, &objs, &ids, opts, layer)?;
             cos.require_full_save();
             Ok(n)
         })
@@ -243,6 +423,60 @@ impl Session {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn recoverable_flatten_unflattens_and_hides_from_compare() {
+        use crate::synthetic::{SyntheticPage, pdf};
+        use markupcraft_model::{Kind, Point};
+        let mut s = Session::from_bytes(pdf(&[SyntheticPage::new(612.0, 792.0, "")]), "f.pdf").unwrap();
+        let mut m = Markup::new(
+            Kind::Rectangle,
+            0,
+            vec![
+                Point::new(100.0, 100.0),
+                Point::new(300.0, 100.0),
+                Point::new(300.0, 300.0),
+                Point::new(100.0, 300.0),
+            ],
+        );
+        m.line_width = 6.0;
+        s.add_markup(m).unwrap();
+        let opts = FlattenOptions {
+            recoverable: true,
+            layer: Some("Flattened".into()),
+        };
+        assert_eq!(s.flatten_markups_with(&FlattenFilter::default(), &opts).unwrap(), 1);
+        assert!(s.doc().markups.is_empty());
+        assert_eq!(s.recoverable_flattened(&[]), 1);
+        assert!(s.layers().iter().any(|l| l.name == "Flattened"));
+        // drawn into the page, and gone again for Compare
+        let ink = |b: std::sync::Arc<Vec<u8>>| {
+            crate::raster::Renderable::new(b, true)
+                .unwrap()
+                .render(0, 0.5, 2000.0)
+                .unwrap()
+                .gray
+                .get(50, 300)
+        };
+        let bytes = s.current_bytes().unwrap();
+        assert!(ink(bytes.clone()) < 128, "flattened line drawn");
+        assert!(ink(without_flattened(bytes)) > 200, "and stripped");
+        assert_eq!(s.unflatten(&[]).unwrap(), 1);
+        assert_eq!(s.doc().markups.len(), 1);
+        assert!(s.unflatten(&[]).is_err(), "nothing left to restore");
+        s.undo().unwrap();
+        assert!(s.doc().markups.is_empty());
+        // not recoverable: nothing to restore
+        let mut t = Session::from_bytes(pdf(&[SyntheticPage::new(612.0, 792.0, "")]), "g.pdf").unwrap();
+        t.add_markup(Markup::new(
+            Kind::Line,
+            0,
+            vec![Point::new(1.0, 1.0), Point::new(90.0, 90.0)],
+        ))
+        .unwrap();
+        t.flatten_markups(&FlattenFilter::default()).unwrap();
+        assert_eq!(t.recoverable_flattened(&[]), 0);
+    }
 
     #[test]
     fn placement_maps_bbox_to_rect() {

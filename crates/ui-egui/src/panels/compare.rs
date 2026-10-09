@@ -17,7 +17,7 @@ pub static PANEL: PanelDef = PanelDef {
 };
 
 fn ui(app: &mut AppState, ui: &mut egui::Ui) {
-    let (mut goto, mut review, mut new, mut delete_all) = (None, None, false, false);
+    let (mut goto, mut review, mut new, mut delete_all, mut split) = (None, None, false, false, false);
     {
         let c = &app.features.compare;
         ui.horizontal(|ui| {
@@ -43,6 +43,13 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                 }
                 if ui.button("Delete all clouds").clicked() {
                     delete_all = true;
+                }
+                if ui
+                    .button("Split + Dimmer")
+                    .on_hover_text("Review beside the older revision, the drawing dimmed")
+                    .clicked()
+                {
+                    split = true;
                 }
             });
         });
@@ -90,5 +97,8 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     }
     if delete_all {
         compare::delete_all(app);
+    }
+    if split {
+        compare::review_split(app);
     }
 }

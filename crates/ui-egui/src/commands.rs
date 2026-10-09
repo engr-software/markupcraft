@@ -389,14 +389,14 @@ mod tests {
             assert!(c.icon.is_empty() || crate::icons::exists(c.icon), "icon {}", c.icon);
             assert!(c.menu.is_empty() || MENUS.contains(&c.menu), "menu {}", c.menu);
         }
-        let mut keys = std::collections::HashSet::new();
+        let mut keys = std::collections::HashMap::new();
+        let mut twice = Vec::new();
         for (k, id) in bindings() {
-            assert!(
-                keys.insert((k.ctrl, k.shift, k.alt, k.key)),
-                "{} bound twice ({id})",
-                k.label()
-            );
+            if let Some(first) = keys.insert((k.ctrl, k.shift, k.alt, k.key), id.clone()) {
+                twice.push(format!("{} bound twice ({first}, {id})", k.label()));
+            }
         }
+        assert!(twice.is_empty(), "{twice:#?}");
         for id in MAIN_TOOLBAR.iter().filter(|i| **i != "|") {
             assert!(describe(id).is_some(), "toolbar id {id}");
         }

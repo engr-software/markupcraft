@@ -6,7 +6,7 @@ use serde_json::{Value, json};
 use super::{Tool, pages_arg, schema};
 use crate::{Args, Result, bad_args, summary};
 
-const SLOTS: [&str; 6] = [
+pub(super) const SLOTS: [&str; 6] = [
     "header_left",
     "header_center",
     "header_right",
@@ -15,11 +15,11 @@ const SLOTS: [&str; 6] = [
     "footer_right",
 ];
 
-fn margins_arg() -> Value {
+pub(super) fn margins_arg() -> Value {
     json!({ "type": "array", "items": { "type": "number" }, "minItems": 4, "maxItems": 4, "description": "Distance from the page edges in points: [top, bottom, left, right]." })
 }
 
-fn margins(a: &Args, dflt: [f64; 4]) -> Result<[f64; 4]> {
+pub(super) fn margins(a: &Args, dflt: [f64; 4]) -> Result<[f64; 4]> {
     let Some(v) = a.get("margins") else { return Ok(dflt) };
     let arr: Vec<f64> = v
         .as_array()

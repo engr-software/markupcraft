@@ -1,7 +1,11 @@
 //! Compare Documents and Overlay Pages.
 
-use markupcraft_engine::compare::{CompareMode, CompareOptions};
-use markupcraft_engine::overlay::{OverlayAlign, OverlayLayer, default_color, overlay_pages};
+use markupcraft_engine::compare::{
+    CompareAlign, CompareMode, CompareOptions, CustomPreset, load_presets, save_presets,
+};
+use markupcraft_engine::overlay::{
+    LayerAdjust, OverlayAlign, OverlayBlend, OverlayLayer, default_color, overlay_pages,
+};
 use markupcraft_engine::{Color, Point, props};
 use serde_json::{Value, json};
 
@@ -53,63 +57,23 @@ pub static COMPARE: Tool = Tool {
                 "color": { "type": ["string", "array"], "description": "Cloud colour (default orange)." },
                 "subject": { "type": "string", "description": "Subject of the clouds (default Compare)." },
                 "width": { "type": "number", "description": "Cloud line width in points (default 1.5)." },
-                "cloud": { "type": "number", "minimum": 0, "maximum": 2, "description": "Cloud intensity; 0 draws rectangles (default 1)." }
+                "cloud": { "type": "number", "minimum": 0, "maximum": 2, "description": "Cloud intensity; 0 draws rectangles (default 1)." },
+                "preset": { "type": "string", "description": "same_printer, different_printer, scanned, or a saved custom preset (compare_preset); applied before the other tuning arguments." },
+                "align": { "type": "string", "enum": ["page", "auto", "offset", "points"], "description": "Register the old page on the new: as stacked (default), automatically, by a known offset, or by two matching points." },
+                "offset": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2, "description": "align offset: [dx, dy] points the old content moves." },
+                "old_points": { "type": "array", "items": { "type": "array", "items": { "type": "number" } }, "description": "align points: two points on the old page." },
+                "new_points": { "type": "array", "items": { "type": "array", "items": { "type": "number" } }, "description": "align points: the same two points on the new page." },
+                "fill": { "type": ["string", "array"], "description": "Cloud fill colour (default none)." },
+                "fill_opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+                "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+                "lock": { "type": "boolean", "description": "Lock the clouds when placed." },
+                "include_flattened": { "type": "boolean", "description": "Include recoverable flattened markups (default false)." }
             }),
             &[],
         )
     },
     run: |a, args| {
-        let mut o = CompareOptions::default();
-        if let Some(m) = args.opt_str("mode")? {
-            o.mode = CompareMode::from_name(m).ok_or_else(|| bad_args("mode must be text, graphics or both"))?;
-        }
-        if let Some(p) = args.get("pairs") {
-            let arr = p
-                .as_array()
-                .ok_or_else(|| bad_args("pairs must be [[old, new], ...]"))?;
-            for pair in arr {
-                match pair
-                    .as_array()
-                    .map(|x| x.iter().filter_map(Value::as_u64).collect::<Vec<_>>())
-                    .as_deref()
-                {
-                    Some([x, y]) if *x >= 1 && *y >= 1 => o.pairs.push((*x as usize - 1, *y as usize - 1)),
-                    _ => return Err(bad_args("pairs must be [[old, new], ...] with pages from 1")),
-                }
-            }
-        }
-        if let Some(v) = args.opt_num("sensitivity")? {
-            o.sensitivity = v;
-        }
-        if let Some(v) = args.opt_num("dpi")? {
-            o.dpi = v;
-        }
-        if let Some(v) = args.opt_u64("cell")? {
-            o.cell_px = v as usize;
-        }
-        if let Some(v) = args.opt_u64("density")? {
-            o.min_pixels = v as usize;
-        }
-        if let Some(v) = args.opt_num("merge")? {
-            o.merge_pt = v;
-        }
-        if let Some(v) = args.opt_num("margin")? {
-            o.margin_pt = v;
-        }
-        o.window = args.opt_rect("window")?;
-        o.include_markups = args.bool_or("include_markups", false)?;
-        if let Some(c) = args.opt_color("color")? {
-            o.color = c;
-        }
-        if let Some(s) = args.opt_string("subject")? {
-            o.subject = s;
-        }
-        if let Some(w) = args.opt_num("width")? {
-            o.line_width = w;
-        }
-        if let Some(c) = args.opt_num("cloud")? {
-            o.cloud = c;
-        }
+        let o = compare_options(a, args)?;
         let old = match (args.opt_str("old")?, args.opt_u64("old_doc")?) {
             (Some(p), None) => markupcraft_engine::raster::read_pdf(&a.resolve(p, false)?)?,
             (None, Some(id)) => {
@@ -154,6 +118,198 @@ pub static COMPARE: Tool = Tool {
     },
 };
 
+/// The custom presets file in the config folder.
+fn presets_path(a: &crate::Automation) -> Result<std::path::PathBuf> {
+    Ok(a.config_dir()?.join("compare_presets.json"))
+}
+
+pub static PRESET: Tool = Tool {
+    name: "compare_preset",
+    title: "Comparison presets",
+    description: "Compare > Advanced > Type: list the built-in presets (same_printer, different_printer, scanned) and the saved custom ones; save the given tuning (sensitivity, dpi, cell, density, merge, auto_align) as a custom preset; delete one; or restore defaults (remove every custom preset).",
+    read_only: false,
+    destructive: false,
+    schema: || {
+        schema_nodoc(
+            json!({
+                "action": { "type": "string", "enum": ["list", "save", "delete", "restore_defaults"] },
+                "name": { "type": "string" },
+                "sensitivity": { "type": "number", "minimum": 0, "maximum": 1 },
+                "dpi": { "type": "number" },
+                "cell": { "type": "integer", "minimum": 1 },
+                "density": { "type": "integer", "minimum": 1 },
+                "merge": { "type": "number", "minimum": 0 },
+                "auto_align": { "type": "boolean" }
+            }),
+            &["action"],
+        )
+    },
+    run: |a, args| {
+        let path = presets_path(a)?;
+        let mut list = load_presets(&path)?;
+        match args.str("action")? {
+            "list" => {}
+            "save" => {
+                let name = args.str("name")?.trim().to_string();
+                let mut o = CompareOptions::default();
+                if let Some(v) = args.opt_num("sensitivity")? {
+                    o.sensitivity = v;
+                }
+                if let Some(v) = args.opt_num("dpi")? {
+                    o.dpi = v;
+                }
+                if let Some(v) = args.opt_u64("cell")? {
+                    o.cell_px = v as usize;
+                }
+                if let Some(v) = args.opt_u64("density")? {
+                    o.min_pixels = v as usize;
+                }
+                if let Some(v) = args.opt_num("merge")? {
+                    o.merge_pt = v;
+                }
+                if args.bool_or("auto_align", false)? {
+                    o.align = CompareAlign::Auto;
+                }
+                list.retain(|p| !p.name.eq_ignore_ascii_case(&name));
+                list.push(CustomPreset::from_options(&name, &o));
+                save_presets(&path, &list)?;
+            }
+            "delete" => {
+                let name = args.str("name")?;
+                let before = list.len();
+                list.retain(|p| !p.name.eq_ignore_ascii_case(name));
+                if list.len() == before {
+                    return Err(failed(format!("no custom preset {name:?}")));
+                }
+                save_presets(&path, &list)?;
+            }
+            "restore_defaults" => {
+                list.clear();
+                save_presets(&path, &list)?;
+            }
+            other => return Err(bad_args(format!("action {other:?}"))),
+        }
+        Ok(json!({
+            "built_in": markupcraft_engine::compare::PRESETS.iter().map(|p| p.name).collect::<Vec<_>>(),
+            "custom": list.iter().map(|p| json!({ "name": p.name, "sensitivity": p.sensitivity, "dpi": p.dpi, "cell": p.cell_px, "density": p.min_pixels, "merge": p.merge_pt, "auto_align": p.auto_align })).collect::<Vec<_>>(),
+        }))
+    },
+};
+
+/// Compare options from tool arguments (shared with the batch tools).
+pub(crate) fn compare_options(a: &crate::Automation, args: &crate::Args) -> Result<CompareOptions> {
+    let mut o = CompareOptions::default();
+    if let Some(name) = args.opt_str("preset")?
+        && o.apply_preset(name).is_err()
+    {
+        let custom = load_presets(&presets_path(a)?)?;
+        let p = custom
+            .iter()
+            .find(|p| p.name.eq_ignore_ascii_case(name.trim()))
+            .ok_or_else(|| bad_args(format!("unknown preset {name:?} (compare_preset lists them)")))?;
+        p.apply(&mut o);
+    }
+    if let Some(al) = args.opt_str("align")? {
+        o.align = match al {
+            "page" => CompareAlign::Page,
+            "auto" => CompareAlign::Auto,
+            "offset" => {
+                let v: Vec<f64> = args
+                    .get("offset")
+                    .and_then(Value::as_array)
+                    .map(|a| a.iter().filter_map(Value::as_f64).collect())
+                    .unwrap_or_default();
+                match v.as_slice() {
+                    [dx, dy] => CompareAlign::Offset { dx: *dx, dy: *dy },
+                    _ => return Err(bad_args("align offset needs offset: [dx, dy]")),
+                }
+            }
+            "points" => {
+                let two = |k: &str| -> Result<[Point; 2]> {
+                    let v: Vec<Point> = args
+                        .get(k)
+                        .and_then(Value::as_array)
+                        .map(|a| a.iter().filter_map(point_value).collect())
+                        .unwrap_or_default();
+                    match v.as_slice() {
+                        [p, q] => Ok([*p, *q]),
+                        _ => Err(bad_args(format!("align points needs {k}: [[x, y], [x, y]]"))),
+                    }
+                };
+                CompareAlign::Points {
+                    old: two("old_points")?,
+                    new: two("new_points")?,
+                }
+            }
+            other => return Err(bad_args(format!("align {other:?}"))),
+        };
+    }
+    o.fill = args.opt_color("fill")?;
+    if let Some(v) = args.opt_num("fill_opacity")? {
+        o.fill_opacity = v;
+    }
+    if let Some(v) = args.opt_num("opacity")? {
+        o.opacity = v;
+    }
+    o.lock = args.bool_or("lock", false)?;
+    o.include_flattened = args.bool_or("include_flattened", false)?;
+    compare_tuning(args, o)
+}
+
+fn compare_tuning(args: &crate::Args, mut o: CompareOptions) -> Result<CompareOptions> {
+    if let Some(m) = args.opt_str("mode")? {
+        o.mode = CompareMode::from_name(m).ok_or_else(|| bad_args("mode must be text, graphics or both"))?;
+    }
+    if let Some(p) = args.get("pairs").filter(|_| args.tool() == "compare_documents") {
+        let arr = p
+            .as_array()
+            .ok_or_else(|| bad_args("pairs must be [[old, new], ...]"))?;
+        for pair in arr {
+            match pair
+                .as_array()
+                .map(|x| x.iter().filter_map(Value::as_u64).collect::<Vec<_>>())
+                .as_deref()
+            {
+                Some([x, y]) if *x >= 1 && *y >= 1 => o.pairs.push((*x as usize - 1, *y as usize - 1)),
+                _ => return Err(bad_args("pairs must be [[old, new], ...] with pages from 1")),
+            }
+        }
+    }
+    if let Some(v) = args.opt_num("sensitivity")? {
+        o.sensitivity = v;
+    }
+    if let Some(v) = args.opt_num("dpi")? {
+        o.dpi = v;
+    }
+    if let Some(v) = args.opt_u64("cell")? {
+        o.cell_px = v as usize;
+    }
+    if let Some(v) = args.opt_u64("density")? {
+        o.min_pixels = v as usize;
+    }
+    if let Some(v) = args.opt_num("merge")? {
+        o.merge_pt = v;
+    }
+    if let Some(v) = args.opt_num("margin")? {
+        o.margin_pt = v;
+    }
+    o.window = args.opt_rect("window")?;
+    o.include_markups = args.bool_or("include_markups", false)?;
+    if let Some(c) = args.opt_color("color")? {
+        o.color = c;
+    }
+    if let Some(s) = args.opt_string("subject")? {
+        o.subject = s;
+    }
+    if let Some(w) = args.opt_num("width")? {
+        o.line_width = w;
+    }
+    if let Some(c) = args.opt_num("cloud")? {
+        o.cloud = c;
+    }
+    Ok(o)
+}
+
 pub static OVERLAY: Tool = Tool {
     name: "overlay_pages",
     title: "Overlay Pages",
@@ -176,20 +332,42 @@ pub static OVERLAY: Tool = Tool {
                             "color": { "type": ["string", "array"] },
                             "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
                             "name": { "type": "string" },
-                            "align": { "type": "string", "enum": ["page", "bounds", "points"] },
-                            "from": { "type": "array", "items": pt.clone(), "description": "align points: two points on this layer's page." },
-                            "to": { "type": "array", "items": pt, "description": "align points: where they land on the first layer's page." }
+                            "align": { "type": "string", "enum": ["page", "bounds", "points", "auto"], "description": "points: two or three matching points (three: a full affine map)." },
+                            "from": { "type": "array", "items": pt.clone(), "description": "align points: two or three points on this layer's page." },
+                            "to": { "type": "array", "items": pt, "description": "align points: where they land on the first layer's page." },
+                            "background": { "type": ["string", "array"], "description": "Colour of the layer's whitespace (default transparent)." },
+                            "blend": { "type": "string", "enum": ["multiply", "darken", "normal", "screen", "difference"] },
+                            "region": rect_arg("Only this region of the layer's page"),
+                            "rotation": { "type": "number" },
+                            "scale": { "type": "number" },
+                            "dx": { "type": "number" },
+                            "dy": { "type": "number" }
                         },
                         "required": ["path"]
                     }
                 },
-                "out": path_arg("The overlay PDF to write")
+                "out": path_arg("The overlay PDF to write"),
+                "defaults": { "type": "object", "description": "Edit Defaults: blend, rotation, scale, dx, dy for every layer that does not set its own." },
+                "include_flattened": { "type": "boolean", "description": "Include recoverable flattened markups (default false)." }
             }),
             &["layers", "out"],
         )
     },
     run: |a, args| {
         let out = a.resolve(args.str("out")?, true)?;
+        let include_flattened = args.bool_or("include_flattened", false)?;
+        let empty = serde_json::Map::new();
+        let defaults = match args.get("defaults") {
+            Some(Value::Object(d)) => d,
+            Some(_) => return Err(bad_args("defaults must be an object")),
+            None => &empty,
+        };
+        if let Some(k) = defaults
+            .keys()
+            .find(|k| !["blend", "rotation", "scale", "dx", "dy"].contains(&k.as_str()))
+        {
+            return Err(bad_args(format!("defaults: unknown key {k:?}")));
+        }
         let list = args
             .get("layers")
             .and_then(Value::as_array)
@@ -197,7 +375,23 @@ pub static OVERLAY: Tool = Tool {
         let mut layers = Vec::new();
         for (i, l) in list.iter().enumerate() {
             let o = l.as_object().ok_or_else(|| bad_args("each layer must be an object"))?;
-            const KEYS: [&str; 8] = ["path", "pages", "color", "opacity", "name", "align", "from", "to"];
+            const KEYS: [&str; 15] = [
+                "path",
+                "pages",
+                "color",
+                "opacity",
+                "name",
+                "align",
+                "from",
+                "to",
+                "background",
+                "blend",
+                "region",
+                "rotation",
+                "scale",
+                "dx",
+                "dy",
+            ];
             if let Some(k) = o.keys().find(|k| !KEYS.contains(&k.as_str())) {
                 return Err(bad_args(format!("layer {}: unknown key {k:?}", i + 1)));
             }
@@ -227,32 +421,69 @@ pub static OVERLAY: Tool = Tool {
             let align = match o.get("align").and_then(Value::as_str).unwrap_or("page") {
                 "page" => OverlayAlign::Page,
                 "bounds" => OverlayAlign::Bounds,
+                "auto" => OverlayAlign::Auto,
                 "points" => {
-                    let two = |k: &str| -> Result<[Point; 2]> {
-                        let v: Vec<Point> = o
-                            .get(k)
+                    let pts = |k: &str| -> Vec<Point> {
+                        o.get(k)
                             .and_then(Value::as_array)
                             .map(|a| a.iter().filter_map(point_value).collect())
-                            .unwrap_or_default();
-                        match v.as_slice() {
-                            [p, q] => Ok([*p, *q]),
-                            _ => Err(bad_args(format!("align points needs {k}: [[x, y], [x, y]]"))),
-                        }
+                            .unwrap_or_default()
                     };
-                    OverlayAlign::Points {
-                        from: two("from")?,
-                        to: two("to")?,
+                    match (pts("from").as_slice(), pts("to").as_slice()) {
+                        ([a, b], [c, d]) => OverlayAlign::Points {
+                            from: [*a, *b],
+                            to: [*c, *d],
+                        },
+                        ([a, b, c], [d, e, f]) => OverlayAlign::Three {
+                            from: [*a, *b, *c],
+                            to: [*d, *e, *f],
+                        },
+                        _ => return Err(bad_args("align points needs from and to: two or three [x, y] each")),
                     }
                 }
                 other => return Err(bad_args(format!("align {other:?}: use page, bounds or points"))),
             };
+            let num = |k: &str| {
+                o.get(k)
+                    .and_then(Value::as_f64)
+                    .or_else(|| defaults.get(k).and_then(Value::as_f64))
+            };
+            let blend = match o.get("blend").or_else(|| defaults.get("blend")).and_then(Value::as_str) {
+                Some(b) => OverlayBlend::from_name(b).ok_or_else(|| bad_args(format!("unknown blend {b:?}")))?,
+                None => OverlayBlend::Multiply,
+            };
+            let background = match o.get("background") {
+                Some(c) if !c.is_null() => Some(color_value("background", c)?),
+                _ => None,
+            };
+            let region = match o.get("region") {
+                Some(r) if !r.is_null() => {
+                    Some(crate::args::rect_of(r).ok_or_else(|| bad_args("region must be [x0, y0, x1, y1]"))?)
+                }
+                _ => None,
+            };
+            let bytes = markupcraft_engine::raster::read_pdf(&path)?;
+            let bytes = if include_flattened {
+                bytes
+            } else {
+                markupcraft_engine::flatten::without_flattened(bytes)
+            };
             layers.push(OverlayLayer {
-                bytes: markupcraft_engine::raster::read_pdf(&path)?,
                 pages,
                 color,
                 opacity,
                 name,
                 align,
+                background,
+                blend,
+                region,
+                adjust: LayerAdjust {
+                    rotation: num("rotation").unwrap_or(0.0),
+                    scale: num("scale").unwrap_or(1.0),
+                    dx: num("dx").unwrap_or(0.0),
+                    dy: num("dy").unwrap_or(0.0),
+                },
+                ..OverlayLayer::new(bytes)
             });
         }
         let r = overlay_pages(&layers, &out)?;

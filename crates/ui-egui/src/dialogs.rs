@@ -124,6 +124,27 @@ impl Dialogs {
         });
     }
 
+    /// Ask for a folder.
+    pub fn folder(&mut self, purpose: Purpose) {
+        if let Some(a) = self.scripted.clone() {
+            self.answered.push((purpose, a));
+            return;
+        }
+        self.spawn(purpose, move || {
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                block_on(rfd::AsyncFileDialog::new().pick_folder())
+                    .map(|h| h.path().to_path_buf())
+                    .into_iter()
+                    .collect()
+            }
+            #[cfg(target_arch = "wasm32")]
+            {
+                Vec::new()
+            }
+        });
+    }
+
     fn spawn(&mut self, purpose: Purpose, ask: impl FnOnce() -> Vec<PathBuf> + Send + 'static) {
         let (tx, rx) = channel();
         let started = std::thread::Builder::new()

@@ -2,6 +2,9 @@
 //! `[2, 1]` is the first child of the second top-level bookmark.
 
 use markupcraft_engine::bookmarks::BookmarkTitles;
+use markupcraft_engine::bookmarks_more::{
+    BookmarkExport, BookmarkStructure, BookmarkStyle, StructureNode, export_bookmarks, load_structure, save_structure,
+};
 use markupcraft_engine::labels::LabelStyle;
 use serde_json::{Value, json};
 
@@ -334,5 +337,259 @@ pub static FROM_BOOKMARKS: Tool = Tool {
         let (doc, s) = a.session(args)?;
         let n = s.labels_from_bookmarks()?;
         Ok(json!({ "labelled": n, "labels": s.page_labels(), "document": summary(doc, s) }))
+    },
+};
+
+// ---- bookmark properties, actions, copy, AutoMark, structures, audit, export ------------------
+
+pub static STYLE: Tool = Tool {
+    name: "bookmark_style",
+    title: "Bookmark properties",
+    description: "Text colour (\"\" or omitted = black), bold and italic of one or many bookmarks (`paths`). Returns each one's details (title, look, action). Undoable.",
+    read_only: false,
+    destructive: false,
+    schema: || {
+        schema(
+            json!({
+                "paths": { "type": "array", "items": path_arg("A bookmark") },
+                "color": { "type": ["string", "array"] },
+                "bold": { "type": "boolean" },
+                "italic": { "type": "boolean" }
+            }),
+            &["paths"],
+        )
+    },
+    run: |a, args| {
+        let mut paths = Vec::new();
+        for v in args
+            .get("paths")
+            .and_then(Value::as_array)
+            .ok_or_else(|| bad_args("paths is a list of bookmark paths"))?
+        {
+            let p: Vec<usize> = v
+                .as_array()
+                .ok_or_else(|| bad_args("each path is a list of positions from 1"))?
+                .iter()
+                .map(|x| match x.as_u64() {
+                    Some(n) if n >= 1 => Ok(n as usize - 1),
+                    _ => Err(bad_args("positions are from 1")),
+                })
+                .collect::<Result<_>>()?;
+            paths.push(p);
+        }
+        let style = BookmarkStyle {
+            color: args.opt_color("color")?,
+            bold: args.bool_or("bold", false)?,
+            italic: args.bool_or("italic", false)?,
+        };
+        let (doc, s) = a.session(args)?;
+        s.set_bookmark_style(&paths, style)?;
+        let details: Vec<Value> = paths
+            .iter()
+            .filter_map(|p| s.bookmark_details(p).ok())
+            .map(|d| details_json(&d))
+            .collect();
+        Ok(json!({ "bookmarks": details, "document": summary(doc, s) }))
+    },
+};
+
+fn details_json(d: &markupcraft_engine::bookmarks_more::BookmarkDetails) -> Value {
+    json!({
+        "path": one_based(&d.path),
+        "title": d.title,
+        "color": d.style.color.map(|c| c.hex()),
+        "bold": d.style.bold,
+        "italic": d.style.italic,
+        "action": d.target.as_ref().map(super::links::target_json),
+    })
+}
+
+pub static ACTION: Tool = Tool {
+    name: "bookmark_action",
+    title: "Bookmark action",
+    description: "Where a bookmark goes: the target arguments of link_add (to_page with zoom or view, place, space, url, file with file_page/view, relative). Without a target, returns the bookmark's details. Undoable.",
+    read_only: false,
+    destructive: false,
+    schema: || {
+        let mut p = json!({ "path": path_arg("The bookmark") });
+        if let Some(o) = p.as_object_mut() {
+            super::links::target_props(o);
+        }
+        schema(p, &["path"])
+    },
+    run: |a, args| {
+        let p = path(args, "path", true)?.unwrap_or_default();
+        let has = ["to_page", "place", "space", "url", "file"].iter().any(|k| args.has(k));
+        let (doc, s) = a.session(args)?;
+        if has {
+            let t = super::links::target_from(s, args)?;
+            s.set_bookmark_action(&p, &t)?;
+        }
+        let d = s.bookmark_details(&p)?;
+        Ok(json!({ "bookmark": details_json(&d), "document": summary(doc, s) }))
+    },
+};
+
+pub static COPY: Tool = Tool {
+    name: "bookmark_copy",
+    title: "Copy a bookmark",
+    description: "Copy a bookmark with its children, look and action to child `index` (1-based; default last) of `parent` (default the top level). Undoable.",
+    read_only: false,
+    destructive: false,
+    schema: || {
+        schema(
+            json!({
+                "path": path_arg("The bookmark to copy"),
+                "parent": path_arg("The new parent (default: top level)"),
+                "index": { "type": "integer", "minimum": 1 }
+            }),
+            &["path"],
+        )
+    },
+    run: |a, args| {
+        let from = path(args, "path", true)?.unwrap_or_default();
+        let parent = path(args, "parent", false)?.unwrap_or_default();
+        let index = args.opt_u64("index")?.map(|i| (i as usize).saturating_sub(1));
+        let (doc, s) = a.session(args)?;
+        let p = s.copy_bookmark(&from, &parent, index)?;
+        Ok(json!({ "path": one_based(&p), "document": summary(doc, s) }))
+    },
+};
+
+pub static AUTOMARK: Tool = Tool {
+    name: "bookmark_automark",
+    title: "AutoMark",
+    description: "Create bookmarks from the text inside `region` (a title block's sheet number or title, PDF points) on each page (default all); replace: clear the bookmarks first. Undoable.",
+    read_only: false,
+    destructive: false,
+    schema: || {
+        schema(
+            json!({
+                "region": super::rect_arg("The title-block region"),
+                "pages": pages_arg("to bookmark (default all)"),
+                "replace": { "type": "boolean" }
+            }),
+            &["region"],
+        )
+    },
+    run: |a, args| {
+        let region = args.opt_rect("region")?.ok_or_else(|| bad_args("region is required"))?;
+        let replace = args.bool_or("replace", false)?;
+        let (doc, s) = a.session(args)?;
+        let pages = args.opt_pages("pages", s.page_count())?.unwrap_or_default();
+        let n = s.bookmarks_from_region(&pages, region, replace)?;
+        Ok(json!({ "added": n, "bookmarks": list_json(s), "document": summary(doc, s) }))
+    },
+};
+
+pub static STRUCTURE: Tool = Tool {
+    name: "bookmark_structure",
+    title: "Bookmark structures",
+    description: "Bookmarks > Structures: save this document's folder tree as a structure file (`save`), or apply one (`apply`: a structure file, or `folders` [{title, prefixes: [\"A-\"], children}]): its folders are made and every top-level bookmark whose title starts with a folder's prefix is filed into it. Undoable.",
+    read_only: false,
+    destructive: false,
+    schema: || {
+        schema(
+            json!({
+                "save": super::path_arg("Write the structure here"),
+                "apply": super::path_arg("A structure file to apply"),
+                "name": { "type": "string" },
+                "folders": { "type": "array", "items": { "type": "object" } }
+            }),
+            &[],
+        )
+    },
+    run: |a, args| {
+        let save = args.opt_str("save")?.map(|p| a.resolve(p, true)).transpose()?;
+        let apply = args.opt_str("apply")?.map(|p| a.resolve(p, false)).transpose()?;
+        let inline: Option<BookmarkStructure> = match args.get("folders") {
+            Some(v) => Some(BookmarkStructure {
+                name: args.opt_string("name")?.unwrap_or_default(),
+                folders: serde_json::from_value::<Vec<StructureNode>>(v.clone())
+                    .map_err(|e| bad_args(format!("folders: {e}")))?,
+            }),
+            None => None,
+        };
+        let (doc, s) = a.session(args)?;
+        let mut filed = None;
+        if let Some(p) = &save {
+            let st = s.bookmark_structure(&args.opt_string("name")?.unwrap_or_else(|| "Structure".into()));
+            save_structure(p, &st)?;
+        }
+        let st = match (&apply, inline) {
+            (Some(p), _) => Some(load_structure(p)?),
+            (None, Some(st)) => Some(st),
+            _ => None,
+        };
+        if let Some(st) = st {
+            filed = Some(s.apply_bookmark_structure(&st)?);
+        }
+        if save.is_none() && filed.is_none() {
+            return Err(bad_args("bookmark_structure: give save, apply or folders"));
+        }
+        Ok(json!({ "filed": filed, "bookmarks": list_json(s), "document": summary(doc, s) }))
+    },
+};
+
+pub static AUDIT: Tool = Tool {
+    name: "bookmark_audit",
+    title: "Audit bookmarks",
+    description: "Bookmarks that go to a page no longer in the file, a missing Place, or nowhere.",
+    read_only: true,
+    destructive: false,
+    schema: || schema(json!({}), &[]),
+    run: |a, args| {
+        let (doc, s) = a.session_ref(args)?;
+        let broken: Vec<Value> = s
+            .audit_bookmarks()
+            .iter()
+            .map(|b| json!({ "path": one_based(&b.path), "title": b.title, "reason": b.reason }))
+            .collect();
+        Ok(json!({ "doc": doc, "broken": broken }))
+    },
+};
+
+pub static EXPORT: Tool = Tool {
+    name: "bookmark_export",
+    title: "Export bookmarks",
+    description: "Export the bookmarks of `files` (default: this document) to `out`: CSV, or a PDF report (.pdf) with each bookmark linked to its page; tree (indented) or flat, top level only, date stamp, page size by name.",
+    read_only: false,
+    destructive: true,
+    schema: || {
+        schema(
+            json!({
+                "out": super::path_arg("The CSV or PDF report"),
+                "files": { "type": "array", "items": { "type": "string" } },
+                "tree": { "type": "boolean" },
+                "top_level_only": { "type": "boolean" },
+                "links": { "type": "boolean" },
+                "date_stamp": { "type": "boolean" },
+                "paper": { "type": "string" }
+            }),
+            &["out"],
+        )
+    },
+    run: |a, args| {
+        let out = a.resolve(args.str("out")?, true)?;
+        let files: Vec<std::path::PathBuf> = match args.opt_strings("files")? {
+            Some(list) => list.iter().map(|f| a.resolve(f, false)).collect::<Result<_>>()?,
+            None => {
+                let (_, s) = a.session_ref(args)?;
+                vec![s.path().to_path_buf()]
+            }
+        };
+        let mut o = BookmarkExport {
+            tree: args.bool_or("tree", true)?,
+            top_level_only: args.bool_or("top_level_only", false)?,
+            links: args.bool_or("links", true)?,
+            date_stamp: args.bool_or("date_stamp", true)?,
+            ..Default::default()
+        };
+        if let Some(p) = args.opt_str("paper")? {
+            o.page_size =
+                markupcraft_engine::printout::paper_size(p).ok_or_else(|| bad_args(format!("unknown paper {p:?}")))?;
+        }
+        let n = export_bookmarks(&files, &out, &o)?;
+        Ok(json!({ "out": out.display().to_string(), "bookmarks": n }))
     },
 };

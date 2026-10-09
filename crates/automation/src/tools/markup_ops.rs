@@ -32,7 +32,7 @@ pub static ATTACH_FILE: Tool = Tool {
         let path = a.resolve(args.str("path")?, false)?;
         let icon = args.opt_str("icon")?.unwrap_or("PushPin").to_string();
         let (doc, s) = a.session(args)?;
-        let id = s.add_file_attachment(page, at, &path, &icon)?;
+        let id = s.attach_file_markup(page, at, &path, &icon)?;
         let m = s.markup(&id)?;
         Ok(json!({ "id": id, "markup": markup_json(m), "document": summary(doc, s) }))
     },
@@ -173,7 +173,7 @@ pub static UNFLATTEN: Tool = Tool {
         let (doc, s) = a.session(args)?;
         let count = s.page_count();
         let pages = args.opt_pages("pages", count)?.unwrap_or_default();
-        let n = s.unflatten(&pages)?;
+        let n = s.unflatten_flattened(&pages)?;
         Ok(json!({ "unflattened": n, "document": summary(doc, s) }))
     },
 };

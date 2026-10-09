@@ -32,3 +32,5 @@ image = { workspace = true, features = ["jpeg", "tiff", "bmp"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 pdfcraft-content = { workspace = true }
+pdfcraft-export = { workspace = true }
+pdfcraft-preflight = { workspace = true }

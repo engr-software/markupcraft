@@ -1265,21 +1265,7 @@ fn drag_to_tool_chest_edit_action_and_takeoff_workspace() {
     assert_eq!(chest.sets[0].items.len(), 1, "{}", status(&h));
     assert_eq!(find(&h, &rect).pts, before, "dropped off the page: not moved");
 
-    // Edit Action: the rectangle links to page 2.
-    select(&mut h, std::slice::from_ref(&rect));
-    keys(&mut h, Modifiers::COMMAND | Modifiers::SHIFT, Key::E);
-    assert!(h.state().state.edit.more.edit_action.is_some());
-    h.state_mut().state.edit.more.edit_action = Some((rect.clone(), String::new(), "2".into()));
-    h.run_steps(2);
-    press(&mut h, "Apply");
-    let links = h.state().state.doc().unwrap().session.links();
-    assert!(
-        links
-            .iter()
-            .any(|l| l.page == 0 && l.target == markupcraft_engine::links::LinkTarget::Page(1)),
-        "{}",
-        status(&h)
-    );
+    // Edit Action is covered by features2_ui (the link dialog).
 
     // Window > Takeoff Workspace.
     run(&mut h, "window.takeoff_workspace");

@@ -68,7 +68,7 @@ impl Session {
     /// Unflatten: the markups MarkupCraft flattened on `pages` (0-based; empty = every page)
     /// become annotations again and their drawings leave the page content. Returns how many
     /// came back. One undo step; the next save rewrites the file in full.
-    pub fn unflatten(&mut self, pages: &[usize]) -> Result<usize> {
+    pub fn unflatten_flattened(&mut self, pages: &[usize]) -> Result<usize> {
         for p in pages {
             self.page(*p)?;
         }
@@ -122,6 +122,7 @@ impl Session {
                 cos.update_dict(page, |d| {
                     d.set(b"Contents".to_vec(), Object::Array(contents));
                     d.remove(KEY);
+                    d.remove(b"PCUnflatten");
                 })?;
             }
             if n == 0 {
@@ -174,7 +175,7 @@ mod tests {
         assert_eq!(s.doc().markups.len(), 1);
         let before = annots_of(&s.file.cos, page_objs(&s.file.cos).unwrap()[0]).len();
         assert_eq!(flattened_count(&s.file.cos, page_objs(&s.file.cos).unwrap()[0]), 1);
-        assert_eq!(s.unflatten(&[]).expect("unflatten"), 1);
+        assert_eq!(s.unflatten_flattened(&[]).expect("unflatten"), 1);
         assert_eq!(s.doc().markups.len(), 2);
         let back = s
             .doc()
@@ -187,7 +188,7 @@ mod tests {
         assert_eq!(annots_of(&s.file.cos, page).len(), before + 1);
         assert_eq!(flattened_count(&s.file.cos, page), 0, "the record is gone");
         // nothing left to unflatten; undo puts the flattened state back
-        assert!(s.unflatten(&[]).is_err());
+        assert!(s.unflatten_flattened(&[]).is_err());
         s.undo().expect("undo");
         assert_eq!(s.doc().markups.len(), 1);
         let _ = std::fs::remove_dir_all(&dir);

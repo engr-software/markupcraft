@@ -17,7 +17,10 @@ pub static OCR: Tool = Tool {
             json!({
                 "pages": pages_arg("to read (default: all)"),
                 "dpi": { "type": "number", "description": "Resolution the pages are read at (default 300)." },
-                "skip_text": { "type": "boolean", "description": "Leave pages that already have text alone (default true)." }
+                "skip_text": { "type": "boolean", "description": "Leave pages that already have text alone (default true)." },
+                "deskew": { "type": "boolean", "description": "Correct skewed scans (default false)." },
+                "detect_orientation": { "type": "boolean", "description": "Read pages scanned on their side or upside down, and vertical text (default false)." },
+                "skip_vector": { "type": "boolean", "description": "Leave pages without images alone (default false)." }
             }),
             &[],
         )
@@ -28,6 +31,9 @@ pub static OCR: Tool = Tool {
             o.dpi = d;
         }
         o.skip_text_pages = args.bool_or("skip_text", true)?;
+        o.deskew = args.bool_or("deskew", false)?;
+        o.detect_orientation = args.bool_or("detect_orientation", false)?;
+        o.skip_vector_pages = args.bool_or("skip_vector", false)?;
         let (doc, s) = a.session(args)?;
         if let Some(p) = args.opt_pages("pages", s.page_count())? {
             o.pages = p;

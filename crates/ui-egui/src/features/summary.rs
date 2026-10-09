@@ -4,7 +4,7 @@
 use std::path::Path;
 
 use egui::RichText;
-use markupcraft_engine::summary::{SummaryFormat, SummaryOptions};
+use markupcraft_engine::summary::{PdfLayout, SummaryContent, SummaryFormat, SummaryOptions};
 use markupcraft_model::table::MarkupTable;
 
 use super::Ask;
@@ -22,6 +22,17 @@ pub struct SummaryState {
     pub measurements_only: bool,
     pub title: String,
     pub message: String,
+    /// Then sort by (Filter and Sort).
+    pub then_sort: String,
+    pub then_descending: bool,
+    /// Filter: a column and the text its cells must have (comma-separated values).
+    pub filter_column: String,
+    pub filter_values: String,
+    pub date_in_title: bool,
+    pub content: SummaryContent,
+    pub headers: bool,
+    pub per_value: bool,
+    pub layout: PdfLayout,
 }
 
 impl Default for SummaryState {
@@ -36,6 +47,15 @@ impl Default for SummaryState {
             measurements_only: false,
             title: "Markup Summary".into(),
             message: String::new(),
+            then_sort: String::new(),
+            then_descending: false,
+            filter_column: String::new(),
+            filter_values: String::new(),
+            date_in_title: false,
+            content: SummaryContent::Both,
+            headers: true,
+            per_value: false,
+            layout: PdfLayout::default(),
         }
     }
 }
@@ -59,7 +79,29 @@ pub fn options(s: &SummaryState, count: usize) -> Result<SummaryOptions, String>
         sort: s.sort.clone(),
         descending: s.descending,
         title: s.title.clone(),
-        ..Default::default()
+        then_by: if s.then_sort.is_empty() {
+            Vec::new()
+        } else {
+            vec![(s.then_sort.clone(), s.then_descending)]
+        },
+        filters: if s.filter_column.is_empty() || s.filter_values.trim().is_empty() {
+            Default::default()
+        } else {
+            [(
+                s.filter_column.clone(),
+                s.filter_values
+                    .split(',')
+                    .map(|v| v.trim().to_string())
+                    .filter(|v| !v.is_empty())
+                    .collect(),
+            )]
+            .into_iter()
+            .collect()
+        },
+        date_in_title: s.date_in_title,
+        content: s.content,
+        no_headers: !s.headers,
+        layout: s.layout.clone(),
     })
 }
 
@@ -133,8 +175,67 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                 });
             ui.checkbox(&mut s.descending, "Descending");
         });
+        ui.horizontal(|ui| {
+            ui.label("Then by:");
+            egui::ComboBox::from_id_salt("summary-then")
+                .selected_text(header_of(&s.then_sort))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut s.then_sort, String::new(), "(none)");
+                    for (id, h, _) in &cols {
+                        ui.selectable_value(&mut s.then_sort, id.clone(), h);
+                    }
+                });
+            ui.checkbox(&mut s.then_descending, "Descending");
+        });
+        ui.horizontal(|ui| {
+            ui.label("Filter:");
+            egui::ComboBox::from_id_salt("summary-filter")
+                .selected_text(header_of(&s.filter_column))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut s.filter_column, String::new(), "(none)");
+                    for (id, h, _) in &cols {
+                        ui.selectable_value(&mut s.filter_column, id.clone(), h);
+                    }
+                });
+            ui.add(
+                egui::TextEdit::singleline(&mut s.filter_values)
+                    .hint_text("values, comma-separated")
+                    .desired_width(160.0),
+            );
+        });
         super::pages_field(ui, &mut s.pages);
         ui.checkbox(&mut s.measurements_only, "Measurements only");
+        ui.collapsing("Output", |ui| {
+            ui.checkbox(&mut s.date_in_title, "Append the date to the title");
+            ui.checkbox(&mut s.per_value, "One report per value of the first column");
+            ui.horizontal(|ui| {
+                ui.label("CSV/XML:");
+                ui.selectable_value(&mut s.content, SummaryContent::Both, "Markups and totals");
+                ui.selectable_value(&mut s.content, SummaryContent::Markups, "Markups");
+                ui.selectable_value(&mut s.content, SummaryContent::Totals, "Totals");
+                ui.checkbox(&mut s.headers, "Headers");
+            });
+            ui.horizontal(|ui| {
+                ui.label("PDF:");
+                ui.selectable_value(&mut s.layout.flow, false, "Table");
+                ui.selectable_value(&mut s.layout.flow, true, "Flow");
+                ui.checkbox(&mut s.layout.break_per_group, "Page per group");
+                ui.checkbox(&mut s.layout.links, "Links to pages");
+                ui.checkbox(&mut s.layout.totals, "Totals");
+            });
+            ui.horizontal(|ui| {
+                ui.label("Padding");
+                ui.add(egui::DragValue::new(&mut s.layout.padding).range(0.0..=20.0));
+                ui.label("Page");
+                let portrait = s.layout.page_size.0 < s.layout.page_size.1;
+                if ui.selectable_label(!portrait, "Landscape").clicked() {
+                    s.layout.page_size = (792.0, 612.0);
+                }
+                if ui.selectable_label(portrait, "Portrait").clicked() {
+                    s.layout.page_size = (612.0, 792.0);
+                }
+            });
+        });
         if !s.message.is_empty() {
             ui.label(RichText::new(&s.message).small());
         }
@@ -182,6 +283,12 @@ pub fn write(app: &mut AppState, f: SummaryFormat, out: &Path) {
             return;
         }
     };
+    if app.features.summary.per_value {
+        let r = d.session.export_summary_per_value(out, Some(f), &o);
+        app.status = actions::report(r, |files| format!("Wrote {}", actions::plural(files.len(), "report")));
+        app.features.summary.message = app.status.clone();
+        return;
+    }
     match d.session.export_summary(out, Some(f), &o) {
         Ok(n) => {
             app.status = format!(

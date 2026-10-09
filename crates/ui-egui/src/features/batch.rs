@@ -5,8 +5,12 @@ use std::path::{Path, PathBuf};
 
 use egui::RichText;
 use markupcraft_engine::Session;
-use markupcraft_engine::batch::{BatchLinkOptions, SlipSheetOptions, batch_link, batch_summary_csv};
-use markupcraft_engine::combine::combine_files;
+use markupcraft_engine::batch::{
+    BatchLinkOptions, LinkTerms, SlipSheetOptions, batch_link, batch_summary_csv, link_terms_csv,
+};
+use markupcraft_engine::docs_more::{
+    CombineOptions, combine_with, create_pdf_from_files, layered_pdf, merge_form_data,
+};
 use markupcraft_engine::flatten::FlattenFilter;
 
 use super::Ask;
@@ -21,6 +25,14 @@ pub enum Kind {
     Summary,
     Flatten,
     SlipSheet,
+    Unflatten,
+    Print,
+    /// Create PDF from images and text files.
+    Create,
+    /// One page with each file's first page in its own layer.
+    Layered,
+    /// The form data of many PDFs in one CSV.
+    FormMerge,
 }
 
 impl Kind {
@@ -31,6 +43,11 @@ impl Kind {
             Kind::Summary => "Batch Summary",
             Kind::Flatten => "Batch Flatten",
             Kind::SlipSheet => "Slip Sheet",
+            Kind::Unflatten => "Batch Unflatten",
+            Kind::Print => "Batch Print",
+            Kind::Create => "Create PDF from Files",
+            Kind::Layered => "Create Layered PDF",
+            Kind::FormMerge => "Merge Form Data",
         }
     }
 }
@@ -42,8 +59,17 @@ pub struct BatchState {
     pub bookmarks: bool,
     pub measurements_only: bool,
     pub link: BatchLinkOptions,
+    /// Batch Link term source: 0 page labels, 1 file names, 2 custom terms.
+    pub link_source: usize,
+    /// Custom terms, one `term,file name,page` per line.
+    pub link_custom: String,
+    pub link_filter: String,
+    pub link_highlight: bool,
+    pub combine: CombineOptions,
     pub slip: SlipSheetOptions,
     pub message: String,
+    /// Batch Print: also send the sheets to the printer chosen in the Print dialog.
+    pub print_send: bool,
 }
 
 impl Default for BatchState {
@@ -55,11 +81,20 @@ impl Default for BatchState {
             bookmarks: true,
             measurements_only: false,
             link: BatchLinkOptions::default(),
+            link_source: 0,
+            link_custom: String::new(),
+            link_filter: String::new(),
+            link_highlight: false,
+            combine: CombineOptions {
+                bookmarks: true,
+                ..Default::default()
+            },
             slip: SlipSheetOptions {
                 append_unmatched: true,
                 ..Default::default()
             },
             message: String::new(),
+            print_send: false,
         }
     }
 }
@@ -97,7 +132,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
     }
     let kind = app.features.batch.kind;
     let has_doc = app.has_doc();
-    let (mut open, mut add, mut go) = (true, false, false);
+    let (mut open, mut add, mut go, mut add_folder) = (true, false, false, false);
     super::window(kind.title()).open(&mut open).default_width(500.0).show(ctx, |ui| {
         let b = &mut app.features.batch;
         ui.label(match kind {
@@ -106,13 +141,18 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
             Kind::Summary => "The Markups List of every file in one CSV (a File column first).",
             Kind::Flatten => "Flatten every markup of these files into their pages. Files are saved in place.",
             Kind::SlipSheet => "Replace the active document's sheets with the matching sheets (by page label) of a newer revision; markups stay.",
+            Kind::Unflatten => "Restore the markups flattened with recovery in these files. Files are saved in place.",
+            Kind::Print => "Print these PDFs in list order with the Print dialog's settings: each laid out as a print-ready PDF in the folder you choose, then sent to the chosen printer.",
+            Kind::Create => "Make one PDF from these files in order: images (PNG, JPEG, TIFF, BMP) and text files become pages, PDFs are appended.",
+            Kind::Layered => "Draw the first page of each file on one page, each in its own layer named after its file.",
+            Kind::FormMerge => "Collect the form field values of these PDFs into one CSV: a row per file.",
         });
         let mut action = None;
         egui::ScrollArea::vertical().max_height(200.0).show(ui, |ui| {
             for (i, f) in b.files.iter().enumerate() {
                 ui.horizontal(|ui| {
                     ui.label(file_name(f)).on_hover_text(f.display().to_string());
-                    if kind == Kind::Combine {
+                    if matches!(kind, Kind::Combine | Kind::Print | Kind::Create | Kind::Layered) {
                         if ui.small_button("Up").clicked() {
                             action = Some((i, 0));
                         }
@@ -144,12 +184,45 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
         {
             add = true;
         }
+        if kind == Kind::Summary && ui.button("Add Folder...").on_hover_text("Every PDF in a folder and its subfolders").clicked() {
+            add_folder = true;
+        }
         match kind {
             Kind::Combine => {
-                ui.checkbox(&mut b.bookmarks, "A bookmark for each file");
+                ui.checkbox(&mut b.combine.bookmarks, "A bookmark for each file");
+                ui.checkbox(&mut b.combine.attachments, "Keep every file's attachments");
+                ui.checkbox(&mut b.combine.properties, "Merge document properties");
+                ui.checkbox(&mut b.combine.layers, "Keep every file's layers");
+                ui.checkbox(&mut b.combine.labels_from_names, "Page labels from file names");
             }
+            Kind::Create | Kind::Layered | Kind::FormMerge => {}
             Kind::Link => {
-                ui.checkbox(&mut b.link.match_case, "Match case");
+                ui.horizontal(|ui| {
+                    ui.label("Search for");
+                    ui.selectable_value(&mut b.link_source, 0, "Page labels");
+                    ui.selectable_value(&mut b.link_source, 1, "File names");
+                    ui.selectable_value(&mut b.link_source, 2, "Custom terms");
+                });
+                if b.link_source == 2 {
+                    ui.label(RichText::new("One term per line: term, file name, page").small());
+                    ui.add(
+                        egui::TextEdit::multiline(&mut b.link_custom)
+                            .desired_rows(3)
+                            .hint_text("DETAIL 5, A-501.pdf, 1"),
+                    );
+                }
+                ui.horizontal(|ui| {
+                    ui.label("Filter at");
+                    ui.add(egui::TextEdit::singleline(&mut b.link_filter).desired_width(30.0));
+                    ui.selectable_value(&mut b.link.keep_start, true, "keep before");
+                    ui.selectable_value(&mut b.link.keep_start, false, "keep after");
+                });
+                ui.horizontal_wrapped(|ui| {
+                    ui.checkbox(&mut b.link.match_case, "Match case");
+                    ui.checkbox(&mut b.link.full_paths, "Full paths");
+                    ui.checkbox(&mut b.link.replace_existing, "Replace existing links");
+                    ui.checkbox(&mut b.link_highlight, "Highlight links");
+                });
                 ui.horizontal(|ui| {
                     ui.label("Border width");
                     ui.add(egui::DragValue::new(&mut b.link.width).range(0.0..=12.0));
@@ -159,7 +232,10 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
             Kind::Summary => {
                 ui.checkbox(&mut b.measurements_only, "Measurements only");
             }
-            Kind::Flatten => {}
+            Kind::Flatten | Kind::Unflatten => {}
+            Kind::Print => {
+                ui.checkbox(&mut b.print_send, "Send to the printer");
+            }
             Kind::SlipSheet => {
                 ui.horizontal(|ui| {
                     ui.label("Match the label before");
@@ -196,8 +272,12 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
         app.features.batch.open = false;
     }
     if add {
+        let filter = if kind == Kind::Create { super::ANY } else { PDF };
         app.dialogs
-            .open(Purpose::Feature(Ask::BatchFiles), PDF, kind != Kind::SlipSheet);
+            .open(Purpose::Feature(Ask::BatchFiles), filter, kind != Kind::SlipSheet);
+    }
+    if add_folder {
+        app.dialogs.folder(Purpose::Feature(Ask::BatchFolder));
     }
     if go {
         run(app);
@@ -209,12 +289,49 @@ pub fn run(app: &mut AppState) {
     let kind = app.features.batch.kind;
     match kind {
         Kind::Combine => app.dialogs.save(Purpose::Feature(Ask::BatchOut), PDF, "Combined.pdf"),
+        Kind::Create => app.dialogs.save(Purpose::Feature(Ask::BatchOut), PDF, "Created.pdf"),
+        Kind::Layered => app.dialogs.save(Purpose::Feature(Ask::BatchOut), PDF, "Layered.pdf"),
+        Kind::FormMerge => app.dialogs.save(Purpose::Feature(Ask::BatchOut), CSV, "Form Data.csv"),
         Kind::Summary => app
             .dialogs
             .save(Purpose::Feature(Ask::BatchOut), CSV, "Batch Summary.csv"),
+        Kind::Print => app.dialogs.folder(Purpose::Feature(Ask::BatchOut)),
+        Kind::Unflatten => {
+            let mut done = 0;
+            let mut errors = Vec::new();
+            for f in app.features.batch.files.clone() {
+                let r = Session::open(&f).and_then(|mut s| {
+                    let n = s.unflatten(&[])?;
+                    s.save(true)?;
+                    Ok(n)
+                });
+                match r {
+                    Ok(n) => done += n,
+                    Err(e) => errors.push(format!("{}: {e}", file_name(&f))),
+                }
+            }
+            let b = &mut app.features.batch;
+            b.message = format!("Unflattened {}", actions::plural(done, "markup"));
+            if !errors.is_empty() {
+                b.message.push_str(&format!("; {}", errors.join("; ")));
+            }
+        }
         Kind::Link => {
             let b = &mut app.features.batch;
-            b.message = actions::report(batch_link(&b.files, &b.link), |r| {
+            let mut o = b.link.clone();
+            o.terms = match b.link_source {
+                1 => LinkTerms::FileNames,
+                2 => LinkTerms::Custom(link_terms_csv(&b.link_custom, &b.files)),
+                _ => LinkTerms::PageLabels,
+            };
+            o.filter_char = b.link_filter.trim().chars().next();
+            o.highlight = b.link_highlight.then_some(markupcraft_model::Color::rgb(1.0, 1.0, 0.0));
+            if matches!(&o.terms, LinkTerms::Custom(l) if l.is_empty()) {
+                b.message =
+                    "Custom terms: one line per term, as term, file name, page (the file must be in the list)".into();
+                return;
+            }
+            b.message = actions::report(batch_link(&b.files, &o), |r| {
                 let mut s = format!(
                     "Added {} in {} ({} already linked)",
                     actions::plural(r.links, "link"),
@@ -279,8 +396,35 @@ pub fn run(app: &mut AppState) {
 pub fn output(app: &mut AppState, out: &Path) {
     let b = &app.features.batch;
     match b.kind {
-        Kind::Combine => match combine_files(&b.files, out, b.bookmarks) {
-            Ok(n) => {
+        Kind::Create | Kind::Layered | Kind::FormMerge => {
+            let r = match b.kind {
+                Kind::Create => create_pdf_from_files(&b.files, out)
+                    .map(|n| format!("Created {} ({})", out.display(), actions::plural(n, "page"))),
+                Kind::Layered => layered_pdf(&b.files, out)
+                    .map(|n| format!("Layered PDF {} ({})", out.display(), actions::plural(n, "page"))),
+                _ => merge_form_data(&b.files, out).map(|n| {
+                    format!(
+                        "Form data of {} written to {}",
+                        actions::plural(n, "file"),
+                        out.display()
+                    )
+                }),
+            };
+            let open_it = b.kind != Kind::FormMerge;
+            match r {
+                Ok(m) => {
+                    app.features.batch.message = m.clone();
+                    app.status = m;
+                    if open_it {
+                        app.features.batch.open = false;
+                        app.open_path(out);
+                    }
+                }
+                Err(e) => app.features.batch.message = e.to_string(),
+            }
+        }
+        Kind::Combine => match combine_with(&b.files, out, &b.combine) {
+            Ok((n, _warnings)) => {
                 app.features.batch.message =
                     format!("Combined into {} ({})", out.display(), actions::plural(n, "page"));
                 app.features.batch.open = false;
@@ -289,8 +433,14 @@ pub fn output(app: &mut AppState, out: &Path) {
             Err(e) => app.features.batch.message = e.to_string(),
         },
         Kind::Summary => {
-            let (csv, n, errors) = batch_summary_csv(&b.files, b.measurements_only);
-            let mut msg = match crate::chest::write_atomic(out, csv.as_bytes()) {
+            let excel = out.extension().is_some_and(|e| e.eq_ignore_ascii_case("xlsx"));
+            let (bytes, n, errors) = if excel {
+                markupcraft_engine::batch::batch_summary_xlsx(&b.files, b.measurements_only)
+            } else {
+                let (csv, n, errors) = batch_summary_csv(&b.files, b.measurements_only);
+                (csv.into_bytes(), n, errors)
+            };
+            let mut msg = match crate::chest::write_atomic(out, &bytes) {
                 Ok(()) => format!(
                     "Summary of {} written to {}",
                     actions::plural(n, "markup"),
@@ -302,6 +452,31 @@ pub fn output(app: &mut AppState, out: &Path) {
                 msg.push_str(&format!("; {}", errors.join("; ")));
             }
             app.features.batch.message = msg;
+        }
+        Kind::Print => {
+            let job = {
+                let count = 1;
+                match app.features.print.job(0, count, None) {
+                    Ok(j) => j,
+                    Err(e) => {
+                        app.features.batch.message = e;
+                        return;
+                    }
+                }
+            };
+            let printer = app.features.print.printer.clone();
+            let send = app.features.batch.print_send;
+            let p = (!printer.is_empty()).then_some(printer.as_str());
+            let r = markupcraft_engine::printing::batch_print(&b.files, &job, out, send.then_some(p));
+            app.features.batch.message = actions::report(r, |list| {
+                let ok = list.iter().filter(|x| x.1.is_ok()).count();
+                let errs: Vec<String> = list.iter().filter_map(|x| x.1.as_ref().err().cloned()).collect();
+                let mut m = format!("Printed {} into {}", actions::plural(ok, "file"), out.display());
+                if !errs.is_empty() {
+                    m.push_str(&format!("; {}", errs.join("; ")));
+                }
+                m
+            });
         }
         _ => {}
     }

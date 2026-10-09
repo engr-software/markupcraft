@@ -3,6 +3,7 @@
 
 use egui::RichText;
 use markupcraft_engine::batch::SetSort;
+use markupcraft_engine::sets_more::{CategoryMode, category_of, default_categories, revisions, tagged_sheets};
 
 use super::{PanelDef, Slot};
 use crate::AppState;
@@ -23,6 +24,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     let active_path = app.doc().and_then(|d| d.path.clone());
     let active_page = app.doc().map_or(0, |d| d.view.current);
     let (mut ask, mut open_sheet, mut remove, mut new) = (None, None, None, false);
+    let (mut publish, mut package, mut print_set, mut set_tag) = (false, false, false, false);
     {
         let s = &mut app.features.sets;
         ui.horizontal_wrapped(|ui| {
@@ -54,6 +56,68 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
             }
         });
         ui.add(egui::TextEdit::singleline(&mut s.filter).hint_text("Filter sheets"));
+        ui.horizontal_wrapped(|ui| {
+            ui.label("Categories");
+            ui.selectable_value(&mut s.categories, CategoryMode::Off, "Off");
+            ui.selectable_value(&mut s.categories, CategoryMode::FileName, "File name");
+            ui.selectable_value(&mut s.categories, CategoryMode::SheetNumber, "Sheet number");
+        });
+        ui.horizontal_wrapped(|ui| {
+            ui.label("Earlier revisions");
+            ui.selectable_value(&mut s.previous, 0, "Shown");
+            ui.selectable_value(&mut s.previous, 1, "Hidden");
+            ui.selectable_value(&mut s.previous, 2, "Greyed");
+            ui.selectable_value(&mut s.previous, 3, "Crossed out");
+            ui.add(
+                egui::TextEdit::singleline(&mut s.revision_filter)
+                    .hint_text("filter e.g. @?#")
+                    .desired_width(70.0),
+            )
+            .on_hover_text("Wildcard for the sheet key in file names; empty = by sheet number");
+            ui.checkbox(&mut s.show_tags, "Tags");
+        });
+        ui.horizontal_wrapped(|ui| {
+            ui.checkbox(&mut s.latest_only, "Latest only");
+            if ui
+                .small_button("Publish...")
+                .on_hover_text("One PDF with a bookmark per sheet")
+                .clicked()
+            {
+                publish = true;
+            }
+            if ui
+                .small_button("Package...")
+                .on_hover_text("Copy the files with a drawing log")
+                .clicked()
+            {
+                package = true;
+            }
+            if ui.small_button("Print Set...").clicked() {
+                print_set = true;
+            }
+        });
+        if s.show_tags {
+            ui.horizontal_wrapped(|ui| {
+                ui.add(
+                    egui::TextEdit::singleline(&mut s.tag_sheet)
+                        .hint_text("sheet (file#page)")
+                        .desired_width(110.0),
+                );
+                ui.add(
+                    egui::TextEdit::singleline(&mut s.tag_name)
+                        .hint_text("tag")
+                        .desired_width(60.0),
+                );
+                ui.add(
+                    egui::TextEdit::singleline(&mut s.tag_value)
+                        .hint_text("value")
+                        .desired_width(70.0),
+                );
+                if ui.small_button("Set Tag").clicked() {
+                    set_tag = true;
+                }
+            });
+        }
         ui.separator();
         if s.set.files.is_empty() {
             super::empty(ui, "Add PDFs to make a set: their sheets are listed here as one.");
@@ -61,13 +125,61 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
         let files = s.set.files.clone();
         let filter = s.filter.to_lowercase();
         let sheets = s.sheets().to_vec();
+        // Tags, categories and revisions of the sheets (in the listed order).
+        let rules = default_categories();
+        let tagged = tagged_sheets(&s.set, s.sort, &rules).0;
+        let groups = revisions(&tagged, &s.revision_filter);
+        let earlier: std::collections::HashSet<(usize, usize)> = groups
+            .iter()
+            .flat_map(|g| g.versions.iter().take(g.versions.len().saturating_sub(1)))
+            .filter_map(|i| tagged.get(*i).map(|t| (t.sheet.file, t.sheet.page)))
+            .collect();
+        let tags_of = |sh: &markupcraft_engine::batch::SetSheet| {
+            tagged
+                .iter()
+                .find(|t| t.sheet.file == sh.file && t.sheet.page == sh.page)
+                .map(|t| t.tags.clone())
+                .unwrap_or_default()
+        };
+        let category = |sh: &markupcraft_engine::batch::SetSheet| match s.categories {
+            CategoryMode::Off => String::new(),
+            CategoryMode::FileName => category_of(
+                &files
+                    .get(sh.file)
+                    .and_then(|f| f.file_stem())
+                    .map(|n| n.to_string_lossy().into_owned())
+                    .unwrap_or_default(),
+                &rules,
+            ),
+            CategoryMode::SheetNumber => {
+                category_of(&tags_of(sh).get("Sheet Number").cloned().unwrap_or_default(), &rules)
+            }
+        };
+        let mut sheets = sheets;
+        if s.categories != CategoryMode::Off {
+            sheets.sort_by_key(|sh| rules.iter().position(|r| r.name == category(sh)).unwrap_or(usize::MAX));
+        }
+        let previous = s.previous;
+        let show_tags = s.show_tags;
         egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
             let mut last = None;
+            let mut last_cat: Option<String> = None;
             for sh in sheets
                 .iter()
                 .filter(|sh| filter.is_empty() || sh.label.to_lowercase().contains(&filter))
             {
-                if last != Some(sh.file) {
+                let old = earlier.contains(&(sh.file, sh.page));
+                if old && previous == 1 {
+                    continue;
+                }
+                if s.categories != CategoryMode::Off {
+                    let c = category(sh);
+                    if last_cat.as_ref() != Some(&c) {
+                        ui.label(RichText::new(&c).strong());
+                        last_cat = Some(c);
+                    }
+                }
+                if s.categories == CategoryMode::Off && last != Some(sh.file) {
                     last = Some(sh.file);
                     ui.horizontal(|ui| {
                         let name = files
@@ -87,8 +199,28 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                 } else {
                     sh.label.clone()
                 };
-                if ui.selectable_label(current, label).clicked() {
+                let mut text = RichText::new(label);
+                if old && previous == 2 {
+                    text = text.weak();
+                }
+                if old && previous == 3 {
+                    text = text.strikethrough();
+                }
+                let r = ui.selectable_label(current, text);
+                if show_tags {
+                    let t = tags_of(sh);
+                    let line: Vec<String> = t
+                        .iter()
+                        .filter(|(k, _)| k.as_str() != "Sheet Number")
+                        .map(|(k, v)| format!("{k}: {v}"))
+                        .collect();
+                    if !line.is_empty() {
+                        ui.label(RichText::new(line.join("  ")).small().weak());
+                    }
+                }
+                if r.clicked() {
                     open_sheet = Some(sh.clone());
+                    s.tag_sheet = markupcraft_engine::sets_more::tag_key(sh, &files);
                 }
             }
         });
@@ -101,6 +233,20 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     }
     if new {
         app.features.sets = Default::default();
+    }
+    if set_tag {
+        sets::set_tag(app);
+    }
+    if publish {
+        app.dialogs
+            .save(Purpose::Feature(Ask::SetPublishPdf), PDF, "Published Set.pdf");
+    }
+    if package {
+        app.dialogs.folder(Purpose::Feature(Ask::SetPackageDir));
+    }
+    if print_set {
+        app.dialogs
+            .save(Purpose::Feature(Ask::SetPrintOut), PDF, "Set Print.pdf");
     }
     if let Some(i) = remove {
         let s = &mut app.features.sets;

@@ -3,6 +3,7 @@
 
 use markupcraft_engine::boxes::{Anchor, BoxChange, PageBox};
 use markupcraft_engine::combine::{SplitBy, combine_files};
+use markupcraft_engine::printing::{PrintJob, send_to_printer};
 use markupcraft_engine::printout::{PrintLayout, PrintSettings, paper_size};
 use markupcraft_engine::reduce::ReduceSettings;
 use serde_json::{Value, json};
@@ -22,7 +23,20 @@ pub static REDUCE: Tool = Tool {
                 "downsample": { "type": "boolean" },
                 "target_ppi": { "type": "number" },
                 "above_ppi": { "type": "number" },
-                "quality": { "type": "integer", "minimum": 0, "maximum": 100 }
+                "quality": { "type": "integer", "minimum": 0, "maximum": 100 },
+                "gray_target_ppi": { "type": "number", "description": "Gray images: their own target ppi (default: as colour)." },
+                "gray_above_ppi": { "type": "number" },
+                "gray_quality": { "type": "integer", "minimum": 0, "maximum": 100 },
+                "discard_thumbnails": { "type": "boolean" },
+                "discard_alternate_images": { "type": "boolean" },
+                "discard_tags": { "type": "boolean" },
+                "discard_print_settings": { "type": "boolean" },
+                "compress_streams": { "type": "boolean" },
+                "remove_invalid_links": { "type": "boolean" },
+                "remove_unreferenced_dests": { "type": "boolean" },
+                "discard_metadata": { "type": "boolean" },
+                "discard_private": { "type": "boolean" },
+                "crop_to_crop_box": { "type": "boolean" }
             }),
             &[],
         )
@@ -44,6 +58,26 @@ pub static REDUCE: Tool = Tool {
                 _ => return Err(bad_args("quality must be 0 to 100")),
             };
         }
+        if let Some(t) = args.opt_num("gray_target_ppi")? {
+            let above = args.opt_num("gray_above_ppi")?.unwrap_or(t * 1.5).max(t);
+            let q = match args.opt_u64("gray_quality")? {
+                None => r.jpeg_quality,
+                Some(0) => None,
+                Some(q @ 1..=100) => Some(q as u8),
+                Some(_) => return Err(bad_args("gray_quality must be 0 to 100")),
+            };
+            r.gray = Some((t, above, q));
+        }
+        r.discard_thumbnails = args.bool_or("discard_thumbnails", r.discard_thumbnails)?;
+        r.discard_alternate_images = args.bool_or("discard_alternate_images", r.discard_alternate_images)?;
+        r.discard_tags = args.bool_or("discard_tags", r.discard_tags)?;
+        r.discard_print_settings = args.bool_or("discard_print_settings", r.discard_print_settings)?;
+        r.compress_streams = args.bool_or("compress_streams", r.compress_streams)?;
+        r.remove_invalid_links = args.bool_or("remove_invalid_links", r.remove_invalid_links)?;
+        r.remove_unreferenced_dests = args.bool_or("remove_unreferenced_dests", r.remove_unreferenced_dests)?;
+        r.discard_metadata = args.bool_or("discard_metadata", r.discard_metadata)?;
+        r.discard_private = args.bool_or("discard_private", r.discard_private)?;
+        r.crop_to_crop_box = args.bool_or("crop_to_crop_box", r.crop_to_crop_box)?;
         let (doc, s) = a.session(args)?;
         let rep = s.reduce_file_size(&r)?;
         Ok(json!({
@@ -80,7 +114,19 @@ pub static PRINT: Tool = Tool {
                 "border": { "type": "boolean" },
                 "overlap": { "type": "number", "minimum": 0 },
                 "cut_marks": { "type": "boolean" },
-                "markups": { "type": "boolean" }
+                "markups": { "type": "boolean" },
+                "markups_only": { "type": "boolean", "description": "Print only the markups." },
+                "region": { "type": "array", "items": { "type": "number" }, "minItems": 5, "maxItems": 5, "description": "Get Window: [page, x0, y0, x1, y1] prints only that box." },
+                "copies": { "type": "integer", "minimum": 1, "maximum": 999 },
+                "collate": { "type": "boolean" },
+                "reverse": { "type": "boolean" },
+                "margin": { "type": "number", "minimum": 0, "description": "Fit/reduce to margins: points on every side." },
+                "offset": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2, "description": "Manual position: [dx, dy] from the centre, points." },
+                "dim_content": { "type": "boolean" },
+                "dim_except": { "type": "array", "items": { "type": "string" }, "description": "Markup ids printed at full strength; others dimmed." },
+                "spaces": { "type": "boolean" },
+                "links": { "type": "boolean" },
+                "printer": { "type": "string", "description": "Also send the sheets to this printer (\"\" = the default printer) with the system's print command." }
             }),
             &["out"],
         )
@@ -144,8 +190,46 @@ pub static PRINT: Tool = Tool {
             layout,
             markups,
         };
-        let sheets = s.print_to_pdf(&out, &settings)?;
-        Ok(json!({ "doc": doc, "out": out.display().to_string(), "sheets": sheets }))
+        let region = match args.get("region").and_then(Value::as_array) {
+            Some(v) => {
+                let n: Vec<f64> = v.iter().filter_map(Value::as_f64).collect();
+                match n.as_slice() {
+                    [p, x0, y0, x1, y1] if *p >= 1.0 => {
+                        Some((*p as usize - 1, markupcraft_engine::Rect::new(*x0, *y0, *x1, *y1)))
+                    }
+                    _ => return Err(bad_args("region: [page, x0, y0, x1, y1]")),
+                }
+            }
+            None => None,
+        };
+        let offset = match args.get("offset").and_then(Value::as_array) {
+            Some(v) => match v.iter().filter_map(Value::as_f64).collect::<Vec<_>>().as_slice() {
+                [x, y] => (*x, *y),
+                _ => return Err(bad_args("offset: [dx, dy]")),
+            },
+            None => (0.0, 0.0),
+        };
+        let job = PrintJob {
+            settings,
+            markups_only: args.bool_or("markups_only", false)?,
+            region,
+            copies: args.opt_u64("copies")?.unwrap_or(1) as usize,
+            collate: args.bool_or("collate", true)?,
+            reverse: args.bool_or("reverse", false)?,
+            margin: args.opt_num("margin")?.unwrap_or(0.0),
+            offset,
+            dim_content: args.bool_or("dim_content", false)?,
+            dim_except: args.opt_strings("dim_except")?,
+            spaces: args.bool_or("spaces", false)?,
+            links: args.bool_or("links", false)?,
+        };
+        let sheets = s.print_job_to_pdf(&out, &job)?;
+        let mut sent = false;
+        if let Some(p) = args.opt_str("printer")? {
+            send_to_printer(&out, (!p.is_empty()).then_some(p), 1)?;
+            sent = true;
+        }
+        Ok(json!({ "doc": doc, "out": out.display().to_string(), "sheets": sheets, "sent_to_printer": sent }))
     },
 };
 

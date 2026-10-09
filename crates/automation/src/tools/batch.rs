@@ -4,12 +4,12 @@ use std::path::PathBuf;
 
 use markupcraft_engine::Session;
 use markupcraft_engine::batch::{
-    BatchLinkOptions, DrawingSet, SetSort, SlipSheetOptions, batch_link, batch_summary_csv, load_set, save_set,
-    set_sheets,
+    BatchLinkOptions, DrawingSet, LinkTerms, SetSort, SlipSheetOptions, batch_link, batch_summary_csv, link_terms_csv,
+    load_set, save_set, set_sheets,
 };
 use serde_json::{Map, Value, json};
 
-use super::{Tool, path_arg, schema, schema_nodoc};
+use super::{Tool, path_arg, rect_arg, schema, schema_nodoc};
 use crate::{Args, Automation, Result, bad_args, failed, summary};
 
 /// Tools batch_apply may run on each file.
@@ -26,12 +26,30 @@ const APPLY_TOOLS: &[&str] = &[
     "legend_add",
     "legend_update",
     "page_label_set",
+    // more batch processes: unflatten, repair, reduce, colour, PDF/A, security, OCR, rotate,
+    // crop, page size, redaction, form flattening, properties
+    "markup_unflatten",
+    "doc_repair",
+    "doc_reduce_size",
+    "doc_color_process",
+    "doc_pdfa",
+    "security_set",
+    "security_remove",
+    "ocr_pages",
+    "page_rotate",
+    "page_crop",
+    "page_resize",
+    "redact_apply",
+    "form_flatten",
+    "doc_properties_set",
 ];
 
 fn files_args() -> Value {
     json!({
         "files": { "type": "array", "items": { "type": "string" }, "description": "PDF files (relative to --root when one is set)." },
-        "set": path_arg("A set file (.pcset) naming the files")
+        "set": path_arg("A set file (.pcset) naming the files"),
+        "folder": path_arg("A folder: its PDFs (batch_summary only)"),
+        "recursive": { "type": "boolean", "description": "With folder: subfolders too." }
     })
 }
 
@@ -86,6 +104,7 @@ pub static SET_SAVE: Tool = Tool {
         let set = DrawingSet {
             name: args.opt_string("name")?.unwrap_or_default(),
             files,
+            ..Default::default()
         };
         save_set(&path, &set)?;
         Ok(json!({ "path": path.display().to_string(), "files": set.files.len() }))
@@ -147,7 +166,7 @@ pub static SET_SHEETS: Tool = Tool {
 pub static SUMMARY: Tool = Tool {
     name: "batch_summary",
     title: "Batch Summary",
-    description: "The Markups List of many PDFs as one CSV with a File column (written to `out`, or returned).",
+    description: "The Markups List of many PDFs (`files`, a `set`, or every PDF in a `folder`, `recursive` for subfolders) as one table with a File column: CSV (written to `out`, or returned) or an Excel workbook when `out` ends in .xlsx.",
     read_only: false,
     destructive: true,
     schema: || {
@@ -160,9 +179,27 @@ pub static SUMMARY: Tool = Tool {
         )
     },
     run: |a, args| {
-        let files = files_of(a, args)?;
-        let (csv, n, errors) = batch_summary_csv(&files, args.bool_or("measurements_only", false)?);
-        match args.opt_str("out")? {
+        let files = match args.opt_str("folder")? {
+            Some(dir) => {
+                let dir = a.resolve(dir, false)?;
+                markupcraft_engine::search_more::folder_pdfs(&dir, args.bool_or("recursive", false)?)?
+            }
+            None => files_of(a, args)?,
+        };
+        let mo = args.bool_or("measurements_only", false)?;
+        let out_path = args.opt_str("out")?;
+        if let Some(out) = out_path.filter(|o| o.to_ascii_lowercase().ends_with(".xlsx")) {
+            let out = a.resolve(out, true)?;
+            let (bytes, n, errors) = markupcraft_engine::batch::batch_summary_xlsx(&files, mo);
+            let tmp = out.with_extension("xlsx.markupcraft-tmp");
+            std::fs::write(&tmp, &bytes).map_err(failed)?;
+            std::fs::rename(&tmp, &out).map_err(failed)?;
+            return Ok(
+                json!({ "markups": n, "files": files.len(), "path": out.display().to_string(), "errors": errors }),
+            );
+        }
+        let (csv, n, errors) = batch_summary_csv(&files, mo);
+        match out_path {
             Some(out) => {
                 let out = a.resolve(out, true)?;
                 let tmp = out.with_extension("csv.markupcraft-tmp");
@@ -189,7 +226,16 @@ pub static LINK: Tool = Tool {
                     "match_case": { "type": "boolean" },
                     "border_width": { "type": "number", "minimum": 0, "maximum": 12 },
                     "color": { "type": ["string", "array"] },
-                    "padding": { "type": "number", "minimum": 0, "maximum": 36 }
+                    "padding": { "type": "number", "minimum": 0, "maximum": 36 },
+                    "terms": { "type": "string", "enum": ["page_labels", "file_names", "region", "custom"], "description": "Where the search terms come from (default page_labels)." },
+                    "region": rect_arg("For terms=region: the box of each page whose text is that page's term"),
+                    "custom": { "type": "array", "items": { "type": "array" }, "description": "For terms=custom: [[term, file index (0-based), page (1-based)], ...]." },
+                    "terms_csv": path_arg("For terms=custom: a CSV of term,file name,page lines"),
+                    "filter_char": { "type": "string", "description": "Cut each term at this character." },
+                    "keep_start": { "type": "boolean", "description": "Keep the text before filter_char (default) or after it." },
+                    "full_paths": { "type": "boolean" },
+                    "highlight": { "type": ["string", "array"], "description": "A highlight rectangle of this colour over each new link." },
+                    "replace_existing": { "type": "boolean" }
                 }),
             ),
             &[],
@@ -211,6 +257,59 @@ pub static LINK: Tool = Tool {
         if let Some(p) = args.opt_num("padding")? {
             o.padding = p;
         }
+        o.terms = match args.opt_str("terms")?.unwrap_or("page_labels") {
+            "page_labels" => LinkTerms::PageLabels,
+            "file_names" => LinkTerms::FileNames,
+            "region" => LinkTerms::Region(
+                args.opt_rect("region")?
+                    .ok_or_else(|| bad_args("terms=region needs region"))?,
+            ),
+            "custom" => {
+                let mut list = Vec::new();
+                if let Some(csv) = args.opt_str("terms_csv")? {
+                    let text = std::fs::read_to_string(a.resolve(csv, false)?).map_err(failed)?;
+                    list.extend(link_terms_csv(&text, &files));
+                }
+                for t in args.get("custom").and_then(Value::as_array).into_iter().flatten() {
+                    let row = t
+                        .as_array()
+                        .ok_or_else(|| bad_args("custom is [[term, file index, page], ...]"))?;
+                    let term = row
+                        .first()
+                        .and_then(Value::as_str)
+                        .ok_or_else(|| bad_args("custom terms are strings"))?;
+                    let fi = row.get(1).and_then(Value::as_u64).unwrap_or(0) as usize;
+                    let page = row.get(2).and_then(Value::as_u64).unwrap_or(1).max(1) as usize - 1;
+                    if fi >= files.len() {
+                        return Err(bad_args(format!(
+                            "custom term {term:?}: file index {fi} is not one of the files"
+                        )));
+                    }
+                    list.push((term.to_string(), fi, page));
+                }
+                if list.is_empty() {
+                    return Err(bad_args("terms=custom needs custom or terms_csv"));
+                }
+                LinkTerms::Custom(list)
+            }
+            other => {
+                return Err(bad_args(format!(
+                    "terms is page_labels, file_names, region or custom, not {other:?}"
+                )));
+            }
+        };
+        if let Some(c) = args.opt_str("filter_char")? {
+            let mut it = c.chars();
+            match (it.next(), it.next()) {
+                (Some(ch), None) => o.filter_char = Some(ch),
+                (None, _) => {}
+                _ => return Err(bad_args("filter_char is one character")),
+            }
+        }
+        o.keep_start = args.bool_or("keep_start", true)?;
+        o.full_paths = args.bool_or("full_paths", false)?;
+        o.highlight = args.opt_color("highlight")?;
+        o.replace_existing = args.bool_or("replace_existing", false)?;
         let r = batch_link(&files, &o)?;
         Ok(json!({
             "links": r.links,
@@ -282,7 +381,7 @@ pub static SLIP: Tool = Tool {
 pub static APPLY: Tool = Tool {
     name: "batch_apply",
     title: "Batch apply",
-    description: "Run document tools on many PDFs: `operations` is a list of {\"tool\": name, \"args\": {...}} run in order on each file (markup_flatten, header_footer_add, watermark_add, bates_add, marks_remove, stamp_add, markup_paste (paste what markup_copy copied), markup_add, layer_assign, legend_add, legend_update, page_label_set). Each file is saved in place, or into `out_dir` under its own name. A file whose operations fail is left untouched and reported.",
+    description: "Run document tools on many PDFs: `operations` is a list of {\"tool\": name, \"args\": {...}} run in order on each file (markup_flatten, header_footer_add, watermark_add, bates_add, marks_remove, stamp_add, markup_paste (paste what markup_copy copied), markup_add, layer_assign, legend_add, legend_update, page_label_set, markup_unflatten, doc_repair, doc_reduce_size, doc_color_process, doc_pdfa, security_set, security_remove, ocr_pages, page_rotate, page_crop, page_resize, redact_apply, form_flatten, doc_properties_set). Each file is saved in place, or into `out_dir` under its own name. A file whose operations fail is left untouched and reported.",
     read_only: false,
     destructive: true,
     schema: || {

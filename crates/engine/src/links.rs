@@ -21,8 +21,178 @@ pub enum LinkTarget {
     Url(String),
     /// Another file; `page` (0-based) opens a page of another PDF.
     File { path: String, page: Option<usize> },
+    /// A Place: a named destination of this document (moving the Place moves the link).
+    Place(String),
+    /// A page of this document at a zoom.
+    Zoomed { page: usize, zoom: Zoom },
+    /// A rectangle of a page of this document (a snapshot view, or a Space's box).
+    View { page: usize, rect: Rect },
+    /// A rectangle of a page of another PDF.
+    FileView { path: String, page: usize, rect: Rect },
     /// Something else (a named destination elsewhere, JavaScript...): kept as is.
     Other(String),
+}
+
+/// How a page destination is shown.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Zoom {
+    FitPage,
+    FitWidth,
+    /// 100%.
+    Actual,
+    /// Keep the reader's zoom.
+    Inherit,
+}
+
+impl Zoom {
+    pub fn from_name(s: &str) -> Option<Self> {
+        Some(match s.to_ascii_lowercase().replace([' ', '_', '-'], "").as_str() {
+            "fit" | "fitpage" => Zoom::FitPage,
+            "fitwidth" => Zoom::FitWidth,
+            "actual" | "actualsize" | "100" => Zoom::Actual,
+            "inherit" => Zoom::Inherit,
+            _ => return None,
+        })
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Zoom::FitPage => "fit_page",
+            Zoom::FitWidth => "fit_width",
+            Zoom::Actual => "actual",
+            Zoom::Inherit => "inherit",
+        }
+    }
+}
+
+/// A destination array for `page` (an object reference or, for another file, a number).
+fn dest_array(page: Object, zoom: Option<Zoom>, rect: Option<Rect>) -> Object {
+    let r = |v: f64| Object::Real(v);
+    let mut a = vec![page];
+    match (rect, zoom) {
+        (Some(x), _) => {
+            let x = x.normalized();
+            a.extend([Object::name("FitR"), r(x.x0), r(x.y0), r(x.x1), r(x.y1)]);
+        }
+        (None, Some(Zoom::FitWidth)) => a.extend([Object::name("FitH"), Object::Null]),
+        (None, Some(Zoom::Actual)) => a.extend([Object::name("XYZ"), Object::Null, Object::Null, Object::Int(1)]),
+        (None, Some(Zoom::Inherit)) => a.extend([Object::name("XYZ"), Object::Null, Object::Null, Object::Null]),
+        _ => a.push(Object::name("Fit")),
+    }
+    Object::Array(a)
+}
+
+/// The `/Dest` or `/A` a target is written as (`(key, value)`).
+pub(crate) fn target_entry(cos: &CosDoc, target: &LinkTarget) -> Result<(&'static [u8], Object)> {
+    let pages = page_objs(cos)?;
+    let page_ref = |p: usize| -> Result<Object> {
+        pages.get(p).map(|r| Object::Ref(*r)).ok_or(EngineError::NoPage {
+            page: p.saturating_add(1),
+            count: pages.len(),
+        })
+    };
+    let text_target = |s: &str, what: &str| -> Result<String> {
+        let s = s.trim();
+        if s.is_empty() || s.chars().count() > MAX_TARGET {
+            return Err(invalid(format!("give a {what} of 1 to {MAX_TARGET} characters")));
+        }
+        Ok(s.to_string())
+    };
+    let finite = |r: &Rect| r.as_array().iter().all(|v| v.is_finite()) && r.width() > 0.0 && r.height() > 0.0;
+    Ok(match target {
+        LinkTarget::Page(p) => (b"Dest", dest_array(page_ref(*p)?, None, None)),
+        LinkTarget::Zoomed { page, zoom } => (b"Dest", dest_array(page_ref(*page)?, Some(*zoom), None)),
+        LinkTarget::View { page, rect } => {
+            if !finite(&rect.normalized()) {
+                return Err(invalid("the view rectangle must have a size"));
+            }
+            (b"Dest", dest_array(page_ref(*page)?, None, Some(*rect)))
+        }
+        LinkTarget::Place(name) => {
+            let name = text_target(name, "Place name")?;
+            (b"Dest", Object::String(PdfString::text(&name)))
+        }
+        LinkTarget::Url(u) => {
+            let u = text_target(u, "web address")?;
+            let mut a = Dict::new();
+            a.set(b"S".to_vec(), Object::name("URI"));
+            a.set(b"URI".to_vec(), Object::String(PdfString::literal(u.into_bytes())));
+            (b"A", Object::Dict(a))
+        }
+        LinkTarget::File { path, page } => {
+            let path = text_target(path, "file path")?;
+            let mut a = Dict::new();
+            match page {
+                Some(p) => {
+                    a.set(b"S".to_vec(), Object::name("GoToR"));
+                    a.set(
+                        b"D".to_vec(),
+                        dest_array(Object::Int(i64::try_from(*p).unwrap_or(0)), None, None),
+                    );
+                }
+                None => a.set(b"S".to_vec(), Object::name("Launch")),
+            }
+            a.set(b"F".to_vec(), filespec(&path));
+            a.set(b"NewWindow".to_vec(), Object::Bool(true));
+            (b"A", Object::Dict(a))
+        }
+        LinkTarget::FileView { path, page, rect } => {
+            let path = text_target(path, "file path")?;
+            if !finite(&rect.normalized()) {
+                return Err(invalid("the view rectangle must have a size"));
+            }
+            let mut a = Dict::new();
+            a.set(b"S".to_vec(), Object::name("GoToR"));
+            a.set(
+                b"D".to_vec(),
+                dest_array(Object::Int(i64::try_from(*page).unwrap_or(0)), None, Some(*rect)),
+            );
+            a.set(b"F".to_vec(), filespec(&path));
+            a.set(b"NewWindow".to_vec(), Object::Bool(true));
+            (b"A", Object::Dict(a))
+        }
+        LinkTarget::Other(_) => {
+            return Err(invalid(
+                "a link goes to a page, a Place, a view, a web address or a file",
+            ));
+        }
+    })
+}
+
+/// Read a destination array's kind: zoom or rectangle.
+fn dest_view(cos: &CosDoc, a: &[Object]) -> (Option<Zoom>, Option<Rect>) {
+    let num = |i: usize| a.get(i).map(|o| cos.resolve(o)).and_then(|o| o.as_f64());
+    match a.get(1).and_then(Object::as_name) {
+        Some(b"FitR") => match (num(2), num(3), num(4), num(5)) {
+            (Some(x0), Some(y0), Some(x1), Some(y1)) => (None, Some(Rect::new(x0, y0, x1, y1).normalized())),
+            _ => (Some(Zoom::FitPage), None),
+        },
+        Some(b"FitH" | b"FitBH") => (Some(Zoom::FitWidth), None),
+        Some(b"XYZ") => match num(4) {
+            Some(z) if (z - 1.0).abs() < 1e-6 => (Some(Zoom::Actual), None),
+            _ => (Some(Zoom::Inherit), None),
+        },
+        _ => (Some(Zoom::FitPage), None),
+    }
+}
+
+/// A page destination (array) as a target.
+fn page_target(cos: &CosDoc, dest: &Object, pages: &[markupcraft_revu::cos::ObjRef]) -> Option<LinkTarget> {
+    let d = cos.resolve(dest);
+    let a = match &*d {
+        Object::Array(a) => a.clone(),
+        Object::Dict(x) => cos.resolve(x.get(b"D")?).as_array()?.clone(),
+        _ => return None,
+    };
+    let page = match a.first()? {
+        Object::Ref(r) => pages.iter().position(|p| p == r)?,
+        _ => return None,
+    };
+    Some(match dest_view(cos, &a) {
+        (_, Some(rect)) => LinkTarget::View { page, rect },
+        (Some(Zoom::FitPage) | None, None) => LinkTarget::Page(page),
+        (Some(zoom), None) => LinkTarget::Zoomed { page, zoom },
+    })
 }
 
 /// How a new link looks.
@@ -82,7 +252,32 @@ fn file_name(cos: &CosDoc, o: Option<&Object>) -> String {
     }
 }
 
-fn target_of(cos: &CosDoc, d: &Dict, pages: &[markupcraft_revu::cos::ObjRef]) -> LinkTarget {
+pub(crate) fn target_of(cos: &CosDoc, d: &Dict, pages: &[markupcraft_revu::cos::ObjRef]) -> LinkTarget {
+    // A named destination is a Place.
+    let named = |o: &Object| match &*cos.resolve(o) {
+        Object::String(s) => Some(s.to_text()),
+        Object::Name(n) => Some(String::from_utf8_lossy(n).into_owned()),
+        _ => None,
+    };
+    if let Some(dest) = d.get(b"Dest") {
+        if let Some(n) = named(dest) {
+            return LinkTarget::Place(n);
+        }
+        if let Some(t) = page_target(cos, dest, pages) {
+            return t;
+        }
+    }
+    if let Some(a) = d.get(b"A").and_then(|a| cos.dict(a))
+        && a.name(b"S") == Some(b"GoTo")
+        && let Some(dest) = a.get(b"D")
+    {
+        if let Some(n) = named(dest) {
+            return LinkTarget::Place(n);
+        }
+        if let Some(t) = page_target(cos, dest, pages) {
+            return t;
+        }
+    }
     if let Some(p) = item_page(cos, d, pages) {
         return LinkTarget::Page(p);
     }
@@ -92,18 +287,16 @@ fn target_of(cos: &CosDoc, d: &Dict, pages: &[markupcraft_revu::cos::ObjRef]) ->
     match a.name(b"S") {
         Some(b"URI") => LinkTarget::Url(text_of(cos, a.get(b"URI"))),
         Some(b"GoToR") => {
-            let page = a
-                .get(b"D")
-                .map(|d| cos.resolve(d))
-                .and_then(|d| {
-                    d.as_array()
-                        .and_then(|x| x.first())
-                        .and_then(|p| cos.resolve(p).as_int())
-                })
+            let arr = a.get(b"D").map(|d| cos.resolve(d)).and_then(|d| d.as_array().cloned());
+            let page = arr
+                .as_ref()
+                .and_then(|x| x.first())
+                .and_then(|p| cos.resolve(p).as_int())
                 .and_then(|p| usize::try_from(p).ok());
-            LinkTarget::File {
-                path: file_name(cos, a.get(b"F")),
-                page,
+            let path = file_name(cos, a.get(b"F"));
+            match (page, arr.as_deref().map(|x| dest_view(cos, x))) {
+                (Some(page), Some((_, Some(rect)))) => LinkTarget::FileView { path, page, rect },
+                _ => LinkTarget::File { path, page },
             }
         }
         Some(b"Launch") => LinkTarget::File {
@@ -180,40 +373,8 @@ impl Session {
             b"C".to_vec(),
             Object::Array(vec![Object::Real(c.r), Object::Real(c.g), Object::Real(c.b)]),
         );
-        let text_target = |s: &str, what: &str| -> Result<String> {
-            let s = s.trim();
-            if s.is_empty() || s.chars().count() > MAX_TARGET {
-                return Err(invalid(format!("give a {what} of 1 to {MAX_TARGET} characters")));
-            }
-            Ok(s.to_string())
-        };
-        let mut action = Dict::new();
-        match target {
-            LinkTarget::Page(p) => {
-                self.page(*p)?;
-            }
-            LinkTarget::Url(u) => {
-                let u = text_target(u, "web address")?;
-                action.set(b"S".to_vec(), Object::name("URI"));
-                action.set(b"URI".to_vec(), Object::String(PdfString::literal(u.into_bytes())));
-            }
-            LinkTarget::File { path, page } => {
-                let path = text_target(path, "file path")?;
-                match page {
-                    Some(p) => {
-                        action.set(b"S".to_vec(), Object::name("GoToR"));
-                        action.set(
-                            b"D".to_vec(),
-                            Object::Array(vec![Object::Int(i64::try_from(*p).unwrap_or(0)), Object::name("Fit")]),
-                        );
-                    }
-                    None => action.set(b"S".to_vec(), Object::name("Launch")),
-                }
-                action.set(b"F".to_vec(), filespec(&path));
-                action.set(b"NewWindow".to_vec(), Object::Bool(true));
-            }
-            LinkTarget::Other(_) => return Err(invalid("a link goes to a page, a web address or a file")),
-        }
+        // Check the target before the edit (the same check runs on the graph inside it).
+        target_entry(&self.file.cos, target)?;
         let id = self.new_id();
         d.set(b"NM".to_vec(), Object::String(PdfString::text(&id)));
         let target = target.clone();
@@ -223,19 +384,8 @@ impl Session {
                 page: page + 1,
                 count: pages.len(),
             })?;
-            match target {
-                LinkTarget::Page(p) => {
-                    let to = *pages.get(p).ok_or(EngineError::NoPage {
-                        page: p + 1,
-                        count: pages.len(),
-                    })?;
-                    d.set(
-                        b"Dest".to_vec(),
-                        Object::Array(vec![Object::Ref(to), Object::name("Fit")]),
-                    );
-                }
-                _ => d.set(b"A".to_vec(), Object::Dict(action)),
-            }
+            let (k, v) = target_entry(cos, &target)?;
+            d.set(k.to_vec(), v);
             d.set(b"P".to_vec(), Object::Ref(page_ref));
             let link = cos.add(Object::Dict(d));
             let mut list = annots_of(cos, page_ref);

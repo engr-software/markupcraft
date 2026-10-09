@@ -756,10 +756,10 @@ section = "Dynamic Fill and auto-detection"
 name = "Dynamic Fill outputs"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:144"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["dynamic_fill_makes_areas_spaces_and_hatch"]
-notes = "Area (with cutouts), Polygon, Perimeter or Space; not Polylength/Volume or several at once."
+evidence = ["fill_by_dragging_polylength_and_volume_outputs", "dynamic_fill_by_path_polylength_and_volume", "dynamic_fill_drag_boundaries_polylength_and_volume"]
+notes = "Area (with cutouts), Polygon, Perimeter, Polylength, Volume (with depth) or Space; one output per fill."
 
 [[feature]]
 id = "meas-059"
@@ -782,9 +782,10 @@ section = "Dynamic Fill and auto-detection"
 name = "Clear fill / boundaries"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:146"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["fill_by_dragging_polylength_and_volume_outputs", "dynamic_fill_drag_boundaries_polylength_and_volume"]
+notes = "Add Boundary lines kept for the next fills and Clear Boundaries in the Dynamic Fill bar; a fill is undone with Undo."
 
 [[feature]]
 id = "meas-061"
@@ -794,9 +795,10 @@ section = "Dynamic Fill and auto-detection"
 name = "Drag-to-encircle fill"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:147"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["fill_by_dragging_polylength_and_volume_outputs", "dynamic_fill_by_path_polylength_and_volume", "dynamic_fill_drag_boundaries_polylength_and_volume"]
+notes = "Drag across regions: every closed region the drag passes through is filled (dynamic_fill path; the bar's drag option)."
 
 [[feature]]
 id = "meas-062"
@@ -808,8 +810,8 @@ priority = "P2"
 source = "docs/revu_features/01_measurement.md:148"
 status = "partial"
 cpp = "missing"
-evidence = ["gaps_close_within_tolerance_and_open_rooms_fail"]
-notes = "Gap tolerance and cutouts on/off; no DPI/cursor settings (vector tracing has none)."
+evidence = ["fill_by_dragging_polylength_and_volume_outputs", "dynamic_fill_drag_boundaries_polylength_and_volume"]
+notes = "Gap tolerance, cutouts on/off, boundaries, click or drag; no DPI or cursor settings (vector tracing has none)."
 
 [[feature]]
 id = "meas-063"
@@ -845,9 +847,10 @@ section = "Dynamic Fill and auto-detection"
 name = "Count from text search"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:151"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results"]
+notes = "Search panel > Count: one Count per page on the checked text results, subject = the search text."
 
 [[feature]]
 id = "meas-066"
@@ -857,9 +860,10 @@ section = "Dynamic Fill and auto-detection"
 name = "AI auto-count"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:152"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["visual_search_picks_a_region_and_finds_the_symbol", "eighth_turns_colour_filter_and_limit_to_selection"]
+notes = "Not a Revu feature; Visual Search > Count places counts on every similar symbol (no symbol recognition model)."
 
 [[feature]]
 id = "meas-067"
@@ -1582,9 +1586,10 @@ section = "Legends"
 name = "Tool-set legend"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:243"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["legend_ranges_selections_tool_sets_custom_columns_look_and_distribution", "legend_options_copy_freeze_and_reduce_options"]
+notes = "A legend of a list of subjects that shows every subject even with none drawn (show_empty); the list is typed, not picked from a Tool Chest set."
 
 [[feature]]
 id = "meas-123"
@@ -1594,10 +1599,10 @@ section = "Legends"
 name = "Ad-hoc legend"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:244"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["legends_list_subjects_and_follow_edits"]
-notes = "legend_add makes a legend of the page or document markups, filtered by subjects; not from an arbitrary selection or a tool set."
+evidence = ["legend_ranges_selections_tool_sets_custom_columns_look_and_distribution", "legend_options_copy_freeze_and_reduce_options", "redaction_properties_scrub_form_data_and_legend_distribution"]
+notes = "A legend of the selected markups (ids; the Legend dialog's selection option)."
 
 [[feature]]
 id = "meas-124"
@@ -1607,10 +1612,10 @@ section = "Legends"
 name = "Legend scope"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:245"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["legends_list_subjects_and_follow_edits", "legend_lists_subjects_counts_totals_and_follows_edits"]
-notes = "Current page or all pages; no page range."
+evidence = ["legend_ranges_selections_tool_sets_custom_columns_look_and_distribution", "legend_options_copy_freeze_and_reduce_options"]
+notes = "Current page, all pages, or a page range."
 
 [[feature]]
 id = "meas-125"
@@ -1620,10 +1625,10 @@ section = "Legends"
 name = "Legend columns"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:246"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["legends_list_subjects_and_follow_edits"]
-notes = "Symbol, Subject, Type, Count, Total columns in any order; not custom Markups List columns."
+evidence = ["legend_ranges_selections_tool_sets_custom_columns_look_and_distribution", "legend_options_copy_freeze_and_reduce_options"]
+notes = "Symbol, Subject, Type, Count, Total in any order plus custom Markups List columns (their values split rows)."
 
 [[feature]]
 id = "meas-126"
@@ -1633,10 +1638,10 @@ section = "Legends"
 name = "Legend appearance"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:247"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["legends_list_subjects_and_follow_edits"]
-notes = "Title on/off and font size; our own table style (no line/fill options yet)."
+evidence = ["legend_ranges_selections_tool_sets_custom_columns_look_and_distribution", "legend_options_copy_freeze_and_reduce_options", "redaction_properties_scrub_form_data_and_legend_distribution"]
+notes = "Title, font size, border colour and width, fill or none, opacity, symbol size, header row on/off."
 
 [[feature]]
 id = "meas-127"
@@ -1646,9 +1651,10 @@ section = "Legends"
 name = "Legend distribution"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:248"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["legend_ranges_selections_tool_sets_custom_columns_look_and_distribution", "legend_options_copy_freeze_and_reduce_options", "redaction_properties_scrub_form_data_and_legend_distribution"]
+notes = "Copy Legend to Pages (same position, each counting its own page) and Snapshot Legend (a static copy that no longer updates)."
 
 [[feature]]
 id = "meas-128"
@@ -1684,10 +1690,10 @@ section = "Export, reporting and Excel"
 name = "Summary across files/folders"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:256"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["batch_link_summary_sets_and_apply", "batch_combine_summary_and_slip_sheet"]
-notes = "Batch > Summary: the Markups List of chosen files as one CSV with a File column; no folders or other formats."
+evidence = ["quantity_links_and_folder_summary_to_excel", "quantity_link_dialog_and_folder_summary_to_excel"]
+notes = "Batch Summary of chosen files, a set, or every PDF in a folder (and subfolders), as CSV or an Excel workbook with a File column."
 
 [[feature]]
 id = "meas-131"
@@ -1710,9 +1716,10 @@ section = "Export, reporting and Excel"
 name = "Quantity Link: link cell to total"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:258"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["links_total_by_type_and_filters_and_write_the_workbook", "quantity_links_and_folder_summary_to_excel", "quantity_link_dialog_and_folder_summary_to_excel"]
+notes = "Quantity Links name a sheet and cell and a total over one or more PDFs; Update recomputes and writes them into a workbook we write (with a Links sheet). Existing Excel workbooks are not edited in place."
 
 [[feature]]
 id = "meas-133"
@@ -1722,9 +1729,10 @@ section = "Export, reporting and Excel"
 name = "Quantity Link filters"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:259"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["links_total_by_type_and_filters_and_write_the_workbook", "quantity_links_and_folder_summary_to_excel"]
+notes = "Filters by subject, layer, label, author, colour and page label."
 
 [[feature]]
 id = "meas-134"
@@ -1734,9 +1742,10 @@ section = "Export, reporting and Excel"
 name = "Quantity Link measurement types"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:260"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["links_total_by_type_and_filters_and_write_the_workbook", "quantity_links_and_folder_summary_to_excel", "quantity_link_dialog_and_folder_summary_to_excel"]
+notes = "Count, length, area, volume, any measurement quantity, or the sum of a custom column."
 
 [[feature]]
 id = "mark-001"
@@ -2310,9 +2319,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Copy Page to Snapshot"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:89"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["snapshots_of_a_region_a_page_and_a_space", "snapshots_and_file_attachment_markups_with_capture_summary", "file_attachment_snapshots_and_capture_summary"]
+notes = "Edit > Copy Page to Snapshot (Ctrl+Alt+C): the whole page as a snapshot on the clipboard; Ctrl+V pastes it."
 
 [[feature]]
 id = "mark-046"
@@ -2322,9 +2332,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Snapshot Content (cut/copy region of page)"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:90"
-status = "missing"
+status = "partial"
 cpp = "partial"
-evidence = []
+evidence = ["snapshots_of_a_region_a_page_and_a_space", "snapshots_and_file_attachment_markups_with_capture_summary"]
+notes = "Snapshot tool (G) and snapshot_copy: a region kept in vector form, copied and pasted; no cut."
 
 [[feature]]
 id = "mark-047"
@@ -2347,9 +2358,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Edit Action"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:92"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["urls_text_links_and_markup_actions", "places_hyperlink_actions_and_markup_edit_action", "places_link_actions_text_and_url_links_and_markup_actions"]
+notes = "Edit Action (Ctrl+Shift+E) on the selected markup: page with zoom, Place, view, Space, URL, file; kept on save; markup_action tool."
 
 [[feature]]
 id = "mark-049"
@@ -2359,9 +2371,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "File Attachment"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:93"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["file_attachments_round_trip_and_export", "snapshots_and_file_attachment_markups_with_capture_summary", "file_attachment_snapshots_and_capture_summary"]
+notes = "Markup > File Attachment (F): embed a file shown as a paperclip (or pin) icon; a File Attachment markup in the list; kept on save."
 
 [[feature]]
 id = "mark-050"
@@ -2383,9 +2396,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Capture Summary / Export Capture Media"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:95"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["file_attachments_round_trip_and_export", "snapshots_and_file_attachment_markups_with_capture_summary", "file_attachment_snapshots_and_capture_summary"]
+notes = "Capture Summary: every File Attachment markup's file saved to a folder with a CSV summary (page, file, size, description, author); no camera capture."
 
 [[feature]]
 id = "mark-052"
@@ -3498,9 +3512,10 @@ section = "G. Layers (PDF optional content)"
 name = "Layer hierarchy by drag"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:202"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["hierarchy_and_configurations", "layer_hierarchy_configurations_views_import_and_export", "layers_tree_drag_configurations_page_only_preview_import_and_export"]
+notes = "Drag a layer onto another to nest it (the /Order tree); Top Level takes it out; layer_nest reorders and nests."
 
 [[feature]]
 id = "mark-139"
@@ -3549,9 +3564,10 @@ section = "G. Layers (PDF optional content)"
 name = "Layer configurations"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:206"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["hierarchy_and_configurations", "layer_hierarchy_configurations_views_import_and_export", "layers_tree_drag_configurations_page_only_preview_import_and_export"]
+notes = "Named visibility presets saved in /OCProperties /Configs: save, switch, delete."
 
 [[feature]]
 id = "mark-143"
@@ -3561,10 +3577,10 @@ section = "G. Layers (PDF optional content)"
 name = "Show Print / Export layers"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:207"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["layers_create_assign_hide_filter_rename_delete"]
-notes = "Print state per layer (/Usage /Print /PrintState plus the /AS Print event); no Show Print/Export view filter."
+evidence = ["hierarchy_and_configurations", "layer_hierarchy_configurations_views_import_and_export", "layers_tree_drag_configurations_page_only_preview_import_and_export"]
+notes = "Print Layers / Export Layers show only the layers set to print or export (export state per layer); End Preview restores the visibility (the preview is an undoable view change)."
 
 [[feature]]
 id = "mark-144"
@@ -3574,9 +3590,10 @@ section = "G. Layers (PDF optional content)"
 name = "Show layers on page only / alphabetical"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:208"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["import_a_page_as_a_layer_and_export_it_alone", "layer_hierarchy_configurations_views_import_and_export", "layers_tree_drag_configurations_page_only_preview_import_and_export"]
+notes = "This page only (layers used by the page's markups and content) and A-Z sorting in the Layers panel."
 
 [[feature]]
 id = "mark-145"
@@ -3612,9 +3629,10 @@ section = "G. Layers (PDF optional content)"
 name = "Import / Export layer to page"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:211"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["import_a_page_as_a_layer_and_export_it_alone", "layer_hierarchy_configurations_views_import_and_export", "layers_tree_drag_configurations_page_only_preview_import_and_export"]
+notes = "Import: a page of another PDF drawn as a new layer; Export: a PDF with only that layer's page content and markups."
 
 [[feature]]
 id = "mark-148"
@@ -3624,10 +3642,10 @@ section = "G. Layers (PDF optional content)"
 name = "Flatten/Unflatten markups on a layer"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:212"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["flatten_markups_by_filter"]
-notes = "Flatten markups of chosen layers (markup_flatten layers); no unflatten."
+evidence = ["recoverable_flatten_onto_a_layer_and_unflatten", "recoverable_flatten_unflattens_and_hides_from_compare"]
+notes = "Flatten markups of chosen layers onto a layer (recoverable), and Unflatten restores them (by page)."
 
 [[feature]]
 id = "mark-149"
@@ -5178,10 +5196,10 @@ section = "Bookmarks"
 name = "Reorder, nest and copy"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:189"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["bookmarks_add_rename_move_delete_and_create_from_labels"]
-notes = "bookmark_move reorders and nests (with children); no copy."
+evidence = ["automark_structure_style_action_copy_and_audit", "bookmarks_automark_properties_copy_action_and_audit", "bookmarks_panel_adds_renames_nests_and_deletes"]
+notes = "Up/Down/Indent/Outdent reorder and nest (with children); Copy duplicates a bookmark with its children, look and action (bookmark_copy)."
 
 [[feature]]
 id = "doc-077"
@@ -5191,9 +5209,10 @@ section = "Bookmarks"
 name = "Bookmark properties"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:190"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["automark_structure_style_action_copy_and_audit", "bookmarks_automark_properties_copy_action_and_audit", "bookmark_properties_actions_copy_automark_structures_audit_and_export"]
+notes = "Title, text colour, bold and italic for one or many (Ctrl+click), shown in the panel."
 
 [[feature]]
 id = "doc-078"
@@ -5203,9 +5222,10 @@ section = "Bookmarks"
 name = "Bookmark actions"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:191"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["automark_structure_style_action_copy_and_audit", "bookmark_properties_actions_copy_automark_structures_audit_and_export", "bookmarks_automark_properties_copy_action_and_audit"]
+notes = "Page with zoom (fit page/width/actual/inherit), Place, Space, snapshot view rectangle (also of another PDF), URL, file (relative or full); Set to Current View."
 
 [[feature]]
 id = "doc-079"
@@ -5215,10 +5235,10 @@ section = "Bookmarks"
 name = "Create bookmarks automatically"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:192"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["bookmarks_add_rename_move_delete_and_create_from_labels"]
-notes = "bookmark_create: one per page from page labels or page numbers, replace or append; no AutoMark."
+evidence = ["automark_structure_style_action_copy_and_audit", "bookmarks_automark_properties_copy_action_and_audit", "bookmark_properties_actions_copy_automark_structures_audit_and_export"]
+notes = "From page labels or page numbers, or AutoMark from the text in a title-block region you drag, for a page range."
 
 [[feature]]
 id = "doc-080"
@@ -5228,9 +5248,10 @@ section = "Bookmarks"
 name = "Bookmark structures"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:193"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["automark_structure_style_action_copy_and_audit", "bookmark_properties_actions_copy_automark_structures_audit_and_export"]
+notes = "Structures as JSON: folder trees with title prefixes; save the current tree, apply one to make the folders and file matching bookmarks into them."
 
 [[feature]]
 id = "doc-081"
@@ -5240,9 +5261,10 @@ section = "Bookmarks"
 name = "Audit bookmarks"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:194"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["automark_structure_style_action_copy_and_audit", "bookmarks_automark_properties_copy_action_and_audit", "bookmark_properties_actions_copy_automark_structures_audit_and_export"]
+notes = "Audit marks bookmarks whose page is gone, whose Place is missing, or that go nowhere (a ! in the panel)."
 
 [[feature]]
 id = "doc-082"
@@ -5252,9 +5274,10 @@ section = "Bookmarks"
 name = "Export bookmarks"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:195"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["export_bookmarks_csv_and_pdf", "bookmark_properties_actions_copy_automark_structures_audit_and_export"]
+notes = "CSV or PDF report for one or many PDFs: tree or flat, top level only, links to each page, date stamp, page size."
 
 [[feature]]
 id = "doc-083"
@@ -5520,10 +5543,10 @@ section = "Creating and combining PDFs"
 name = "Combine options"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:226"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["split_and_combine_documents"]
-notes = "Bookmark per file (or keep the first file's); no attachments, properties or layer options."
+evidence = ["create_combine_and_layered", "combine_create_and_layered", "batch_create_layered_merge_combine_options_and_link_terms"]
+notes = "Bookmark per file, every file's attachments, merged document properties, every file's layers, page labels from file names (doc_combine_files; the Combine dialog). Signatures do not survive (warned)."
 
 [[feature]]
 id = "doc-104"
@@ -5533,9 +5556,10 @@ section = "Creating and combining PDFs"
 name = "Create PDF from a file"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:227"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["create_combine_and_layered", "combine_create_and_layered", "batch_create_layered_merge_combine_options_and_link_terms"]
+notes = "Images (PNG, JPEG, TIFF, BMP) and text files to PDF (doc_create_from_files; File > Create PDF from Files). No Office or CAD documents (those need authoring plugins)."
 
 [[feature]]
 id = "doc-105"
@@ -5545,9 +5569,10 @@ section = "Creating and combining PDFs"
 name = "Create from multiple files (Stapler)"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:228"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["create_combine_and_layered", "combine_create_and_layered", "batch_create_layered_merge_combine_options_and_link_terms"]
+notes = "Stapler: images, text files and PDFs in one PDF in list order. No Office or CAD documents (authoring plugins)."
 
 [[feature]]
 id = "doc-106"
@@ -5581,9 +5606,10 @@ section = "Creating and combining PDFs"
 name = "Layered PDF from PDFs"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:231"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["create_combine_and_layered", "combine_create_and_layered", "batch_create_layered_merge_combine_options_and_link_terms"]
+notes = "Create Layered PDF: each file's first page drawn on one page in its own layer named after the file (doc_layered; File menu)."
 
 [[feature]]
 id = "doc-109"
@@ -5621,10 +5647,10 @@ section = "Batch tools"
 name = "Batch Link: search terms"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:239"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["batch_link_summary_sets_and_apply"]
-notes = "batch_link searches for the page labels (sheet numbers) of the files, whole words up to four words; no custom search terms or regular expressions."
+evidence = ["batch_link_terms_filters_and_options", "batch_link_terms_highlight_and_filters", "batch_create_layered_merge_combine_options_and_link_terms"]
+notes = "Search terms from page labels, file names, a page region (AutoMark style) or custom terms typed or imported from CSV (term, file, page). No regular expressions."
 
 [[feature]]
 id = "doc-112"
@@ -5634,9 +5660,10 @@ section = "Batch tools"
 name = "Batch Link: term filters"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:240"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["batch_link_terms_filters_and_options", "batch_link_terms_highlight_and_filters", "batch_create_layered_merge_combine_options_and_link_terms"]
+notes = "Term filter: cut each term at a character and keep the text before or after it; match case."
 
 [[feature]]
 id = "doc-113"
@@ -5659,10 +5686,10 @@ section = "Batch tools"
 name = "Batch Link: link options"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:242"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["batch_link_summary_sets_and_apply"]
-notes = "Border width, colour and padding; a place that already has a link is skipped (re-runs add nothing)."
+evidence = ["batch_link_terms_filters_and_options", "batch_link_terms_highlight_and_filters", "batch_create_layered_merge_combine_options_and_link_terms"]
+notes = "Border width, colour and padding, full or relative paths, a highlight over each new link, replace existing links (else skipped)."
 
 [[feature]]
 id = "doc-115"
@@ -5749,10 +5776,10 @@ section = "Batch tools"
 name = "Batch Flatten / Unflatten"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:249"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["batch_link_summary_sets_and_apply"]
-notes = "batch_apply with markup_flatten; no unflatten."
+evidence = ["batch_unflatten_repair_rotate_and_recolour", "batch_combine_summary_and_slip_sheet", "print_dialog_copies_window_markups_only_emphasis_and_batch_print"]
+notes = "batch_apply runs markup_flatten (recoverable, layer) or markup_unflatten on chosen pages of many files; Batch > Flatten and Batch > Unflatten in the app."
 
 [[feature]]
 id = "doc-122"
@@ -5775,9 +5802,10 @@ section = "Batch tools"
 name = "Batch Print"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:251"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["jobs_print_regions_markups_only_margins_and_emphasis", "summary_options_and_print_jobs", "print_dialog_copies_window_markups_only_emphasis_and_batch_print"]
+notes = "Batch > Print: many PDFs in list order with one job, each a print-ready PDF and optionally sent to the printer."
 
 [[feature]]
 id = "doc-124"
@@ -5802,8 +5830,8 @@ priority = "P3"
 source = "docs/revu_features/03_documents.md:253"
 status = "partial"
 cpp = "missing"
-evidence = ["batch_link_summary_sets_and_apply"]
-notes = "batch_apply runs a list of document tools (flatten, marks, stamps, paste markups, add markups, layers, legends, page labels) on each file."
+evidence = ["batch_unflatten_repair_rotate_and_recolour", "batch_compare_and_overlay_with_saved_batch_file_and_reports"]
+notes = "batch_apply also runs security, OCR, reduce file size, repair, colour processing, PDF/A, rotate, crop, page size, redaction and form flattening; batch compare and overlay; no split or script batches."
 
 [[feature]]
 id = "doc-126"
@@ -5852,9 +5880,10 @@ section = "Sets (many PDFs viewed as one)"
 name = "Revision handling"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:262"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revisions_publish_package_and_print", "sets_tags_categories_revisions_publish_and_print", "sets_categories_revisions_tags_publish_and_print"]
+notes = "Versions of each sheet by sheet number or a wildcard filter; latest by revision then date; earlier ones shown, hidden, greyed or crossed out; publish the latest only."
 
 [[feature]]
 id = "doc-130"
@@ -5877,9 +5906,10 @@ section = "Sets (many PDFs viewed as one)"
 name = "Categories"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:264"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["tags_categories_and_types", "revisions_publish_package_and_print", "sets_categories_revisions_tags_publish_and_print"]
+notes = "Categories off, by file name or by sheet number, from discipline templates (NCS designators)."
 
 [[feature]]
 id = "doc-132"
@@ -5889,9 +5919,10 @@ section = "Sets (many PDFs viewed as one)"
 name = "Tags"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:265"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revisions_publish_package_and_print", "sets_tags_categories_revisions_publish_and_print", "sets_categories_revisions_tags_publish_and_print"]
+notes = "Sheet Number, Revision (file name), Discipline, Sheet Type (NCS) derived; custom tags per sheet kept in the set file."
 
 [[feature]]
 id = "doc-133"
@@ -5901,9 +5932,10 @@ section = "Sets (many PDFs viewed as one)"
 name = "Publish a Set"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:266"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revisions_publish_package_and_print", "sets_tags_categories_revisions_publish_and_print", "sets_categories_revisions_tags_publish_and_print"]
+notes = "Publish: one combined PDF with a bookmark per sheet (latest only optional), a package folder with the set file, and a drawing log CSV."
 
 [[feature]]
 id = "doc-134"
@@ -5913,9 +5945,10 @@ section = "Sets (many PDFs viewed as one)"
 name = "Print / search a Set"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:267"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revisions_publish_package_and_print", "sets_tags_categories_revisions_publish_and_print", "sets_categories_revisions_tags_publish_and_print", "search_across_files_folders_sets_and_open_documents"]
+notes = "Print Set lays every sheet out with one print job; Search covers the current Set."
 
 [[feature]]
 id = "doc-135"
@@ -5951,10 +5984,10 @@ section = "Markup summary and print"
 name = "Summary filter and sort"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:275"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["summary_matches_the_list_and_writes_every_format"]
-notes = "Sort (ascending or descending) and group with subtotals; filters only through the engine options."
+evidence = ["multi_sort_content_layouts_links_and_one_report_per_value", "summary_options_and_print_jobs", "summary_filters_then_sort_output_and_pdf_layout"]
+notes = "Filter by any column's values; multi-level sort (sort, then by ...), ascending or descending."
 
 [[feature]]
 id = "doc-138"
@@ -5964,10 +5997,10 @@ section = "Markup summary and print"
 name = "Summary output options"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:276"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["cli_list_and_summary_end_to_end", "summary_pages_and_columns_filter", "markup_summary_writes_excel_pdf_and_csv"]
-notes = "Columns, grouping, sort, page range, measurements only, title; no PDF layout choices."
+evidence = ["multi_sort_content_layouts_links_and_one_report_per_value", "summary_options_and_print_jobs", "summary_filters_then_sort_output_and_pdf_layout"]
+notes = "Title with the date appended, one report per value of the first column, CSV/XML markups, totals or both, headers on or off; output where the save dialog says."
 
 [[feature]]
 id = "doc-139"
@@ -5979,8 +6012,8 @@ priority = "P1"
 source = "docs/revu_features/03_documents.md:277"
 status = "partial"
 cpp = "missing"
-evidence = ["summary_matches_the_list_and_writes_every_format"]
-notes = "A fixed landscape table with group headings and totals; no layout options."
+evidence = ["multi_sort_content_layouts_links_and_one_report_per_value", "summary_options_and_print_jobs", "summary_filters_then_sort_output_and_pdf_layout"]
+notes = "Table or flow style, page size, a page per group, padding, totals, links to the source pages, a PNG logo; no markup thumbnails, Spaces cover sheet, page content or status history."
 
 [[feature]]
 id = "doc-140"
@@ -5992,8 +6025,8 @@ priority = "P1"
 source = "docs/revu_features/03_documents.md:278"
 status = "partial"
 cpp = "missing"
-evidence = ["print_writes_a_print_ready_pdf"]
-notes = "File > Print (Ctrl+P) writes a print-ready PDF (pages, paper, orientation, scaling, markups); sending it to a printer is left to the PDF viewer."
+evidence = ["commands_name_the_printer_and_copies", "print_dialog_copies_window_markups_only_emphasis_and_batch_print", "summary_options_and_print_jobs"]
+notes = "Printer chosen from the system's list; Print lays the sheets out as a print-ready PDF and hands it to the system print command (lp; PowerShell PrintTo, which needs a PDF handler); no printer properties, status, .prn or live preview."
 
 [[feature]]
 id = "doc-141"
@@ -6003,10 +6036,10 @@ section = "Markup summary and print"
 name = "Print: pages"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:279"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["print_pdf_fit_nup_and_tile"]
-notes = "print_pdf takes pages in print order; no current view or Get Window; writes a print-ready PDF, no printer."
+evidence = ["jobs_print_regions_markups_only_margins_and_emphasis", "print_dialog_copies_window_markups_only_emphasis_and_batch_print", "summary_options_and_print_jobs"]
+notes = "All, current page, a range, Current View, or Get Window (drag the region to print)."
 
 [[feature]]
 id = "doc-142"
@@ -6016,10 +6049,10 @@ section = "Markup summary and print"
 name = "Print: what to print"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:280"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["print_pdf_fit_nup_and_tile"]
-notes = "print_pdf markups: true/false (document with or without markups)."
+evidence = ["jobs_print_regions_markups_only_margins_and_emphasis", "print_dialog_copies_window_markups_only_emphasis_and_batch_print"]
+notes = "Document and markups, document only, or markups only."
 
 [[feature]]
 id = "doc-143"
@@ -6029,10 +6062,10 @@ section = "Markup summary and print"
 name = "Print: paper and copies"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:281"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["print_pdf_fit_nup_and_tile"]
-notes = "print_pdf paper by name (ANSI, ARCH, ISO) or size, orientation auto/portrait/landscape; no copies (no printer)."
+evidence = ["order_copies_collate_reverse", "jobs_print_regions_markups_only_margins_and_emphasis", "print_dialog_copies_window_markups_only_emphasis_and_batch_print"]
+notes = "Paper by name or size, orientation auto/portrait/landscape (auto-rotate), copies, collate, reverse order."
 
 [[feature]]
 id = "doc-144"
@@ -6042,10 +6075,10 @@ section = "Markup summary and print"
 name = "Print: scaling"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:282"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["print_pdf_fit_nup_and_tile"]
-notes = "print_pdf fit, actual, shrink, custom percent, centred (pdfcraft-print); no margins variants or manual position."
+evidence = ["jobs_print_regions_markups_only_margins_and_emphasis", "summary_options_and_print_jobs"]
+notes = "None (actual), fit, shrink (reduce), custom percent; margins make fit/reduce to margins; centred or moved by a manual X/Y offset."
 
 [[feature]]
 id = "doc-145"
@@ -6068,9 +6101,10 @@ section = "Markup summary and print"
 name = "Print: emphasis options"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:284"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["jobs_print_regions_markups_only_margins_and_emphasis", "print_dialog_copies_window_markups_only_emphasis_and_batch_print"]
+notes = "Dim page content, dim filtered-out markups, print Spaces, print visible hyperlinks; no Advanced dialog or reset to defaults."
 
 [[feature]]
 id = "doc-147"
@@ -6119,9 +6153,10 @@ section = "Headers, footers, stamps and watermarks"
 name = "Fit content inside margins"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:293"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["presets_templates_kept_header_footer_and_fit", "security_presets_status_header_footer_templates_and_fit", "security_presets_status_and_kept_header_footer_templates"]
+notes = "Header & Footer: shrink page content to fit inside the margins (page_fit_content, or the fit option of a header/footer); an earlier fit is replaced."
 
 [[feature]]
 id = "doc-151"
@@ -6131,9 +6166,10 @@ section = "Headers, footers, stamps and watermarks"
 name = "Header/footer templates"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:294"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["presets_templates_kept_header_footer_and_fit", "security_presets_status_header_footer_templates_and_fit", "security_presets_status_and_kept_header_footer_templates"]
+notes = "Header/footer templates saved by name (header_footer_template; Save Template and the template buttons in the dialog), applied to any page range."
 
 [[feature]]
 id = "doc-152"
@@ -6143,10 +6179,10 @@ section = "Headers, footers, stamps and watermarks"
 name = "Edit / update / delete"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:295"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["headers_footers_watermarks_and_bates"]
-notes = "replace: true re-applies (updating numbers); marks_remove deletes headers/footers, watermarks; no editing of the stored settings."
+evidence = ["presets_templates_kept_header_footer_and_fit", "security_presets_status_header_footer_templates_and_fit", "security_presets_status_and_kept_header_footer_templates"]
+notes = "The applied header/footer is kept with the document: Edit loads it back into the dialog, Update re-applies it to the pages as they are now (Document > Update Header & Footer), Remove deletes headers/footers."
 
 [[feature]]
 id = "doc-153"
@@ -6196,8 +6232,8 @@ priority = "P3"
 source = "docs/revu_features/03_documents.md:304"
 status = "partial"
 cpp = "partial"
-evidence = ["ocr_pages_adds_a_searchable_text_layer"]
-notes = "dpi and skip pages that already have text; English (Latin) models only; no skew, orientation or vertical-text options."
+evidence = ["real_ocr_reads_rendered_text_turned_and_skewed", "ocr_adds_a_searchable_layer_over_the_ink", "ocr_runs_on_a_worker_with_deskew_and_orientation"]
+notes = "Page range, dpi, skip pages that already have text, skip vector pages, deskew, orientation and vertical text; runs on a worker thread. Verified with the real ocrs models. Latin-script (English) models only: no language choice."
 
 [[feature]]
 id = "doc-157"
@@ -6220,10 +6256,10 @@ section = "OCR and search"
 name = "Search scope"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:306"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["text_search_finds_hits_with_rectangles"]
-notes = "Current document, all or chosen pages; no other files, Sets or folders."
+evidence = ["search_across_files_folders_sets_and_open_documents", "search_scopes_targets_f3_replace_and_selected_text"]
+notes = "Current page, page range, current document, all open documents, the current Set, recent files, a folder with or without subfolders (Studio Projects excluded)."
 
 [[feature]]
 id = "doc-159"
@@ -6233,10 +6269,10 @@ section = "OCR and search"
 name = "Search options"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:307"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["text_search_finds_hits_with_rectangles", "search_panel_finds_text_then_counts_and_highlights_the_results"]
-notes = "Page text and markup text, case sensitive, whole words, hit limit; not file names, properties or form fields."
+evidence = ["search_across_files_folders_sets_and_open_documents", "search_all_looks_in_names_properties_and_markups"]
+notes = "Page text, markup text, file names, document properties and form field values; case sensitive; whole words."
 
 [[feature]]
 id = "doc-160"
@@ -6246,9 +6282,10 @@ section = "OCR and search"
 name = "Search selected text"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:308"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["search_scopes_targets_f3_replace_and_selected_text", "replace_checked_text_and_read_a_selection"]
+notes = "Tools > Search Selected Text: drag over the text on the page; it becomes the search (region_text reads a box)."
 
 [[feature]]
 id = "doc-161"
@@ -6271,9 +6308,10 @@ section = "OCR and search"
 name = "Search and replace"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:310"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["replace_checked_text_and_read_a_selection", "replace_rewrites_the_page_text_and_undoes", "search_scopes_targets_f3_replace_and_selected_text"]
+notes = "Replace Checked rewrites the found text in the page content (not markups), in the line's font when it can show the text, else Helvetica (font fallback on) or the line is skipped; one undo step."
 
 [[feature]]
 id = "doc-163"
@@ -6283,10 +6321,10 @@ section = "OCR and search"
 name = "Visual Search"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:311"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["visual_search_finds_symbols_and_counts_them"]
-notes = "Sensitivity, quarter-turn rotations and Count results; no 45-degree steps, colour filter or limit-to-selection yet."
+evidence = ["eighth_turns_colour_filter_and_limit_to_selection", "visual_search_eighth_turns_colour_limit_and_thumbnails", "visual_search_options_and_result_thumbnails", "visual_search_picks_a_region_and_finds_the_symbol"]
+notes = "Sensitivity, rotations in quarter or 45-degree steps, colour filter, limit to selection (raster: ink running out of the box is ignored), results to Count."
 
 [[feature]]
 id = "doc-164"
@@ -6322,9 +6360,10 @@ section = "Forms"
 name = "Auto-create fields"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:319"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["form_data_auto_fields_and_typewriter", "form_data_auto_fields_typewriter_and_merge", "redaction_properties_scrub_form_data_and_legend_distribution"]
+notes = "Automatically Create Form Fields: runs of underscores and wide empty boxes become text fields, small squares check boxes, named after the word to their left (form_auto_fields; Tools menu)."
 
 [[feature]]
 id = "doc-167"
@@ -6334,9 +6373,10 @@ section = "Forms"
 name = "Form data"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:320"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["form_data_auto_fields_and_typewriter", "form_data_auto_fields_typewriter_and_merge", "redaction_properties_scrub_form_data_and_legend_distribution", "batch_create_layered_merge_combine_options_and_link_terms"]
+notes = "Export and import form data as XFDF, CSV or JSON; Merge Form Data of many PDFs into one CSV; Typewriter text migrated into the fields under it."
 
 [[feature]]
 id = "doc-168"
@@ -6411,9 +6451,10 @@ section = "Security and redaction"
 name = "Security status icon"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:336"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["presets_templates_kept_header_footer_and_fit", "security_presets_status_header_footer_templates_and_fit", "security_presets_status_and_kept_header_footer_templates"]
+notes = "Security status (none, open password, printing or editing limited, both) as it will be saved, in security_info and the Security dialog; no icon in the status bar."
 
 [[feature]]
 id = "doc-174"
@@ -6436,9 +6477,10 @@ section = "Security and redaction"
 name = "Security presets"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:338"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["presets_templates_kept_header_footer_and_fit", "security_presets_status_header_footer_templates_and_fit", "security_presets_status_and_kept_header_footer_templates"]
+notes = "Security presets saved by name in the settings folder (security_preset; Save Preset and the preset buttons in the Security dialog) and applied to any document."
 
 [[feature]]
 id = "doc-176"
@@ -6463,8 +6505,8 @@ priority = "P3"
 source = "docs/revu_features/03_documents.md:340"
 status = "partial"
 cpp = "missing"
-evidence = ["redaction_marks_applies_and_verifies", "marks_search_hits_and_areas_then_applies_and_verifies"]
-notes = "Tool redact_apply (pdfcraft-redact): text, images and paths under the marks removed on all or chosen pages, verified afterwards (residue), next save is a full rewrite. No metadata scrub or text-only / images-only choice yet."
+evidence = ["redaction_marks_applies_and_verifies", "marks_search_hits_and_areas_then_applies_and_verifies", "overlay_look_codes_and_metadata_scrub", "redaction_look_codes_and_scrub", "redaction_properties_scrub_form_data_and_legend_distribution"]
+notes = "Tool redact_apply (pdfcraft-redact): text, images and paths under the marks removed on all or chosen pages, verified afterwards (residue), optional scrub of document properties, metadata, attachments and scripts; next save is a full rewrite. No text-only / images-only choice."
 
 [[feature]]
 id = "doc-178"
@@ -6474,10 +6516,10 @@ section = "Security and redaction"
 name = "Redaction appearance"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:341"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["redaction_marks_applies_and_verifies"]
-notes = "Fill colour (or none) and overlay text; no outline colour, font, autosize or repeat options in the tool yet."
+evidence = ["overlay_look_codes_and_metadata_scrub", "redaction_look_codes_and_scrub", "redaction_properties_scrub_form_data_and_legend_distribution"]
+notes = "Redaction Properties: fill colour or none, overlay text or a FOIA/DOD redaction code, font, size (0 = fit), text colour, alignment and repeat to fill."
 
 [[feature]]
 id = "doc-179"
@@ -6500,9 +6542,10 @@ section = "Flatten, file size and archive"
 name = "Flatten extras"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:348"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["recoverable_flatten_onto_a_layer_and_unflatten"]
+notes = "Flatten into a named layer and recoverable flatten; no overlay text, kept pop-up properties or capture summary."
 
 [[feature]]
 id = "doc-181"
@@ -6512,9 +6555,10 @@ section = "Flatten, file size and archive"
 name = "Unflatten"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:349"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["recoverable_flatten_unflattens_and_hides_from_compare", "recoverable_flatten_onto_a_layer_and_unflatten", "repair_pdfa_color_processing_and_unflatten"]
+notes = "Flatten with recoverable: true keeps the annotations; Document > Unflatten (Ctrl+Shift+U) restores them on chosen pages; survives save and reopen."
 
 [[feature]]
 id = "doc-182"
@@ -6537,10 +6581,10 @@ section = "Flatten, file size and archive"
 name = "Reduce size custom settings"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:351"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["reduce_file_size_reports_sizes"]
-notes = "Target and threshold ppi, JPEG quality or lossless, thumbnails; not the other per-class options."
+evidence = ["reduce_on_another_thread_and_the_clean_ups", "legend_options_copy_freeze_and_reduce_options", "security_presets_status_and_kept_header_footer_templates"]
+notes = "Colour and gray image targets and thresholds, JPEG quality or lossless, thumbnails, alternate images, tags, print settings, stream compression, invalid links, unreferenced destinations, metadata, private data, crop to crop box; runs on a worker thread."
 
 [[feature]]
 id = "doc-184"
@@ -6550,9 +6594,10 @@ section = "Flatten, file size and archive"
 name = "Repair PDF"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:352"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["repair_archive_pdfa_and_color_processing", "repair_drops_broken_entries_and_archive_round_trips", "repair_pdfa_color_processing_and_unflatten"]
+notes = "Document > Repair PDF: full rewrite from the object graph (xref rebuilt, broken annotation and content entries dropped), reports the object layer's read fixes."
 
 [[feature]]
 id = "doc-185"
@@ -6562,9 +6607,10 @@ section = "Flatten, file size and archive"
 name = "Archive as PDF/A"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:353"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["repair_archive_pdfa_and_color_processing", "repair_drops_broken_entries_and_archive_round_trips", "repair_pdfa_color_processing_and_unflatten"]
+notes = "Archive as PDF/A (pdfcraft-preflight): PDF/A-2b or 3b, not 1b; Verify lists the problems left; Unlock removes the PDF/A identification."
 
 [[feature]]
 id = "doc-186"
@@ -6574,9 +6620,10 @@ section = "Flatten, file size and archive"
 name = "Color processing"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:354"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["grayscale_turns_red_gray_and_comes_off_again", "repair_archive_pdfa_and_color_processing", "repair_pdfa_color_processing_and_unflatten"]
+notes = "Document > Color Processing: grayscale, one tint or lighten toward white, vector and raster alike (a blend-mode overlay), per page range; removable."
 
 [[feature]]
 id = "doc-187"
@@ -6586,9 +6633,10 @@ section = "Export"
 name = "Export to images"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:360"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["export_images_office_formats_and_page_region", "export_dialogs_write_images_office_files_and_a_region"]
+notes = "File > Export Pages as Images: PNG, JPEG (quality), TIFF or BMP at 18-1200 dpi, pages, with or without markups, auto-numbered <name><suffix><page>; no GIF."
 
 [[feature]]
 id = "doc-188"
@@ -6598,9 +6646,10 @@ section = "Export"
 name = "Export to text / RTF / HTML"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:361"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["export_images_office_formats_and_page_region", "export_dialogs_write_images_office_files_and_a_region"]
+notes = "export_document to .txt, .html, .rtf (paragraphs in reading order, headings by size, via pdfcraft-export)."
 
 [[feature]]
 id = "doc-189"
@@ -6610,9 +6659,10 @@ section = "Export"
 name = "Export to Word / Excel / PowerPoint"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:362"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["export_images_office_formats_and_page_region", "export_dialogs_write_images_office_files_and_a_region"]
+notes = "Word (.docx, paragraphs and tables), Excel (.xlsx, one sheet per page, words laid out in rows and columns, numbers as numbers), PowerPoint (.pptx, one slide per page as a picture). Scans need OCR first (ocr_pages) for text."
 
 [[feature]]
 id = "doc-190"
@@ -6622,9 +6672,10 @@ section = "Export"
 name = "Export page region to Excel"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:363"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["export_images_office_formats_and_page_region", "export_dialogs_write_images_office_files_and_a_region", "region_reads_a_schedule_as_rows_and_columns"]
+notes = "File > Export Page Region to Excel: drag a box; its text becomes rows and columns by position, saved as .xlsx or .csv."
 
 [[feature]]
 id = "doc-191"
@@ -6724,10 +6775,10 @@ section = "Links and places"
 name = "Hyperlink tool"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:381"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["links_to_pages_urls_and_files", "hyperlink_tool_adds_a_page_link_listed_in_the_links_panel"]
-notes = "Hyperlink tool draws a link box (page, web address or file); no link-from-text."
+evidence = ["urls_text_links_and_markup_actions", "places_link_actions_text_and_url_links_and_markup_actions", "places_hyperlink_actions_and_markup_edit_action", "hyperlink_tool_adds_a_page_link_listed_in_the_links_panel"]
+notes = "Hyperlink tool (Shift+H): drag a box, or fit the link to the text in the box; Highlight in the Links panel shows every link in blue."
 
 [[feature]]
 id = "doc-199"
@@ -6737,10 +6788,10 @@ section = "Links and places"
 name = "Link actions"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:382"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["links_to_pages_urls_and_files"]
-notes = "Go to a page, open a URL, open a file (GoToR with page for PDFs, Launch otherwise); no Place, Space or snapshot views."
+evidence = ["places_add_move_rename_delete_and_links_follow_them", "places_link_actions_text_and_url_links_and_markup_actions"]
+notes = "Page (fit page, fit width, actual, inherit), Place, Space (its box), view rectangle (also in another PDF), URL, open a file with relative or full path."
 
 [[feature]]
 id = "doc-200"
@@ -6750,9 +6801,10 @@ section = "Links and places"
 name = "Hyperlinks from URLs"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:383"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["urls_text_links_and_markup_actions", "places_link_actions_text_and_url_links_and_markup_actions"]
+notes = "Create Hyperlinks from URLs: http://, https:// and www. addresses written on chosen pages become links (already linked text skipped)."
 
 [[feature]]
 id = "doc-201"
@@ -6775,9 +6827,10 @@ section = "Links and places"
 name = "Places"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:385"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["places_add_move_rename_delete_and_links_follow_them", "places_link_actions_text_and_url_links_and_markup_actions", "places_hyperlink_actions_and_markup_edit_action"]
+notes = "Places are named destinations (/Names /Dests): add, move (links follow), rename (links break, as in Revu), delete; links and bookmarks can go to them."
 
 [[feature]]
 id = "doc-203"
@@ -7023,10 +7076,10 @@ section = "1. Compare Documents"
 name = "Alignment method"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:71"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["compare_documents_clouds_text_and_graphic_changes"]
-notes = "Page Align only for Compare (1-pixel shift tolerance); two-point alignment exists for Overlay."
+evidence = ["alignment_registers_a_shifted_sheet", "compare_alignment_appearance_and_presets"]
+notes = "Page align (stacked), Auto align (best shift of the linework), a known offset, or two matching points (scale, rotation, offset)."
 
 [[feature]]
 id = "ui-005"
@@ -7062,10 +7115,10 @@ section = "1. Compare Documents"
 name = "Difference markup appearance"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:74"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["compare_documents_clouds_changes_on_the_newer_revision"]
-notes = "subject, colour, width, cloud on/off; no fill, opacity or lock options yet."
+evidence = ["alignment_registers_a_shifted_sheet", "compare_alignment_appearance_and_presets", "compare_advanced_options_and_review_in_split_view_with_the_dimmer"]
+notes = "Subject, colour, fill, fill opacity, line opacity, width, cloud on/off and lock on place."
 
 [[feature]]
 id = "ui-008"
@@ -7075,9 +7128,10 @@ section = "1. Compare Documents"
 name = "Comparison presets"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:75"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["compare_alignment_appearance_and_presets", "alignment_registers_a_shifted_sheet"]
+notes = "Built-in same_printer, different_printer, scanned; custom presets saved in the config folder (compare_preset save/delete/list, restore defaults)."
 
 [[feature]]
 id = "ui-009"
@@ -7139,10 +7193,10 @@ section = "1. Compare Documents"
 name = "Include markups / flattened markups"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:80"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["compare_documents_clouds_changes_on_the_newer_revision"]
-notes = "include_markups toggles existing annotations; no flattened-markup recovery."
+evidence = ["recoverable_flatten_unflattens_and_hides_from_compare", "compare_alignment_appearance_and_presets"]
+notes = "include_markups and include_flattened (recoverable flattened markups are left out by default)."
 
 [[feature]]
 id = "ui-014"
@@ -7152,9 +7206,10 @@ section = "1. Compare Documents"
 name = "Auto-alignment / manual offset"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:81"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["alignment_registers_a_shifted_sheet", "compare_alignment_appearance_and_presets"]
+notes = "Auto align (translation search of the linework, reported) or a known X/Y offset in points."
 
 [[feature]]
 id = "ui-015"
@@ -7177,9 +7232,10 @@ section = "1. Compare Documents"
 name = "Review with split view + dimmer"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:83"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["compare_advanced_options_and_review_in_split_view_with_the_dimmer"]
+notes = "Compare > Review in split view with the dimmer (or Split + Dimmer in the Compare panel): the older revision beside the newer, synchronised page for page, the drawing dimmed."
 
 [[feature]]
 id = "ui-017"
@@ -7189,9 +7245,10 @@ section = "1. Compare Documents"
 name = "Batch Compare Documents"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:84"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["batch_compare_and_overlay_with_saved_batch_file_and_reports", "batch_compare_wizard_matches_drags_to_repair_and_reports"]
+notes = "Batch > Compare Documents wizard / batch_compare: every pair compared, one clouded copy per revised file."
 
 [[feature]]
 id = "ui-018"
@@ -7201,9 +7258,10 @@ section = "1. Compare Documents"
 name = "Batch: add sources"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:85"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["batch_compare_and_overlay_with_saved_batch_file_and_reports", "batch_compare_wizard_matches_drags_to_repair_and_reports"]
+notes = "Add files, the open files, a folder, or a folder with subfolders."
 
 [[feature]]
 id = "ui-019"
@@ -7213,9 +7271,10 @@ section = "1. Compare Documents"
 name = "Batch: match pages by"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:86"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["batch_compare_and_overlay_with_saved_batch_file_and_reports", "batch_compare_wizard_matches_drags_to_repair_and_reports"]
+notes = "Match by file name + page index, page label, the text of a title-block region, or manual pairs."
 
 [[feature]]
 id = "ui-020"
@@ -7225,9 +7284,10 @@ section = "1. Compare Documents"
 name = "Batch: wildcard match filter"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:87"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["wildcard_filters_cut_the_sheet_key", "batch_compare_and_overlay_with_saved_batch_file_and_reports"]
+notes = "Our filter syntax: # digit run, @ letter run, * non-digit run, ? separator, \\ escape."
 
 [[feature]]
 id = "ui-021"
@@ -7237,9 +7297,10 @@ section = "1. Compare Documents"
 name = "Batch: drag to re-pair"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:88"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["batch_compare_wizard_matches_drags_to_repair_and_reports"]
+notes = "Drag a revised sheet onto another row to swap the pairing; x removes a pair."
 
 [[feature]]
 id = "ui-022"
@@ -7249,9 +7310,10 @@ section = "1. Compare Documents"
 name = "Saved batch file"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:89"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["batch_compare_and_overlay_with_saved_batch_file_and_reports", "batch_compare_wizard_matches_drags_to_repair_and_reports"]
+notes = "Save Batch / Open Batch: the lists, matching and pairs as a .pcbatch JSON shared by batch compare and batch overlay."
 
 [[feature]]
 id = "ui-023"
@@ -7261,9 +7323,10 @@ section = "1. Compare Documents"
 name = "Batch summary and report"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:90"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["batch_compare_and_overlay_with_saved_batch_file_and_reports", "batch_compare_wizard_matches_drags_to_repair_and_reports"]
+notes = "Pairs with their difference counts; CSV or PDF report (date stamp, page size, a link to each result)."
 
 [[feature]]
 id = "ui-024"
@@ -7312,9 +7375,10 @@ section = "2. Overlay Pages"
 name = "Per-layer background color"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:99"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["three_points_auto_region_background_and_blend", "overlay_three_points_auto_region_background_and_defaults"]
+notes = "Per-layer background colour for the layer's whitespace (transparent by default)."
 
 [[feature]]
 id = "ui-028"
@@ -7337,10 +7401,10 @@ section = "2. Overlay Pages"
 name = "Blend mode"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:101"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["overlay_recolours_layers_and_keeps_them_toggleable"]
-notes = "Multiply (darkens where layers share ink); not selectable yet."
+evidence = ["three_points_auto_region_background_and_blend", "overlay_three_points_auto_region_background_and_defaults"]
+notes = "Multiply (default), Darken, Normal, Screen or Difference, per layer or as the default."
 
 [[feature]]
 id = "ui-030"
@@ -7375,9 +7439,10 @@ section = "2. Overlay Pages"
 name = "Auto Align"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:104"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["three_points_auto_region_background_and_blend", "overlay_three_points_auto_align_and_defaults"]
+notes = "Auto Align fits the layer's linework extents onto the first layer's (uniform scale and offset) for sheets of different size or scale; no Auto Align Limit."
 
 [[feature]]
 id = "ui-033"
@@ -7387,10 +7452,10 @@ section = "2. Overlay Pages"
 name = "Manual Align (3 points)"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:105"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["overlay_pages_writes_coloured_toggleable_layers", "two_points_give_scale_rotation_and_offset"]
-notes = "Two matching points (scale, rotation, offset), not three."
+evidence = ["three_points_auto_region_background_and_blend", "overlay_three_points_auto_region_background_and_defaults", "overlay_three_points_auto_align_and_defaults"]
+notes = "Three matching points per layer (full affine map); two points also accepted."
 
 [[feature]]
 id = "ui-034"
@@ -7400,9 +7465,10 @@ section = "2. Overlay Pages"
 name = "Select region per layer"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:106"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["three_points_auto_region_background_and_blend", "overlay_three_points_auto_region_background_and_defaults"]
+notes = "Per-layer region: only that box of the sheet is overlaid."
 
 [[feature]]
 id = "ui-035"
@@ -7438,9 +7504,10 @@ section = "2. Overlay Pages"
 name = "Layer position defaults"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:109"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["overlay_three_points_auto_region_background_and_defaults", "overlay_three_points_auto_align_and_defaults"]
+notes = "Edit Defaults: rotation, scale and X/Y offset (and blend) for the layers."
 
 [[feature]]
 id = "ui-038"
@@ -7450,9 +7517,10 @@ section = "2. Overlay Pages"
 name = "Include flattened markups"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:110"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["recoverable_flatten_unflattens_and_hides_from_compare", "overlay_three_points_auto_region_background_and_defaults"]
+notes = "include_flattened (recoverable flattened markups left out by default)."
 
 [[feature]]
 id = "ui-039"
@@ -7475,9 +7543,10 @@ section = "2. Overlay Pages"
 name = "Batch Overlay"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:112"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["batch_compare_and_overlay_with_saved_batch_file_and_reports"]
+notes = "Batch > Overlay Pages / batch_overlay: same matching, saved batch and reports; one overlay PDF per pair."
 
 [[feature]]
 id = "ui-041"
@@ -7512,10 +7581,10 @@ section = "3. Search panel (text) and Visual Search"
 name = "Search scope"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:120"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results"]
-notes = "All pages, current page or a page range; not other files, Sets or folders."
+evidence = ["search_across_files_folders_sets_and_open_documents", "search_scopes_targets_f3_replace_and_selected_text"]
+notes = "Current page, page range, document, all open documents, current Set, recent files, folder (subfolders optional); hits in other files open them."
 
 [[feature]]
 id = "ui-044"
@@ -7550,9 +7619,10 @@ section = "3. Search panel (text) and Visual Search"
 name = "Search file names / properties / form fields"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:123"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["search_across_files_folders_sets_and_open_documents", "search_all_looks_in_names_properties_and_markups"]
+notes = "File names (folder, Set, recent files), document properties (standard and custom) and form field values."
 
 [[feature]]
 id = "ui-047"
@@ -7601,9 +7671,10 @@ section = "3. Search panel (text) and Visual Search"
 name = "Search selected text"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:127"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["search_scopes_targets_f3_replace_and_selected_text", "replace_checked_text_and_read_a_selection"]
+notes = "Search Selected Text: the dragged text is searched in the current PDF."
 
 [[feature]]
 id = "ui-051"
@@ -7639,9 +7710,10 @@ section = "3. Search panel (text) and Visual Search"
 name = "Replace checked"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:130"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["replace_checked_text_and_read_a_selection", "search_scopes_targets_f3_replace_and_selected_text"]
+notes = "Replace Checked with a font fallback choice (Helvetica, or skip the line)."
 
 [[feature]]
 id = "ui-054"
@@ -7689,10 +7761,10 @@ section = "3. Search panel (text) and Visual Search"
 name = "Visual: multiple rotations"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:134"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["finds_the_symbol_turned_and_on_other_pages"]
-notes = "0/90/180/270 degrees; not 45-degree steps."
+evidence = ["eighth_turns_colour_filter_and_limit_to_selection", "visual_search_eighth_turns_colour_limit_and_thumbnails"]
+notes = "Quarter turns, or 45-degree steps (eight turns)."
 
 [[feature]]
 id = "ui-058"
@@ -7702,9 +7774,10 @@ section = "3. Search panel (text) and Visual Search"
 name = "Visual: filter by color"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:135"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["eighth_turns_colour_filter_and_limit_to_selection", "visual_search_eighth_turns_colour_limit_and_thumbnails"]
+notes = "Only hits whose ink colour matches the selection's (mean ink colour within a tolerance)."
 
 [[feature]]
 id = "ui-059"
@@ -7714,9 +7787,10 @@ section = "3. Search panel (text) and Visual Search"
 name = "Visual: limit by selection"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:136"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["eighth_turns_colour_filter_and_limit_to_selection", "visual_search_options_and_result_thumbnails"]
+notes = "Linework that runs out of the selection box is dropped from the symbol (on the rendered page; vector objects are not split)."
 
 [[feature]]
 id = "ui-060"
@@ -7726,9 +7800,10 @@ section = "3. Search panel (text) and Visual Search"
 name = "Visual results thumbnails"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:137"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["visual_search_options_and_result_thumbnails", "visual_search_eighth_turns_colour_limit_and_thumbnails"]
+notes = "Each visual result shows a thumbnail of the match; click it to zoom there (visual_search thumbnails: PNG)."
 
 [[feature]]
 id = "ui-061"
@@ -7816,9 +7891,10 @@ section = "4. Spaces, Links, Signatures panels"
 name = "Snapshot from space"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:149"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["snapshots_of_a_region_a_page_and_a_space", "file_attachment_snapshots_and_capture_summary"]
+notes = "Spaces panel > Snapshot: the space's box copied as a snapshot (page content; markups are not included)."
 
 [[feature]]
 id = "ui-068"
@@ -7828,9 +7904,10 @@ section = "4. Spaces, Links, Signatures panels"
 name = "Links panel: Places"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:150"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["places_hyperlink_actions_and_markup_edit_action", "places_link_actions_text_and_url_links_and_markup_actions"]
+notes = "Links panel Places list grouped by page with a filter; click to jump, Add Here, delete (place_list, place_set, place_delete)."
 
 [[feature]]
 id = "ui-069"
@@ -7853,10 +7930,10 @@ section = "4. Spaces, Links, Signatures panels"
 name = "Hyperlink tool / Edit Action"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:152"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["hyperlink_tool_adds_a_page_link_listed_in_the_links_panel"]
-notes = "Hyperlink tool (Shift+H): drag the area, then page, web address or file; no Edit Action on an existing link."
+evidence = ["places_hyperlink_actions_and_markup_edit_action", "places_link_actions_text_and_url_links_and_markup_actions"]
+notes = "Hyperlink tool and Edit Action on an existing link (target, box, look)."
 
 [[feature]]
 id = "ui-071"
@@ -10411,10 +10488,10 @@ area = "shortcuts"
 section = "Forms"
 name = "Add Signature Field (X)"
 source = "docs/revu_features/05_shortcuts.md:72"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+evidence = ["form_keys_add_a_signature_field_and_open_the_editor"]
+notes = "X: drag a signature field's box."
 
 [[feature]]
 id = "key-044"
@@ -10423,10 +10500,10 @@ area = "shortcuts"
 section = "Forms"
 name = "Editor (Ctrl + Shift + F)"
 source = "docs/revu_features/05_shortcuts.md:73"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+evidence = ["form_keys_add_a_signature_field_and_open_the_editor"]
+notes = "Ctrl+Shift+F opens the form fields editor."
 
 [[feature]]
 id = "key-045"
@@ -11277,10 +11354,10 @@ area = "shortcuts"
 section = "Search"
 name = "Next Result (F3)"
 source = "docs/revu_features/05_shortcuts.md:145"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+evidence = ["search_scopes_targets_f3_replace_and_selected_text"]
+notes = "F3: next result."
 
 [[feature]]
 id = "key-117"
@@ -11289,10 +11366,10 @@ area = "shortcuts"
 section = "Search"
 name = "Previous Result (Shift + F3)"
 source = "docs/revu_features/05_shortcuts.md:146"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+evidence = ["search_scopes_targets_f3_replace_and_selected_text"]
+notes = "Shift+F3: previous result."
 
 [[feature]]
 id = "key-118"

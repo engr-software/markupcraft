@@ -33,6 +33,8 @@ pub struct DrawingSet {
     pub name: String,
     /// absolute (or as given) paths
     pub files: Vec<PathBuf>,
+    /// Custom sheet tags: `<file name>#<page from 1>` -> {tag: value} (Set > Edit Tags).
+    pub tags: std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -42,6 +44,8 @@ struct SetFile {
     #[serde(default)]
     name: String,
     files: Vec<String>,
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    tags: std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>>,
 }
 
 fn io(path: &Path) -> impl Fn(std::io::Error) -> EngineError + '_ {
@@ -66,6 +70,7 @@ pub fn load_set(path: &Path) -> Result<DrawingSet> {
     }
     let base = path.parent().unwrap_or(Path::new(""));
     Ok(DrawingSet {
+        tags: f.tags,
         name: f.name,
         files: f
             .files
@@ -102,6 +107,7 @@ pub fn save_set(path: &Path, set: &DrawingSet) -> Result<()> {
         version: 1,
         name: set.name.clone(),
         files,
+        tags: set.tags.clone(),
     };
     let text = serde_json::to_string_pretty(&f).map_err(|e| invalid(e.to_string()))?;
     crate::write_atomic(path, text.as_bytes())
@@ -188,6 +194,45 @@ fn csv_q(s: &str) -> String {
 
 /// The Markups List of many files as one CSV (a File column first). Returns the CSV, the
 /// markup count and the files that could not be read.
+/// Rows of CSV text (quoted cells, doubled quotes, CRLF or LF).
+pub fn parse_csv(text: &str) -> Vec<Vec<String>> {
+    let mut rows = Vec::new();
+    let mut row = Vec::new();
+    let mut cell = String::new();
+    let mut quoted = false;
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        match (quoted, c) {
+            (true, '"') if chars.peek() == Some(&'"') => {
+                cell.push('"');
+                chars.next();
+            }
+            (true, '"') => quoted = false,
+            (true, c) => cell.push(c),
+            (false, '"') => quoted = true,
+            (false, ',') => row.push(std::mem::take(&mut cell)),
+            (false, '\r') => {}
+            (false, '\n') => {
+                row.push(std::mem::take(&mut cell));
+                rows.push(std::mem::take(&mut row));
+            }
+            (false, c) => cell.push(c),
+        }
+    }
+    if !cell.is_empty() || !row.is_empty() {
+        row.push(cell);
+        rows.push(row);
+    }
+    rows
+}
+
+/// Batch Summary as an Excel workbook (one sheet, a File column first).
+pub fn batch_summary_xlsx(files: &[PathBuf], measurements_only: bool) -> (Vec<u8>, usize, Vec<String>) {
+    let (csv, n, errors) = batch_summary_csv(files, measurements_only);
+    let table = crate::convert::TextTable { rows: parse_csv(&csv) };
+    (crate::convert::xlsx(&[("Summary".into(), table)]), n, errors)
+}
+
 pub fn batch_summary_csv(files: &[PathBuf], measurements_only: bool) -> (String, usize, Vec<String>) {
     let mut out = String::new();
     let mut n = 0;
@@ -240,6 +285,64 @@ pub struct BatchLinkOptions {
     pub color: Color,
     /// grow each word box by this many points
     pub padding: f64,
+    /// Where the search terms come from.
+    pub terms: LinkTerms,
+    /// Term filter: cut each generated term at this character, keeping the text before it
+    /// (`keep_start`) or after it.
+    pub filter_char: Option<char>,
+    pub keep_start: bool,
+    /// Links to other files store the full path (else relative to the linking file).
+    pub full_paths: bool,
+    /// A highlight markup of this colour over each new link.
+    pub highlight: Option<Color>,
+    /// A place that already has a link gets the new link anyway (else it is skipped).
+    pub replace_existing: bool,
+}
+
+/// Where Batch Link's search terms come from.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub enum LinkTerms {
+    /// Each page's label (sheet number).
+    #[default]
+    PageLabels,
+    /// Each file's name (its first page is the target).
+    FileNames,
+    /// The text inside this box of each page (AutoMark region).
+    Region(Rect),
+    /// Typed or imported terms: (term, target file index, target page).
+    Custom(Vec<(String, usize, usize)>),
+}
+
+/// Terms from CSV lines `term,file name,page` (the file matched by name among `files`).
+pub fn link_terms_csv(text: &str, files: &[PathBuf]) -> Vec<(String, usize, usize)> {
+    text.lines()
+        .filter_map(|l| {
+            let mut parts = l.split(',').map(|p| p.trim().trim_matches('"'));
+            let term = parts.next()?.to_string();
+            let file = parts.next().unwrap_or("");
+            let page = parts
+                .next()
+                .and_then(|p| p.parse::<usize>().ok())
+                .unwrap_or(1)
+                .saturating_sub(1);
+            let fi = files.iter().position(|f| {
+                f.file_name()
+                    .is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case(file))
+                    || f.file_stem()
+                        .is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case(file))
+            })?;
+            (!term.is_empty()).then_some((term, fi, page))
+        })
+        .collect()
+}
+
+/// A term cut at the filter character.
+fn filtered(term: &str, filter: Option<char>, keep_start: bool) -> String {
+    match filter.and_then(|c| term.find(c).map(|i| (c, i))) {
+        Some((_, i)) if keep_start => term[..i].trim().to_string(),
+        Some((c, i)) => term[i + c.len_utf8()..].trim().to_string(),
+        None => term.trim().to_string(),
+    }
 }
 
 impl Default for BatchLinkOptions {
@@ -249,6 +352,12 @@ impl Default for BatchLinkOptions {
             width: 0.0,
             color: Color::rgb(0.0, 0.0, 1.0),
             padding: 1.0,
+            terms: LinkTerms::PageLabels,
+            filter_char: None,
+            keep_start: true,
+            full_paths: false,
+            highlight: None,
+            replace_existing: false,
         }
     }
 }
@@ -460,15 +569,43 @@ pub fn batch_link(files: &[PathBuf], opts: &BatchLinkOptions) -> Result<BatchLin
     let mut targets: HashMap<String, (usize, usize)> = HashMap::new();
     let mut labels: Vec<String> = Vec::new();
     let mut opened: Vec<Option<Session>> = Vec::new();
+    let add_target =
+        |term: &str, fi: usize, p: usize, targets: &mut HashMap<String, (usize, usize)>, labels: &mut Vec<String>| {
+            let t = filtered(term, opts.filter_char, opts.keep_start);
+            let k = norm(&t, opts.match_case);
+            if !k.is_empty() && !targets.contains_key(&k) {
+                targets.insert(k, (fi, p));
+                labels.push(t);
+            }
+        };
+    if let LinkTerms::Custom(list) = &opts.terms {
+        for (t, fi, p) in list {
+            add_target(t, *fi, *p, &mut targets, &mut labels);
+        }
+    }
     for (fi, f) in files.iter().enumerate() {
         match Session::open(f) {
             Ok(s) => {
-                for (p, info) in s.doc().pages.iter().enumerate() {
-                    let k = norm(&info.label, opts.match_case);
-                    if !k.is_empty() && !targets.contains_key(&k) {
-                        targets.insert(k, (fi, p));
-                        labels.push(info.label.clone());
+                match &opts.terms {
+                    LinkTerms::PageLabels => {
+                        for (p, info) in s.doc().pages.iter().enumerate() {
+                            add_target(&info.label, fi, p, &mut targets, &mut labels);
+                        }
                     }
+                    LinkTerms::FileNames => {
+                        let stem = f
+                            .file_stem()
+                            .map(|n| n.to_string_lossy().into_owned())
+                            .unwrap_or_default();
+                        add_target(&stem, fi, 0, &mut targets, &mut labels);
+                    }
+                    LinkTerms::Region(r) => {
+                        for p in 0..s.page_count() {
+                            let t = s.text_in_rect(p, *r).unwrap_or_default();
+                            add_target(&t, fi, p, &mut targets, &mut labels);
+                        }
+                    }
+                    LinkTerms::Custom(_) => {}
                 }
                 opened.push(Some(s));
             }
@@ -508,14 +645,29 @@ pub fn batch_link(files: &[PathBuf], opts: &BatchLinkOptions) -> Result<BatchLin
             let area = (r.width() * r.height()).max(1e-9);
             if existing.iter().any(|(p, e)| *p == page && overlap(e, &r) > 0.5 * area) {
                 report.existing += 1;
-                continue;
+                if !opts.replace_existing {
+                    continue;
+                }
+                let old: Vec<String> = s
+                    .links()
+                    .into_iter()
+                    .filter(|l| l.page == page && overlap(&l.rect, &r) > 0.5 * area)
+                    .map(|l| l.id)
+                    .collect();
+                if !old.is_empty() {
+                    let _ = s.delete_links(&old);
+                }
             }
             let target = if tf == fi {
                 LinkTarget::Page(tp)
             } else {
                 let Some(to) = files.get(tf) else { continue };
                 LinkTarget::File {
-                    path: link_path(path, to),
+                    path: if opts.full_paths {
+                        to.display().to_string()
+                    } else {
+                        link_path(path, to)
+                    },
                     page: Some(tp),
                 }
             };
@@ -524,6 +676,20 @@ pub fn batch_link(files: &[PathBuf], opts: &BatchLinkOptions) -> Result<BatchLin
                     added += 1;
                     report.links += 1;
                     existing.push((page, r));
+                    if let Some(c) = opts.highlight {
+                        let mut m = markupcraft_model::Markup::new(
+                            markupcraft_model::Kind::Rectangle,
+                            page,
+                            r.corners().to_vec(),
+                        );
+                        m.color = c;
+                        m.fill = Some(c);
+                        m.fill_opacity = 0.3;
+                        m.opacity = 0.5;
+                        m.line_width = 0.0;
+                        m.subject = "Link".into();
+                        let _ = s.add_markup(m);
+                    }
                 }
                 Err(e) => report.errors.push(format!("{} page {}: {e}", path.display(), page + 1)),
             }
@@ -568,6 +734,45 @@ mod tests {
     }
 
     #[test]
+    fn batch_link_terms_filters_and_options() {
+        let d = tmp("linkterms");
+        sheet_file(&d.join("A-101 Plan.pdf"), &[("", "SEE DETAIL 5 AND M-201")]);
+        sheet_file(&d.join("M-201 Mech.pdf"), &[("", "MECH")]);
+        let files = vec![d.join("A-101 Plan.pdf"), d.join("M-201 Mech.pdf")];
+        // File names cut at the space: "M-201".
+        let o = BatchLinkOptions {
+            terms: LinkTerms::FileNames,
+            filter_char: Some(' '),
+            keep_start: true,
+            full_paths: true,
+            highlight: Some(Color::rgb(1.0, 1.0, 0.0)),
+            ..Default::default()
+        };
+        let r = batch_link(&files, &o).unwrap();
+        assert_eq!(r.links, 1, "{r:?}");
+        let s = Session::open(&files[0]).unwrap();
+        let l = &s.links()[0];
+        assert!(
+            matches!(&l.target, LinkTarget::File { path, .. } if path.contains("M-201 Mech.pdf") && path.len() > 20),
+            "{:?}",
+            l.target
+        );
+        assert_eq!(s.doc().markups.len(), 1, "the highlight");
+        // Custom terms from CSV, and replacing the existing link.
+        let terms = link_terms_csv("DETAIL 5,M-201 Mech.pdf,1\nnope,missing.pdf,1", &files);
+        assert_eq!(terms.len(), 1);
+        let o = BatchLinkOptions {
+            terms: LinkTerms::Custom(terms),
+            replace_existing: true,
+            ..Default::default()
+        };
+        let r = batch_link(&files, &o).unwrap();
+        assert_eq!(r.links, 1);
+        assert_eq!(filtered("A-101 Plan", Some(' '), false), "Plan");
+        std::fs::remove_dir_all(&d).ok();
+    }
+
+    #[test]
     fn sets_sort_naturally_and_round_trip() {
         let d = tmp("set");
         sheet_file(&d.join("a.pdf"), &[("A-10", "x"), ("A-2", "y")]);
@@ -575,6 +780,7 @@ mod tests {
         let set = DrawingSet {
             name: "Arch".into(),
             files: vec![d.join("a.pdf"), d.join("b.pdf"), d.join("missing.pdf")],
+            ..Default::default()
         };
         save_set(&d.join("arch.pcset"), &set).unwrap();
         let text = std::fs::read_to_string(d.join("arch.pcset")).unwrap();

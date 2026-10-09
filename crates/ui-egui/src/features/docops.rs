@@ -5,6 +5,9 @@
 use std::path::Path;
 
 use egui::RichText;
+use markupcraft_engine::docs_more::{
+    HfTemplate, SecurityPreset, load_hf_templates, load_security_presets, save_hf_templates, save_security_presets,
+};
 use markupcraft_engine::flatten::FlattenFilter;
 use markupcraft_engine::marks::{Bates, HeaderFooter, MarkKind, Slot, Watermark};
 use markupcraft_engine::reduce::ReduceSettings;
@@ -35,6 +38,12 @@ pub enum Action {
     RemoveSecurity,
     HeaderFooter,
     RemoveHeaderFooter,
+    SavePreset,
+    ApplyPreset,
+    SaveTemplate,
+    ApplyTemplate,
+    EditKept,
+    UpdateKept,
     Watermark,
     RemoveWatermark,
     Bates,
@@ -59,8 +68,9 @@ pub struct DocOpsState {
     pub flatten_selected: bool,
     pub flatten_kinds: String,
     pub flatten_layers: String,
-    // Reduce
+    // Reduce (runs on a worker thread)
     pub reduce: ReduceSettings,
+    pub reducing: Option<(u64, std::sync::mpsc::Receiver<ReduceOutcome>)>,
     // Security
     pub open_password: String,
     pub permissions_password: String,
@@ -72,6 +82,12 @@ pub struct DocOpsState {
     pub bates: Bates,
     pub bates_slot: usize,
     pub replace: bool,
+    /// Where security presets and header/footer templates are kept (default: the config folder).
+    pub presets_dir: Option<std::path::PathBuf>,
+    pub preset_name: String,
+    pub template_name: String,
+    /// Shrink the page content so the header and footer do not overlap it.
+    pub fit_content: bool,
 }
 
 impl Default for DocOpsState {
@@ -85,6 +101,7 @@ impl Default for DocOpsState {
             flatten_kinds: String::new(),
             flatten_layers: String::new(),
             reduce: ReduceSettings::default(),
+            reducing: None,
             open_password: String::new(),
             permissions_password: String::new(),
             permissions: Permissions::ALL,
@@ -94,6 +111,10 @@ impl Default for DocOpsState {
             bates: Bates::default(),
             bates_slot: 5,
             replace: true,
+            presets_dir: None,
+            preset_name: String::new(),
+            template_name: String::new(),
+            fit_content: false,
         }
     }
 }
@@ -115,6 +136,27 @@ const SLOTS: [(Slot, &str); 6] = [
     (Slot::FooterRight, "Footer right"),
 ];
 
+fn presets_file(s: &DocOpsState, name: &str) -> Option<std::path::PathBuf> {
+    s.presets_dir
+        .clone()
+        .or_else(crate::chest::config_dir)
+        .map(|d| d.join(name))
+}
+
+fn security_presets(s: &DocOpsState) -> Vec<SecurityPreset> {
+    presets_file(s, "security_presets.json")
+        .filter(|p| p.exists())
+        .and_then(|p| load_security_presets(&p).ok())
+        .unwrap_or_default()
+}
+
+fn hf_templates(s: &DocOpsState) -> Vec<HfTemplate> {
+    presets_file(s, "header_footer_templates.json")
+        .filter(|p| p.exists())
+        .and_then(|p| load_hf_templates(&p).ok())
+        .unwrap_or_default()
+}
+
 fn list(s: &str) -> Vec<String> {
     s.split(',')
         .map(|t| t.trim().to_string())
@@ -122,7 +164,76 @@ fn list(s: &str) -> Vec<String> {
         .collect()
 }
 
+/// The reduced graph and its report, from the worker.
+pub type ReduceOutcome = (
+    markupcraft_revu::cos::Document,
+    markupcraft_engine::Result<markupcraft_engine::reduce::ReduceReport>,
+);
+
+/// Take a finished Reduce File Size into its document.
+fn poll_reduce(app: &mut AppState, ctx: &egui::Context) {
+    let Some((uid, rx)) = &app.features.docops.reducing else {
+        return;
+    };
+    let uid = *uid;
+    let (cos, report) = match rx.try_recv() {
+        Ok(o) => o,
+        Err(std::sync::mpsc::TryRecvError::Empty) => {
+            ctx.request_repaint_after(std::time::Duration::from_millis(100));
+            return;
+        }
+        Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+            app.features.docops.reducing = None;
+            app.features.docops.message = "Reduce File Size stopped".into();
+            return;
+        }
+    };
+    app.features.docops.reducing = None;
+    let threads = app.threads;
+    let Some(d) = app.docs.iter_mut().find(|d| d.uid == uid) else {
+        return;
+    };
+    let r = report.and_then(|r| d.session.apply_graph("Reduce File Size", cos).map(|_| r));
+    d.rerender(threads);
+    let msg = actions::report(r, |r| {
+        format!(
+            "Reduced from {} KB to {} KB ({} of {} images resampled)",
+            r.bytes_before / 1024,
+            r.bytes_after / 1024,
+            r.images_resampled,
+            r.images
+        )
+    });
+    app.status = msg.clone();
+    app.features.docops.message = msg;
+}
+
+/// Start Reduce File Size on the active document (on a worker thread).
+fn start_reduce(app: &mut AppState) {
+    if app.features.docops.reducing.is_some() {
+        return;
+    }
+    let Some(d) = app.docs.get(app.active) else { return };
+    let mut cos = d.session.graph_copy();
+    let settings = app.features.docops.reduce;
+    let (tx, rx) = std::sync::mpsc::channel();
+    let started = std::thread::Builder::new()
+        .name("markupcraft-reduce".into())
+        .spawn(move || {
+            let r = markupcraft_engine::reduce::reduce_graph(&mut cos, &settings);
+            let _ = tx.send((cos, r));
+        });
+    match started {
+        Ok(_) => {
+            app.features.docops.reducing = Some((d.uid, rx));
+            app.features.docops.message = "Reducing...".into();
+        }
+        Err(e) => app.features.docops.message = format!("could not start: {e}"),
+    }
+}
+
 pub fn window(app: &mut AppState, ctx: &egui::Context) {
+    poll_reduce(app, ctx);
     if !app.features.docops.open {
         return;
     }
@@ -133,6 +244,16 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
     let selected = d.selection().len();
     let attachments = d.session.attachments();
     let security = d.session.security();
+    let status = d.session.security_status();
+    let kept = d.session.kept_header_footer().is_some();
+    let presets: Vec<String> = match app.features.docops.tab {
+        Tab::Security => security_presets(&app.features.docops)
+            .into_iter()
+            .map(|p| p.name)
+            .collect(),
+        Tab::HeaderFooter => hf_templates(&app.features.docops).into_iter().map(|p| p.name).collect(),
+        _ => Vec::new(),
+    };
     let mut open = true;
     let mut apply = None;
     let mut att_action: Option<(String, bool)> = None;
@@ -188,10 +309,37 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                         ui.add_enabled(jpeg, egui::Slider::new(&mut q, 10..=100));
                         s.reduce.jpeg_quality = jpeg.then_some(q);
                     });
+                    let mut gray = s.reduce.gray.is_some();
+                    ui.horizontal(|ui| {
+                        ui.checkbox(&mut gray, "Gray images:");
+                        let mut g =
+                            s.reduce
+                                .gray
+                                .unwrap_or((s.reduce.target_ppi, s.reduce.above_ppi, s.reduce.jpeg_quality));
+                        ui.add_enabled(gray, egui::DragValue::new(&mut g.0).range(36.0..=1200.0).suffix(" ppi"));
+                        ui.label("above");
+                        ui.add_enabled(gray, egui::DragValue::new(&mut g.1).range(36.0..=2400.0).suffix(" ppi"));
+                        s.reduce.gray = gray.then_some(g);
+                    });
                     ui.checkbox(&mut s.reduce.discard_thumbnails, "Discard page thumbnails");
-                    if ui.button("Reduce").clicked() {
-                        apply = Some(Action::Reduce);
+                    ui.checkbox(&mut s.reduce.discard_alternate_images, "Discard alternate images");
+                    ui.checkbox(&mut s.reduce.discard_metadata, "Discard metadata");
+                    ui.checkbox(&mut s.reduce.discard_private, "Discard private application data");
+                    ui.checkbox(&mut s.reduce.discard_tags, "Discard structure tags");
+                    ui.checkbox(&mut s.reduce.remove_invalid_links, "Remove links that go nowhere");
+                    ui.checkbox(&mut s.reduce.compress_streams, "Compress uncompressed streams");
+                    ui.checkbox(&mut s.reduce.crop_to_crop_box, "Crop pages to their crop box");
+                    if s.reducing.is_some() {
+                        ui.horizontal(|ui| {
+                            ui.spinner();
+                            ui.label("Reducing...");
+                        });
                     }
+                    ui.add_enabled_ui(s.reducing.is_none(), |ui| {
+                        if ui.button("Reduce").clicked() {
+                            apply = Some(Action::Reduce);
+                        }
+                    });
                 }
                 Tab::Security => {
                     ui.label(if security.encrypted {
@@ -226,6 +374,29 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                         ui.checkbox(&mut p.assemble, "Assemble");
                     });
                     ui.label(RichText::new("Security applies when the document is saved.").small());
+                    ui.label(format!("Status: {}", status.label()));
+                    ui.horizontal(|ui| {
+                        ui.label("Preset");
+                        ui.add(
+                            egui::TextEdit::singleline(&mut s.preset_name)
+                                .desired_width(140.0)
+                                .hint_text("name"),
+                        );
+                        if ui.button("Save Preset").clicked() {
+                            apply = Some(Action::SavePreset);
+                        }
+                    });
+                    if !presets.is_empty() {
+                        ui.horizontal_wrapped(|ui| {
+                            ui.label("Apply:");
+                            for p in &presets {
+                                if ui.small_button(p).clicked() {
+                                    s.preset_name = p.clone();
+                                    apply = Some(Action::ApplyPreset);
+                                }
+                            }
+                        });
+                    }
                     ui.horizontal(|ui| {
                         if ui.button("Apply Security").clicked() {
                             apply = Some(Action::Security);
@@ -254,8 +425,25 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                         super::color_edit(ui, &mut s.hf.color);
                         ui.end_row();
                     });
+                    egui::Grid::new("hf-more").num_columns(2).show(ui, |ui| {
+                        ui.label("Margins (T B L R)");
+                        ui.horizontal(|ui| {
+                            for m in &mut s.hf.margins {
+                                ui.add(egui::DragValue::new(m).range(0.0..=360.0));
+                            }
+                        });
+                        ui.end_row();
+                        ui.label("Start number");
+                        ui.add(egui::DragValue::new(&mut s.hf.start_number).range(1..=999_999));
+                        ui.end_row();
+                    });
+                    ui.checkbox(&mut s.hf.underline, "Underline");
+                    ui.checkbox(&mut s.fit_content, "Shrink page content to fit inside the margins");
                     super::pages_field(ui, &mut s.pages);
-                    ui.checkbox(&mut s.replace, "Replace existing");
+                    ui.checkbox(
+                        &mut s.replace,
+                        "Replace existing (and keep these settings with the document)",
+                    );
                     ui.horizontal(|ui| {
                         if ui.button("Apply").clicked() {
                             apply = Some(Action::HeaderFooter);
@@ -263,7 +451,45 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                         if ui.button("Remove").clicked() {
                             apply = Some(Action::RemoveHeaderFooter);
                         }
+                        ui.add_enabled_ui(kept, |ui| {
+                            if ui
+                                .button("Edit")
+                                .on_hover_text("Load the settings kept with the document")
+                                .clicked()
+                            {
+                                apply = Some(Action::EditKept);
+                            }
+                            if ui
+                                .button("Update")
+                                .on_hover_text("Re-apply the kept settings to the pages as they are now")
+                                .clicked()
+                            {
+                                apply = Some(Action::UpdateKept);
+                            }
+                        });
                     });
+                    ui.horizontal(|ui| {
+                        ui.label("Template");
+                        ui.add(
+                            egui::TextEdit::singleline(&mut s.template_name)
+                                .desired_width(140.0)
+                                .hint_text("name"),
+                        );
+                        if ui.button("Save Template").clicked() {
+                            apply = Some(Action::SaveTemplate);
+                        }
+                    });
+                    if !presets.is_empty() {
+                        ui.horizontal_wrapped(|ui| {
+                            ui.label("Apply:");
+                            for p in &presets {
+                                if ui.small_button(p).clicked() {
+                                    s.template_name = p.clone();
+                                    apply = Some(Action::ApplyTemplate);
+                                }
+                            }
+                        });
+                    }
                 }
                 Tab::Watermark => {
                     egui::Grid::new("wm").num_columns(2).show(ui, |ui| {
@@ -384,6 +610,59 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
 
 /// Apply the dialog's tab to the active document.
 pub fn run(app: &mut AppState, action: Action) {
+    if matches!(action, Action::Reduce) {
+        start_reduce(app);
+        return;
+    }
+    if matches!(action, Action::SavePreset | Action::SaveTemplate) {
+        let s = &app.features.docops;
+        let r = if action == Action::SavePreset {
+            let set = SecuritySettings {
+                open_password: s.open_password.clone(),
+                permissions_password: s.permissions_password.clone(),
+                permissions: s.permissions,
+                encryption: s.encryption,
+            };
+            let mut list = security_presets(s);
+            let p = SecurityPreset::from_settings(&s.preset_name, &set);
+            list.retain(|x| x.name != p.name);
+            let name = p.name.clone();
+            list.push(p);
+            match presets_file(s, "security_presets.json") {
+                Some(f) => save_security_presets(&f, &list).map(|_| format!("Preset {name} saved")),
+                None => Ok("No settings folder to keep presets in".into()),
+            }
+        } else {
+            let mut list = hf_templates(s);
+            let mut t = HfTemplate::from_settings(&s.template_name, &s.hf);
+            t.fit_content = s.fit_content;
+            list.retain(|x| x.name != t.name);
+            let name = t.name.clone();
+            list.push(t);
+            match presets_file(s, "header_footer_templates.json") {
+                Some(f) => save_hf_templates(&f, &list).map(|_| format!("Template {name} saved")),
+                None => Ok("No settings folder to keep templates in".into()),
+            }
+        };
+        app.features.docops.message = actions::report(r, |m| m);
+        return;
+    }
+    if action == Action::EditKept {
+        let kept = app.doc().and_then(|d| d.session.kept_header_footer());
+        if let Some(t) = kept {
+            let s = &mut app.features.docops;
+            s.hf = t.settings();
+            s.fit_content = t.fit_content;
+            s.pages = t
+                .pages
+                .iter()
+                .map(|p| (p + 1).to_string())
+                .collect::<Vec<_>>()
+                .join(", ");
+            s.message = "Loaded the header and footer kept with the document".into();
+        }
+        return;
+    }
     let threads = app.threads;
     let Some(d) = app.docs.get_mut(app.active) else { return };
     let s = &app.features.docops;
@@ -418,15 +697,6 @@ pub fn run(app: &mut AppState, action: Action) {
                 format!("Flattened {}", actions::plural(n, "markup"))
             })
         }
-        Action::Reduce => actions::report(d.session.reduce_file_size(&s.reduce), |r| {
-            format!(
-                "Reduced from {} KB to {} KB ({} of {} images resampled)",
-                r.bytes_before / 1024,
-                r.bytes_after / 1024,
-                r.images_resampled,
-                r.images
-            )
-        }),
         Action::Security => {
             let set = SecuritySettings {
                 open_password: s.open_password.clone(),
@@ -441,9 +711,46 @@ pub fn run(app: &mut AppState, action: Action) {
         Action::RemoveSecurity => actions::report(d.session.remove_security(), |_| {
             "Security removed; save to apply".into()
         }),
+        Action::HeaderFooter if s.replace => {
+            let mut t = HfTemplate::from_settings("kept", &s.hf);
+            t.fit_content = s.fit_content;
+            let which = if s.pages.trim().is_empty() {
+                Vec::new()
+            } else {
+                pages.clone()
+            };
+            actions::report(d.session.apply_header_footer_kept(&which, &t), |_| {
+                format!("Header and footer on {}", actions::plural(pages.len(), "page"))
+            })
+        }
         Action::HeaderFooter => actions::report(d.session.add_header_footer(&pages, &s.hf, s.replace), |_| {
             format!("Header and footer on {}", actions::plural(pages.len(), "page"))
         }),
+        Action::UpdateKept => actions::report(d.session.update_header_footer(), |_| "Header and footer updated".into()),
+        Action::ApplyPreset => {
+            let found = security_presets(s).into_iter().find(|p| p.name == s.preset_name);
+            match found {
+                Some(p) => actions::report(d.session.set_security(&p.settings()), |_| {
+                    format!("Preset {} set; save to apply it", p.name)
+                }),
+                None => "No such preset".into(),
+            }
+        }
+        Action::ApplyTemplate => {
+            let found = hf_templates(s).into_iter().find(|p| p.name == s.template_name);
+            let which = if s.pages.trim().is_empty() {
+                Vec::new()
+            } else {
+                pages.clone()
+            };
+            match found {
+                Some(t) => actions::report(d.session.apply_header_footer_kept(&which, &t), |_| {
+                    format!("Template {} applied", t.name)
+                }),
+                None => "No such template".into(),
+            }
+        }
+        Action::SavePreset | Action::SaveTemplate | Action::EditKept | Action::Reduce => String::new(),
         Action::Watermark => actions::report(d.session.add_watermark(&pages, &s.wm, s.replace), |_| {
             format!("Watermark on {}", actions::plural(pages.len(), "page"))
         }),

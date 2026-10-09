@@ -67,6 +67,58 @@ pub struct SummaryOptions {
     pub filters: std::collections::BTreeMap<String, BTreeSet<String>>,
     /// Report title (PDF and workbook); "" = "Markup Summary".
     pub title: String,
+    /// More sort keys after `sort`: (column id, descending), applied in order.
+    pub then_by: Vec<(String, bool)>,
+    /// Append today's date to the title.
+    pub date_in_title: bool,
+    /// CSV and XML: markups, totals or both.
+    pub content: SummaryContent,
+    /// CSV: leave out the header row.
+    pub no_headers: bool,
+    /// PDF report layout.
+    pub layout: PdfLayout,
+}
+
+/// What a CSV or XML summary holds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SummaryContent {
+    #[default]
+    Both,
+    Markups,
+    Totals,
+}
+
+/// The PDF report's layout (Summary > Output > PDF).
+#[derive(Debug, Clone, PartialEq)]
+pub struct PdfLayout {
+    /// Flow style: each markup as a block of "column: value" lines (else a table).
+    pub flow: bool,
+    /// Page size in points.
+    pub page_size: (f64, f64),
+    /// A new page for each top-level group.
+    pub break_per_group: bool,
+    /// Each markup line links to its page in the source PDF.
+    pub links: bool,
+    /// Group and grand totals.
+    pub totals: bool,
+    /// Space around cell text, points.
+    pub padding: f64,
+    /// A PNG logo at the top right of every page.
+    pub logo: Option<std::path::PathBuf>,
+}
+
+impl Default for PdfLayout {
+    fn default() -> Self {
+        Self {
+            flow: false,
+            page_size: (792.0, 612.0),
+            break_per_group: false,
+            links: true,
+            totals: true,
+            padding: 2.0,
+            logo: None,
+        }
+    }
 }
 
 /// One cell of the report.
@@ -103,6 +155,11 @@ pub struct SummaryReport {
     pub lines: Vec<SummaryLine>,
     /// Markups in the summary.
     pub count: usize,
+    /// The source page (0-based) of each line (markup rows only).
+    pub line_pages: Vec<Option<usize>>,
+    pub content: SummaryContent,
+    pub no_headers: bool,
+    pub layout: PdfLayout,
 }
 
 /// The summary of `doc` (named `name` in the report).
@@ -144,36 +201,102 @@ pub fn summary(doc: &Document, name: &str, o: &SummaryOptions) -> SummaryReport 
         scope,
         measurements_only: o.measurements_only,
     };
-    let root = table.build(&view);
+    let mut root = table.build(&view);
     let cols: Vec<usize> = visible.iter().filter_map(|id| table.column_index(id)).collect();
+    // Multi-level sort: the first key is the table's own; then the others, within each group.
+    if !o.then_by.is_empty() {
+        let mut keys: Vec<(usize, bool)> = Vec::new();
+        if let Some(c) = table.column_index(&o.sort) {
+            keys.push((c, o.descending));
+        }
+        keys.extend(
+            o.then_by
+                .iter()
+                .filter_map(|(id, d)| table.column_index(id).map(|c| (c, *d))),
+        );
+        sort_rows(&table, &mut root, &keys, 0);
+    }
     let headers = cols
         .iter()
         .filter_map(|c| table.columns().get(*c).map(|c| c.header.clone()))
         .collect();
     let mut lines = Vec::new();
-    walk(&table, &root, &cols, &mut lines, 0);
+    let mut line_pages = Vec::new();
+    walk(&table, doc, &root, &cols, &mut lines, &mut line_pages, 0);
     lines.push(SummaryLine::Total {
         label: format!("Total ({})", root.totals.count),
         cells: cols.iter().map(|c| table.totals_text(*c, &root.totals)).collect(),
     });
+    line_pages.push(None);
+    let mut title = if o.title.trim().is_empty() {
+        "Markup Summary".to_string()
+    } else {
+        o.title.trim().to_string()
+    };
+    if o.date_in_title {
+        let (y, m, d) = crate::docutil::today();
+        title.push_str(&format!(" {y:04}-{m:02}-{d:02}"));
+    }
     SummaryReport {
-        title: if o.title.trim().is_empty() {
-            "Markup Summary".into()
-        } else {
-            o.title.trim().to_string()
-        },
+        title,
         document: name.to_string(),
         headers,
         lines,
         count: root.totals.count,
+        line_pages,
+        content: o.content,
+        no_headers: o.no_headers,
+        layout: o.layout.clone(),
     }
 }
 
-fn walk(t: &MarkupTable<'_>, g: &Group, cols: &[usize], out: &mut Vec<SummaryLine>, depth: usize) {
+fn cmp_cells(a: &crate::summary::SummaryCell, b: &crate::summary::SummaryCell) -> std::cmp::Ordering {
+    match (a.num, b.num) {
+        (Some(x), Some(y)) => x.total_cmp(&y),
+        _ => a.text.to_lowercase().cmp(&b.text.to_lowercase()),
+    }
+}
+
+fn sort_rows(t: &MarkupTable<'_>, g: &mut Group, keys: &[(usize, bool)], depth: usize) {
+    if depth > 32 {
+        return;
+    }
+    let cell = |r: usize, c: usize| {
+        let x = t.cell(r, c);
+        SummaryCell {
+            text: x.text.clone(),
+            num: x.num.filter(|v| v.is_finite() && !x.error),
+        }
+    };
+    g.rows.sort_by(|a, b| {
+        for (c, desc) in keys {
+            let o = cmp_cells(&cell(*a, *c), &cell(*b, *c));
+            let o = if *desc { o.reverse() } else { o };
+            if o != std::cmp::Ordering::Equal {
+                return o;
+            }
+        }
+        std::cmp::Ordering::Equal
+    });
+    for child in &mut g.children {
+        sort_rows(t, child, keys, depth + 1);
+    }
+}
+
+fn walk(
+    t: &MarkupTable<'_>,
+    doc: &Document,
+    g: &Group,
+    cols: &[usize],
+    out: &mut Vec<SummaryLine>,
+    pages: &mut Vec<Option<usize>>,
+    depth: usize,
+) {
     if depth > 32 {
         return;
     }
     for r in &g.rows {
+        pages.push(doc.markups.get(*r).map(|m| m.page));
         out.push(SummaryLine::Row(
             cols.iter()
                 .map(|c| {
@@ -197,7 +320,9 @@ fn walk(t: &MarkupTable<'_>, g: &Group, cols: &[usize], out: &mut Vec<SummaryLin
             title: title.clone(),
             count: child.totals.count,
         });
-        walk(t, child, cols, out, depth + 1);
+        pages.push(None);
+        walk(t, doc, child, cols, out, pages, depth + 1);
+        pages.push(None);
         out.push(SummaryLine::Total {
             label: format!("{title} total ({})", child.totals.count),
             cells: cols.iter().map(|c| t.totals_text(*c, &child.totals)).collect(),
@@ -220,11 +345,20 @@ pub fn summary_csv(r: &SummaryReport) -> String {
         out.push_str(&cells.iter().map(|c| csv_field(c)).collect::<Vec<_>>().join(","));
         out.push_str("\r\n");
     };
-    line(r.headers.clone());
+    if !r.no_headers {
+        line(r.headers.clone());
+    }
+    let (rows, totals) = match r.content {
+        SummaryContent::Both => (true, true),
+        SummaryContent::Markups => (true, false),
+        SummaryContent::Totals => (false, true),
+    };
     for l in &r.lines {
         match l {
             SummaryLine::Group { title, count, .. } => line(vec![format!("{title} ({count})")]),
-            SummaryLine::Row(cells) => line(cells.iter().map(|c| c.text.clone()).collect()),
+            SummaryLine::Row(cells) if rows => line(cells.iter().map(|c| c.text.clone()).collect()),
+            SummaryLine::Row(_) => {}
+            SummaryLine::Total { .. } if !totals => {}
             SummaryLine::Total { label, cells } => {
                 let mut v = cells.clone();
                 if let Some(first) = v.first_mut()
@@ -279,6 +413,8 @@ pub fn summary_xml(r: &SummaryReport) -> String {
                 "  <Group Level=\"{level}\" Title=\"{}\" Count=\"{count}\"/>\n",
                 xml_escape(title)
             )),
+            SummaryLine::Row(_) if r.content == SummaryContent::Totals => {}
+            SummaryLine::Total { .. } if r.content == SummaryContent::Markups => {}
             SummaryLine::Row(cells) => {
                 out.push_str("  <Markup>");
                 for (h, c) in r.headers.iter().zip(cells) {
@@ -476,11 +612,32 @@ fn pdf_text(s: &str, max: usize) -> String {
 
 /// The summary as a PDF report: landscape letter pages, a heading, a table and totals.
 pub fn summary_pdf(r: &SummaryReport) -> Vec<u8> {
+    summary_pdf_pages(r).0
+}
+
+/// Where a line landed in the PDF report: (report page, y of its baseline, source page).
+type Placed = Vec<(usize, f64, usize)>;
+
+// The table layout keeps the report's constant-style names (W, H, ROW) now that they vary.
+#[allow(non_snake_case)]
+/// The PDF report and where each markup line landed (for links). Honours the layout's page
+/// size, padding, totals, a page per top-level group, and the flow style.
+fn summary_pdf_pages(r: &SummaryReport) -> (Vec<u8>, Placed) {
     use crate::synthetic::{SyntheticPage, line, text};
-    const W: f64 = 792.0;
-    const H: f64 = 612.0;
+    let (pw, ph) = r.layout.page_size;
+    let (W, H) =
+        if pw.is_finite() && ph.is_finite() && (72.0..=14_400.0).contains(&pw) && (72.0..=14_400.0).contains(&ph) {
+            (pw, ph)
+        } else {
+            (792.0, 612.0)
+        };
     const M: f64 = 36.0;
-    const ROW: f64 = 13.0;
+    let pad = r.layout.padding.clamp(0.0, 20.0);
+    let ROW: f64 = 11.0 + pad;
+    let mut placed: Placed = Vec::new();
+    if r.layout.flow {
+        return flow_pdf(r, W, H, M, ROW);
+    }
     let n = r.headers.len().max(1);
     let col_w = (W - 2.0 * M) / n as f64;
     let chars = ((col_w / 4.6) as usize).clamp(4, 200);
@@ -518,6 +675,17 @@ pub fn summary_pdf(r: &SummaryReport) -> Vec<u8> {
             }
         }
         let Some(l) = lines.get(i) else { break };
+        // A page per top-level group.
+        if r.layout.break_per_group && matches!(l, SummaryLine::Group { level: 0, .. }) && y < H - M - 34.0 - ROW - 3.0
+        {
+            pages.push(SyntheticPage::new(W, H, std::mem::take(&mut content)));
+            page_no += 1;
+            y = header(&mut content, page_no);
+        }
+        if !r.layout.totals && matches!(l, SummaryLine::Total { .. }) {
+            i += 1;
+            continue;
+        }
         match l {
             SummaryLine::Group { level, title, count } => {
                 content.push_str(&text(
@@ -529,7 +697,10 @@ pub fn summary_pdf(r: &SummaryReport) -> Vec<u8> {
             }
             SummaryLine::Row(cells) => {
                 for (k, c) in cells.iter().enumerate() {
-                    content.push_str(&text(M + k as f64 * col_w + 2.0, y, 8.0, &pdf_text(&c.text, chars)));
+                    content.push_str(&text(M + k as f64 * col_w + pad, y, 8.0, &pdf_text(&c.text, chars)));
+                }
+                if let Some(Some(p)) = r.line_pages.get(i) {
+                    placed.push((page_no - 1, y, *p));
                 }
             }
             SummaryLine::Total { label, cells } => {
@@ -544,7 +715,71 @@ pub fn summary_pdf(r: &SummaryReport) -> Vec<u8> {
         i += 1;
     }
     pages.push(SyntheticPage::new(W, H, content));
-    crate::synthetic::pdf(&pages)
+    (crate::synthetic::pdf(&pages), placed)
+}
+
+/// Flow style: each markup a block of "header: value" lines; groups and totals as headings.
+fn flow_pdf(r: &SummaryReport, w: f64, h: f64, m: f64, row: f64) -> (Vec<u8>, Placed) {
+    use crate::synthetic::{SyntheticPage, line, text};
+    let mut pages = Vec::new();
+    let mut content = String::new();
+    let mut placed = Vec::new();
+    let mut y = h - m;
+    let mut page = 0usize;
+    let head = |content: &mut String| {
+        content.push_str(&text(m, h - m - 14.0, 16.0, &pdf_text(&r.title, 90)));
+        content.push_str(&text(w - m - 160.0, h - m - 12.0, 9.0, &pdf_text(&r.document, 30)));
+    };
+    head(&mut content);
+    y -= 40.0;
+    for (i, l) in r.lines.iter().enumerate() {
+        let need = match l {
+            SummaryLine::Row(cells) => row * (cells.len() as f64 + 1.0),
+            _ => row * 1.5,
+        };
+        let new_group =
+            r.layout.break_per_group && matches!(l, SummaryLine::Group { level: 0, .. }) && y < h - m - 41.0;
+        if y - need < m || new_group {
+            pages.push(SyntheticPage::new(w, h, std::mem::take(&mut content)));
+            page += 1;
+            head(&mut content);
+            y = h - m - 40.0;
+            if page > 10_000 {
+                break;
+            }
+        }
+        match l {
+            SummaryLine::Group { level, title, count } => {
+                content.push_str(&text(
+                    m + 10.0 * (*level).min(8) as f64,
+                    y,
+                    11.0,
+                    &pdf_text(&format!("{title} ({count})"), 100),
+                ));
+                y -= row * 1.5;
+            }
+            SummaryLine::Row(cells) => {
+                let top = y;
+                for (hd, c) in r.headers.iter().zip(cells) {
+                    content.push_str(&text(m + 12.0, y, 8.5, &pdf_text(&format!("{hd}: {}", c.text), 130)));
+                    y -= row;
+                }
+                content.push_str(&line(m + 8.0, y + row * 0.6, w - m, y + row * 0.6, 0.3));
+                y -= row * 0.5;
+                if let Some(Some(p)) = r.line_pages.get(i) {
+                    placed.push((page, top, *p));
+                }
+            }
+            SummaryLine::Total { label, cells } if r.layout.totals => {
+                let t: Vec<String> = cells.iter().filter(|c| !c.is_empty()).cloned().collect();
+                content.push_str(&text(m, y, 9.0, &pdf_text(&format!("{label}: {}", t.join("  ")), 130)));
+                y -= row * 1.5;
+            }
+            SummaryLine::Total { .. } => {}
+        }
+    }
+    pages.push(SyntheticPage::new(w, h, content));
+    (crate::synthetic::pdf(&pages), placed)
 }
 
 /// The bytes of `r` in `format`.
@@ -578,8 +813,111 @@ impl Session {
             self.page(*p)?;
         }
         let r = self.summary(o);
-        crate::write_atomic(out, &summary_bytes(&r, format))?;
+        if format == SummaryFormat::Pdf && (r.layout.links || r.layout.logo.is_some()) {
+            self.write_summary_pdf(&r, out)?;
+        } else {
+            crate::write_atomic(out, &summary_bytes(&r, format))?;
+        }
         Ok(r.count)
+    }
+
+    /// The PDF report with links to the source pages and the logo.
+    fn write_summary_pdf(&self, r: &SummaryReport, out: &Path) -> Result<()> {
+        let (bytes, placed) = summary_pdf_pages(r);
+        let mut s = Session::from_bytes(bytes, out)?;
+        let (w, _) = r.layout.page_size;
+        if r.layout.links {
+            let source = self.path().display().to_string();
+            for (page, y, src) in placed.iter().take(20_000) {
+                let target = crate::links::LinkTarget::File {
+                    path: source.clone(),
+                    page: Some(*src),
+                };
+                let rect = markupcraft_model::Rect::new(30.0, y - 3.0, w.min(14_400.0) - 30.0, y + 9.0);
+                s.add_link(*page, rect, &target, crate::links::LinkLook::default())?;
+            }
+        }
+        if let Some(logo) = &r.layout.logo {
+            for p in 0..s.page_count() {
+                let (pw, ph) = {
+                    let c = s.page(p)?.crop.normalized();
+                    (c.width(), c.height())
+                };
+                let at = crate::stamps::StampPlace::Rect(markupcraft_model::Rect::new(
+                    pw - 36.0 - 90.0,
+                    ph - 30.0,
+                    pw - 36.0,
+                    ph - 4.0,
+                ));
+                let src = crate::stamps::StampSource::File {
+                    path: logo.clone(),
+                    page: 0,
+                };
+                s.place_stamp(p, at, &src, None, &Default::default(), None)?;
+            }
+        }
+        s.save_as(out, true)
+    }
+
+    /// One report per value of the first column (Summary > Output): `<stem> - <value>.<ext>`
+    /// beside `out`. Returns the files written.
+    pub fn export_summary_per_value(
+        &self,
+        out: &Path,
+        format: Option<SummaryFormat>,
+        o: &SummaryOptions,
+    ) -> Result<Vec<std::path::PathBuf>> {
+        let format = format
+            .or_else(|| SummaryFormat::from_path(out))
+            .ok_or_else(|| invalid("summary format: csv, xml, xlsx or pdf"))?;
+        let table = MarkupTable::new(self.doc());
+        let first = match o.columns.first() {
+            Some(c) => c.clone(),
+            None => table
+                .columns()
+                .iter()
+                .find(|c| c.visible_by_default)
+                .map(|c| c.id.clone())
+                .ok_or_else(|| invalid("no columns"))?,
+        };
+        let col = table
+            .column_index(&first)
+            .ok_or_else(|| invalid(format!("no column {first:?}")))?;
+        let mut values: Vec<String> = (0..self.doc().markups.len())
+            .map(|r| table.cell(r, col).text.clone())
+            .collect();
+        values.sort();
+        values.dedup();
+        let stem = out
+            .file_stem()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_else(|| "Summary".into());
+        let dir = out.parent().unwrap_or(Path::new(""));
+        let mut files = Vec::new();
+        for v in values.into_iter().take(1_000) {
+            let mut oo = o.clone();
+            oo.filters.insert(first.clone(), [v.clone()].into_iter().collect());
+            let safe: String = v
+                .chars()
+                .map(|c| {
+                    if "/\\:*?\"<>|".contains(c) || c.is_control() {
+                        '_'
+                    } else {
+                        c
+                    }
+                })
+                .take(80)
+                .collect();
+            let name = if safe.trim().is_empty() {
+                "(blank)".to_string()
+            } else {
+                safe
+            };
+            let p = dir.join(format!("{stem} - {name}.{}", format.extension()));
+            self.export_summary(&p, Some(format), &oo)?;
+            files.push(p);
+        }
+        Ok(files)
     }
 }
 
@@ -638,6 +976,48 @@ mod tests {
             s.export_summary(&dir.join("s.doc"), None, &SummaryOptions::default())
                 .is_err()
         );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn multi_sort_content_layouts_links_and_one_report_per_value() {
+        let s = session();
+        let r = s.summary(&SummaryOptions {
+            sort: "type".into(),
+            then_by: vec![("subject".into(), true)],
+            content: SummaryContent::Totals,
+            no_headers: true,
+            date_in_title: true,
+            ..Default::default()
+        });
+        assert!(r.title.starts_with("Markup Summary 20"), "{}", r.title);
+        let csv = summary_csv(&r);
+        assert!(!csv.starts_with("Subject,") && csv.contains("Total (6)"), "{csv}");
+        assert_eq!(csv.lines().count(), 1, "totals only: {csv}");
+        assert_eq!(r.line_pages.len(), r.lines.len());
+        let dir = std::env::temp_dir().join(format!("mc-summary2-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        // Flow layout, a page per group, links to the source pages.
+        let o = SummaryOptions {
+            group_by: vec!["type".into()],
+            layout: PdfLayout {
+                flow: true,
+                break_per_group: true,
+                page_size: (612.0, 792.0),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let out = dir.join("flow.pdf");
+        s.export_summary(&out, None, &o).unwrap();
+        let back = Session::open(&out).unwrap();
+        assert!(back.page_count() >= 2, "a page per group");
+        assert_eq!(back.links().len(), 6, "each markup links to its page");
+        assert!(back.page_text(0).unwrap().contains("Subject:"));
+        let files = s
+            .export_summary_per_value(&dir.join("per.csv"), None, &SummaryOptions::default())
+            .unwrap();
+        assert!(files.len() >= 2, "{files:?}");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

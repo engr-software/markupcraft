@@ -69,6 +69,10 @@ pub enum FillOutput {
     Perimeter,
     /// a Space with this name
     Space(String),
+    /// a Polylength along the outline (closed back to its start)
+    Polylength,
+    /// a Volume of the region at this depth (in the scale's units)
+    Volume(f64),
 }
 
 // ---- the planar graph ------------------------------------------------------------------------
@@ -559,6 +563,82 @@ impl Session {
         fill_region(&lw.segments, seed, opts)
     }
 
+    /// Fill by dragging: every distinct closed region the dragged `path` passes through (seeds
+    /// every few points along it; regions are found once each, at most 100).
+    pub fn dynamic_fill_path(&self, page: usize, path: &[Point], opts: &FillOptions) -> Result<Vec<FillRegion>> {
+        if path.is_empty() || path.len() > 10_000 || !path.iter().all(|p| p.x.is_finite() && p.y.is_finite()) {
+            return Err(invalid("drag a path of 1 to 10,000 points"));
+        }
+        let lw = self.page_linework(page)?;
+        let mut seeds = vec![path[0]];
+        for w in path.windows(2) {
+            let (a, b) = (w[0], w[1]);
+            let len = ((b.x - a.x).powi(2) + (b.y - a.y).powi(2)).sqrt();
+            let steps = (len / 4.0).ceil().clamp(1.0, 500.0) as usize;
+            for i in 1..=steps {
+                let t = i as f64 / steps as f64;
+                seeds.push(Point::new(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t));
+            }
+        }
+        let mut found: Vec<FillRegion> = Vec::new();
+        for s in seeds.into_iter().take(5_000) {
+            if found.len() >= 100 {
+                break;
+            }
+            let inside = found
+                .iter()
+                .any(|r| point_in_polygon(s, &r.outer) && !r.holes.iter().any(|h| point_in_polygon(s, h)));
+            if inside {
+                continue;
+            }
+            if let Ok(r) = fill_region(&lw.segments, s, opts) {
+                let bounds = |r: &FillRegion| {
+                    r.outer.iter().fold((f64::MAX, f64::MAX, f64::MIN, f64::MIN), |b, p| {
+                        (b.0.min(p.x), b.1.min(p.y), b.2.max(p.x), b.3.max(p.y))
+                    })
+                };
+                let rb = bounds(&r);
+                let dup = found.iter().any(|f| {
+                    let fb = bounds(f);
+                    (f.area - r.area).abs() < 1e-6
+                        && (fb.0 - rb.0).abs() < 1e-6
+                        && (fb.1 - rb.1).abs() < 1e-6
+                        && (fb.2 - rb.2).abs() < 1e-6
+                        && (fb.3 - rb.3).abs() < 1e-6
+                });
+                if !dup {
+                    found.push(r);
+                }
+            }
+        }
+        if found.is_empty() {
+            return Err(invalid("the path does not pass through a closed region"));
+        }
+        Ok(found)
+    }
+
+    /// Fill by dragging and make each region found `output` (see `dynamic_fill_create`).
+    /// Returns the new ids. Undoable (one step per region).
+    pub fn dynamic_fill_path_create(
+        &mut self,
+        page: usize,
+        path: &[Point],
+        opts: &FillOptions,
+        output: &FillOutput,
+        look: Option<Markup>,
+    ) -> Result<Vec<String>> {
+        let regions = self.dynamic_fill_path(page, path, opts)?;
+        let mut ids = Vec::new();
+        for r in regions {
+            // Seed each region at a point inside it: the centre of a small triangle at a vertex
+            // works for convex corners; fall back to probing the bounding box.
+            let seed = inner_point(&r).ok_or_else(|| invalid("a filled region has no inside"))?;
+            let (id, _) = self.dynamic_fill_create(page, seed, opts, output, look.clone())?;
+            ids.push(id);
+        }
+        Ok(ids)
+    }
+
     /// Dynamic Fill and make the result: an Area (with cutouts), a Polygon, a Perimeter or a
     /// Space. `look` gives the new markup's subject, colours and so on (kind, page and points are
     /// set here). Returns the new markup's or space's id. Undoable.
@@ -579,12 +659,25 @@ impl Session {
             FillOutput::Area => Kind::Area,
             FillOutput::Polygon => Kind::Polygon,
             FillOutput::Perimeter => Kind::Perimeter,
+            FillOutput::Polylength => Kind::Polylength,
+            FillOutput::Volume(_) => Kind::Volume,
         };
         let mut m = look.unwrap_or_default();
         m.kind = kind;
         m.page = page;
         m.pts = r.outer.clone();
-        m.holes = if kind == Kind::Area {
+        if kind == Kind::Polylength
+            && let Some(first) = r.outer.first().copied()
+        {
+            m.pts.push(first);
+        }
+        if let FillOutput::Volume(depth) = output {
+            if !(depth.is_finite() && *depth >= 0.0 && *depth <= 1e6) {
+                return Err(invalid("a volume's depth is 0 to 1,000,000"));
+            }
+            m.depth = *depth;
+        }
+        m.holes = if matches!(kind, Kind::Area | Kind::Volume) {
             r.holes.clone()
         } else {
             Vec::new()
@@ -600,6 +693,34 @@ impl Session {
         })?;
         Ok((id, r))
     }
+}
+
+/// A point strictly inside a region (not in a cutout): probes a grid over its bounds.
+fn inner_point(r: &FillRegion) -> Option<Point> {
+    let (mut x0, mut y0, mut x1, mut y1) = (f64::MAX, f64::MAX, f64::MIN, f64::MIN);
+    for p in &r.outer {
+        x0 = x0.min(p.x);
+        y0 = y0.min(p.y);
+        x1 = x1.max(p.x);
+        y1 = y1.max(p.y);
+    }
+    if x0 > x1 {
+        return None;
+    }
+    for n in [8usize, 32, 96] {
+        for i in 1..n {
+            for j in 1..n {
+                let p = Point::new(
+                    x0 + (x1 - x0) * i as f64 / n as f64,
+                    y0 + (y1 - y0) * j as f64 / n as f64,
+                );
+                if point_in_polygon(p, &r.outer) && !r.holes.iter().any(|h| point_in_polygon(p, h)) {
+                    return Some(p);
+                }
+            }
+        }
+    }
+    None
 }
 
 #[cfg(test)]
@@ -628,6 +749,50 @@ mod tests {
             (70.0, 30.0, 60.0, 30.0),
             (60.0, 30.0, 60.0, 20.0),
         ])
+    }
+
+    #[test]
+    fn fill_by_dragging_polylength_and_volume_outputs() {
+        let content = format!(
+            "{}{}{}{}{}",
+            line(0.0, 0.0, 200.0, 0.0, 1.0),
+            line(200.0, 0.0, 200.0, 100.0, 1.0),
+            line(200.0, 100.0, 0.0, 100.0, 1.0),
+            line(0.0, 100.0, 0.0, 0.0, 1.0),
+            line(100.0, 0.0, 100.0, 100.0, 1.0)
+        );
+        let mut s = Session::from_bytes(pdf(&[SyntheticPage::new(612.0, 792.0, content)]), "rooms.pdf").unwrap();
+        let o = FillOptions::default();
+        let found = s
+            .dynamic_fill_path(0, &[Point::new(20.0, 50.0), Point::new(180.0, 50.0)], &o)
+            .unwrap();
+        assert_eq!(found.len(), 2);
+        let ids = s
+            .dynamic_fill_path_create(
+                0,
+                &[Point::new(20.0, 50.0), Point::new(180.0, 50.0)],
+                &o,
+                &FillOutput::Area,
+                None,
+            )
+            .unwrap();
+        assert_eq!(ids.len(), 2);
+        let (pl, _) = s
+            .dynamic_fill_create(0, Point::new(50.0, 50.0), &o, &FillOutput::Polylength, None)
+            .unwrap();
+        let m = s.markup(&pl).unwrap();
+        assert_eq!(m.kind, Kind::Polylength);
+        assert_eq!(m.pts.first(), m.pts.last());
+        let (v, _) = s
+            .dynamic_fill_create(0, Point::new(150.0, 50.0), &o, &FillOutput::Volume(3.0), None)
+            .unwrap();
+        let m = s.markup(&v).unwrap();
+        assert_eq!((m.kind, m.depth), (Kind::Volume, 3.0));
+        assert!(
+            s.dynamic_fill_create(0, Point::new(150.0, 50.0), &o, &FillOutput::Volume(f64::NAN), None)
+                .is_err()
+        );
+        assert!(s.dynamic_fill_path(0, &[Point::new(500.0, 500.0)], &o).is_err());
     }
 
     #[test]

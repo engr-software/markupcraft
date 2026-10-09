@@ -1,7 +1,10 @@
 //! Search (Ctrl+F) and Visual Search: the state behind the Search panel, its actions on the
 //! results (highlight, count, redact), and the hits drawn on the pages.
 
+use std::path::PathBuf;
+
 use markupcraft_engine::search::SearchOptions;
+use markupcraft_engine::search_more::{FoundHit, HitSource, SearchTargets, folder_pdfs, search_files};
 use markupcraft_engine::visual::{VisualAction, VisualSearchOptions};
 use markupcraft_geom::{Point, Rect};
 use markupcraft_model::{Kind, Markup};
@@ -16,6 +19,14 @@ pub enum Scope {
     AllPages,
     CurrentPage,
     Pages,
+    /// Every open document.
+    AllOpen,
+    /// Every file of the Set open in the Sets panel.
+    CurrentSet,
+    /// Every PDF in a folder (and its subfolders when asked).
+    Folder,
+    /// The recent files.
+    Recent,
 }
 
 /// One result.
@@ -30,6 +41,11 @@ pub struct Hit {
     pub checked: bool,
     /// Visual Search similarity, 0..1.
     pub score: Option<f64>,
+    /// Another open document the hit is in (its uid), or a file that is not open.
+    pub doc: Option<u64>,
+    pub file: Option<PathBuf>,
+    /// Where it was found (page text, a property, a form field ...).
+    pub source: String,
 }
 
 pub struct SearchState {
@@ -42,6 +58,14 @@ pub struct SearchState {
     pub whole_words: bool,
     pub page_text: bool,
     pub markups: bool,
+    pub file_names: bool,
+    pub properties: bool,
+    pub form_fields: bool,
+    pub folder: String,
+    pub subfolders: bool,
+    /// Replace: the new text, and whether a line whose font cannot show it uses Helvetica.
+    pub replace: String,
+    pub fallback: bool,
     pub scope: Scope,
     pub range: String,
     /// The document the results belong to.
@@ -53,8 +77,13 @@ pub struct SearchState {
     pub region: Option<(usize, Rect)>,
     pub sensitivity: f64,
     pub rotations: bool,
+    pub fine_rotations: bool,
+    pub color_filter: bool,
+    pub limit_to_selection: bool,
     pub visual_scope: Scope,
     pub visual_hits: Vec<Hit>,
+    /// Visual results thumbnails, by result index.
+    pub thumbs: std::collections::HashMap<usize, egui::TextureHandle>,
 }
 
 impl Default for SearchState {
@@ -67,6 +96,13 @@ impl Default for SearchState {
             whole_words: false,
             page_text: true,
             markups: false,
+            file_names: false,
+            properties: false,
+            form_fields: false,
+            folder: String::new(),
+            subfolders: true,
+            replace: String::new(),
+            fallback: true,
             scope: Scope::AllPages,
             range: String::new(),
             doc: 0,
@@ -76,8 +112,12 @@ impl Default for SearchState {
             region: None,
             sensitivity: 0.5,
             rotations: true,
+            fine_rotations: false,
+            color_filter: false,
+            limit_to_selection: false,
             visual_scope: Scope::AllPages,
             visual_hits: Vec::new(),
+            thumbs: Default::default(),
         }
     }
 }
@@ -97,10 +137,15 @@ impl SearchState {
     }
 
     pub fn marks(&self, d: &DocTab, out: &mut Vec<Mark>) {
-        if d.uid != self.doc {
-            return;
-        }
         for (i, h) in self.results().iter().enumerate() {
+            let mine = match (&h.doc, &h.file) {
+                (Some(u), _) => *u == d.uid,
+                (None, Some(f)) => d.path.as_ref() == Some(f),
+                (None, None) => d.uid == self.doc,
+            };
+            if !mine {
+                continue;
+            }
             let cur = self.current == Some(i);
             let (fill, stroke) = if cur {
                 (canvas::CURRENT_FILL, canvas::CURRENT_STROKE)
@@ -126,10 +171,123 @@ impl SearchState {
 
 fn scope_pages(scope: Scope, range: &str, current: usize, count: usize) -> Option<Vec<usize>> {
     match scope {
-        Scope::AllPages => Some((0..count).collect()),
+        Scope::AllPages | Scope::AllOpen | Scope::CurrentSet | Scope::Folder | Scope::Recent => {
+            Some((0..count).collect())
+        }
         Scope::CurrentPage => Some(vec![current.min(count.saturating_sub(1))]),
         Scope::Pages => super::parse_pages(range, count),
     }
+}
+
+fn found_to_hit(h: FoundHit, doc: Option<u64>, file: Option<PathBuf>) -> Hit {
+    let markup = match &h.source {
+        HitSource::Markup(id) => Some(id.clone()),
+        _ => None,
+    };
+    Hit {
+        page: h.page.unwrap_or(0),
+        rects: h.rects,
+        text: h.text,
+        context: h.context,
+        markup,
+        checked: true,
+        score: None,
+        doc,
+        file,
+        source: h.source.label(),
+    }
+}
+
+fn targets(s: &SearchState) -> SearchTargets {
+    SearchTargets {
+        page_text: s.page_text,
+        markups: s.markups,
+        file_name: s.file_names,
+        properties: s.properties,
+        form_fields: s.form_fields,
+    }
+}
+
+/// Search other documents: every open one, the Set's files, or a folder.
+fn run_many(app: &mut AppState, needle: &str) {
+    let s = &app.features.search;
+    let opts = SearchOptions {
+        case_sensitive: s.case_sensitive,
+        whole_words: s.whole_words,
+        pages: None,
+        max_hits: 5_000,
+    };
+    let t = targets(s);
+    let mut hits = Vec::new();
+    let mut notes = Vec::new();
+    match s.scope {
+        Scope::AllOpen => {
+            for d in &app.docs {
+                match d.session.search_all(needle, &opts, &t) {
+                    Ok(v) => hits.extend(v.into_iter().map(|h| found_to_hit(h, Some(d.uid), None))),
+                    Err(e) => notes.push(format!("{}: {e}", d.name)),
+                }
+            }
+        }
+        Scope::CurrentSet | Scope::Folder | Scope::Recent => {
+            let files: Result<Vec<PathBuf>, String> = if s.scope == Scope::Recent {
+                Ok(app
+                    .shell
+                    .recent
+                    .files
+                    .iter()
+                    .map(|f| f.path.clone())
+                    .filter(|p| p.is_file())
+                    .collect())
+            } else if s.scope == Scope::CurrentSet {
+                let f = app.features.sets.files();
+                if f.is_empty() {
+                    Err("Open a Set in the Sets panel first".into())
+                } else {
+                    Ok(f)
+                }
+            } else if s.folder.trim().is_empty() {
+                Err("Type the folder to search".into())
+            } else {
+                folder_pdfs(std::path::Path::new(s.folder.trim()), s.subfolders).map_err(|e| e.to_string())
+            };
+            match files {
+                Ok(files) => {
+                    // Files already open are searched as they are now.
+                    let (open, closed): (Vec<PathBuf>, Vec<PathBuf>) = files
+                        .into_iter()
+                        .partition(|f| app.docs.iter().any(|d| d.path.as_ref() == Some(f)));
+                    for f in open {
+                        if let Some(d) = app.docs.iter().find(|d| d.path.as_ref() == Some(&f))
+                            && let Ok(v) = d.session.search_all(needle, &opts, &t)
+                        {
+                            hits.extend(v.into_iter().map(|h| found_to_hit(h, Some(d.uid), None)));
+                        }
+                    }
+                    for fh in search_files(&closed, needle, &opts, &t) {
+                        if let Some(e) = fh.error {
+                            notes.push(format!("{}: {e}", fh.path.display()));
+                        }
+                        let p = fh.path.clone();
+                        hits.extend(fh.hits.into_iter().map(|h| found_to_hit(h, None, Some(p.clone()))));
+                    }
+                }
+                Err(e) => notes.push(e),
+            }
+        }
+        _ => {}
+    }
+    let s = &mut app.features.search;
+    s.hits = hits;
+    s.message = format!(
+        "{} for \"{needle}\"{}",
+        actions::plural(s.hits.len(), "result"),
+        if notes.is_empty() {
+            String::new()
+        } else {
+            format!(" ({})", notes.join("; "))
+        }
+    );
 }
 
 /// Run the text search on the active document.
@@ -144,12 +302,39 @@ pub fn run_text(app: &mut AppState) {
         s.message = "Type what to find".into();
         return;
     }
+    if matches!(
+        s.scope,
+        Scope::AllOpen | Scope::CurrentSet | Scope::Folder | Scope::Recent
+    ) {
+        run_many(app, &needle);
+        if !app.features.search.hits.is_empty() {
+            go_to(app, 0);
+        }
+        return;
+    }
     let count = d.session.page_count();
     let Some(pages) = scope_pages(s.scope, &s.range, d.view.current, count) else {
         s.message = "Pages: a range like 1-3, 5".into();
         return;
     };
     let mut notes = Vec::new();
+    if s.file_names || s.properties || s.form_fields {
+        let t = SearchTargets {
+            page_text: false,
+            markups: false,
+            ..targets(s)
+        };
+        let o = SearchOptions {
+            case_sensitive: s.case_sensitive,
+            whole_words: s.whole_words,
+            pages: Some(pages.clone()),
+            max_hits: 5_000,
+        };
+        match d.session.search_all(&needle, &o, &t) {
+            Ok(v) => s.hits.extend(v.into_iter().map(|h| found_to_hit(h, None, None))),
+            Err(e) => notes.push(e.to_string()),
+        }
+    }
     if s.page_text {
         let opts = SearchOptions {
             case_sensitive: s.case_sensitive,
@@ -176,6 +361,9 @@ pub fn run_text(app: &mut AppState) {
                     markup: None,
                     checked: true,
                     score: None,
+                    doc: None,
+                    file: None,
+                    source: "text".into(),
                 }));
             }
             Err(e) => notes.push(e.to_string()),
@@ -192,6 +380,9 @@ pub fn run_text(app: &mut AppState) {
                     markup: Some(m.id.clone()),
                     checked: true,
                     score: None,
+                    doc: None,
+                    file: None,
+                    source: "markup".into(),
                 });
             }
         }
@@ -237,7 +428,20 @@ pub fn go_to(app: &mut AppState, i: usize) {
         return;
     };
     app.features.search.current = Some(i);
-    let Some(d) = app.docs.iter_mut().find(|d| d.uid == app.features.search.doc) else {
+    // A hit in another document: bring it forward (opening the file when needed).
+    if let Some(f) = &h.file
+        && !app.docs.iter().any(|d| d.path.as_ref() == Some(f))
+    {
+        app.open_path(f);
+    }
+    let target = match (&h.doc, &h.file) {
+        (Some(u), _) => app.docs.iter().position(|d| d.uid == *u),
+        (None, Some(f)) => app.docs.iter().position(|d| d.path.as_ref() == Some(f)),
+        (None, None) => app.docs.iter().position(|d| d.uid == app.features.search.doc),
+    };
+    let Some(pos) = target else { return };
+    app.active = pos;
+    let Some(d) = app.docs.get_mut(pos) else {
         return;
     };
     if let Some(r) = h.rects.first()
@@ -387,12 +591,16 @@ pub fn run_visual(app: &mut AppState) {
         s.message = "Pages: a range like 1-3, 5".into();
         return;
     };
+    s.thumbs.clear();
     let opts = VisualSearchOptions {
         page,
         region,
         pages,
         sensitivity: s.sensitivity.clamp(0.0, 1.0),
         rotations: s.rotations,
+        fine_rotations: s.fine_rotations,
+        color_filter: s.color_filter,
+        limit_to_selection: s.limit_to_selection,
         action: VisualAction::None,
         ..Default::default()
     };
@@ -415,6 +623,9 @@ pub fn run_visual(app: &mut AppState) {
                     markup: None,
                     checked: true,
                     score: Some(h.score),
+                    doc: None,
+                    file: None,
+                    source: "visual".into(),
                 })
                 .collect();
             s.message = actions::plural(s.visual_hits.len(), "match");
@@ -426,9 +637,87 @@ pub fn run_visual(app: &mut AppState) {
     }
 }
 
+/// Replace Checked: the checked text results' text replaced in the page content.
+pub fn replace_checked(app: &mut AppState) {
+    let threads = app.threads;
+    let s = &app.features.search;
+    let needle = s.query.trim().to_string();
+    let with = s.replace.clone();
+    let only: Vec<(usize, Rect)> = s
+        .hits
+        .iter()
+        .filter(|h| h.checked && h.markup.is_none() && h.doc.is_none() && h.file.is_none() && h.source == "text")
+        .flat_map(|h| h.rects.iter().map(move |r| (h.page, *r)))
+        .collect();
+    if only.is_empty() {
+        app.status = "Check the page-text results to replace".into();
+        return;
+    }
+    let opts = SearchOptions {
+        case_sensitive: s.case_sensitive,
+        whole_words: s.whole_words,
+        pages: None,
+        max_hits: 0,
+    };
+    let fallback = s.fallback;
+    let uid = s.doc;
+    let Some(d) = app.docs.iter_mut().find(|d| d.uid == uid) else {
+        return;
+    };
+    let r = d.session.replace_text(&needle, &with, &opts, Some(&only), fallback);
+    d.rerender(threads);
+    let msg = actions::report(r, |r| {
+        format!(
+            "Replaced {} in {} ({} in Helvetica, {} skipped)",
+            actions::plural(r.replaced, "occurrence"),
+            actions::plural(r.lines, "line"),
+            r.substituted,
+            r.skipped
+        )
+    });
+    app.status = msg.clone();
+    app.features.search.message = msg;
+    app.features.search.hits.clear();
+    app.features.search.current = None;
+}
+
+/// Search Selected Text: the box picked on the page becomes the search.
+pub fn selection_picked(app: &mut AppState, page: usize, pts: &[Point]) {
+    let Some(r) = super::rect_of(pts) else { return };
+    let Some(d) = app.doc() else { return };
+    match d.session.text_in_rect(page, r) {
+        Ok(t) if !t.trim().is_empty() => {
+            let s = &mut app.features.search;
+            s.query = t;
+            s.visual = false;
+            app.show_panel("search");
+            run_text(app);
+        }
+        Ok(_) => app.status = "No text in the box".into(),
+        Err(e) => app.status = e.to_string(),
+    }
+}
+
+/// A thumbnail of visual result `i` (made on first use).
+pub fn thumb(app: &mut AppState, ctx: &egui::Context, i: usize) -> Option<egui::TextureHandle> {
+    if let Some(t) = app.features.search.thumbs.get(&i) {
+        return Some(t.clone());
+    }
+    let h = app.features.search.visual_hits.get(i)?.clone();
+    let r = h.rects.first()?.padded(2.0);
+    let uid = app.features.search.doc;
+    let d = app.docs.iter().find(|d| d.uid == uid)?;
+    let (w, hh, rgba) = d.session.region_rgba(h.page, r, 48).ok()?;
+    let img = egui::ColorImage::from_rgba_unmultiplied([w, hh], &rgba);
+    let tex = ctx.load_texture(format!("visual-hit-{i}"), img, egui::TextureOptions::LINEAR);
+    app.features.search.thumbs.insert(i, tex.clone());
+    Some(tex)
+}
+
 /// Clear the results showing.
 pub fn clear(app: &mut AppState) {
     let s = &mut app.features.search;
+    s.thumbs.clear();
     s.results_mut().clear();
     s.current = None;
     s.message.clear();

@@ -50,7 +50,36 @@ pub struct MarkStyle {
     pub outline: Color,
     /// Text drawn on the box once applied.
     pub overlay: String,
+    /// Overlay text font (Helvetica, Times, Courier), size (0 = fit the box), colour,
+    /// alignment (0 left, 1 centre, 2 right) and whether it repeats to fill the box.
+    pub font: String,
+    pub font_size: f64,
+    pub text_color: Color,
+    pub align: u8,
+    pub repeat: bool,
 }
+
+/// Redaction codes for the overlay text: the US FOIA exemptions and DOD codes.
+pub const REDACTION_CODES: &[(&str, &str)] = &[
+    (
+        "(b)(1)",
+        "FOIA: classified national defense or foreign relations information",
+    ),
+    ("(b)(2)", "FOIA: internal agency rules and practices"),
+    ("(b)(3)", "FOIA: information exempted by other laws"),
+    ("(b)(4)", "FOIA: trade secrets and confidential business information"),
+    ("(b)(5)", "FOIA: inter- or intra-agency communications"),
+    ("(b)(6)", "FOIA: personal privacy"),
+    ("(b)(7)(A)", "FOIA: law enforcement: interfere with proceedings"),
+    ("(b)(7)(C)", "FOIA: law enforcement: personal privacy"),
+    ("(b)(8)", "FOIA: financial institution supervision"),
+    ("(b)(9)", "FOIA: geological and geophysical information"),
+    ("(b)(3):10 USC 130", "DOD: critical infrastructure security information"),
+    (
+        "(b)(3):10 USC 424",
+        "DOD: organization and functions of defense intelligence agencies",
+    ),
+];
 
 impl Default for MarkStyle {
     fn default() -> Self {
@@ -58,6 +87,32 @@ impl Default for MarkStyle {
             fill: Some(Color::BLACK),
             outline: Color::rgb(0.89, 0.13, 0.13),
             overlay: String::new(),
+            font: "Helvetica".into(),
+            font_size: 0.0,
+            text_color: Color::rgb(1.0, 0.0, 0.0),
+            align: 1,
+            repeat: false,
+        }
+    }
+}
+
+impl MarkStyle {
+    fn look(&self) -> OverlayLook {
+        let font = match self.font.to_ascii_lowercase().as_str() {
+            "times" | "times-roman" => pdfcraft_annot::OverlayFont::Times,
+            "courier" => pdfcraft_annot::OverlayFont::Courier,
+            _ => pdfcraft_annot::OverlayFont::Helvetica,
+        };
+        OverlayLook {
+            font,
+            size: if self.font_size.is_finite() {
+                self.font_size.clamp(0.0, 200.0)
+            } else {
+                0.0
+            },
+            color: rgb(self.text_color),
+            align: self.align.min(2),
+            repeat: self.repeat,
         }
     }
 }
@@ -114,7 +169,7 @@ impl Session {
                         })
                         .collect(),
                     overlay: style.overlay.clone(),
-                    look: OverlayLook::default(),
+                    look: style.look(),
                 };
                 let mut st = Style::default_for(&shape);
                 st.fill = style.fill.map(rgb);
@@ -240,6 +295,26 @@ impl Session {
         Ok(RedactReport { residue, ..report })
     }
 
+    /// Apply redactions and, with `scrub_metadata`, remove the document's metadata too (Info,
+    /// XMP and other applications' private data), as Revu's Apply Redactions offers.
+    pub fn redact_apply_with(&mut self, pages: Option<&[usize]>, scrub_metadata: bool) -> Result<RedactReport> {
+        let r = self.redact_apply(pages)?;
+        if scrub_metadata {
+            self.cos_edit("Remove Metadata", |cos| {
+                if let Some(root) = cos.root() {
+                    cos.update_dict(root, |d| {
+                        d.remove(b"Metadata");
+                        d.remove(b"PieceInfo");
+                    })?;
+                }
+                cos.trailer_mut().remove(b"Info");
+                cos.require_full_save();
+                Ok(((), true))
+            })?;
+        }
+        Ok(r)
+    }
+
     /// Text that can still be read under `marks`, apart from their own overlay text (empty
     /// when they are clean).
     pub fn redact_residue(&self, marks: &[RedactMark]) -> Result<Vec<String>> {
@@ -289,6 +364,36 @@ mod tests {
             SyntheticPage::new(612.0, 792.0, p2),
         ]);
         Session::from_bytes(bytes, "redact.pdf").unwrap()
+    }
+
+    #[test]
+    fn overlay_look_codes_and_metadata_scrub() {
+        let mut s = doc();
+        s.set_doc_properties(&[("Title".into(), Some("Case file".into()))])
+            .unwrap();
+        let style = MarkStyle {
+            overlay: REDACTION_CODES[5].0.into(),
+            font: "Courier".into(),
+            font_size: 9.0,
+            text_color: Color::rgb(1.0, 1.0, 1.0),
+            align: 0,
+            repeat: true,
+            ..Default::default()
+        };
+        s.redact_mark(0, &[Rect::new(45.0, 695.0, 250.0, 715.0)], &style)
+            .unwrap();
+        let m = &pdfcraft_redact::marks(&s.file.cos)[0];
+        assert_eq!(m.overlay, "(b)(6)");
+        assert!(m.look.repeat && m.look.align == 0 && m.look.font == pdfcraft_annot::OverlayFont::Courier);
+        s.redact_apply_with(None, true).unwrap();
+        assert!(
+            s.doc_properties()
+                .standard
+                .iter()
+                .all(|(k, v)| k != "Title" || v.is_empty()),
+            "metadata scrubbed"
+        );
+        assert!(!s.page_text(0).unwrap().contains("SECRET"));
     }
 
     #[test]

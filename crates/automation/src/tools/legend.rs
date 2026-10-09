@@ -26,6 +26,40 @@ fn options_schema(mut props: Value) -> Value {
             json!({ "type": "array", "items": { "type": "string" }, "description": "Only these subjects (default: all)." }),
         );
         o.insert("measurements_only".into(), json!({ "type": "boolean" }));
+        o.insert(
+            "pages".into(),
+            json!({ "type": ["array", "string"], "description": "Pages counted (a list or range like \"2-5\"; default: the scope)." }),
+        );
+        o.insert(
+            "ids".into(),
+            json!({ "type": "array", "items": { "type": "string" }, "description": "Only these markups (a legend of a selection)." }),
+        );
+        o.insert("show_empty".into(), json!({ "type": "boolean", "description": "List every subject in `subjects` even with no markups (a tool set's legend)." }));
+        o.insert(
+            "custom_columns".into(),
+            json!({ "type": "array", "items": { "type": "string" }, "description": "Custom column ids shown after the columns; their values split rows." }),
+        );
+        o.insert("border_color".into(), json!({ "type": ["string", "array"] }));
+        o.insert(
+            "fill_color".into(),
+            json!({ "type": ["string", "array"], "description": "\"none\" = no fill." }),
+        );
+        o.insert(
+            "opacity".into(),
+            json!({ "type": "number", "minimum": 0, "maximum": 1 }),
+        );
+        o.insert(
+            "line_width".into(),
+            json!({ "type": "number", "minimum": 0, "maximum": 12 }),
+        );
+        o.insert(
+            "symbol_scale".into(),
+            json!({ "type": "number", "minimum": 0.25, "maximum": 4 }),
+        );
+        o.insert(
+            "header".into(),
+            json!({ "type": "boolean", "description": "Show the header row." }),
+        );
     }
     props
 }
@@ -56,6 +90,38 @@ fn read_options(args: &Args, mut o: LegendOptions) -> Result<LegendOptions> {
     if let Some(m) = args.opt_bool("measurements_only")? {
         o.measurements_only = m;
     }
+    if args.get("pages").is_some() {
+        o.pages = args.opt_pages("pages", 100_000)?.unwrap_or_default();
+    }
+    if let Some(ids) = args.opt_strings("ids")? {
+        o.ids = ids;
+    }
+    if let Some(b) = args.opt_bool("show_empty")? {
+        o.show_empty = b;
+    }
+    if let Some(c) = args.opt_strings("custom_columns")? {
+        o.custom_columns = c;
+    }
+    if let Some(c) = args.opt_color("border_color")? {
+        o.border_color = c;
+    }
+    if args.get("fill_color").and_then(Value::as_str) == Some("none") {
+        o.fill_color = None;
+    } else if let Some(c) = args.opt_color("fill_color")? {
+        o.fill_color = Some(c);
+    }
+    if let Some(v) = args.opt_num("opacity")? {
+        o.opacity = v;
+    }
+    if let Some(v) = args.opt_num("line_width")? {
+        o.line_width = v;
+    }
+    if let Some(v) = args.opt_num("symbol_scale")? {
+        o.symbol_scale = v;
+    }
+    if let Some(b) = args.opt_bool("header")? {
+        o.header = b;
+    }
     Ok(o)
 }
 
@@ -69,7 +135,17 @@ fn legend_json(l: &LegendInfo) -> Value {
         "rows": l.rows.iter().map(|r| json!({
             "subject": r.subject, "type": r.kind.name(), "color": r.color.hex(),
             "markups": r.markups, "count": r.count, "total": r.total, "total_text": r.total_text,
+            "custom": r.custom,
         })).collect::<Vec<_>>(),
+        "pages": l.options.pages.iter().map(|p| p + 1).collect::<Vec<_>>(),
+        "show_empty": l.options.show_empty,
+        "custom_columns": l.options.custom_columns,
+        "border_color": l.options.border_color.hex(),
+        "fill_color": l.options.fill_color.map(|c| c.hex()),
+        "opacity": l.options.opacity,
+        "line_width": l.options.line_width,
+        "symbol_scale": l.options.symbol_scale,
+        "header": l.options.header,
     })
 }
 
@@ -134,5 +210,35 @@ pub static UPDATE: Tool = Tool {
             None => s.update_legends()?,
         };
         Ok(json!({ "legends": n, "document": summary(doc, s) }))
+    },
+};
+
+pub static COPY: Tool = Tool {
+    name: "legend_copy",
+    title: "Copy legend to pages",
+    description: "Legend distribution: a copy of legend `id` on every other page at the same position (each counts its own page unless the legend's scope is the document). Undoable.",
+    read_only: false,
+    destructive: false,
+    schema: || schema(json!({ "id": { "type": "string" } }), &["id"]),
+    run: |a, args| {
+        let id = args.str("id")?.to_string();
+        let (doc, s) = a.session(args)?;
+        let made = s.copy_legend_to_pages(&id)?;
+        Ok(json!({ "legends": made, "document": summary(doc, s) }))
+    },
+};
+
+pub static FREEZE: Tool = Tool {
+    name: "legend_freeze",
+    title: "Snapshot legend",
+    description: "Turn legend `id` into a static copy that stays as drawn and no longer follows the markups. Undoable.",
+    read_only: false,
+    destructive: false,
+    schema: || schema(json!({ "id": { "type": "string" } }), &["id"]),
+    run: |a, args| {
+        let id = args.str("id")?.to_string();
+        let (doc, s) = a.session(args)?;
+        s.freeze_legend(&id)?;
+        Ok(json!({ "frozen": id, "legends": s.legends().len(), "document": summary(doc, s) }))
     },
 };

@@ -26,6 +26,7 @@ enum Act {
     Rename(String, String),
     Delete(String),
     SelectMarkups(String),
+    Snapshot(String),
     Export,
     Import,
 }
@@ -103,6 +104,13 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                             if ui.small_button("Delete").clicked() {
                                 act = Some(Act::Delete(sp.id.clone()));
                             }
+                            if ui
+                                .small_button("Snapshot")
+                                .on_hover_text("Copy the space's region as a snapshot (Ctrl+V pastes it)")
+                                .clicked()
+                            {
+                                act = Some(Act::Snapshot(sp.id.clone()));
+                            }
                         });
                     });
                 }
@@ -155,6 +163,12 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                     }
                     Err(e) => app.status = e.to_string(),
                 }
+            }
+        }
+        Act::Snapshot(id) => {
+            if let Some(d) = app.doc_mut() {
+                let r = d.session.snapshot_to_clipboard(0, None, Some(&id));
+                app.status = actions::report(r, |_| "Space copied as a snapshot: Ctrl+V pastes it".into());
             }
         }
         Act::Export => app

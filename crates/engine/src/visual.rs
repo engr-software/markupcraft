@@ -55,6 +55,13 @@ pub struct VisualSearchOptions {
     pub sensitivity: f64,
     /// Also search the symbol turned by 90, 180 and 270 degrees.
     pub rotations: bool,
+    /// With `rotations`: in 45-degree steps (eight turns) instead of quarter turns.
+    pub fine_rotations: bool,
+    /// Only hits whose ink is the symbol's colour (a colour histogram refine).
+    pub color_filter: bool,
+    /// Ignore linework that runs outside the selection box (only what lies wholly inside it is
+    /// the symbol).
+    pub limit_to_selection: bool,
     /// Rendering resolution.
     pub dpi: f64,
     pub max_hits: usize,
@@ -71,6 +78,9 @@ impl Default for VisualSearchOptions {
             pages: Vec::new(),
             sensitivity: 0.5,
             rotations: true,
+            fine_rotations: false,
+            color_filter: false,
+            limit_to_selection: false,
             dpi: 100.0,
             max_hits: 1_000,
             action: VisualAction::None,
@@ -193,10 +203,113 @@ impl Template {
 
 /// Hits of `tmpl` (and its turns) in `img`: `(x, y, w, h, score, quarter turns)` in `img`
 /// pixels.
+/// `g` turned clockwise by `deg` degrees about its centre (nearest pixel; white outside).
+fn rotate_any(g: &Gray, deg: u32) -> Gray {
+    if deg.is_multiple_of(90) {
+        return g.rotated(deg / 90);
+    }
+    let (s, c) = (deg as f64).to_radians().sin_cos();
+    let (w, h) = (g.w as f64, g.h as f64);
+    let nw = (w * c.abs() + h * s.abs()).ceil().max(1.0) as usize;
+    let nh = (w * s.abs() + h * c.abs()).ceil().max(1.0) as usize;
+    let mut out = Gray::new(nw, nh, 255);
+    let (cx, cy, ncx, ncy) = (w / 2.0, h / 2.0, nw as f64 / 2.0, nh as f64 / 2.0);
+    for y in 0..nh {
+        for x in 0..nw {
+            // Inverse turn (y down, so clockwise is the usual positive angle).
+            let (dx, dy) = (x as f64 + 0.5 - ncx, y as f64 + 0.5 - ncy);
+            let sx = c * dx + s * dy + cx;
+            let sy = -s * dx + c * dy + cy;
+            if sx >= 0.0
+                && sy >= 0.0
+                && sx < w
+                && sy < h
+                && let Some(px) = out.px.get_mut(y * nw + x)
+            {
+                *px = g.get(sx as usize, sy as usize);
+            }
+        }
+    }
+    out
+}
+
+/// Clear ink that touches the border of `g` (linework running out of the selection).
+fn keep_inside(g: &mut Gray) {
+    let (w, h) = (g.w, g.h);
+    let dark = |g: &Gray, x: usize, y: usize| g.get(x, y) < 200;
+    let mut stack: Vec<(usize, usize)> = Vec::new();
+    for x in 0..w {
+        stack.push((x, 0));
+        stack.push((x, h.saturating_sub(1)));
+    }
+    for y in 0..h {
+        stack.push((0, y));
+        stack.push((w.saturating_sub(1), y));
+    }
+    while let Some((x, y)) = stack.pop() {
+        if x >= w || y >= h || !dark(g, x, y) {
+            continue;
+        }
+        if let Some(px) = g.px.get_mut(y * w + x) {
+            *px = 255;
+        }
+        for (dx, dy) in [
+            (-1i64, -1i64),
+            (0, -1),
+            (1, -1),
+            (-1, 0),
+            (1, 0),
+            (-1, 1),
+            (0, 1),
+            (1, 1),
+        ] {
+            let (nx, ny) = (x as i64 + dx, y as i64 + dy);
+            if nx >= 0 && ny >= 0 {
+                stack.push((nx as usize, ny as usize));
+            }
+        }
+    }
+}
+
+/// The mean colour of the ink (pixels darker than the paper) inside a user-space rectangle.
+fn ink_color(img: &crate::raster::RgbImage, r: Rect) -> Option<[f64; 3]> {
+    let s = img.scale as f64;
+    let a = img.geom.user_to_view(r.x0 as f32, r.y0 as f32);
+    let b = img.geom.user_to_view(r.x1 as f32, r.y1 as f32);
+    let (x0, x1) = (
+        (a[0].min(b[0]) as f64 * s) as usize,
+        (a[0].max(b[0]) as f64 * s).ceil() as usize,
+    );
+    let (y0, y1) = (
+        (a[1].min(b[1]) as f64 * s) as usize,
+        (a[1].max(b[1]) as f64 * s).ceil() as usize,
+    );
+    let (mut sum, mut n) = ([0.0f64; 3], 0usize);
+    for y in y0..y1.min(img.h) {
+        for x in x0..x1.min(img.w) {
+            let i = (y * img.w + x) * 4;
+            let Some(p) = img.rgba.get(i..i + 4) else { continue };
+            let wh = 255 - p[3] as u32;
+            let c = [
+                (p[0] as u32 + wh).min(255) as f64,
+                (p[1] as u32 + wh).min(255) as f64,
+                (p[2] as u32 + wh).min(255) as f64,
+            ];
+            if c.iter().sum::<f64>() / 3.0 < 200.0 {
+                for k in 0..3 {
+                    sum[k] += c[k];
+                }
+                n += 1;
+            }
+        }
+    }
+    (n > 0).then(|| sum.map(|v| v / n as f64))
+}
+
 fn match_image(
     img: &Gray,
     tmpl: &Gray,
-    rotations: bool,
+    angles: &[u32],
     threshold: f64,
     cap: usize,
 ) -> Vec<(usize, usize, usize, usize, f64, u32)> {
@@ -204,10 +317,9 @@ fn match_image(
     let coarse = img.downsample(f);
     let ci = Integral::new(&coarse);
     let fi = Integral::new(img);
-    let turns: &[u32] = if rotations { &[0, 1, 2, 3] } else { &[0] };
     let mut out = Vec::new();
-    for &q in turns {
-        let full_t = tmpl.rotated(q);
+    for &q in angles {
+        let full_t = rotate_any(tmpl, q);
         let (Some(ft), Some(ct)) = (Template::new(&full_t), Template::new(&full_t.downsample(f))) else {
             continue;
         };
@@ -309,13 +421,30 @@ impl Session {
         let [x0, y0, x1, y1] = src.rect_to_px(r.normalized());
         let (x0, y0) = (x0.floor().max(0.0) as usize, y0.floor().max(0.0) as usize);
         let (x1, y1) = (x1.ceil().max(0.0) as usize, y1.ceil().max(0.0) as usize);
-        let tmpl = src.gray.crop(x0, y0, x1, y1);
+        let mut tmpl = src.gray.crop(x0, y0, x1, y1);
+        if opts.limit_to_selection {
+            keep_inside(&mut tmpl);
+        }
         if tmpl.w < 3 || tmpl.h < 3 {
             return Err(invalid("the region is too small to search for (or off the page)"));
         }
         if Template::new(&tmpl).is_none() {
             return Err(invalid("the region is blank; box a symbol to search for"));
         }
+        let angles: Vec<u32> = match (opts.rotations, opts.fine_rotations) {
+            (false, _) => vec![0],
+            (true, false) => vec![0, 90, 180, 270],
+            (true, true) => (0..8).map(|k| k * 45).collect(),
+        };
+        let color_doc = if opts.color_filter {
+            Some(self.renderable(true)?)
+        } else {
+            None
+        };
+        let want = match &color_doc {
+            Some(d) => ink_color(&d.render_rgba(opts.page, src.scale)?, r.normalized()),
+            None => None,
+        };
         let mut hits: Vec<VisualHit> = Vec::new();
         for &p in &pages {
             let img = if p == opts.page {
@@ -328,15 +457,20 @@ impl Session {
                 // compare at a different scale.
                 continue;
             }
-            let mut found: Vec<VisualHit> = match_image(&img.gray, &tmpl, opts.rotations, threshold, cap)
+            let mut found: Vec<VisualHit> = match_image(&img.gray, &tmpl, &angles, threshold, cap)
                 .into_iter()
                 .map(|(x, y, w, h, score, q)| VisualHit {
                     page: p,
                     rect: img.rect_to_user([x as f64, y as f64, (x + w) as f64, (y + h) as f64]),
                     score,
-                    rotation: q * 90,
+                    rotation: q,
                 })
                 .collect();
+            if let (Some(d), Some(want)) = (&color_doc, want) {
+                let rgb = d.render_rgba(p, img.scale)?;
+                found
+                    .retain(|h| ink_color(&rgb, h.rect).is_some_and(|c| (0..3).all(|k| (c[k] - want[k]).abs() < 70.0)));
+            }
             found.sort_by(|a, b| b.score.total_cmp(&a.score));
             let mut kept: Vec<VisualHit> = Vec::new();
             for h in found {
@@ -426,6 +560,70 @@ mod tests {
             SyntheticPage::new(612.0, 792.0, c),
             SyntheticPage::new(612.0, 792.0, p2),
         ])
+    }
+
+    #[test]
+    fn eighth_turns_colour_filter_and_limit_to_selection() {
+        // The L symbol upright at (100, 600), turned 45 degrees at (400, 600), and in red at
+        // (100, 300); a long line runs through the selection box at (100, 450).
+        let turned = format!(
+            "q 0.7071 -0.7071 0.7071 0.7071 400 600 cm {} Q
+",
+            symbol(0.0, 0.0, 0)
+        );
+        let red = format!("1 0 0 rg {}", symbol(100.0, 300.0, 0).replace("0 g ", ""));
+        let crossed = format!("{}{}", symbol(300.0, 450.0, 0), line(50.0, 473.0, 560.0, 473.0, 2.0));
+        let c = format!("{}{turned}{red}0 g {crossed}", symbol(100.0, 600.0, 0));
+        let mut s = Session::from_bytes(pdf(&[SyntheticPage::new(612.0, 792.0, c)]), "v.pdf").unwrap();
+        let base = VisualSearchOptions {
+            region: Rect::new(97.0, 597.0, 133.0, 621.0),
+            sensitivity: 0.35,
+            ..Default::default()
+        };
+        let quarter = s.visual_search(&base).unwrap();
+        let at = |r: &VisualReport, x: f64, y: f64| r.hits.iter().any(|h| h.rect.contains(Point::new(x, y)));
+        assert!(!at(&quarter, 400.0, 610.0), "a 45-degree turn is not a quarter turn");
+        let fine = s
+            .visual_search(&VisualSearchOptions {
+                fine_rotations: true,
+                ..base.clone()
+            })
+            .unwrap();
+        assert!(fine.hits.iter().any(|h| h.rotation % 90 == 45), "{:?}", fine.hits);
+        // Colour: the red copy matches by shape, not by colour.
+        assert!(at(&quarter, 110.0, 305.0), "{:?}", quarter.hits);
+        let colour = s
+            .visual_search(&VisualSearchOptions {
+                color_filter: true,
+                ..base.clone()
+            })
+            .unwrap();
+        assert!(
+            !at(&colour, 110.0, 305.0) && at(&colour, 110.0, 605.0),
+            "{:?}",
+            colour.hits
+        );
+        // A box around the crossed symbol: with the limit, the line through it is ignored and
+        // the plain symbols are found.
+        let boxed = VisualSearchOptions {
+            region: Rect::new(295.0, 445.0, 335.0, 476.0),
+            rotations: false,
+            sensitivity: 0.1,
+            ..base
+        };
+        let loose = s.visual_search(&boxed).unwrap();
+        let limited = s
+            .visual_search(&VisualSearchOptions {
+                limit_to_selection: true,
+                ..boxed
+            })
+            .unwrap();
+        assert!(
+            limited.hits.len() > loose.hits.len(),
+            "{} vs {}",
+            limited.hits.len(),
+            loose.hits.len()
+        );
     }
 
     #[test]

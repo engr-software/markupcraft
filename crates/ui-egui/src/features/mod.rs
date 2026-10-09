@@ -10,9 +10,12 @@
 //! - [`canvas::layer`] draws highlights on the pages and runs picks before the active tool.
 
 pub mod batch;
+pub mod batch_compare;
 pub mod canvas;
 pub mod compare;
 pub mod docops;
+pub mod docs5b;
+pub mod export;
 pub mod fill;
 pub mod forms;
 pub mod links;
@@ -97,6 +100,39 @@ pub static COMMANDS: &[Command] = &[
     c("batch.link", "Batch Link...", "Batch", 20, None, ""),
     c("batch.combine", "Combine...", "Batch", 20, None, "files"),
     c("batch.sets", "Sets", "Batch", 21, None, "files"),
+    // wave 5B
+    c("file.export_images", "Export Pages as Images...", "File", 22, None, ""),
+    c("file.export_document", "Export to Word, Excel, PowerPoint...", "File", 22, None, ""),
+    c("file.export_region", "Export Page Region to Excel", "File", 22, None, ""),
+    c("document.repair", "Repair PDF", "Document", 24, None, ""),
+    c("document.pdfa", "Archive as PDF/A...", "Document", 24, None, ""),
+    c("document.color_processing", "Color Processing...", "Document", 24, None, ""),
+    c("document.unflatten", "Unflatten", "Document", 24, ctrl_shift(Key::U), ""),
+    c("batch.compare", "Compare Documents...", "Batch", 22, None, "columns-3"),
+    c("batch.overlay", "Overlay Pages...", "Batch", 22, None, "layers"),
+    c("batch.unflatten", "Unflatten...", "Batch", 22, None, ""),
+    c("batch.print", "Print...", "Batch", 22, None, ""),
+    c("search.next", "Next Result", "Tools", 23, key(Key::F3), ""),
+    c("search.prev", "Previous Result", "Tools", 23, shift(Key::F3), ""),
+    c("tools.search_selection", "Search Selected Text", "Tools", 23, None, "search"),
+    c("forms.signature_field", "Add Signature Field", "Tools", 23, key(Key::X), ""),
+    c("forms.editor", "Form Editor", "Tools", 23, ctrl_shift(Key::F), ""),
+    c("markup.edit_action", "Edit Action...", "Markup", 22, ctrl_shift(Key::E), ""),
+    c("markup.file_attachment", "File Attachment...", "Markup", 22, None, "file-plus"),
+    c("markup.capture_summary", "Capture Summary...", "Markup", 22, None, ""),
+    c("document.links_from_urls", "Create Hyperlinks from URLs", "Document", 25, None, ""),
+    c("file.create_from_files", "Create PDF from Files...", "File", 23, None, ""),
+    c("file.layered", "Create Layered PDF...", "File", 23, None, "layers"),
+    c("forms.export_data", "Export Form Data...", "Tools", 24, None, ""),
+    c("forms.import_data", "Import Form Data...", "Tools", 24, None, ""),
+    c("forms.merge_data", "Merge Form Data...", "Tools", 24, None, ""),
+    c("forms.typewriter_to_fields", "Migrate Typewriter Text to Fields", "Tools", 24, None, ""),
+    c("forms.auto_fields", "Automatically Create Form Fields", "Tools", 24, None, ""),
+    c("document.redaction_properties", "Redaction Properties...", "Document", 22, None, ""),
+    c("document.hf_update", "Update Header & Footer", "Document", 21, None, ""),
+    c("measure.legend_copy", "Copy Legend to Pages", "Measure", 21, None, ""),
+    c("measure.legend_freeze", "Snapshot Legend", "Measure", 21, None, ""),
+    c("measure.quantity_link", "Quantity Link...", "Measure", 21, None, "file-spreadsheet"),
 ];
 
 /// Panels these features add (for the Window menu keys see the panel rows).
@@ -111,14 +147,32 @@ pub fn handles(id: &str) -> bool {
 /// Whether a feature command can run now.
 pub fn enabled(app: &AppState, id: &str) -> bool {
     match id {
-        "file.combine" | "file.overlay" | "batch.link" | "batch.combine" | "batch.sets" | "batch.summary"
-        | "batch.flatten" | "markup.stamps" | "tools.digital_id" => true,
+        "file.combine"
+        | "file.overlay"
+        | "batch.link"
+        | "batch.combine"
+        | "batch.sets"
+        | "batch.summary"
+        | "batch.flatten"
+        | "markup.stamps"
+        | "tools.digital_id"
+        | "batch.compare"
+        | "batch.overlay"
+        | "batch.unflatten"
+        | "batch.print"
+        | "file.create_from_files"
+        | "file.layered"
+        | "forms.merge_data"
+        | "document.redaction_properties" => true,
         _ => app.has_doc(),
     }
 }
 
 /// Run a feature command.
 pub fn run(app: &mut AppState, id: &str, _ctx: &egui::Context) {
+    if export::run(app, id) || batch_compare::run(app, id) || docs5b::run(app, id) {
+        return;
+    }
     let f = &mut app.features;
     match id {
         "file.print" => f.print.open(),
@@ -126,6 +180,8 @@ pub fn run(app: &mut AppState, id: &str, _ctx: &egui::Context) {
         "batch.link" => f.batch.open(batch::Kind::Link),
         "batch.summary" => f.batch.open(batch::Kind::Summary),
         "batch.flatten" => f.batch.open(batch::Kind::Flatten),
+        "batch.unflatten" => f.batch.open(batch::Kind::Unflatten),
+        "batch.print" => f.batch.open(batch::Kind::Print),
         "document.slip_sheet" => f.batch.open(batch::Kind::SlipSheet),
         "batch.sets" => app.show_panel("sets"),
         "file.overlay" => f.overlay.open = true,
@@ -148,6 +204,28 @@ pub fn run(app: &mut AppState, id: &str, _ctx: &egui::Context) {
             app.show_panel("search");
         }
         "tools.compare" => compare::open(app),
+        "search.next" => search::step(app, 1),
+        "search.prev" => search::step(app, -1),
+        "tools.search_selection" => {
+            start_pick(app, Pick::SearchSelection, "Drag over the text to search for");
+        }
+        "forms.signature_field" => {
+            app.features.forms.new_kind = forms::NewKind::Signature;
+            start_pick(app, Pick::FormField, "Drag the signature field's box");
+        }
+        "forms.editor" => forms::open(app),
+        "markup.edit_action" => links::edit_markup_action(app),
+        "markup.file_attachment" => app
+            .dialogs
+            .open(Purpose::Feature(Ask::AttachmentMarkupFile), ANY, false),
+        "markup.capture_summary" => app.dialogs.folder(Purpose::Feature(Ask::CaptureExportDir)),
+        "document.links_from_urls" => links::from_urls(app),
+        "edit.copy_page_snapshot" => {
+            let Some(d) = app.doc_mut() else { return };
+            let page = d.view.current;
+            let r = d.session.snapshot_to_clipboard(page, None, None);
+            app.status = crate::actions::report(r, |_| "Page copied as a snapshot: Ctrl+V pastes it".into());
+        }
         "tools.ocr" => f.ocr.open = true,
         "tools.forms" => forms::open(app),
         "tools.sign" => f.signatures.sign_open = true,
@@ -183,6 +261,102 @@ fn add_bookmark(app: &mut AppState) {
     app.show_panel("bookmarks");
 }
 
+/// AutoMark: bookmarks from the text in the dragged title-block region, every page.
+fn automark_picked(app: &mut AppState, pts: &[Point]) {
+    let Some(r) = rect_of(pts) else { return };
+    let Some(d) = app.doc_mut() else { return };
+    let res = d.session.bookmarks_from_region(&[], r, true);
+    app.status = crate::actions::report(res, |n| {
+        format!("AutoMark made {}", crate::actions::plural(n, "bookmark"))
+    });
+    app.show_panel("bookmarks");
+}
+
+/// The File Attachment icon's place was clicked.
+fn attachment_picked(app: &mut AppState, page: usize, pts: &[Point]) {
+    let Some(at) = pts.first().copied() else { return };
+    let Some(file) = app.features.attach_file.take() else {
+        return;
+    };
+    let threads = app.threads;
+    let Some(d) = app.doc_mut() else { return };
+    let r = d.session.add_file_attachment(
+        page,
+        Point::new(at.x - 10.0, at.y - 10.0),
+        &file,
+        markupcraft_engine::capture::AttachIcon::Paperclip,
+        "",
+    );
+    d.rerender(threads);
+    app.status = crate::actions::report(r, |_| format!("Attached {}", file.display()));
+}
+
+/// Capture Summary: the attached files saved into a folder, with a summary CSV.
+fn capture_export(app: &mut AppState, dir: &std::path::Path) {
+    let Some(d) = app.doc() else { return };
+    let csv = d.session.capture_summary_csv();
+    let r = d.session.export_attachment_markups(dir).and_then(|files| {
+        crate::chest::write_atomic(&dir.join("Capture Summary.csv"), csv.as_bytes())
+            .map_err(|e| markupcraft_engine::EngineError::Invalid(e.to_string()))?;
+        Ok(files.len())
+    });
+    app.status = crate::actions::report(r, |n| {
+        format!("Exported {} and the capture summary", crate::actions::plural(n, "file"))
+    });
+}
+
+/// Import Layer and Export Layer files.
+fn layer_file(app: &mut AppState, ask: &Ask, path: &std::path::Path) {
+    let threads = app.threads;
+    let Some(d) = app.doc_mut() else { return };
+    let msg = match ask {
+        Ask::LayerImport => {
+            let name = path
+                .file_stem()
+                .map(|s| s.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "Imported".into());
+            let page = d.view.current;
+            let r = d.session.import_layer(path, 0, page, &name);
+            d.rerender(threads);
+            crate::actions::report(r, |_| format!("Imported {name} as a layer"))
+        }
+        Ask::LayerExport(n) => crate::actions::report(d.session.export_layer(n, path), |_| {
+            format!("Layer {n} exported to {}", path.display())
+        }),
+        _ => String::new(),
+    };
+    app.status = msg;
+}
+
+/// Bookmark structure and export files.
+fn bookmark_file(app: &mut AppState, ask: &Ask, path: &std::path::Path) {
+    use markupcraft_engine::bookmarks_more::{BookmarkExport, export_bookmarks, load_structure, save_structure};
+    let Some(d) = app.doc_mut() else { return };
+    let msg = match ask {
+        Ask::BookmarkStructureSave => {
+            let name = path
+                .file_stem()
+                .map(|s| s.to_string_lossy().into_owned())
+                .unwrap_or_default();
+            let st = d.session.bookmark_structure(&name);
+            crate::actions::report(save_structure(path, &st), |_| {
+                format!("Structure saved: {}", path.display())
+            })
+        }
+        Ask::BookmarkStructureApply => crate::actions::report(
+            load_structure(path).and_then(|st| d.session.apply_bookmark_structure(&st)),
+            |n| format!("Filed {}", crate::actions::plural(n, "bookmark")),
+        ),
+        _ => match d.path.clone() {
+            Some(src) => crate::actions::report(export_bookmarks(&[src], path, &BookmarkExport::default()), |n| {
+                format!("Exported {}", crate::actions::plural(n, "bookmark"))
+            }),
+            None => "Save the document first".into(),
+        },
+    };
+    app.status = msg;
+}
+
 /// What a file dialog's answer is for.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Ask {
@@ -206,6 +380,31 @@ pub enum Ask {
     TrustCerts,
     BatchFiles,
     BatchOut,
+    ExportImagesDir,
+    ExportDocOut,
+    ExportRegionOut,
+    BatchCmpCurrent,
+    BatchCmpRevised,
+    BatchCmpOut,
+    BatchCmpJobSave,
+    BatchCmpJobOpen,
+    BatchCmpReport,
+    BookmarkStructureSave,
+    BookmarkStructureApply,
+    BookmarkExport,
+    AttachmentMarkupFile,
+    CaptureExportDir,
+    LayerImport,
+    LayerExport(String),
+    SetPublishPdf,
+    SetPackageDir,
+    SetPrintOut,
+    FormDataOut,
+    FormDataIn,
+    QuantityOut,
+    QuantityLinksSave,
+    QuantityLinksOpen,
+    BatchFolder,
 }
 
 pub const IMAGES: crate::dialogs::Filter = ("Images", &["png", "jpg", "jpeg"]);
@@ -225,7 +424,11 @@ pub fn answer(app: &mut AppState, ask: Ask, paths: Vec<PathBuf>) {
         Ask::OverlayAdd => overlay::add_files(app, &paths),
         Ask::OverlayOut => overlay::write(app, &first),
         Ask::SummaryOut(fmt) => summary::write(app, fmt, &first),
-        Ask::PrintOut => print::write(app, &first),
+        Ask::PrintOut => {
+            if print::write(app, &first) {
+                app.features.print.open = false;
+            }
+        }
         Ask::SetOpen => sets::open_set(app, &first),
         Ask::SetSave => sets::save_set(app, &first),
         Ask::SetAddFiles => sets::add_files(app, &paths),
@@ -239,6 +442,31 @@ pub fn answer(app: &mut AppState, ask: Ask, paths: Vec<PathBuf>) {
         Ask::SignId | Ask::SignOut | Ask::NewIdOut | Ask::TrustCerts => signatures::file(app, &ask, &first),
         Ask::BatchFiles => app.features.batch.add_files(&paths),
         Ask::BatchOut => batch::output(app, &first),
+        Ask::ExportImagesDir => export::images_to(app, &first),
+        Ask::ExportDocOut => export::document_to(app, &first),
+        Ask::ExportRegionOut => export::region_to(app, &first),
+        Ask::BatchCmpCurrent
+        | Ask::BatchCmpRevised
+        | Ask::BatchCmpOut
+        | Ask::BatchCmpJobSave
+        | Ask::BatchCmpJobOpen
+        | Ask::BatchCmpReport => batch_compare::answer(app, &ask, &paths),
+        Ask::BookmarkStructureSave | Ask::BookmarkStructureApply | Ask::BookmarkExport => {
+            bookmark_file(app, &ask, &first);
+        }
+        Ask::AttachmentMarkupFile => {
+            app.features.attach_file = Some(first);
+            start_pick(app, Pick::AttachmentAt, "Click where the attachment icon goes");
+        }
+        Ask::CaptureExportDir => capture_export(app, &first),
+        Ask::LayerImport | Ask::LayerExport(_) => layer_file(app, &ask, &first),
+        Ask::SetPublishPdf | Ask::SetPackageDir | Ask::SetPrintOut => sets::publish_file(app, &ask, &first),
+        Ask::FormDataOut | Ask::FormDataIn => docs5b::form_data_file(app, &ask, &first),
+        Ask::QuantityOut | Ask::QuantityLinksSave | Ask::QuantityLinksOpen => docs5b::quantity_file(app, &ask, &first),
+        Ask::BatchFolder => match markupcraft_engine::search_more::folder_pdfs(&first, true) {
+            Ok(files) => app.features.batch.add_files(&files),
+            Err(e) => app.features.batch.message = e.to_string(),
+        },
     }
 }
 
@@ -265,13 +493,27 @@ pub enum Pick {
     Signature,
     /// Where a legend goes.
     Legend,
+    /// The region to export to Excel.
+    ExportRegion,
+    /// Text to search for (Search Selected Text).
+    SearchSelection,
+    /// AutoMark: the title-block region.
+    AutoMark,
+    /// Where a File Attachment icon goes.
+    AttachmentAt,
+    /// Print > Get Window.
+    PrintRegion,
+    /// Dynamic Fill by dragging across regions (repeats).
+    FillDrag,
+    /// Dynamic Fill > Add Boundary: a polyline.
+    FillBoundary,
 }
 
 impl Pick {
     pub fn kind(self) -> PickKind {
         match self {
-            Pick::Fill | Pick::SpaceFill | Pick::Legend => PickKind::Point,
-            Pick::Space => PickKind::Polygon,
+            Pick::Fill | Pick::SpaceFill | Pick::Legend | Pick::AttachmentAt => PickKind::Point,
+            Pick::Space | Pick::FillBoundary => PickKind::Polygon,
             Pick::Stamp => PickKind::PointOrRect,
             _ => PickKind::Rect,
         }
@@ -279,7 +521,7 @@ impl Pick {
 
     /// Picks that stay on after each answer (Esc ends them).
     pub fn repeats(self) -> bool {
-        matches!(self, Pick::Fill | Pick::Redact)
+        matches!(self, Pick::Fill | Pick::Redact | Pick::FillDrag)
     }
 }
 
@@ -306,8 +548,13 @@ pub struct FeatureState {
     pub links: links::LinksState,
     pub signatures: signatures::SignaturesState,
     pub sets: sets::SetsState,
+    pub export: export::ExportState,
+    /// File Attachment: the file waiting for its place.
+    pub attach_file: Option<PathBuf>,
+    pub batch_compare: batch_compare::BatchCompareState,
     pub layers: crate::panels::layers::Fields,
     pub bookmarks: crate::panels::bookmarks::Fields,
+    pub quantity: docs5b::QuantityState,
 }
 
 /// Ask the user to pick on the active document's canvas.
@@ -357,6 +604,7 @@ pub fn frame(app: &mut AppState, ctx: &egui::Context) {
     docops::window(app, ctx);
     ocr::window(app, ctx);
     redact::window(app, ctx);
+    docs5b::window(app, ctx);
     forms::window(app, ctx);
     spell::window(app, ctx);
     stamps::window(app, ctx);
@@ -365,6 +613,8 @@ pub fn frame(app: &mut AppState, ctx: &egui::Context) {
     links::window(app, ctx);
     signatures::window(app, ctx);
     spaces::window(app, ctx);
+    export::window(app, ctx);
+    batch_compare::window(app, ctx);
     canvas::publish(app, ctx);
 }
 
@@ -372,7 +622,8 @@ pub fn frame(app: &mut AppState, ctx: &egui::Context) {
 fn picked(app: &mut AppState, what: Pick, page: usize, pts: Vec<Point>) {
     match what {
         Pick::VisualRegion => search::region_picked(app, page, &pts),
-        Pick::Fill | Pick::SpaceFill => fill::picked(app, what, page, &pts),
+        Pick::Fill | Pick::SpaceFill | Pick::FillDrag => fill::picked(app, what, page, &pts),
+        Pick::FillBoundary => fill::boundary_picked(app, pts),
         Pick::Space => spaces::outline_picked(app, page, pts),
         Pick::Hyperlink => links::rect_picked(app, page, &pts),
         Pick::Redact => redact::rect_picked(app, page, &pts),
@@ -380,6 +631,11 @@ fn picked(app: &mut AppState, what: Pick, page: usize, pts: Vec<Point>) {
         Pick::FormField => forms::rect_picked(app, page, &pts),
         Pick::Signature => signatures::rect_picked(app, page, &pts),
         Pick::Legend => fill::legend_picked(app, page, &pts),
+        Pick::ExportRegion => export::region_picked(app, page, &pts),
+        Pick::SearchSelection => search::selection_picked(app, page, &pts),
+        Pick::AutoMark => automark_picked(app, &pts),
+        Pick::AttachmentAt => attachment_picked(app, page, &pts),
+        Pick::PrintRegion => print::region_picked(app, page, &pts),
     }
 }
 

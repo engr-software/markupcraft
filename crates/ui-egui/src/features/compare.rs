@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 
 use egui::RichText;
-use markupcraft_engine::compare::{CompareMode, CompareOptions, CompareRegion};
+use markupcraft_engine::compare::{CompareAlign, CompareMode, CompareOptions, CompareRegion, PRESETS};
 use markupcraft_geom::Point;
 use markupcraft_model::Color;
 
@@ -32,6 +32,18 @@ pub struct CompareState {
     pub include_markups: bool,
     pub color: Color,
     pub clouds: bool,
+    /// Advanced: preset, alignment (0 page, 1 auto, 2 offset), offset, fill, opacity, lock,
+    /// flattened markups, and reviewing in a split view with the dimmer.
+    pub preset: String,
+    pub align: u8,
+    pub offset: [f64; 2],
+    pub fill: Option<Color>,
+    pub opacity: f64,
+    pub lock: bool,
+    pub include_flattened: bool,
+    pub split_review: bool,
+    /// The older document (when open) the results were compared with.
+    pub old_uid: Option<u64>,
     /// The document the results are on and the changes found.
     pub doc: u64,
     pub regions: Vec<(CompareRegion, Review)>,
@@ -52,6 +64,15 @@ impl Default for CompareState {
             include_markups: o.include_markups,
             color: o.color,
             clouds: true,
+            preset: String::new(),
+            align: 0,
+            offset: [0.0, 0.0],
+            fill: None,
+            opacity: 1.0,
+            lock: false,
+            include_flattened: false,
+            split_review: false,
+            old_uid: None,
             doc: 0,
             regions: Vec::new(),
             current: None,
@@ -161,6 +182,62 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
             });
             ui.end_row();
         });
+        ui.collapsing("Advanced", |ui| {
+            egui::Grid::new("compare-advanced").num_columns(2).show(ui, |ui| {
+                ui.label("Type");
+                egui::ComboBox::from_id_salt("compare-preset")
+                    .selected_text(if c.preset.is_empty() {
+                        "Custom"
+                    } else {
+                        c.preset.as_str()
+                    })
+                    .show_ui(ui, |ui| {
+                        for p in PRESETS {
+                            if ui.selectable_label(c.preset == p.name, p.name).clicked() {
+                                c.preset = p.name.to_string();
+                                c.sensitivity = p.sensitivity;
+                                c.align = if p.align == CompareAlign::Auto { 1 } else { 0 };
+                            }
+                        }
+                        if ui.selectable_label(c.preset.is_empty(), "Custom").clicked() {
+                            c.preset.clear();
+                        }
+                    });
+                ui.end_row();
+                ui.label("Page Align");
+                ui.horizontal(|ui| {
+                    ui.selectable_value(&mut c.align, 0, "Page");
+                    ui.selectable_value(&mut c.align, 1, "Auto");
+                    ui.selectable_value(&mut c.align, 2, "Offset");
+                    if c.align == 2 {
+                        ui.add(egui::DragValue::new(&mut c.offset[0]).prefix("x ").suffix(" pt"));
+                        ui.add(egui::DragValue::new(&mut c.offset[1]).prefix("y ").suffix(" pt"));
+                    }
+                });
+                ui.end_row();
+                ui.label("Fill");
+                ui.horizontal(|ui| {
+                    let mut on = c.fill.is_some();
+                    if ui.checkbox(&mut on, "").changed() {
+                        c.fill = on.then_some(Color::rgb(1.0, 0.9, 0.0));
+                    }
+                    if let Some(f) = c.fill.as_mut() {
+                        super::color_edit(ui, f);
+                    }
+                });
+                ui.end_row();
+                ui.label("Opacity");
+                ui.add(egui::Slider::new(&mut c.opacity, 0.0..=1.0).fixed_decimals(2));
+                ui.end_row();
+                ui.label("");
+                ui.checkbox(&mut c.lock, "Lock the clouds");
+                ui.end_row();
+                ui.label("");
+                ui.checkbox(&mut c.include_flattened, "Include flattened markups");
+                ui.end_row();
+            });
+        });
+        ui.checkbox(&mut c.split_review, "Review in split view with the dimmer");
         if !c.message.is_empty() {
             ui.label(RichText::new(&c.message).small());
         }
@@ -212,14 +289,32 @@ pub fn run_compare(app: &mut AppState) {
             return;
         }
     };
+    let mut opts = CompareOptions::default();
+    if !c.preset.is_empty() {
+        let _ = opts.apply_preset(&c.preset);
+    }
     let opts = CompareOptions {
         mode: c.mode,
         sensitivity: c.sensitivity,
         include_markups: c.include_markups,
         color: c.color,
         cloud: if c.clouds { 1.0 } else { 0.0 },
-        ..Default::default()
+        align: match c.align {
+            1 => CompareAlign::Auto,
+            2 => CompareAlign::Offset {
+                dx: c.offset[0],
+                dy: c.offset[1],
+            },
+            _ => CompareAlign::Page,
+        },
+        fill: c.fill,
+        opacity: c.opacity,
+        lock: c.lock,
+        include_flattened: c.include_flattened,
+        ..opts
     };
+    let old_uid = if c.old_file.is_none() { c.old_doc } else { None };
+    let split_review = c.split_review;
     let Some(i) = app.docs.iter().position(|d| d.uid == new_uid) else {
         return;
     };
@@ -229,6 +324,7 @@ pub fn run_compare(app: &mut AppState) {
         Ok(rep) => {
             let c = &mut app.features.compare;
             c.doc = new_uid;
+            c.old_uid = old_uid;
             c.regions = rep.regions.into_iter().map(|r| (r, Review::Open)).collect();
             c.current = None;
             c.open = false;
@@ -240,6 +336,9 @@ pub fn run_compare(app: &mut AppState) {
                 rep.graphics_changes
             );
             app.show_panel("compare");
+            if split_review {
+                review_split(app);
+            }
             if !app.features.compare.regions.is_empty() {
                 go_to(app, 0);
             }
@@ -320,4 +419,24 @@ pub fn delete_all(app: &mut AppState) {
     }
     app.features.compare.regions.clear();
     app.features.compare.current = None;
+}
+
+/// Review with split view and dimmer: the older revision beside the newer one, the panes
+/// synchronized page for page, the drawing dimmed so the clouds stand out.
+pub fn review_split(app: &mut AppState) {
+    let c = &app.features.compare;
+    let new_uid = c.doc;
+    let Some(new_i) = app.docs.iter().position(|d| d.uid == new_uid) else {
+        return;
+    };
+    let old_i = c.old_uid.and_then(|u| app.docs.iter().position(|d| d.uid == u));
+    app.shell.split = None;
+    // The pane shows the document active when splitting: the older revision when it is open.
+    app.active = old_i.unwrap_or(new_i);
+    crate::shell::split::split(app, true);
+    app.active = new_i;
+    if let Some(s) = app.shell.split.as_mut() {
+        s.sync = crate::shell::split::Sync::Document;
+    }
+    app.shell.dimmer = true;
 }

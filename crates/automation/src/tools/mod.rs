@@ -6,11 +6,14 @@
 
 mod attachments;
 mod batch;
+mod batch_compare;
 mod bookmarks;
 mod compare;
+mod convert;
 mod doc;
 mod docfile;
 mod docprops;
+mod docs5b;
 mod edit;
 mod export;
 mod files;
@@ -31,6 +34,7 @@ mod redact;
 mod scale;
 mod search;
 mod security;
+mod sets;
 mod sign;
 mod spaces;
 mod spell;
@@ -183,6 +187,62 @@ pub static TOOLS: &[&Tool] = &[
     &stamps::REMOVE,
     &stamps::ADD,
     &summary::EXPORT,
+    // wave 5B: export, archive, compare and overlay extras, batch compare
+    &convert::EXPORT_IMAGES,
+    &convert::EXPORT_DOCUMENT,
+    &convert::EXPORT_REGION,
+    &convert::REPAIR,
+    &convert::PDFA,
+    &convert::COLOR_PROCESS,
+    &flatten::UNFLATTEN,
+    &compare::PRESET,
+    &batch_compare::MATCH,
+    &batch_compare::COMPARE,
+    &batch_compare::OVERLAY,
+    &search::REPLACE,
+    &search::REGION_TEXT,
+    &links::EDIT,
+    &links::FROM_URLS,
+    &links::PLACES,
+    &links::PLACE_SET,
+    &links::PLACE_DELETE,
+    &links::MARKUP_ACTION,
+    &links::SNAPSHOT,
+    &links::ATTACH,
+    &links::CAPTURE,
+    &bookmarks::STYLE,
+    &bookmarks::ACTION,
+    &bookmarks::COPY,
+    &bookmarks::AUTOMARK,
+    &bookmarks::STRUCTURE,
+    &bookmarks::AUDIT,
+    &bookmarks::EXPORT,
+    &sets::LAYER_NEST,
+    &sets::LAYER_CONFIG,
+    &sets::LAYER_VIEW,
+    &sets::LAYER_IMPORT,
+    &sets::LAYER_EXPORT,
+    &sets::SET_TAGS,
+    &sets::SET_PUBLISH,
+    &sets::SET_PRINT,
+    &sets::PRINTERS,
+    &sets::BATCH_PRINT,
+    &legend::COPY,
+    &legend::FREEZE,
+    &redact::CODES,
+    &docs5b::SECURITY_PRESET,
+    &docs5b::HF_TEMPLATE,
+    &docs5b::HF_KEPT,
+    &docs5b::FIT_CONTENT,
+    &docs5b::FORM_DATA_EXPORT,
+    &docs5b::FORM_DATA_IMPORT,
+    &docs5b::FORM_DATA_MERGE,
+    &docs5b::FORM_TYPEWRITER,
+    &docs5b::FORM_AUTO_FIELDS,
+    &docs5b::COMBINE_FILES,
+    &docs5b::CREATE_FROM_FILES,
+    &docs5b::LAYERED_PDF,
+    &docs5b::QUANTITY_LINK,
     &prefs::GET,
     &prefs::SET,
     &prefs::PROFILES,

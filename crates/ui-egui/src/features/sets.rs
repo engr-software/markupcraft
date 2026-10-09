@@ -17,6 +17,18 @@ pub struct SetsState {
     pub stale: bool,
     pub filter: String,
     pub message: String,
+    /// Categories: off, by file name, by sheet number.
+    pub categories: markupcraft_engine::sets_more::CategoryMode,
+    /// Revisions: how earlier versions show (0 shown, 1 hidden, 2 greyed, 3 crossed out).
+    pub previous: u8,
+    pub revision_filter: String,
+    pub show_tags: bool,
+    /// Edit Tags: the sheet key, tag name and value.
+    pub tag_sheet: String,
+    pub tag_name: String,
+    pub tag_value: String,
+    /// Publish: latest versions only.
+    pub latest_only: bool,
 }
 
 impl Default for SetsState {
@@ -25,6 +37,7 @@ impl Default for SetsState {
             set: DrawingSet {
                 name: "New Set".into(),
                 files: Vec::new(),
+                ..Default::default()
             },
             path: None,
             sort: SetSort::FileOrder,
@@ -33,11 +46,24 @@ impl Default for SetsState {
             stale: false,
             filter: String::new(),
             message: String::new(),
+            categories: Default::default(),
+            previous: 2,
+            revision_filter: String::new(),
+            show_tags: false,
+            tag_sheet: String::new(),
+            tag_name: String::new(),
+            tag_value: String::new(),
+            latest_only: true,
         }
     }
 }
 
 impl SetsState {
+    /// The files of the open Set.
+    pub fn files(&self) -> Vec<std::path::PathBuf> {
+        self.set.files.clone()
+    }
+
     /// Re-read the sheets when the set changed.
     pub fn sheets(&mut self) -> &[SetSheet] {
         if self.stale {
@@ -96,4 +122,54 @@ pub fn open_sheet(app: &mut AppState, sheet: &SetSheet) {
         let n = d.session.page_count();
         d.view.go_to_page(sheet.page, n);
     }
+}
+
+/// Publish, package and print a Set (the file or folder was chosen).
+pub fn publish_file(app: &mut AppState, ask: &super::Ask, path: &Path) {
+    use markupcraft_engine::sets_more::{print_set, publish_combined, publish_package};
+    let s = &mut app.features.sets;
+    s.message = match ask {
+        super::Ask::SetPublishPdf => {
+            actions::report(publish_combined(&s.set, path, s.latest_only, &s.revision_filter), |r| {
+                format!("Published {} to {}", actions::plural(r.pages, "sheet"), path.display())
+            })
+        }
+        super::Ask::SetPackageDir => actions::report(publish_package(&s.set, path), |r| {
+            format!(
+                "Packaged {} with a drawing log of {} rows",
+                actions::plural(r.files.len(), "file"),
+                r.log_rows
+            )
+        }),
+        super::Ask::SetPrintOut => actions::report(
+            print_set(&s.set, &markupcraft_engine::printing::PrintJob::default(), path),
+            |n| format!("Set printed: {} in {}", actions::plural(n, "sheet"), path.display()),
+        ),
+        _ => return,
+    };
+    app.status = app.features.sets.message.clone();
+}
+
+/// Edit Tags: set a custom tag on a sheet (saved when the set is saved).
+pub fn set_tag(app: &mut AppState) {
+    let s = &mut app.features.sets;
+    let (k, n, v) = (
+        s.tag_sheet.trim().to_string(),
+        s.tag_name.trim().to_string(),
+        s.tag_value.trim().to_string(),
+    );
+    if k.is_empty() || n.is_empty() {
+        s.message = "Choose a sheet and a tag name".into();
+        return;
+    }
+    let entry = s.set.tags.entry(k.clone()).or_default();
+    if v.is_empty() {
+        entry.remove(&n);
+    } else {
+        entry.insert(n.clone(), v);
+    }
+    if entry.is_empty() {
+        s.set.tags.remove(&k);
+    }
+    s.message = format!("Tag {n} set on {k}; save the set to keep it");
 }

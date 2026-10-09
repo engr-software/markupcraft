@@ -23,19 +23,25 @@ pub static DYNAMIC_FILL: Tool = Tool {
             markup_props(json!({
                 "page": page_arg("to fill on"),
                 "point": point_arg("A point inside the region"),
-                "output": { "type": "string", "enum": ["area", "polygon", "perimeter", "space"] },
+                "output": { "type": "string", "enum": ["area", "polygon", "perimeter", "polylength", "volume", "space"] },
+                "depth": { "type": "number", "minimum": 0, "description": "Output volume: the depth (scale units)." },
+                "path": points_arg("Fill by dragging: every region this path passes through (instead of point)"),
                 "space_name": { "type": "string", "description": "The new space's name (output space)." },
                 "gap": { "type": "number", "minimum": 0, "maximum": 72, "description": "Close gaps up to this many points (default 0.5)." },
                 "cutouts": { "type": "boolean", "description": "Islands inside become cutouts (default true)." },
                 "boundaries": { "type": "array", "items": points_arg("A boundary polyline") },
                 "preview": { "type": "boolean" }
             })),
-            &["page", "point"],
+            &["page"],
         )
     },
     run: |a, args| {
         let page = args.page("page")?;
-        let seed = args.point("point")?;
+        let path = args.opt_points("path")?;
+        let seed = match &path {
+            Some(p) => p.first().copied().ok_or_else(|| bad_args("path needs points"))?,
+            None => args.point("point")?,
+        };
         let mut opts = FillOptions::default();
         if let Some(g) = args.opt_num("gap")? {
             opts.gap = g;
@@ -55,6 +61,11 @@ pub static DYNAMIC_FILL: Tool = Tool {
             "area" => FillOutput::Area,
             "polygon" => FillOutput::Polygon,
             "perimeter" => FillOutput::Perimeter,
+            "polylength" => FillOutput::Polylength,
+            "volume" => FillOutput::Volume(
+                args.opt_num("depth")?
+                    .ok_or_else(|| bad_args("dynamic_fill: output volume needs depth"))?,
+            ),
             "space" => FillOutput::Space(
                 args.opt_string("space_name")?
                     .ok_or_else(|| bad_args("dynamic_fill: output space needs space_name"))?,
@@ -75,6 +86,8 @@ pub static DYNAMIC_FILL: Tool = Tool {
         let kind = match output {
             FillOutput::Polygon => markupcraft_engine::Kind::Polygon,
             FillOutput::Perimeter => markupcraft_engine::Kind::Perimeter,
+            FillOutput::Polylength => markupcraft_engine::Kind::Polylength,
+            FillOutput::Volume(_) => markupcraft_engine::Kind::Volume,
             _ => markupcraft_engine::Kind::Area,
         };
         let mut look = Markup {
@@ -83,6 +96,10 @@ pub static DYNAMIC_FILL: Tool = Tool {
             ..Default::default()
         };
         patch.apply(&mut look).map_err(crate::failed)?;
+        if let Some(path) = path {
+            let ids = s.dynamic_fill_path_create(page, &path, &opts, &output, Some(look))?;
+            return Ok(json!({ "created": ids, "regions": ids.len(), "document": summary(doc, s) }));
+        }
         let (id, r) = s.dynamic_fill_create(page, seed, &opts, &output, Some(look))?;
         let created = match output {
             FillOutput::Space(_) => json!({ "space": id }),

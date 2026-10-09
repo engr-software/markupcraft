@@ -12,7 +12,7 @@ use markupcraft_geom::Point;
 use markupcraft_model::{Kind, Markup, measure_extras};
 
 use crate::canvas::{CanvasCx, CanvasOut};
-use crate::commands::{Command, ctrl, ctrl_shift, key, shift_alt};
+use crate::commands::{Command, ctrl, key, shift_alt};
 use crate::dialogs::{Filter, Purpose};
 use crate::interact::ContextTarget;
 use crate::{AppState, DocTab, actions};
@@ -115,10 +115,8 @@ pub static COMMANDS: &[Command] = &[
     c("markup.export", "Export Markups...", "Markup", 30, ctrl(Key::F2), "download"),
     c("markup.review_text", "Review Text", "Markup", 30, shift_alt(Key::R), "type"),
     c("markup.line_styles", "Line Styles...", "Markup", 30, None, ""),
-    c("document.unflatten", "Unflatten", "Document", 30, ctrl_shift(Key::U), ""),
     c("markup.save_attachment", "Save Attached File...", "", 0, None, ""),
     c("markup.summary_append", "Append Summary with Links", "Markup", 30, None, ""),
-    c("markup.edit_action", "Edit Action...", "Markup", 30, ctrl_shift(Key::E), ""),
     c("window.takeoff_workspace", "Takeoff Workspace", "Window", 30, None, "ruler"),
     c("measure.resume_count", "Resume Count", "", 0, None, ""),
     c("measure.merge_counts", "Merge Counts", "", 0, None, ""),
@@ -240,7 +238,7 @@ pub fn run(app: &mut AppState, id: &str) {
         "document.unflatten" => {
             let threads = app.threads;
             if let Some(d) = app.doc_mut() {
-                let r = d.session.unflatten(&[]);
+                let r = d.session.unflatten_flattened(&[]);
                 d.sync_pages(threads);
                 app.status = actions::report(r, |n| format!("Unflattened {}", actions::plural(n, "markup")));
             }
@@ -299,7 +297,7 @@ fn attach_answer(app: &mut AppState, arg: &str, path: &std::path::Path) -> Strin
     let Some(d) = app.docs.iter_mut().find(|d| d.uid == uid) else {
         return "File Attachment: the document was closed".into();
     };
-    let r = d.session.add_file_attachment(page, Point::new(x, y), path, "PushPin");
+    let r = d.session.attach_file_markup(page, Point::new(x, y), path, "PushPin");
     let name = path
         .file_name()
         .map(|n| n.to_string_lossy().to_string())

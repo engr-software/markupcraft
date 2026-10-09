@@ -74,6 +74,22 @@ pub struct LegendOptions {
     /// only these subjects (empty = all)
     pub subjects: Vec<String>,
     pub measurements_only: bool,
+    /// Pages counted (0-based; empty = the scope above): a page range.
+    pub pages: Vec<usize>,
+    /// Only these markups (an ad-hoc legend of a selection; empty = all).
+    pub ids: Vec<String>,
+    /// Show every subject in `subjects` even with no markups (a Tool Chest set's legend).
+    pub show_empty: bool,
+    /// Custom Markups List columns (ids) shown after `columns`; their values split rows.
+    pub custom_columns: Vec<String>,
+    /// Look: border and fill colours, opacity, border width, symbol size (1 = 100%),
+    /// the header row.
+    pub border_color: Color,
+    pub fill_color: Option<Color>,
+    pub opacity: f64,
+    pub line_width: f64,
+    pub symbol_scale: f64,
+    pub header: bool,
 }
 
 impl Default for LegendOptions {
@@ -90,6 +106,16 @@ impl Default for LegendOptions {
             font_size: 9.0,
             subjects: Vec::new(),
             measurements_only: false,
+            pages: Vec::new(),
+            ids: Vec::new(),
+            show_empty: false,
+            custom_columns: Vec::new(),
+            border_color: Color::rgb(0.2, 0.2, 0.2),
+            fill_color: Some(Color::rgb(1.0, 1.0, 1.0)),
+            opacity: 1.0,
+            line_width: 0.75,
+            symbol_scale: 1.0,
+            header: true,
         }
     }
 }
@@ -104,6 +130,14 @@ impl LegendOptions {
         }
         if self.title.chars().count() > 200 {
             return Err(invalid("the legend title is too long (200 characters at most)"));
+        }
+        if !(self.opacity.is_finite() && (0.0..=1.0).contains(&self.opacity))
+            || !(self.line_width.is_finite() && (0.0..=12.0).contains(&self.line_width))
+            || !(self.symbol_scale.is_finite() && (0.01..=50.0).contains(&self.symbol_scale))
+        {
+            return Err(invalid(
+                "legend look: opacity 0 to 1, line width 0 to 12, symbol size 1% to 5000%",
+            ));
         }
         Ok(())
     }
@@ -130,6 +164,42 @@ impl LegendOptions {
             ),
         );
         d.set(b"MeasOnly".to_vec(), Object::Bool(self.measurements_only));
+        let num = |v: f64| Object::Real(v);
+        let col = |c: Color| Object::Array(vec![num(c.r), num(c.g), num(c.b)]);
+        if !self.pages.is_empty() {
+            d.set(
+                b"Pages".to_vec(),
+                Object::Array(self.pages.iter().map(|p| Object::Int(*p as i64)).collect()),
+            );
+        }
+        if !self.ids.is_empty() {
+            d.set(
+                b"Ids".to_vec(),
+                Object::Array(self.ids.iter().map(|s| Object::String(PdfString::text(s))).collect()),
+            );
+        }
+        if self.show_empty {
+            d.set(b"ShowEmpty".to_vec(), Object::Bool(true));
+        }
+        if !self.custom_columns.is_empty() {
+            d.set(
+                b"Custom".to_vec(),
+                Object::Array(
+                    self.custom_columns
+                        .iter()
+                        .map(|s| Object::String(PdfString::text(s)))
+                        .collect(),
+                ),
+            );
+        }
+        d.set(b"BC".to_vec(), col(self.border_color));
+        if let Some(f) = self.fill_color {
+            d.set(b"IC".to_vec(), col(f));
+        }
+        d.set(b"CA".to_vec(), num(self.opacity));
+        d.set(b"LW".to_vec(), num(self.line_width));
+        d.set(b"SymScale".to_vec(), num(self.symbol_scale));
+        d.set(b"Header".to_vec(), Object::Bool(self.header));
         Object::Dict(d)
     }
 
@@ -169,6 +239,58 @@ impl LegendOptions {
             .filter(|s| !s.is_empty())
             .collect();
         o.measurements_only = matches!(d.get(b"MeasOnly"), Some(Object::Bool(true)));
+        let arr = |k: &[u8]| {
+            d.get(k)
+                .map(|v| cos.resolve(v))
+                .and_then(|v| v.as_array().cloned())
+                .unwrap_or_default()
+        };
+        o.pages = arr(b"Pages")
+            .iter()
+            .filter_map(|p| p.as_int())
+            .filter_map(|p| usize::try_from(p).ok())
+            .take(10_000)
+            .collect();
+        o.ids = arr(b"Ids")
+            .iter()
+            .map(|s| markupcraft_revu::pdf::text(Some(s)))
+            .filter(|s| !s.is_empty())
+            .take(100_000)
+            .collect();
+        o.show_empty = matches!(d.get(b"ShowEmpty"), Some(Object::Bool(true)));
+        o.custom_columns = arr(b"Custom")
+            .iter()
+            .map(|s| markupcraft_revu::pdf::text(Some(s)))
+            .filter(|s| !s.is_empty())
+            .take(32)
+            .collect();
+        let color = |k: &[u8]| -> Option<Color> {
+            let v: Vec<f64> = arr(k).iter().filter_map(|x| cos.resolve(x).as_f64()).collect();
+            match v.as_slice() {
+                [r, g, b] => Some(Color::rgb(*r, *g, *b)),
+                _ => None,
+            }
+        };
+        if let Some(c) = color(b"BC") {
+            o.border_color = c;
+        }
+        o.fill_color = if d.contains(b"IC") {
+            color(b"IC")
+        } else if d.contains(b"BC") {
+            None
+        } else {
+            o.fill_color
+        };
+        let f = |k: &[u8], dflt: f64| {
+            d.get(k)
+                .and_then(Object::as_f64)
+                .filter(|v| v.is_finite())
+                .unwrap_or(dflt)
+        };
+        o.opacity = f(b"CA", 1.0).clamp(0.0, 1.0);
+        o.line_width = f(b"LW", 0.75).clamp(0.0, 12.0);
+        o.symbol_scale = f(b"SymScale", 1.0).clamp(0.01, 50.0);
+        o.header = !matches!(d.get(b"Header"), Some(Object::Bool(false)));
         o
     }
 }
@@ -185,6 +307,8 @@ pub struct LegendRow {
     pub count: usize,
     pub total: Option<f64>,
     pub total_text: String,
+    /// The custom columns' values of the row (in `custom_columns` order).
+    pub custom: Vec<String>,
 }
 
 /// A legend in the document.
@@ -228,7 +352,14 @@ pub fn compute_rows(doc: &Document, legends: &HashSet<ObjId>, page: usize, o: &L
         if matches!(m.kind, Kind::Hyperlink | Kind::Attachment | Kind::Other) {
             continue;
         }
-        if !o.document && m.page != page {
+        if !o.pages.is_empty() {
+            if !o.pages.contains(&m.page) {
+                continue;
+            }
+        } else if !o.document && m.page != page {
+            continue;
+        }
+        if !o.ids.is_empty() && !o.ids.contains(&m.id) {
             continue;
         }
         if o.measurements_only && !m.kind.is_measurement() {
@@ -242,7 +373,17 @@ pub fn compute_rows(doc: &Document, legends: &HashSet<ObjId>, page: usize, o: &L
         if !o.subjects.is_empty() && !o.subjects.iter().any(|s| s.eq_ignore_ascii_case(&subject)) {
             continue;
         }
-        let key = format!("{}\u{0}{}", subject.to_lowercase(), subject);
+        let custom: Vec<String> = o
+            .custom_columns
+            .iter()
+            .map(|c| m.column_data.get(c).cloned().unwrap_or_default())
+            .collect();
+        let key = format!(
+            "{}\u{0}{}\u{0}{}",
+            subject.to_lowercase(),
+            subject,
+            custom.join("\u{1}")
+        );
         let a = groups.entry(key).or_insert(Acc {
             first: m,
             markups: 0,
@@ -266,11 +407,22 @@ pub fn compute_rows(doc: &Document, legends: &HashSet<ObjId>, page: usize, o: &L
             a.measured = true;
         }
     }
-    groups
+    let mut rows: Vec<LegendRow> = groups
         .into_iter()
         .take(MAX_ROWS)
         .map(|(key, a)| {
             let subject = key.split('\u{0}').nth(1).unwrap_or_default().to_string();
+            let custom: Vec<String> = key
+                .split('\u{0}')
+                .nth(2)
+                .map(|c| {
+                    if o.custom_columns.is_empty() {
+                        Vec::new()
+                    } else {
+                        c.split('\u{1}').map(str::to_string).collect()
+                    }
+                })
+                .unwrap_or_default();
             let m = a.first;
             let (total, total_text) = if !a.measured || a.units.len() > 1 {
                 (
@@ -299,9 +451,29 @@ pub fn compute_rows(doc: &Document, legends: &HashSet<ObjId>, page: usize, o: &L
                 count: a.count,
                 total,
                 total_text,
+                custom,
             }
         })
-        .collect()
+        .collect();
+    // A Tool Chest set's legend lists every subject of the set, used or not.
+    if o.show_empty {
+        for s in &o.subjects {
+            if !rows.iter().any(|r| r.subject.eq_ignore_ascii_case(s)) && rows.len() < MAX_ROWS {
+                rows.push(LegendRow {
+                    subject: s.clone(),
+                    kind: Kind::Other,
+                    color: Color::rgb(0.5, 0.5, 0.5),
+                    fill: None,
+                    markups: 0,
+                    count: 0,
+                    total: None,
+                    total_text: String::new(),
+                    custom: vec![String::new(); o.custom_columns.len()],
+                });
+            }
+        }
+    }
+    rows
 }
 
 fn cell_text(r: &LegendRow, c: LegendColumn) -> String {
@@ -324,10 +496,14 @@ pub fn plain_text(o: &LegendOptions, rows: &[LegendRow]) -> String {
         .collect();
     let mut out = o.title.clone();
     out.push('\r');
-    out.push_str(&cols.iter().map(|c| c.header()).collect::<Vec<_>>().join("\t"));
+    let mut heads: Vec<String> = cols.iter().map(|c| c.header().to_string()).collect();
+    heads.extend(o.custom_columns.iter().cloned());
+    out.push_str(&heads.join("\t"));
     for r in rows {
         out.push('\r');
-        out.push_str(&cols.iter().map(|c| cell_text(r, *c)).collect::<Vec<_>>().join("\t"));
+        let mut cells: Vec<String> = cols.iter().map(|c| cell_text(r, *c)).collect();
+        cells.extend(r.custom.iter().cloned());
+        out.push_str(&cells.join("\t"));
     }
     out
 }
@@ -391,15 +567,27 @@ fn text(ap: &mut Ap, t: &str, x: f64, y: f64, size: f64, bold: bool) {
 pub fn draw(o: &LegendOptions, rows: &[LegendRow], at: Point) -> (Vec<u8>, Rect) {
     let size = o.font_size;
     let pad = size * 0.5;
-    let row_h = size * 1.7;
+    let sym = (size * 1.7 * o.symbol_scale.clamp(0.01, 50.0)).clamp(2.0, 2_000.0);
+    let row_h = (size * 1.7).max(sym);
     let title_h = if o.title.is_empty() { 0.0 } else { size * 2.0 };
     let body = helv(size, false);
     let bold = helv(size, true);
+    let custom_w: Vec<f64> = o
+        .custom_columns
+        .iter()
+        .enumerate()
+        .map(|(k, h)| {
+            rows.iter()
+                .map(|r| text_width(r.custom.get(k).map_or("", String::as_str), &body))
+                .fold(text_width(h, &bold), f64::max)
+                + 2.0 * pad
+        })
+        .collect();
     let widths: Vec<f64> = o
         .columns
         .iter()
         .map(|c| match c {
-            LegendColumn::Symbol => row_h,
+            LegendColumn::Symbol => sym,
             _ => {
                 let w = rows
                     .iter()
@@ -409,16 +597,26 @@ pub fn draw(o: &LegendOptions, rows: &[LegendRow], at: Point) -> (Vec<u8>, Rect)
             }
         })
         .collect();
-    let table_w: f64 = widths.iter().sum();
+    let table_w: f64 = widths.iter().sum::<f64>() + custom_w.iter().sum::<f64>();
     let w = table_w.max(text_width(&o.title, &helv(size * 1.2, true)) + 2.0 * pad);
     let n_rows = if rows.is_empty() { 1 } else { rows.len() };
-    let h = title_h + row_h * (1 + n_rows) as f64;
+    let header_rows = usize::from(o.header);
+    let h = title_h + row_h * (header_rows + n_rows) as f64;
     let r = Rect::new(at.x, at.y - h, at.x + w, at.y);
     let mut ap = Ap::new();
-    ap.op("q 1 1 1 rg ").nums(&[r.x0, r.y0, w, h], "re").op("f\n");
-    ap.op("0.2 0.2 0.2 RG 0.75 w ")
-        .nums(&[r.x0, r.y0, w, h], "re")
-        .op("S\n");
+    ap.op("q ");
+    if o.opacity < 1.0 {
+        ap.op("/GS0 gs ");
+    }
+    if let Some(f) = o.fill_color {
+        ap.fill_rgb(&f).nums(&[r.x0, r.y0, w, h], "re").op("f\n");
+    }
+    if o.line_width > 0.0 {
+        ap.stroke_rgb(&o.border_color)
+            .nums(&[o.line_width], "w")
+            .nums(&[r.x0, r.y0, w, h], "re")
+            .op("S\n");
+    }
     let mut y = r.y1;
     if !o.title.is_empty() {
         text(
@@ -436,16 +634,22 @@ pub fn draw(o: &LegendOptions, rows: &[LegendRow], at: Point) -> (Vec<u8>, Rect)
             .op("S\n");
     }
     // header
-    let mut x = r.x0;
-    for (c, cw) in o.columns.iter().zip(&widths) {
-        text(&mut ap, c.header(), x + pad, y - row_h + size * 0.55, size, true);
-        x += cw;
+    if o.header {
+        let mut x = r.x0;
+        for (c, cw) in o.columns.iter().zip(&widths) {
+            text(&mut ap, c.header(), x + pad, y - row_h + size * 0.55, size, true);
+            x += cw;
+        }
+        for (h, cw) in o.custom_columns.iter().zip(&custom_w) {
+            text(&mut ap, h, x + pad, y - row_h + size * 0.55, size, true);
+            x += cw;
+        }
+        y -= row_h;
+        ap.op("0.2 0.2 0.2 RG 0.5 w ")
+            .nums(&[r.x0, y], "m")
+            .nums(&[r.x1, y], "l")
+            .op("S\n");
     }
-    y -= row_h;
-    ap.op("0.2 0.2 0.2 RG 0.5 w ")
-        .nums(&[r.x0, y], "m")
-        .nums(&[r.x1, y], "l")
-        .op("S\n");
     if rows.is_empty() {
         text(
             &mut ap,
@@ -460,7 +664,7 @@ pub fn draw(o: &LegendOptions, rows: &[LegendRow], at: Point) -> (Vec<u8>, Rect)
         let mut x = r.x0;
         for (c, cw) in o.columns.iter().zip(&widths) {
             if *c == LegendColumn::Symbol {
-                symbol(&mut ap, row, x, y - row_h, row_h);
+                symbol(&mut ap, row, x, y - row_h + (row_h - sym) / 2.0, sym);
             } else {
                 text(
                     &mut ap,
@@ -471,6 +675,17 @@ pub fn draw(o: &LegendOptions, rows: &[LegendRow], at: Point) -> (Vec<u8>, Rect)
                     false,
                 );
             }
+            x += cw;
+        }
+        for (k, cw) in custom_w.iter().enumerate() {
+            text(
+                &mut ap,
+                row.custom.get(k).map_or("", String::as_str),
+                x + pad,
+                y - row_h + size * 0.55,
+                size,
+                false,
+            );
             x += cw;
         }
         y -= row_h;
@@ -506,6 +721,14 @@ fn apply_look(cos: &mut CosDoc, a: &mut Dict, o: &LegendOptions, rows: &[LegendR
     fonts.set(b"HeBo".to_vec(), font("Helvetica-Bold"));
     let mut res = Dict::new();
     res.set(b"Font".to_vec(), Object::Dict(fonts));
+    if o.opacity < 1.0 {
+        let mut gs = Dict::new();
+        gs.set(b"CA".to_vec(), Object::Real(o.opacity));
+        gs.set(b"ca".to_vec(), Object::Real(o.opacity));
+        let mut gss = Dict::new();
+        gss.set(b"GS0".to_vec(), Object::Dict(gs));
+        res.set(b"ExtGState".to_vec(), Object::Dict(gss));
+    }
     let mut sd = Dict::new();
     sd.set(b"Type".to_vec(), Object::name("XObject"));
     sd.set(b"Subtype".to_vec(), Object::name("Form"));
@@ -598,6 +821,42 @@ impl Session {
         Ok(())
     }
 
+    /// Legend distribution: a copy of legend `id` on every other page at the same position.
+    /// Returns the new legends' ids. Undoable.
+    pub fn copy_legend_to_pages(&mut self, id: &str) -> Result<Vec<String>> {
+        let l = self
+            .legends()
+            .into_iter()
+            .find(|l| l.id == id)
+            .ok_or_else(|| invalid(format!("{id:?} is not a legend (legend_list shows them)")))?;
+        let r = self.markup(id)?.rect.normalized();
+        let at = Point::new(r.x0, r.y1);
+        let mut out = Vec::new();
+        for p in 0..self.page_count() {
+            if p != l.page {
+                out.push(self.add_legend(p, at, &l.options)?);
+            }
+        }
+        Ok(out)
+    }
+
+    /// Snapshot a legend to a static copy: it stays as drawn and no longer follows the
+    /// markups. Undoable.
+    pub fn freeze_legend(&mut self, id: &str) -> Result<()> {
+        let m = self.markup(id)?;
+        if !self.legends().iter().any(|l| l.id == id) {
+            return Err(invalid(format!("{id:?} is not a legend")));
+        }
+        let r = ObjRef::new(m.obj.0, m.obj.1);
+        self.cos_edit("Snapshot Legend", |cos| {
+            cos.update_dict(r, |d| {
+                d.remove(b"PCLegend");
+                d.set(b"Subj".to_vec(), Object::String(PdfString::text("Legend (static)")));
+            })?;
+            Ok(((), true))
+        })
+    }
+
     /// Recompute every legend from the markups as they are now (rows, size, contents).
     /// Returns how many legends there are. Undoable (one step; nothing when there are none).
     pub fn update_legends(&mut self) -> Result<usize> {
@@ -643,6 +902,82 @@ impl Session {
 mod tests {
     use super::*;
     use markupcraft_model::Scale;
+
+    #[test]
+    fn legend_ranges_selections_tool_sets_custom_columns_look_and_distribution() {
+        let mut s = Session::new_blank("l2.pdf", &[(612.0, 792.0), (612.0, 792.0), (612.0, 792.0)]).unwrap();
+        let mut ids = Vec::new();
+        for (page, subject, size) in [
+            (0, "Duct", "12x8"),
+            (1, "Duct", "12x8"),
+            (1, "Duct", "10x6"),
+            (2, "Pipe", ""),
+        ] {
+            let mut m = Markup::new(
+                Kind::Rectangle,
+                page,
+                Rect::new(10.0, 10.0, 60.0, 60.0).corners().to_vec(),
+            );
+            m.subject = subject.into();
+            if !size.is_empty() {
+                m.column_data.insert("Size".into(), size.into());
+            }
+            ids.push(s.add_markup(m).unwrap());
+        }
+        // A page range (pages 1-2) split by the custom Size column.
+        let o = LegendOptions {
+            pages: vec![0, 1],
+            custom_columns: vec!["Size".into()],
+            border_color: Color::rgb(0.0, 0.0, 1.0),
+            fill_color: None,
+            opacity: 0.8,
+            line_width: 2.0,
+            symbol_scale: 2.0,
+            header: false,
+            ..Default::default()
+        };
+        let id = s.add_legend(0, Point::new(300.0, 700.0), &o).unwrap();
+        let l = s.legends().into_iter().find(|l| l.id == id).unwrap();
+        let rows: Vec<(String, usize, Vec<String>)> = l
+            .rows
+            .iter()
+            .map(|r| (r.subject.clone(), r.count, r.custom.clone()))
+            .collect();
+        assert_eq!(
+            rows,
+            vec![
+                ("Duct".into(), 1, vec!["10x6".into()]),
+                ("Duct".into(), 2, vec!["12x8".into()])
+            ]
+        );
+        assert_eq!(l.options.custom_columns, vec!["Size".to_string()]);
+        assert!(!l.options.header && l.options.fill_color.is_none());
+        // An ad-hoc legend of a selection, and a tool-set legend with an unused subject.
+        let adhoc = LegendOptions {
+            ids: vec![ids[3].clone()],
+            document: true,
+            ..Default::default()
+        };
+        let a = s.add_legend(2, Point::new(300.0, 700.0), &adhoc).unwrap();
+        assert_eq!(s.legends().into_iter().find(|l| l.id == a).unwrap().rows.len(), 1);
+        let set = LegendOptions {
+            subjects: vec!["Pipe".into(), "Valve".into()],
+            show_empty: true,
+            document: true,
+            ..Default::default()
+        };
+        let t = s.add_legend(2, Point::new(100.0, 700.0), &set).unwrap();
+        let rows = s.legends().into_iter().find(|l| l.id == t).unwrap().rows;
+        assert_eq!(
+            rows.iter().map(|r| (r.subject.as_str(), r.count)).collect::<Vec<_>>(),
+            [("Pipe", 1), ("Valve", 0)]
+        );
+        // Distribution: a copy on every other page; then a static snapshot.
+        let copies = s.copy_legend_to_pages(&id).unwrap();
+        assert_eq!(copies.len(), 2);
+        s.freeze_legend(&copies[0]).unwrap();
+        assert!(!s.legends().iter().any(|l| l.id == copies[0]));
+    }
 
     #[test]
     fn legend_lists_subjects_counts_totals_and_follows_edits() {

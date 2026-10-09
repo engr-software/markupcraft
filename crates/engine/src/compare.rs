@@ -364,6 +364,159 @@ pub struct CompareOptions {
     pub line_width: f64,
     /// Cloud intensity (0 = plain rectangles).
     pub cloud: f64,
+    /// How the old page is registered on the new one before the graphics comparison.
+    pub align: CompareAlign,
+    /// Fill of the clouds (none by default), its opacity, the line opacity, and whether the
+    /// clouds are locked when placed.
+    pub fill: Option<Color>,
+    pub fill_opacity: f64,
+    pub opacity: f64,
+    pub lock: bool,
+    /// Include markups flattened with recovery (by default they are left out, like markups).
+    pub include_flattened: bool,
+}
+
+/// How the old page is registered on the new one.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum CompareAlign {
+    /// Stacked as they are (a one-pixel shift is tolerated).
+    #[default]
+    Page,
+    /// The old page's content moved by this many points (x right, y up) to match the new one.
+    Offset { dx: f64, dy: f64 },
+    /// Find the shift that matches the most linework (scans, plots that moved).
+    Auto,
+    /// Two matching points: `old[i]` on the old page is `new[i]` on the new page (scale,
+    /// rotation and offset).
+    Points { old: [Point; 2], new: [Point; 2] },
+}
+
+/// A built-in tuning preset (Revu's "same printer", "different printer", "scanned").
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ComparePreset {
+    pub name: &'static str,
+    pub sensitivity: f64,
+    pub cell_px: usize,
+    pub min_pixels: usize,
+    pub merge_pt: f64,
+    pub align: CompareAlign,
+}
+
+/// The built-in presets: identical sources, a different PDF producer, scans.
+pub const PRESETS: [ComparePreset; 3] = [
+    ComparePreset {
+        name: "same_printer",
+        sensitivity: 0.7,
+        cell_px: 6,
+        min_pixels: 3,
+        merge_pt: 18.0,
+        align: CompareAlign::Page,
+    },
+    ComparePreset {
+        name: "different_printer",
+        sensitivity: 0.5,
+        cell_px: 8,
+        min_pixels: 6,
+        merge_pt: 18.0,
+        align: CompareAlign::Page,
+    },
+    ComparePreset {
+        name: "scanned",
+        sensitivity: 0.3,
+        cell_px: 12,
+        min_pixels: 20,
+        merge_pt: 24.0,
+        align: CompareAlign::Auto,
+    },
+];
+
+/// A user-saved comparison preset (Compare > Advanced > Type > custom).
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CustomPreset {
+    pub name: String,
+    pub sensitivity: f64,
+    pub cell_px: usize,
+    pub min_pixels: usize,
+    pub merge_pt: f64,
+    pub dpi: f64,
+    #[serde(default)]
+    pub auto_align: bool,
+}
+
+impl CustomPreset {
+    /// The tuning of `o` saved under `name`.
+    pub fn from_options(name: &str, o: &CompareOptions) -> Self {
+        Self {
+            name: name.trim().to_string(),
+            sensitivity: o.sensitivity,
+            cell_px: o.cell_px,
+            min_pixels: o.min_pixels,
+            merge_pt: o.merge_pt,
+            dpi: o.dpi,
+            auto_align: o.align == CompareAlign::Auto,
+        }
+    }
+
+    pub fn apply(&self, o: &mut CompareOptions) {
+        o.sensitivity = self.sensitivity;
+        o.cell_px = self.cell_px;
+        o.min_pixels = self.min_pixels;
+        o.merge_pt = self.merge_pt;
+        o.dpi = self.dpi;
+        if self.auto_align {
+            o.align = CompareAlign::Auto;
+        }
+    }
+}
+
+/// Read the custom presets file (missing = none).
+pub fn load_presets(path: &std::path::Path) -> Result<Vec<CustomPreset>> {
+    match std::fs::read_to_string(path) {
+        Ok(t) if t.len() < 1 << 20 => {
+            serde_json::from_str(&t).map_err(|e| invalid(format!("the presets file is damaged: {e}")))
+        }
+        Ok(_) => Err(invalid("the presets file is too large")),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Vec::new()),
+        Err(e) => Err(crate::EngineError::Io {
+            path: path.display().to_string(),
+            source: e,
+        }),
+    }
+}
+
+/// Write the custom presets file (atomic); an empty list is Restore Defaults.
+pub fn save_presets(path: &std::path::Path, list: &[CustomPreset]) -> Result<()> {
+    if list.iter().any(|p| p.name.is_empty() || p.name.chars().count() > 100) || list.len() > 200 {
+        return Err(invalid("preset names have 1 to 100 characters; at most 200 presets"));
+    }
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| crate::EngineError::Io {
+            path: dir.display().to_string(),
+            source: e,
+        })?;
+    }
+    let text = serde_json::to_string_pretty(list).map_err(|e| invalid(e.to_string()))?;
+    crate::write_atomic(path, text.as_bytes())
+}
+
+impl CompareOptions {
+    /// Apply a built-in preset by name.
+    pub fn apply_preset(&mut self, name: &str) -> Result<()> {
+        let p = PRESETS
+            .iter()
+            .find(|p| p.name.eq_ignore_ascii_case(name.trim()))
+            .ok_or_else(|| {
+                invalid(format!(
+                    "unknown preset {name:?}: same_printer, different_printer or scanned"
+                ))
+            })?;
+        self.sensitivity = p.sensitivity;
+        self.cell_px = p.cell_px;
+        self.min_pixels = p.min_pixels;
+        self.merge_pt = p.merge_pt;
+        self.align = p.align;
+        Ok(())
+    }
 }
 
 impl Default for CompareOptions {
@@ -383,6 +536,12 @@ impl Default for CompareOptions {
             subject: "Compare".into(),
             line_width: 1.5,
             cloud: 1.0,
+            align: CompareAlign::Page,
+            fill: None,
+            fill_opacity: 0.25,
+            opacity: 1.0,
+            lock: false,
+            include_flattened: false,
         }
     }
 }
@@ -411,6 +570,101 @@ pub struct CompareReport {
     pub regions: Vec<CompareRegion>,
     pub text_changes: usize,
     pub graphics_changes: usize,
+    /// The shift Auto align applied per pair, in points (old content moved by it).
+    pub offsets: Vec<(f64, f64)>,
+}
+
+/// A pixel position of `img` for a user-space point.
+fn user_px(img: &PageImage, p: Point) -> (f64, f64) {
+    let v = img.geom.user_to_view(p.x as f32, p.y as f32);
+    (v[0] as f64 * img.scale as f64, v[1] as f64 * img.scale as f64)
+}
+
+/// The old page resampled into the new page's pixels, `to_old` mapping new user space to old
+/// user space.
+fn warp(a: &PageImage, b: &PageImage, to_old: impl Fn(Point) -> Point) -> Gray {
+    let mut out = Gray::new(b.gray.w, b.gray.h, 255);
+    for y in 0..b.gray.h {
+        for x in 0..b.gray.w {
+            let u = b.to_user(x as f64 + 0.5, y as f64 + 0.5);
+            let (ox, oy) = user_px(a, to_old(u));
+            if ox < 0.0 || oy < 0.0 {
+                continue;
+            }
+            let v = a.gray.get(ox as usize, oy as usize);
+            if let Some(px) = out.px.get_mut(y * b.gray.w + x) {
+                *px = v;
+            }
+        }
+    }
+    out
+}
+
+/// The old page shifted by whole pixels.
+fn shift(a: &Gray, w: usize, h: usize, dx: i64, dy: i64) -> Gray {
+    let mut out = Gray::new(w, h, 255);
+    for y in 0..h {
+        for x in 0..w {
+            let (sx, sy) = (x as i64 - dx, y as i64 - dy);
+            if sx < 0 || sy < 0 {
+                continue;
+            }
+            if let Some(px) = out.px.get_mut(y * w + x) {
+                *px = a.get(sx as usize, sy as usize);
+            }
+        }
+    }
+    out
+}
+
+/// Ink two images share when `a` is moved by `(dx, dy)` pixels.
+fn shared_ink(a: &Gray, b: &Gray, dx: i64, dy: i64) -> u64 {
+    let mut sum = 0u64;
+    for y in 0..b.h {
+        let sy = y as i64 - dy;
+        if sy < 0 || sy as usize >= a.h {
+            continue;
+        }
+        for x in 0..b.w {
+            let sx = x as i64 - dx;
+            if sx < 0 || sx as usize >= a.w {
+                continue;
+            }
+            let ia = 255 - a.get(sx as usize, sy as usize) as u64;
+            let ib = 255 - b.get(x, y) as u64;
+            sum += ia.min(ib);
+        }
+    }
+    sum
+}
+
+/// The pixel shift of `a` that best matches `b` (coarse search, then refined).
+fn auto_shift(a: &Gray, b: &Gray) -> (i64, i64) {
+    let f = (a.w.max(a.h).max(b.w).max(b.h) / 300).max(1);
+    let (ca, cb) = (a.downsample(f), b.downsample(f));
+    let reach = (cb.w.max(cb.h) / 8).clamp(4, 60) as i64;
+    let mut best = (0i64, 0i64, shared_ink(&ca, &cb, 0, 0));
+    for dy in -reach..=reach {
+        for dx in -reach..=reach {
+            let v = shared_ink(&ca, &cb, dx, dy);
+            if v > best.2 {
+                best = (dx, dy, v);
+            }
+        }
+    }
+    let (cx, cy) = (best.0 * f as i64, best.1 * f as i64);
+    let r = f as i64;
+    let mut fine = (cx, cy, 0u64);
+    // Refine on a band of rows/columns: the full images at the coarse winner's neighbourhood.
+    for dy in cy - r..=cy + r {
+        for dx in cx - r..=cx + r {
+            let v = shared_ink(a, b, dx, dy);
+            if v > fine.2 {
+                fine = (dx, dy, v);
+            }
+        }
+    }
+    (fine.0, fine.1)
 }
 
 /// Compare an old revision (as PDF bytes) with a new one; the regions on the new pages.
@@ -437,6 +691,7 @@ pub fn compare_bytes(old: &Renderable, new: &Renderable, opts: &CompareOptions) 
         return Err(invalid("no pages to compare"));
     }
     let scale = (opts.dpi / 72.0) as f32;
+    let mut offsets = Vec::new();
     let mut regions = Vec::new();
     let (mut text_n, mut gfx_n) = (0, 0);
     for &(o, n) in &pairs {
@@ -451,6 +706,29 @@ pub fn compare_bytes(old: &Renderable, new: &Renderable, opts: &CompareOptions) 
             } else {
                 (a, b)
             };
+            let a_gray = match opts.align {
+                CompareAlign::Page => a.gray.clone(),
+                CompareAlign::Offset { dx, dy } => {
+                    if !(dx.is_finite() && dy.is_finite()) {
+                        return Err(invalid("the offset must be numbers"));
+                    }
+                    warp(&a, &b, |p| Point::new(p.x - dx, p.y - dy))
+                }
+                CompareAlign::Points { old: from, new: to } => {
+                    let m = crate::overlay::two_point_matrix(to, from)
+                        .ok_or_else(|| invalid("alignment needs two distinct points on each page"))?;
+                    warp(&a, &b, |p| {
+                        Point::new(m[0] * p.x + m[2] * p.y + m[4], m[1] * p.x + m[3] * p.y + m[5])
+                    })
+                }
+                CompareAlign::Auto => {
+                    let (dx, dy) = auto_shift(&a.gray, &b.gray);
+                    let o = b.to_user(dx as f64, dy as f64);
+                    let z = b.to_user(0.0, 0.0);
+                    offsets.push(((o.x - z.x), (o.y - z.y)));
+                    shift(&a.gray, b.gray.w, b.gray.h, dx, dy)
+                }
+            };
             let px = |pt: f64| (pt * b.scale as f64).round().max(0.0) as usize;
             let d = DiffOptions {
                 threshold: (8.0 + (1.0 - opts.sensitivity) * 112.0).round().clamp(1.0, 254.0) as u8,
@@ -461,7 +739,7 @@ pub fn compare_bytes(old: &Renderable, new: &Renderable, opts: &CompareOptions) 
                 margin_px: px(opts.margin_pt),
                 pad_px: px(4.0),
             };
-            for r in diff(&a.gray, &b.gray, &d) {
+            for r in diff(&a_gray, &b.gray, &d) {
                 let rect = b.rect_to_user(r.rect.map(|v| v as f64));
                 gfx_n += 1;
                 page_regions.push(CompareRegion {
@@ -504,6 +782,7 @@ pub fn compare_bytes(old: &Renderable, new: &Renderable, opts: &CompareOptions) 
         regions,
         text_changes: text_n,
         graphics_changes: gfx_n,
+        offsets,
     })
 }
 
@@ -613,8 +892,21 @@ impl Session {
         if !(opts.cloud.is_finite() && (0.0..=2.0).contains(&opts.cloud)) {
             return Err(invalid("cloud must be from 0 to 2"));
         }
+        if !(opts.opacity.is_finite() && (0.0..=1.0).contains(&opts.opacity))
+            || !(opts.fill_opacity.is_finite() && (0.0..=1.0).contains(&opts.fill_opacity))
+        {
+            return Err(invalid("opacity must be from 0 to 1"));
+        }
+        let (old, new_bytes) = if opts.include_flattened {
+            (old, self.current_bytes()?)
+        } else {
+            (
+                crate::flatten::without_flattened(old),
+                crate::flatten::without_flattened(self.current_bytes()?),
+            )
+        };
         let old = Renderable::new(old, !opts.include_markups)?;
-        let new = self.renderable(!opts.include_markups)?;
+        let new = Renderable::new(new_bytes, !opts.include_markups)?;
         let mut report = compare_bytes(&old, &new, opts)?;
         let markups: Vec<Markup> = report
             .regions
@@ -626,7 +918,10 @@ impl Session {
                     r.rect.padded(2.0).corners().to_vec(),
                 );
                 m.color = opts.color;
-                m.fill = None;
+                m.fill = opts.fill;
+                m.fill_opacity = opts.fill_opacity;
+                m.opacity = opts.opacity;
+                m.set_locked(opts.lock);
                 m.line_width = opts.line_width;
                 m.cloud = opts.cloud;
                 m.subject = opts.subject.clone();
@@ -785,6 +1080,56 @@ mod tests {
             pdf(&[SyntheticPage::new(612.0, 792.0, old)]),
             pdf(&[SyntheticPage::new(612.0, 792.0, new)]),
         )
+    }
+
+    #[test]
+    fn alignment_registers_a_shifted_sheet() {
+        use crate::synthetic::{SyntheticPage, line, pdf, rect};
+        let sheet = |dx: f64, dy: f64| {
+            format!(
+                "{}{}{}{}",
+                line(60.0 + dx, 80.0 + dy, 540.0 + dx, 80.0 + dy, 3.0),
+                line(60.0 + dx, 80.0 + dy, 60.0 + dx, 700.0 + dy, 3.0),
+                rect(200.0 + dx, 300.0 + dy, 80.0, 40.0),
+                rect(380.0 + dx, 520.0 + dy, 30.0, 90.0)
+            )
+        };
+        let old = pdf(&[SyntheticPage::new(612.0, 792.0, sheet(0.0, 0.0))]);
+        let new = pdf(&[SyntheticPage::new(612.0, 792.0, sheet(24.0, -12.0))]);
+        let run = |align: CompareAlign| {
+            let mut s = Session::from_bytes(new.clone(), "n.pdf").unwrap();
+            let o = CompareOptions {
+                mode: CompareMode::Graphics,
+                align,
+                fill: Some(Color::rgb(1.0, 1.0, 0.0)),
+                lock: true,
+                ..Default::default()
+            };
+            let r = s.compare_with(std::sync::Arc::new(old.clone()), &o).unwrap();
+            if let Some(id) = r.regions.first().map(|g| g.markup.clone()) {
+                let m = s.markup(&id).unwrap();
+                assert!(m.locked() && m.fill.is_some());
+            }
+            r
+        };
+        assert!(
+            !run(CompareAlign::Page).regions.is_empty(),
+            "a moved sheet differs as stacked"
+        );
+        assert!(run(CompareAlign::Offset { dx: 24.0, dy: -12.0 }).regions.is_empty());
+        let auto = run(CompareAlign::Auto);
+        assert!(auto.regions.is_empty(), "{:?}", auto.regions);
+        let (dx, dy) = auto.offsets[0];
+        assert!((dx - 24.0).abs() < 2.0 && (dy + 12.0).abs() < 2.0, "{dx} {dy}");
+        let pts = CompareAlign::Points {
+            old: [Point::new(60.0, 80.0), Point::new(540.0, 80.0)],
+            new: [Point::new(84.0, 68.0), Point::new(564.0, 68.0)],
+        };
+        assert!(run(pts).regions.is_empty());
+        let mut o = CompareOptions::default();
+        o.apply_preset("scanned").unwrap();
+        assert_eq!(o.align, CompareAlign::Auto);
+        assert!(o.apply_preset("nope").is_err());
     }
 
     #[test]

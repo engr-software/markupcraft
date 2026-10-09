@@ -9,21 +9,21 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | Area | Rows | Proven | Have | Partial | Missing | Excluded | C++ have | C++ partial |
 |---|---|---|---|---|---|---|---|---|
-| Measurement and takeoff | 134 | 2 | 110 | 13 | 9 | 0 | 47 | 17 |
-| Markup tools, Properties, Tool Chest, layers, Markups List | 192 | 0 | 171 | 7 | 14 | 0 | 86 | 23 |
-| Documents, pages, batch, print, search, security | 217 | 0 | 119 | 44 | 48 | 6 | 38 | 23 |
-| Compare/overlay, interface, preferences, mouse, Studio | 226 | 0 | 125 | 27 | 43 | 31 | 24 | 22 |
-| Default keyboard shortcuts | 177 | 0 | 160 | 1 | 12 | 4 | 11 | 18 |
-| **All** | 946 | 2 | 685 | 92 | 126 | 41 | 206 | 103 |
+| Measurement and takeoff | 134 | 2 | 122 | 10 | 0 | 0 | 47 | 17 |
+| Markup tools, Properties, Tool Chest, layers, Markups List | 192 | 0 | 181 | 6 | 5 | 0 | 86 | 23 |
+| Documents, pages, batch, print, search, security | 217 | 0 | 168 | 30 | 13 | 6 | 38 | 23 |
+| Compare/overlay, interface, preferences, mouse, Studio | 226 | 0 | 157 | 19 | 19 | 31 | 24 | 22 |
+| Default keyboard shortcuts | 177 | 0 | 164 | 1 | 8 | 4 | 11 | 18 |
+| **All** | 946 | 2 | 792 | 66 | 45 | 41 | 206 | 103 |
 
 ### By priority (rows in scope)
 
 | Priority | Proven | Have | Partial | Missing |
 |---|---|---|---|---|
-| P0 | 2 | 133 | 5 | 1 |
-| P1 | 0 | 170 | 35 | 12 |
-| P2 | 0 | 144 | 24 | 41 |
-| P3 | 0 | 78 | 27 | 60 |
+| P0 | 2 | 134 | 4 | 1 |
+| P1 | 0 | 198 | 16 | 3 |
+| P2 | 0 | 182 | 20 | 7 |
+| P3 | 0 | 114 | 25 | 26 |
 
 ## Measurement and takeoff
 
@@ -118,15 +118,15 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | meas-057 | Dynamic Fill | P1 | have | missing | `dynamic_fill_makes_areas_spaces_and_hatch` `fill_finds_the_room_and_its_column` `big_rooms_grow_the_window` dynamic_fill traces the closed region of the page's vector linework around a point (planar graph of the segments, face walk); islands become cutouts. Vector linework only (no raster detection). Headless; no click-and-hold UI. |
-| meas-058 | Dynamic Fill outputs | P1 | partial | missing | `dynamic_fill_makes_areas_spaces_and_hatch` Area (with cutouts), Polygon, Perimeter or Space; not Polylength/Volume or several at once. |
+| meas-058 | Dynamic Fill outputs | P1 | have | missing | `fill_by_dragging_polylength_and_volume_outputs` `dynamic_fill_by_path_polylength_and_volume` `dynamic_fill_drag_boundaries_polylength_and_volume` Area (with cutouts), Polygon, Perimeter, Polylength, Volume (with depth) or Space; one output per fill. |
 | meas-059 | Add Boundary | P1 | have | missing | `gaps_close_within_tolerance_and_open_rooms_fail` dynamic_fill boundaries: extra polylines that close or split a room. |
-| meas-060 | Clear fill / boundaries | P1 | missing | missing |  |
-| meas-061 | Drag-to-encircle fill | P2 | missing | missing |  |
-| meas-062 | Dynamic Fill settings | P2 | partial | missing | `gaps_close_within_tolerance_and_open_rooms_fail` Gap tolerance and cutouts on/off; no DPI/cursor settings (vector tracing has none). |
+| meas-060 | Clear fill / boundaries | P1 | have | missing | `fill_by_dragging_polylength_and_volume_outputs` `dynamic_fill_drag_boundaries_polylength_and_volume` Add Boundary lines kept for the next fills and Clear Boundaries in the Dynamic Fill bar; a fill is undone with Undo. |
+| meas-061 | Drag-to-encircle fill | P2 | have | missing | `fill_by_dragging_polylength_and_volume_outputs` `dynamic_fill_by_path_polylength_and_volume` `dynamic_fill_drag_boundaries_polylength_and_volume` Drag across regions: every closed region the drag passes through is filled (dynamic_fill path; the bar's drag option). |
+| meas-062 | Dynamic Fill settings | P2 | partial | missing | `fill_by_dragging_polylength_and_volume_outputs` `dynamic_fill_drag_boundaries_polylength_and_volume` Gap tolerance, cutouts on/off, boundaries, click or drag; no DPI or cursor settings (vector tracing has none). |
 | meas-063 | Visual Search | P1 | have | missing | `visual_search_finds_symbols_and_counts_them` Tool visual_search. |
 | meas-064 | Apply Count to Visual Search results | P0 | have | missing | `visual_search_finds_symbols_and_counts_them` action count: one Count measurement per page with a point on each hit. |
-| meas-065 | Count from text search | P1 | missing | have |  |
-| meas-066 | AI auto-count | P3 | missing | missing |  |
+| meas-065 | Count from text search | P1 | have | have | `search_panel_finds_text_then_counts_and_highlights_the_results` Search panel > Count: one Count per page on the checked text results, subject = the search text. |
+| meas-066 | AI auto-count | P3 | partial | missing | `visual_search_picks_a_region_and_finds_the_symbol` `eighth_turns_colour_filter_and_limit_to_selection` Not a Revu feature; Visual Search > Count places counts on every similar symbol (no symbol recognition model). |
 
 ### Sketch to Scale
 
@@ -217,12 +217,12 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| meas-122 | Tool-set legend | P1 | missing | missing |  |
-| meas-123 | Ad-hoc legend | P2 | partial | missing | `legends_list_subjects_and_follow_edits` legend_add makes a legend of the page or document markups, filtered by subjects; not from an arbitrary selection or a tool set. |
-| meas-124 | Legend scope | P1 | partial | missing | `legends_list_subjects_and_follow_edits` `legend_lists_subjects_counts_totals_and_follows_edits` Current page or all pages; no page range. |
-| meas-125 | Legend columns | P1 | partial | missing | `legends_list_subjects_and_follow_edits` Symbol, Subject, Type, Count, Total columns in any order; not custom Markups List columns. |
-| meas-126 | Legend appearance | P2 | partial | missing | `legends_list_subjects_and_follow_edits` Title on/off and font size; our own table style (no line/fill options yet). |
-| meas-127 | Legend distribution | P3 | missing | missing |  |
+| meas-122 | Tool-set legend | P1 | partial | missing | `legend_ranges_selections_tool_sets_custom_columns_look_and_distribution` `legend_options_copy_freeze_and_reduce_options` A legend of a list of subjects that shows every subject even with none drawn (show_empty); the list is typed, not picked from a Tool Chest set. |
+| meas-123 | Ad-hoc legend | P2 | have | missing | `legend_ranges_selections_tool_sets_custom_columns_look_and_distribution` `legend_options_copy_freeze_and_reduce_options` `redaction_properties_scrub_form_data_and_legend_distribution` A legend of the selected markups (ids; the Legend dialog's selection option). |
+| meas-124 | Legend scope | P1 | have | missing | `legend_ranges_selections_tool_sets_custom_columns_look_and_distribution` `legend_options_copy_freeze_and_reduce_options` Current page, all pages, or a page range. |
+| meas-125 | Legend columns | P1 | have | missing | `legend_ranges_selections_tool_sets_custom_columns_look_and_distribution` `legend_options_copy_freeze_and_reduce_options` Symbol, Subject, Type, Count, Total in any order plus custom Markups List columns (their values split rows). |
+| meas-126 | Legend appearance | P2 | have | missing | `legend_ranges_selections_tool_sets_custom_columns_look_and_distribution` `legend_options_copy_freeze_and_reduce_options` `redaction_properties_scrub_form_data_and_legend_distribution` Title, font size, border colour and width, fill or none, opacity, symbol size, header row on/off. |
+| meas-127 | Legend distribution | P3 | have | missing | `legend_ranges_selections_tool_sets_custom_columns_look_and_distribution` `legend_options_copy_freeze_and_reduce_options` `redaction_properties_scrub_form_data_and_legend_distribution` Copy Legend to Pages (same position, each counting its own page) and Snapshot Legend (a static copy that no longer updates). |
 
 ### Export, reporting and Excel
 
@@ -230,11 +230,11 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 |---|---|---|---|---|---|
 | meas-128 | Markup Summary to CSV | P0 | have | have | `csv_summary_with_groups_and_totals` `cli_list_and_summary_end_to_end` `cli: summary` Spreadsheet-safe CSV with groups, subtotals and grand total per unit. |
 | meas-129 | Markup Summary to XML / PDF / Print | P2 | have | partial | `csv_summary_with_groups_and_totals` `markup_summary_writes_excel_pdf_and_csv` `summary_export_writes_csv_xml_xlsx_and_pdf` XML, CSV, Excel and PDF summary; print through the PDF report. |
-| meas-130 | Summary across files/folders | P1 | partial | missing | `batch_link_summary_sets_and_apply` `batch_combine_summary_and_slip_sheet` Batch > Summary: the Markups List of chosen files as one CSV with a File column; no folders or other formats. |
+| meas-130 | Summary across files/folders | P1 | have | missing | `quantity_links_and_folder_summary_to_excel` `quantity_link_dialog_and_folder_summary_to_excel` Batch Summary of chosen files, a set, or every PDF in a folder (and subfolders), as CSV or an Excel workbook with a File column. |
 | meas-131 | Summary filters and sort | P1 | have | have | `cli_list_and_summary_end_to_end` Summary honours the view's filters, search, sort and grouping. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table. |
-| meas-132 | Quantity Link: link cell to total | P1 | missing | missing |  |
-| meas-133 | Quantity Link filters | P1 | missing | missing |  |
-| meas-134 | Quantity Link measurement types | P1 | missing | missing |  |
+| meas-132 | Quantity Link: link cell to total | P1 | partial | missing | `links_total_by_type_and_filters_and_write_the_workbook` `quantity_links_and_folder_summary_to_excel` `quantity_link_dialog_and_folder_summary_to_excel` Quantity Links name a sheet and cell and a total over one or more PDFs; Update recomputes and writes them into a workbook we write (with a Links sheet). Existing Excel workbooks are not edited in place. |
+| meas-133 | Quantity Link filters | P1 | have | missing | `links_total_by_type_and_filters_and_write_the_workbook` `quantity_links_and_folder_summary_to_excel` Filters by subject, layer, label, author, colour and page label. |
+| meas-134 | Quantity Link measurement types | P1 | have | missing | `links_total_by_type_and_filters_and_write_the_workbook` `quantity_links_and_folder_summary_to_excel` `quantity_link_dialog_and_folder_summary_to_excel` Count, length, area, volume, any measurement quantity, or the sum of a custom column. |
 
 ## Markup tools, Properties, Tool Chest, layers, Markups List
 
@@ -296,13 +296,13 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-042 | Image markup | P2 | partial | missing | `stamps_builtin_custom_dynamic_fields_and_images` `stamp_library_places_a_stamp_and_an_image` Markup > Image places a PNG or JPEG (click or box) as an image stamp annotation; no separate Image markup kind. |
 | mark-043 | Image From Scanner | P3 | missing | missing |  |
 | mark-044 | Snapshot | P1 | have | have | `cli: markupcheck` `snapshot_copies_a_region_and_ctrl_v_pastes_it` Drag a region; Ctrl+V pastes it at the pointer. |
-| mark-045 | Copy Page to Snapshot | P3 | missing | have |  |
-| mark-046 | Snapshot Content (cut/copy region of page) | P2 | missing | partial |  |
+| mark-045 | Copy Page to Snapshot | P3 | have | have | `snapshots_of_a_region_a_page_and_a_space` `snapshots_and_file_attachment_markups_with_capture_summary` `file_attachment_snapshots_and_capture_summary` Edit > Copy Page to Snapshot (Ctrl+Alt+C): the whole page as a snapshot on the clipboard; Ctrl+V pastes it. |
+| mark-046 | Snapshot Content (cut/copy region of page) | P2 | partial | partial | `snapshots_of_a_region_a_page_and_a_space` `snapshots_and_file_attachment_markups_with_capture_summary` Snapshot tool (G) and snapshot_copy: a region kept in vector form, copied and pasted; no cut. |
 | mark-047 | Hyperlink | P1 | have | missing | `links_to_pages_urls_and_files` `hyperlink_tool_adds_a_page_link_listed_in_the_links_panel` Markup > Hyperlink (Shift+H): drag the link area, choose page, web address or file. |
-| mark-048 | Edit Action | P2 | missing | missing |  |
-| mark-049 | File Attachment | P2 | missing | missing |  |
+| mark-048 | Edit Action | P2 | have | missing | `urls_text_links_and_markup_actions` `places_hyperlink_actions_and_markup_edit_action` `places_link_actions_text_and_url_links_and_markup_actions` Edit Action (Ctrl+Shift+E) on the selected markup: page with zoom, Place, view, Space, URL, file; kept on save; markup_action tool. |
+| mark-049 | File Attachment | P2 | have | missing | `file_attachments_round_trip_and_export` `snapshots_and_file_attachment_markups_with_capture_summary` `file_attachment_snapshots_and_capture_summary` Markup > File Attachment (F): embed a file shown as a paperclip (or pin) icon; a File Attachment markup in the list; kept on save. |
 | mark-050 | Capture (camera) | P2 | missing | missing |  |
-| mark-051 | Capture Summary / Export Capture Media | P3 | missing | missing |  |
+| mark-051 | Capture Summary / Export Capture Media | P3 | have | missing | `file_attachments_round_trip_and_export` `snapshots_and_file_attachment_markups_with_capture_summary` `file_attachment_snapshots_and_capture_summary` Capture Summary: every File Attachment markup's file saved to a folder with a CSV summary (page, file, size, description, author); no camera capture. |
 | mark-052 | Symbols (Tool Chest items as symbols) | P0 | missing | have |  |
 | mark-053 | Sketch tools | P2 | missing | missing |  |
 | mark-054 | Legend | P1 | have | missing | `legends_list_subjects_and_follow_edits` `legend_lists_subjects_counts_totals_and_follows_edits` A FreeText legend (/PCLegend) with our own table appearance and the table as /Contents; legend_update recomputes it after edits. |
@@ -409,17 +409,17 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-135 | Layers panel | P1 | have | missing | `layers_create_assign_hide_filter_rename_delete` `layers_panel_creates_assigns_hides_and_isolates` Layers panel (Alt+Y): view, print and lock toggles, counts, new, rename, delete, isolate, show all, assign selected, select markups, flatten; hidden layers are not drawn. |
 | mark-136 | Toggle layer visibility | P1 | have | missing | `layers_create_assign_hide_filter_rename_delete` `layers_create_assign_state_save_and_reopen` layer_set visible: the default configuration's /OFF list. Headless; no panel UI. |
 | mark-137 | Add New Layer | P2 | have | missing | `layers_create_assign_hide_filter_rename_delete` layer_create adds an /OCG to /OCProperties (/OCGs, /D /Order). |
-| mark-138 | Layer hierarchy by drag | P3 | missing | missing |  |
+| mark-138 | Layer hierarchy by drag | P3 | have | missing | `hierarchy_and_configurations` `layer_hierarchy_configurations_views_import_and_export` `layers_tree_drag_configurations_page_only_preview_import_and_export` Drag a layer onto another to nest it (the /Order tree); Top Level takes it out; layer_nest reorders and nests. |
 | mark-139 | Markup Layer | P1 | have | missing | `layers_create_assign_hide_filter_rename_delete` `layers_create_assign_state_save_and_reopen` layer_assign puts markups on a layer: /OC on each annotation, written on save; the layer is created when new. |
 | mark-140 | Isolate layer | P1 | have | missing | `layers_create_assign_hide_filter_rename_delete` `rename_delete_isolate_and_undo` layer_set isolate: only that layer stays on. |
 | mark-141 | Show All / Reset Layers | P2 | have | missing | `layers_create_assign_hide_filter_rename_delete` `rename_delete_isolate_and_undo` layer_set show_all turns every layer on. |
-| mark-142 | Layer configurations | P2 | missing | missing |  |
-| mark-143 | Show Print / Export layers | P3 | partial | missing | `layers_create_assign_hide_filter_rename_delete` Print state per layer (/Usage /Print /PrintState plus the /AS Print event); no Show Print/Export view filter. |
-| mark-144 | Show layers on page only / alphabetical | P3 | missing | missing |  |
+| mark-142 | Layer configurations | P2 | have | missing | `hierarchy_and_configurations` `layer_hierarchy_configurations_views_import_and_export` `layers_tree_drag_configurations_page_only_preview_import_and_export` Named visibility presets saved in /OCProperties /Configs: save, switch, delete. |
+| mark-143 | Show Print / Export layers | P3 | have | missing | `hierarchy_and_configurations` `layer_hierarchy_configurations_views_import_and_export` `layers_tree_drag_configurations_page_only_preview_import_and_export` Print Layers / Export Layers show only the layers set to print or export (export state per layer); End Preview restores the visibility (the preview is an undoable view change). |
+| mark-144 | Show layers on page only / alphabetical | P3 | have | missing | `import_a_page_as_a_layer_and_export_it_alone` `layer_hierarchy_configurations_views_import_and_export` `layers_tree_drag_configurations_page_only_preview_import_and_export` This page only (layers used by the page's markups and content) and A-Z sorting in the Layers panel. |
 | mark-145 | Rename / Delete layer | P2 | have | missing | `layers_create_assign_hide_filter_rename_delete` `rename_delete_isolate_and_undo` layer_rename (markups follow) and layer_delete (markups left on no layer, or deleted with it). Undoable. |
 | mark-146 | Layer Properties | P3 | have | missing | `layers_create_assign_hide_filter_rename_delete` `layers_create_assign_state_save_and_reopen` Visible, print and locked states (layer_set), saved in the file. |
-| mark-147 | Import / Export layer to page | P3 | missing | missing |  |
-| mark-148 | Flatten/Unflatten markups on a layer | P3 | partial | missing | `flatten_markups_by_filter` Flatten markups of chosen layers (markup_flatten layers); no unflatten. |
+| mark-147 | Import / Export layer to page | P3 | have | missing | `import_a_page_as_a_layer_and_export_it_alone` `layer_hierarchy_configurations_views_import_and_export` `layers_tree_drag_configurations_page_only_preview_import_and_export` Import: a page of another PDF drawn as a new layer; Export: a PDF with only that layer's page content and markups. |
+| mark-148 | Flatten/Unflatten markups on a layer | P3 | have | missing | `recoverable_flatten_onto_a_layer_and_unflatten` `recoverable_flatten_unflattens_and_hides_from_compare` Flatten markups of chosen layers onto a layer (recoverable), and Unflatten restores them (by page). |
 
 ### H. Markups List
 
@@ -586,13 +586,13 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-073 | Bookmarks panel | P0 | have | have | `bookmarks_add_rename_move_delete_and_create_from_labels` `bookmarks_panel_adds_renames_nests_and_deletes` Bookmarks panel: go to, add (Ctrl+B), rename, set page, delete, up/down, indent/outdent, expand/collapse, from page labels, clear. |
 | doc-074 | Add bookmark | P1 | have | partial | `bookmarks_add_rename_move_delete_and_create_from_labels` Headless (engine + automation tool); no UI yet. bookmark_add: page, title (default the page label), parent and position. |
 | doc-075 | Rename / delete | P1 | have | have | `bookmarks_add_rename_move_delete_and_create_from_labels` Headless (engine + automation tool); no UI yet. bookmark_edit (title, page, expand) and bookmark_delete (one with its children, or all); undoable. |
-| doc-076 | Reorder, nest and copy | P1 | partial | partial | `bookmarks_add_rename_move_delete_and_create_from_labels` bookmark_move reorders and nests (with children); no copy. |
-| doc-077 | Bookmark properties | P3 | missing | missing |  |
-| doc-078 | Bookmark actions | P2 | missing | missing |  |
-| doc-079 | Create bookmarks automatically | P1 | partial | partial | `bookmarks_add_rename_move_delete_and_create_from_labels` bookmark_create: one per page from page labels or page numbers, replace or append; no AutoMark. |
-| doc-080 | Bookmark structures | P3 | missing | missing |  |
-| doc-081 | Audit bookmarks | P3 | missing | missing |  |
-| doc-082 | Export bookmarks | P2 | missing | missing |  |
+| doc-076 | Reorder, nest and copy | P1 | have | partial | `automark_structure_style_action_copy_and_audit` `bookmarks_automark_properties_copy_action_and_audit` `bookmarks_panel_adds_renames_nests_and_deletes` Up/Down/Indent/Outdent reorder and nest (with children); Copy duplicates a bookmark with its children, look and action (bookmark_copy). |
+| doc-077 | Bookmark properties | P3 | have | missing | `automark_structure_style_action_copy_and_audit` `bookmarks_automark_properties_copy_action_and_audit` `bookmark_properties_actions_copy_automark_structures_audit_and_export` Title, text colour, bold and italic for one or many (Ctrl+click), shown in the panel. |
+| doc-078 | Bookmark actions | P2 | have | missing | `automark_structure_style_action_copy_and_audit` `bookmark_properties_actions_copy_automark_structures_audit_and_export` `bookmarks_automark_properties_copy_action_and_audit` Page with zoom (fit page/width/actual/inherit), Place, Space, snapshot view rectangle (also of another PDF), URL, file (relative or full); Set to Current View. |
+| doc-079 | Create bookmarks automatically | P1 | have | partial | `automark_structure_style_action_copy_and_audit` `bookmarks_automark_properties_copy_action_and_audit` `bookmark_properties_actions_copy_automark_structures_audit_and_export` From page labels or page numbers, or AutoMark from the text in a title-block region you drag, for a page range. |
+| doc-080 | Bookmark structures | P3 | have | missing | `automark_structure_style_action_copy_and_audit` `bookmark_properties_actions_copy_automark_structures_audit_and_export` Structures as JSON: folder trees with title prefixes; save the current tree, apply one to make the folders and file matching bookmarks into them. |
+| doc-081 | Audit bookmarks | P3 | have | missing | `automark_structure_style_action_copy_and_audit` `bookmarks_automark_properties_copy_action_and_audit` `bookmark_properties_actions_copy_automark_structures_audit_and_export` Audit marks bookmarks whose page is gone, whose Place is missing, or that go nowhere (a ! in the panel). |
+| doc-082 | Export bookmarks | P2 | have | missing | `export_bookmarks_csv_and_pdf` `bookmark_properties_actions_copy_automark_structures_audit_and_export` CSV or PDF report for one or many PDFs: tree or flat, top level only, links to each page, date stamp, page size. |
 | doc-083 | Save collapse state | P3 | have | missing | `bookmarks_panel_adds_renames_nests_and_deletes` Expanding or collapsing in the Bookmarks panel is written to the outline and saved with the file. |
 | doc-084 | Bookmarks from source apps | P3 | missing | missing |  |
 
@@ -623,12 +623,12 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | doc-102 | Combine PDFs | P1 | have | missing | `split_and_combine_documents` Headless (engine + automation tool); no UI yet. doc_combine joins PDFs in order with their markups and page labels. |
-| doc-103 | Combine options | P2 | partial | missing | `split_and_combine_documents` Bookmark per file (or keep the first file's); no attachments, properties or layer options. |
-| doc-104 | Create PDF from a file | P3 | missing | missing |  |
-| doc-105 | Create from multiple files (Stapler) | P3 | missing | missing |  |
+| doc-103 | Combine options | P2 | have | missing | `create_combine_and_layered` `combine_create_and_layered` `batch_create_layered_merge_combine_options_and_link_terms` Bookmark per file, every file's attachments, merged document properties, every file's layers, page labels from file names (doc_combine_files; the Combine dialog). Signatures do not survive (warned). |
+| doc-104 | Create PDF from a file | P3 | partial | missing | `create_combine_and_layered` `combine_create_and_layered` `batch_create_layered_merge_combine_options_and_link_terms` Images (PNG, JPEG, TIFF, BMP) and text files to PDF (doc_create_from_files; File > Create PDF from Files). No Office or CAD documents (those need authoring plugins). |
+| doc-105 | Create from multiple files (Stapler) | P3 | partial | missing | `create_combine_and_layered` `combine_create_and_layered` `batch_create_layered_merge_combine_options_and_link_terms` Stapler: images, text files and PDFs in one PDF in list order. No Office or CAD documents (authoring plugins). |
 | doc-106 | Explorer right-click combine/convert | P3 | missing | missing |  |
 | doc-107 | Create from scanner or camera | P3 | missing | missing |  |
-| doc-108 | Layered PDF from PDFs | P3 | missing | missing |  |
+| doc-108 | Layered PDF from PDFs | P3 | have | missing | `create_combine_and_layered` `combine_create_and_layered` `batch_create_layered_merge_combine_options_and_link_terms` Create Layered PDF: each file's first page drawn on one page in its own layer named after the file (doc_layered; File menu). |
 | doc-109 | Authoring plugins (high level) | P3 | excluded | missing | Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF. |
 | doc-110 | 3D PDF basics | P3 | excluded | missing | Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF. |
 
@@ -636,21 +636,21 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| doc-111 | Batch Link: search terms | P1 | partial | missing | `batch_link_summary_sets_and_apply` batch_link searches for the page labels (sheet numbers) of the files, whole words up to four words; no custom search terms or regular expressions. |
-| doc-112 | Batch Link: term filters | P2 | missing | missing |  |
+| doc-111 | Batch Link: search terms | P1 | have | missing | `batch_link_terms_filters_and_options` `batch_link_terms_highlight_and_filters` `batch_create_layered_merge_combine_options_and_link_terms` Search terms from page labels, file names, a page region (AutoMark style) or custom terms typed or imported from CSV (term, file, page). No regular expressions. |
+| doc-112 | Batch Link: term filters | P2 | have | missing | `batch_link_terms_filters_and_options` `batch_link_terms_highlight_and_filters` `batch_create_layered_merge_combine_options_and_link_terms` Term filter: cut each term at a character and keep the text before or after it; match case. |
 | doc-113 | Batch Link: destinations | P1 | have | missing | `batch_link_summary_sets_and_apply` Links go to the labelled page: a page link in the same file, a GoToR link (relative file name) to a page of another file. |
-| doc-114 | Batch Link: link options | P2 | partial | missing | `batch_link_summary_sets_and_apply` Border width, colour and padding; a place that already has a link is skipped (re-runs add nothing). |
+| doc-114 | Batch Link: link options | P2 | have | missing | `batch_link_terms_filters_and_options` `batch_link_terms_highlight_and_filters` `batch_create_layered_merge_combine_options_and_link_terms` Border width, colour and padding, full or relative paths, a highlight over each new link, replace existing links (else skipped). |
 | doc-115 | Batch Link: save and report | P2 | have | missing | `batch_link_summary_sets_and_apply` Each file is saved in place; the report lists links per file, places skipped and errors. |
 | doc-116 | Batch Slip Sheet: matching | P1 | have | missing | `slip_sheet_replaces_matching_sheets_and_keeps_markups` slip_sheet matches page labels, whole or the part before a filter (e.g. ' - '), case-insensitive by default. |
 | doc-117 | Batch Slip Sheet: apply | P1 | have | missing | `slip_sheet_replaces_matching_sheets_and_keeps_markups` Matching pages are replaced with the revised content; their markups, links and bookmarks stay. Undoable. |
 | doc-118 | Batch Slip Sheet: leftovers and report | P2 | have | missing | `slip_sheet_replaces_matching_sheets_and_keeps_markups` Unmatched new sheets are appended with their labels (or left out); the report lists matched, unmatched old and unmatched new sheets. |
 | doc-119 | Batch Sign & Seal | P3 | missing | missing |  |
 | doc-120 | Batch Apply Stamp | P2 | have | missing | `batch_link_summary_sets_and_apply` batch_apply with stamp_add over many files (in place or to an output folder). |
-| doc-121 | Batch Flatten / Unflatten | P2 | partial | missing | `batch_link_summary_sets_and_apply` batch_apply with markup_flatten; no unflatten. |
+| doc-121 | Batch Flatten / Unflatten | P2 | have | missing | `batch_unflatten_repair_rotate_and_recolour` `batch_combine_summary_and_slip_sheet` `print_dialog_copies_window_markups_only_emphasis_and_batch_print` batch_apply runs markup_flatten (recoverable, layer) or markup_unflatten on chosen pages of many files; Batch > Flatten and Batch > Unflatten in the app. |
 | doc-122 | Batch Summary | P0 | have | partial | `batch_link_summary_sets_and_apply` batch_summary: one CSV of the Markups Lists of many files with a File column. |
-| doc-123 | Batch Print | P2 | missing | missing |  |
+| doc-123 | Batch Print | P2 | have | missing | `jobs_print_regions_markups_only_margins_and_emphasis` `summary_options_and_print_jobs` `print_dialog_copies_window_markups_only_emphasis_and_batch_print` Batch > Print: many PDFs in list order with one job, each a print-ready PDF and optionally sent to the printer. |
 | doc-124 | Batch Headers & Footers | P3 | have | missing | `batch_link_summary_sets_and_apply` batch_apply with header_footer_add / watermark_add / bates_add. |
-| doc-125 | Other batch processes | P3 | partial | missing | `batch_link_summary_sets_and_apply` batch_apply runs a list of document tools (flatten, marks, stamps, paste markups, add markups, layers, legends, page labels) on each file. |
+| doc-125 | Other batch processes | P3 | partial | missing | `batch_unflatten_repair_rotate_and_recolour` `batch_compare_and_overlay_with_saved_batch_file_and_reports` batch_apply also runs security, OCR, reduce file size, repair, colour processing, PDF/A, rotate, crop, page size, redaction and form flattening; batch compare and overlay; no split or script batches. |
 
 ### Sets (many PDFs viewed as one)
 
@@ -659,12 +659,12 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-126 | Create / open / save Set | P1 | have | missing | `batch_link_summary_sets_and_apply` `sets_sort_naturally_and_round_trip` set_save writes our own JSON set (.pcset, relative paths); set_sheets reads it and can open every file. |
 | doc-127 | Navigate a Set | P1 | have | missing | `batch_link_summary_sets_and_apply` `sets_panel_lists_every_sheet_and_opens_one` Sets panel (Alt+2): new, open, save (.pcset), add files; sheets by label (file order or sheet number), filter; click opens the file at the page. |
 | doc-128 | Set sorting | P2 | have | missing | `batch_link_summary_sets_and_apply` `sets_sort_naturally_and_round_trip` File order, label (natural order) or file then label. |
-| doc-129 | Revision handling | P2 | missing | missing |  |
+| doc-129 | Revision handling | P2 | have | missing | `revisions_publish_package_and_print` `sets_tags_categories_revisions_publish_and_print` `sets_categories_revisions_tags_publish_and_print` Versions of each sheet by sheet number or a wildcard filter; latest by revision then date; earlier ones shown, hidden, greyed or crossed out; publish the latest only. |
 | doc-130 | Carry markups to new revision | P2 | have | missing | `slip_sheet_replaces_matching_sheets_and_keeps_markups` Slip Sheet keeps the old sheets' markups on the revised pages. |
-| doc-131 | Categories | P3 | missing | missing |  |
-| doc-132 | Tags | P2 | missing | missing |  |
-| doc-133 | Publish a Set | P2 | missing | missing |  |
-| doc-134 | Print / search a Set | P2 | missing | missing |  |
+| doc-131 | Categories | P3 | have | missing | `tags_categories_and_types` `revisions_publish_package_and_print` `sets_categories_revisions_tags_publish_and_print` Categories off, by file name or by sheet number, from discipline templates (NCS designators). |
+| doc-132 | Tags | P2 | have | missing | `revisions_publish_package_and_print` `sets_tags_categories_revisions_publish_and_print` `sets_categories_revisions_tags_publish_and_print` Sheet Number, Revision (file name), Discipline, Sheet Type (NCS) derived; custom tags per sheet kept in the set file. |
+| doc-133 | Publish a Set | P2 | have | missing | `revisions_publish_package_and_print` `sets_tags_categories_revisions_publish_and_print` `sets_categories_revisions_tags_publish_and_print` Publish: one combined PDF with a bookmark per sheet (latest only optional), a package folder with the set file, and a drawing log CSV. |
+| doc-134 | Print / search a Set | P2 | have | missing | `revisions_publish_package_and_print` `sets_tags_categories_revisions_publish_and_print` `sets_categories_revisions_tags_publish_and_print` `search_across_files_folders_sets_and_open_documents` Print Set lays every sheet out with one print job; Search covers the current Set. |
 
 ### Markup summary and print
 
@@ -672,16 +672,16 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 |---|---|---|---|---|---|
 | doc-135 | Summary output types | P0 | have | partial | `csv_summary_with_groups_and_totals` `cli: summary` `markup_summary_writes_excel_pdf_and_csv` `summary_export_writes_csv_xml_xlsx_and_pdf` CSV, XML, Excel (.xlsx) and a PDF report (Markup > Markup Summary, tool summary_export). |
 | doc-136 | Summary columns | P1 | have | missing | `markup_summary_writes_excel_pdf_and_csv` `summary_pages_and_columns_filter` Any Markups List columns, custom columns included. |
-| doc-137 | Summary filter and sort | P1 | partial | missing | `summary_matches_the_list_and_writes_every_format` Sort (ascending or descending) and group with subtotals; filters only through the engine options. |
-| doc-138 | Summary output options | P1 | partial | partial | `cli_list_and_summary_end_to_end` `summary_pages_and_columns_filter` `markup_summary_writes_excel_pdf_and_csv` Columns, grouping, sort, page range, measurements only, title; no PDF layout choices. |
-| doc-139 | Summary PDF layout | P1 | partial | missing | `summary_matches_the_list_and_writes_every_format` A fixed landscape table with group headings and totals; no layout options. |
-| doc-140 | Print dialog: printer | P1 | partial | missing | `print_writes_a_print_ready_pdf` File > Print (Ctrl+P) writes a print-ready PDF (pages, paper, orientation, scaling, markups); sending it to a printer is left to the PDF viewer. |
-| doc-141 | Print: pages | P1 | partial | missing | `print_pdf_fit_nup_and_tile` print_pdf takes pages in print order; no current view or Get Window; writes a print-ready PDF, no printer. |
-| doc-142 | Print: what to print | P1 | partial | missing | `print_pdf_fit_nup_and_tile` print_pdf markups: true/false (document with or without markups). |
-| doc-143 | Print: paper and copies | P1 | partial | missing | `print_pdf_fit_nup_and_tile` print_pdf paper by name (ANSI, ARCH, ISO) or size, orientation auto/portrait/landscape; no copies (no printer). |
-| doc-144 | Print: scaling | P1 | partial | missing | `print_pdf_fit_nup_and_tile` print_pdf fit, actual, shrink, custom percent, centred (pdfcraft-print); no margins variants or manual position. |
+| doc-137 | Summary filter and sort | P1 | have | missing | `multi_sort_content_layouts_links_and_one_report_per_value` `summary_options_and_print_jobs` `summary_filters_then_sort_output_and_pdf_layout` Filter by any column's values; multi-level sort (sort, then by ...), ascending or descending. |
+| doc-138 | Summary output options | P1 | have | partial | `multi_sort_content_layouts_links_and_one_report_per_value` `summary_options_and_print_jobs` `summary_filters_then_sort_output_and_pdf_layout` Title with the date appended, one report per value of the first column, CSV/XML markups, totals or both, headers on or off; output where the save dialog says. |
+| doc-139 | Summary PDF layout | P1 | partial | missing | `multi_sort_content_layouts_links_and_one_report_per_value` `summary_options_and_print_jobs` `summary_filters_then_sort_output_and_pdf_layout` Table or flow style, page size, a page per group, padding, totals, links to the source pages, a PNG logo; no markup thumbnails, Spaces cover sheet, page content or status history. |
+| doc-140 | Print dialog: printer | P1 | partial | missing | `commands_name_the_printer_and_copies` `print_dialog_copies_window_markups_only_emphasis_and_batch_print` `summary_options_and_print_jobs` Printer chosen from the system's list; Print lays the sheets out as a print-ready PDF and hands it to the system print command (lp; PowerShell PrintTo, which needs a PDF handler); no printer properties, status, .prn or live preview. |
+| doc-141 | Print: pages | P1 | have | missing | `jobs_print_regions_markups_only_margins_and_emphasis` `print_dialog_copies_window_markups_only_emphasis_and_batch_print` `summary_options_and_print_jobs` All, current page, a range, Current View, or Get Window (drag the region to print). |
+| doc-142 | Print: what to print | P1 | have | missing | `jobs_print_regions_markups_only_margins_and_emphasis` `print_dialog_copies_window_markups_only_emphasis_and_batch_print` Document and markups, document only, or markups only. |
+| doc-143 | Print: paper and copies | P1 | have | missing | `order_copies_collate_reverse` `jobs_print_regions_markups_only_margins_and_emphasis` `print_dialog_copies_window_markups_only_emphasis_and_batch_print` Paper by name or size, orientation auto/portrait/landscape (auto-rotate), copies, collate, reverse order. |
+| doc-144 | Print: scaling | P1 | have | missing | `jobs_print_regions_markups_only_margins_and_emphasis` `summary_options_and_print_jobs` None (actual), fit, shrink (reduce), custom percent; margins make fit/reduce to margins; centred or moved by a manual X/Y offset. |
 | doc-145 | Print: pages per sheet | P2 | have | missing | `print_pdf_fit_nup_and_tile` Headless (engine + automation tool); no UI yet. print_pdf layout nup: columns x rows per sheet, left to right, optional border; output is a print-ready PDF. |
-| doc-146 | Print: emphasis options | P2 | missing | missing |  |
+| doc-146 | Print: emphasis options | P2 | partial | missing | `jobs_print_regions_markups_only_margins_and_emphasis` `print_dialog_copies_window_markups_only_emphasis_and_batch_print` Dim page content, dim filtered-out markups, print Spaces, print visible hyperlinks; no Advanced dialog or reset to defaults. |
 | doc-147 | Print tiling | P3 | have | missing | `print_pdf_fit_nup_and_tile` Headless (engine + automation tool); no UI yet. print_pdf layout tile: each page enlarged over several sheets with overlap and cut marks. |
 
 ### Headers, footers, stamps and watermarks
@@ -690,9 +690,9 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 |---|---|---|---|---|---|
 | doc-148 | Add header/footer | P3 | have | missing | `headers_footers_watermarks_and_bates` Headless (engine + automation tool); no UI yet. header_footer_add: six places, font size, colour, underline, margins (pdfcraft-edit marks). |
 | doc-149 | Header/footer tokens | P3 | have | missing | `headers_footers_watermarks_and_bates` Headless (engine + automation tool); no UI yet. Tokens: page number, page count, Page 1 of n, dates, Bates number (digits, start, prefix, suffix); bates_add builds the Bates token. No file-name tokens. |
-| doc-150 | Fit content inside margins | P3 | missing | missing |  |
-| doc-151 | Header/footer templates | P3 | missing | missing |  |
-| doc-152 | Edit / update / delete | P3 | partial | missing | `headers_footers_watermarks_and_bates` replace: true re-applies (updating numbers); marks_remove deletes headers/footers, watermarks; no editing of the stored settings. |
+| doc-150 | Fit content inside margins | P3 | have | missing | `presets_templates_kept_header_footer_and_fit` `security_presets_status_header_footer_templates_and_fit` `security_presets_status_and_kept_header_footer_templates` Header & Footer: shrink page content to fit inside the margins (page_fit_content, or the fit option of a header/footer); an earlier fit is replaced. |
+| doc-151 | Header/footer templates | P3 | have | missing | `presets_templates_kept_header_footer_and_fit` `security_presets_status_header_footer_templates_and_fit` `security_presets_status_and_kept_header_footer_templates` Header/footer templates saved by name (header_footer_template; Save Template and the template buttons in the dialog), applied to any page range. |
+| doc-152 | Edit / update / delete | P3 | have | missing | `presets_templates_kept_header_footer_and_fit` `security_presets_status_header_footer_templates_and_fit` `security_presets_status_and_kept_header_footer_templates` The applied header/footer is kept with the document: Edit loads it back into the dialog, Update re-applies it to the pages as they are now (Document > Update Header & Footer), Remove deletes headers/footers. |
 | doc-153 | Stamps as document feature | P2 | missing | missing |  |
 | doc-154 | Watermark | P3 | have | missing | `headers_footers_watermarks_and_bates` Headless (engine + automation tool); no UI yet. watermark_add: text, size (or fit), colour, opacity, rotation, offset, behind or on top; marks_remove removes. |
 
@@ -701,14 +701,14 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | doc-155 | OCR | P2 | have | have | `ocr_pages_adds_a_searchable_text_layer` `ocr_adds_a_searchable_layer_over_the_ink` Session::ocr + tool ocr_pages: pdfcraft-ocr (ocrs) words placed as an invisible text layer over the page image, one undo step, any page list. Models fetched by `cargo xtask models` (never committed). No batch across files yet. |
-| doc-156 | OCR options | P3 | partial | partial | `ocr_pages_adds_a_searchable_text_layer` dpi and skip pages that already have text; English (Latin) models only; no skew, orientation or vertical-text options. |
+| doc-156 | OCR options | P3 | partial | partial | `real_ocr_reads_rendered_text_turned_and_skewed` `ocr_adds_a_searchable_layer_over_the_ink` `ocr_runs_on_a_worker_with_deskew_and_orientation` Page range, dpi, skip pages that already have text, skip vector pages, deskew, orientation and vertical text; runs on a worker thread. Verified with the real ocrs models. Latin-script (English) models only: no language choice. |
 | doc-157 | Text search | P0 | have | have | `text_search_finds_hits_with_rectangles` Headless (engine + automation tool); no UI yet. text_search over the page text layer (pdfcraft-render): hits with page, text, context and per-line rectangles in user space. |
-| doc-158 | Search scope | P1 | partial | partial | `text_search_finds_hits_with_rectangles` Current document, all or chosen pages; no other files, Sets or folders. |
-| doc-159 | Search options | P1 | partial | partial | `text_search_finds_hits_with_rectangles` `search_panel_finds_text_then_counts_and_highlights_the_results` Page text and markup text, case sensitive, whole words, hit limit; not file names, properties or form fields. |
-| doc-160 | Search selected text | P2 | missing | missing |  |
+| doc-158 | Search scope | P1 | have | partial | `search_across_files_folders_sets_and_open_documents` `search_scopes_targets_f3_replace_and_selected_text` Current page, page range, current document, all open documents, the current Set, recent files, a folder with or without subfolders (Studio Projects excluded). |
+| doc-159 | Search options | P1 | have | partial | `search_across_files_folders_sets_and_open_documents` `search_all_looks_in_names_properties_and_markups` Page text, markup text, file names, document properties and form field values; case sensitive; whole words. |
+| doc-160 | Search selected text | P2 | have | missing | `search_scopes_targets_f3_replace_and_selected_text` `replace_checked_text_and_read_a_selection` Tools > Search Selected Text: drag over the text on the page; it becomes the search (region_text reads a box). |
 | doc-161 | Act on search results | P1 | have | partial | `search_panel_finds_text_then_counts_and_highlights_the_results` Highlight, Count or Redact the checked results. |
-| doc-162 | Search and replace | P3 | missing | missing |  |
-| doc-163 | Visual Search | P0 | partial | missing | `visual_search_finds_symbols_and_counts_them` Sensitivity, quarter-turn rotations and Count results; no 45-degree steps, colour filter or limit-to-selection yet. |
+| doc-162 | Search and replace | P3 | have | missing | `replace_checked_text_and_read_a_selection` `replace_rewrites_the_page_text_and_undoes` `search_scopes_targets_f3_replace_and_selected_text` Replace Checked rewrites the found text in the page content (not markups), in the line's font when it can show the text, else Helvetica (font fallback on) or the line is skipped; one undo step. |
+| doc-163 | Visual Search | P0 | have | missing | `eighth_turns_colour_filter_and_limit_to_selection` `visual_search_eighth_turns_colour_limit_and_thumbnails` `visual_search_options_and_result_thumbnails` `visual_search_picks_a_region_and_finds_the_symbol` Sensitivity, rotations in quarter or 45-degree steps, colour filter, limit to selection (raster: ink running out of the box is ignored), results to Count. |
 
 ### Forms
 
@@ -716,8 +716,8 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 |---|---|---|---|---|---|
 | doc-164 | Fill forms | P2 | partial | missing | `forms_create_fill_and_flatten` `create_fill_reset_and_flatten_fields` Tools form_list, form_fill (text, check box, radio, combo, list; appearances regenerated by pdfcraft-forms) and form_reset. No XFA or field highlight yet. |
 | doc-165 | Create form fields | P3 | partial | missing | `forms_create_fill_and_flatten` `create_fill_reset_and_flatten_fields` Tool form_add_field: text (multiline), check box, radio groups, dropdown, list box, button and signature fields with Acrobat-style names and looks; no properties or actions editing yet. Fields flatten into page content with form_flatten. |
-| doc-166 | Auto-create fields | P3 | missing | missing |  |
-| doc-167 | Form data | P3 | missing | missing |  |
+| doc-166 | Auto-create fields | P3 | have | missing | `form_data_auto_fields_and_typewriter` `form_data_auto_fields_typewriter_and_merge` `redaction_properties_scrub_form_data_and_legend_distribution` Automatically Create Form Fields: runs of underscores and wide empty boxes become text fields, small squares check boxes, named after the word to their left (form_auto_fields; Tools menu). |
+| doc-167 | Form data | P3 | have | missing | `form_data_auto_fields_and_typewriter` `form_data_auto_fields_typewriter_and_merge` `redaction_properties_scrub_form_data_and_legend_distribution` `batch_create_layered_merge_combine_options_and_link_terms` Export and import form data as XFDF, CSV or JSON; Merge Form Data of many PDFs into one CSV; Typewriter text migrated into the fields under it. |
 
 ### Digital signatures and certificates
 
@@ -733,34 +733,34 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | doc-172 | Open password-protected PDFs | P1 | have | missing | `security_passwords_encrypt_open_and_remove` Headless (engine + automation tool); no UI yet. doc_open_protected opens with the open or permissions password (RC4, AES-128, AES-256 via pdfcraft-cos); a protected document saves again. |
-| doc-173 | Security status icon | P2 | missing | missing |  |
+| doc-173 | Security status icon | P2 | partial | missing | `presets_templates_kept_header_footer_and_fit` `security_presets_status_header_footer_templates_and_fit` `security_presets_status_and_kept_header_footer_templates` Security status (none, open password, printing or editing limited, both) as it will be saved, in security_info and the Security dialog; no icon in the status bar. |
 | doc-174 | Set passwords and permissions | P3 | have | missing | `security_passwords_encrypt_open_and_remove` Headless (engine + automation tool); no UI yet. security_set: open and/or permissions password, eight permissions, AES-256/AES-128/RC4; security_remove with the permissions password; applied by a full save. |
-| doc-175 | Security presets | P3 | missing | missing |  |
+| doc-175 | Security presets | P3 | have | missing | `presets_templates_kept_header_footer_and_fit` `security_presets_status_header_footer_templates_and_fit` `security_presets_status_and_kept_header_footer_templates` Security presets saved by name in the settings folder (security_preset; Save Preset and the preset buttons in the Security dialog) and applied to any document. |
 | doc-176 | Mark for redaction | P3 | have | missing | `redaction_marks_applies_and_verifies` `marks_search_hits_and_areas_then_applies_and_verifies` Tool redact_mark: areas (page + rects) or every occurrence of a text (case / whole words), as Redact annotations (pdfcraft-annot); redact_list lists them. |
-| doc-177 | Apply redactions | P3 | partial | missing | `redaction_marks_applies_and_verifies` `marks_search_hits_and_areas_then_applies_and_verifies` Tool redact_apply (pdfcraft-redact): text, images and paths under the marks removed on all or chosen pages, verified afterwards (residue), next save is a full rewrite. No metadata scrub or text-only / images-only choice yet. |
-| doc-178 | Redaction appearance | P3 | partial | missing | `redaction_marks_applies_and_verifies` Fill colour (or none) and overlay text; no outline colour, font, autosize or repeat options in the tool yet. |
+| doc-177 | Apply redactions | P3 | partial | missing | `redaction_marks_applies_and_verifies` `marks_search_hits_and_areas_then_applies_and_verifies` `overlay_look_codes_and_metadata_scrub` `redaction_look_codes_and_scrub` `redaction_properties_scrub_form_data_and_legend_distribution` Tool redact_apply (pdfcraft-redact): text, images and paths under the marks removed on all or chosen pages, verified afterwards (residue), optional scrub of document properties, metadata, attachments and scripts; next save is a full rewrite. No text-only / images-only choice. |
+| doc-178 | Redaction appearance | P3 | have | missing | `overlay_look_codes_and_metadata_scrub` `redaction_look_codes_and_scrub` `redaction_properties_scrub_form_data_and_legend_distribution` Redaction Properties: fill colour or none, overlay text or a FOIA/DOD redaction code, font, size (0 = fit), text colour, alignment and repeat to fill. |
 
 ### Flatten, file size and archive
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | doc-179 | Flatten markups | P2 | have | missing | `flatten_markups_by_filter` Headless (engine + automation tool); no UI yet. markup_flatten burns appearances into page content by ids, pages, kinds, layers or authors (pop-ups and replies go too); undoable until saved, then a full save. Not recoverable (no unflatten). |
-| doc-180 | Flatten extras | P3 | missing | missing |  |
-| doc-181 | Unflatten | P2 | missing | missing |  |
+| doc-180 | Flatten extras | P3 | partial | missing | `recoverable_flatten_onto_a_layer_and_unflatten` Flatten into a named layer and recoverable flatten; no overlay text, kept pop-up properties or capture summary. |
+| doc-181 | Unflatten | P2 | have | missing | `recoverable_flatten_unflattens_and_hides_from_compare` `recoverable_flatten_onto_a_layer_and_unflatten` `repair_pdfa_color_processing_and_unflatten` Flatten with recoverable: true keeps the annotations; Document > Unflatten (Ctrl+Shift+U) restores them on chosen pages; survives save and reopen. |
 | doc-182 | Reduce file size | P2 | have | missing | `reduce_file_size_reports_sizes` Headless (engine + automation tool); no UI yet. doc_reduce_size (pdfcraft-optimize): resample/recompress images, drop thumbnails, compress streams, remove dead links; reports full-save sizes. |
-| doc-183 | Reduce size custom settings | P3 | partial | missing | `reduce_file_size_reports_sizes` Target and threshold ppi, JPEG quality or lossless, thumbnails; not the other per-class options. |
-| doc-184 | Repair PDF | P3 | missing | missing |  |
-| doc-185 | Archive as PDF/A | P3 | missing | missing |  |
-| doc-186 | Color processing | P2 | missing | missing |  |
+| doc-183 | Reduce size custom settings | P3 | have | missing | `reduce_on_another_thread_and_the_clean_ups` `legend_options_copy_freeze_and_reduce_options` `security_presets_status_and_kept_header_footer_templates` Colour and gray image targets and thresholds, JPEG quality or lossless, thumbnails, alternate images, tags, print settings, stream compression, invalid links, unreferenced destinations, metadata, private data, crop to crop box; runs on a worker thread. |
+| doc-184 | Repair PDF | P3 | have | missing | `repair_archive_pdfa_and_color_processing` `repair_drops_broken_entries_and_archive_round_trips` `repair_pdfa_color_processing_and_unflatten` Document > Repair PDF: full rewrite from the object graph (xref rebuilt, broken annotation and content entries dropped), reports the object layer's read fixes. |
+| doc-185 | Archive as PDF/A | P3 | have | missing | `repair_archive_pdfa_and_color_processing` `repair_drops_broken_entries_and_archive_round_trips` `repair_pdfa_color_processing_and_unflatten` Archive as PDF/A (pdfcraft-preflight): PDF/A-2b or 3b, not 1b; Verify lists the problems left; Unlock removes the PDF/A identification. |
+| doc-186 | Color processing | P2 | have | missing | `grayscale_turns_red_gray_and_comes_off_again` `repair_archive_pdfa_and_color_processing` `repair_pdfa_color_processing_and_unflatten` Document > Color Processing: grayscale, one tint or lighten toward white, vector and raster alike (a blend-mode overlay), per page range; removable. |
 
 ### Export
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| doc-187 | Export to images | P2 | missing | missing |  |
-| doc-188 | Export to text / RTF / HTML | P3 | missing | missing |  |
-| doc-189 | Export to Word / Excel / PowerPoint | P3 | missing | missing |  |
-| doc-190 | Export page region to Excel | P1 | missing | missing |  |
+| doc-187 | Export to images | P2 | partial | missing | `export_images_office_formats_and_page_region` `export_dialogs_write_images_office_files_and_a_region` File > Export Pages as Images: PNG, JPEG (quality), TIFF or BMP at 18-1200 dpi, pages, with or without markups, auto-numbered <name><suffix><page>; no GIF. |
+| doc-188 | Export to text / RTF / HTML | P3 | have | missing | `export_images_office_formats_and_page_region` `export_dialogs_write_images_office_files_and_a_region` export_document to .txt, .html, .rtf (paragraphs in reading order, headings by size, via pdfcraft-export). |
+| doc-189 | Export to Word / Excel / PowerPoint | P3 | have | missing | `export_images_office_formats_and_page_region` `export_dialogs_write_images_office_files_and_a_region` Word (.docx, paragraphs and tables), Excel (.xlsx, one sheet per page, words laid out in rows and columns, numbers as numbers), PowerPoint (.pptx, one slide per page as a picture). Scans need OCR first (ocr_pages) for text. |
+| doc-190 | Export page region to Excel | P1 | have | missing | `export_images_office_formats_and_page_region` `export_dialogs_write_images_office_files_and_a_region` `region_reads_a_schedule_as_rows_and_columns` File > Export Page Region to Excel: drag a box; its text becomes rows and columns by position, saved as .xlsx or .csv. |
 
 ### Properties, metadata and attachments
 
@@ -778,11 +778,11 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | doc-197 | Follow PDF links | P0 | have | have | `hyperlink_tool_adds_a_page_link_listed_in_the_links_panel` Links panel Follow (or double-click): page links go to the page, file links open the file, web links open the browser. |
-| doc-198 | Hyperlink tool | P1 | partial | missing | `links_to_pages_urls_and_files` `hyperlink_tool_adds_a_page_link_listed_in_the_links_panel` Hyperlink tool draws a link box (page, web address or file); no link-from-text. |
-| doc-199 | Link actions | P1 | partial | missing | `links_to_pages_urls_and_files` Go to a page, open a URL, open a file (GoToR with page for PDFs, Launch otherwise); no Place, Space or snapshot views. |
-| doc-200 | Hyperlinks from URLs | P3 | missing | missing |  |
+| doc-198 | Hyperlink tool | P1 | have | missing | `urls_text_links_and_markup_actions` `places_link_actions_text_and_url_links_and_markup_actions` `places_hyperlink_actions_and_markup_edit_action` `hyperlink_tool_adds_a_page_link_listed_in_the_links_panel` Hyperlink tool (Shift+H): drag a box, or fit the link to the text in the box; Highlight in the Links panel shows every link in blue. |
+| doc-199 | Link actions | P1 | have | missing | `places_add_move_rename_delete_and_links_follow_them` `places_link_actions_text_and_url_links_and_markup_actions` Page (fit page, fit width, actual, inherit), Place, Space (its box), view rectangle (also in another PDF), URL, open a file with relative or full path. |
+| doc-200 | Hyperlinks from URLs | P3 | have | missing | `urls_text_links_and_markup_actions` `places_link_actions_text_and_url_links_and_markup_actions` Create Hyperlinks from URLs: http://, https:// and www. addresses written on chosen pages become links (already linked text skipped). |
 | doc-201 | Links panel | P2 | have | missing | `links_to_pages_urls_and_files` `hyperlink_tool_adds_a_page_link_listed_in_the_links_panel` link_list lists every link with its target; link_delete; no panel. |
-| doc-202 | Places | P2 | missing | missing |  |
+| doc-202 | Places | P2 | have | missing | `places_add_move_rename_delete_and_links_follow_them` `places_link_actions_text_and_url_links_and_markup_actions` `places_hyperlink_actions_and_markup_edit_action` Places are named destinations (/Names /Dests): add, move (links follow), rename (links break, as in Revu), delete; links and bookmarks can go to them. |
 
 ### Recent files and File Access panel
 
@@ -823,26 +823,26 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-001 | Compare Documents | P1 | have | missing | `compare_documents_clouds_changes_on_the_newer_revision` `compare_documents_clouds_text_and_graphic_changes` Engine Session::compare_with + tool compare_documents: raster diff of rendered pages clustered into regions, plus a word diff (pdfcraft-compare); clouds on the newer document. No dialog yet. |
 | ui-002 | Document A / Document B pickers | P1 | have | missing | `compare_documents_clouds_changes_on_the_newer_revision` `compare_documents_clouds_the_changes_and_reviews_them` Compare Documents dialog: older (A) from an open tab or Browse, newer (B) from the open tabs; results in the Compare panel (accept, reject, step through). |
 | ui-003 | Page range per side | P1 | have | missing | `compare_documents_clouds_changes_on_the_newer_revision` pairs: [[old page, new page], ...]; default pairs every page in order. |
-| ui-004 | Alignment method | P1 | partial | missing | `compare_documents_clouds_text_and_graphic_changes` Page Align only for Compare (1-pixel shift tolerance); two-point alignment exists for Overlay. |
+| ui-004 | Alignment method | P1 | have | missing | `alignment_registers_a_shifted_sheet` `compare_alignment_appearance_and_presets` Page align (stacked), Auto align (best shift of the linework), a known offset, or two matching points (scale, rotation, offset). |
 | ui-005 | Compare a selected window | P2 | have | missing | `compare_documents_clouds_text_and_graphic_changes` window: a rectangle of the new page. |
 | ui-006 | Change clouds output | P1 | have | missing | `compare_documents_clouds_changes_on_the_newer_revision` Clouds (orange by default) on the open newer document as one undo step; save-as keeps the original untouched. |
-| ui-007 | Difference markup appearance | P2 | partial | missing | `compare_documents_clouds_changes_on_the_newer_revision` subject, colour, width, cloud on/off; no fill, opacity or lock options yet. |
-| ui-008 | Comparison presets | P3 | missing | missing |  |
+| ui-007 | Difference markup appearance | P2 | have | missing | `alignment_registers_a_shifted_sheet` `compare_alignment_appearance_and_presets` `compare_advanced_options_and_review_in_split_view_with_the_dimmer` Subject, colour, fill, fill opacity, line opacity, width, cloud on/off and lock on place. |
+| ui-008 | Comparison presets | P3 | have | missing | `compare_alignment_appearance_and_presets` `alignment_registers_a_shifted_sheet` Built-in same_printer, different_printer, scanned; custom presets saved in the config folder (compare_preset save/delete/list, restore defaults). |
 | ui-009 | Grid size / pixel density | P3 | have | missing | `compare_documents_clouds_text_and_graphic_changes` `nearby_changes_merge_and_margins_are_ignored` cell (grid size) and density (changed pixels per cell). |
 | ui-010 | Color sensitivity | P3 | have | missing | `compare_documents_clouds_text_and_graphic_changes` sensitivity 0 to 1 sets the ink-difference threshold. |
 | ui-011 | Rasterization DPI | P3 | have | missing | `compare_documents_clouds_text_and_graphic_changes` dpi (default 100, 18 to 600). |
 | ui-012 | Ignore margin | P2 | have | missing | `nearby_changes_merge_and_margins_are_ignored` margin in points. |
-| ui-013 | Include markups / flattened markups | P3 | partial | missing | `compare_documents_clouds_changes_on_the_newer_revision` include_markups toggles existing annotations; no flattened-markup recovery. |
-| ui-014 | Auto-alignment / manual offset | P2 | missing | missing |  |
+| ui-013 | Include markups / flattened markups | P3 | have | missing | `recoverable_flatten_unflattens_and_hides_from_compare` `compare_alignment_appearance_and_presets` include_markups and include_flattened (recoverable flattened markups are left out by default). |
+| ui-014 | Auto-alignment / manual offset | P2 | have | missing | `alignment_registers_a_shifted_sheet` `compare_alignment_appearance_and_presets` Auto align (translation search of the linework, reported) or a known X/Y offset in points. |
 | ui-015 | Results in Markups List | P1 | have | partial | `compare_documents_clouds_changes_on_the_newer_revision` Every change is a Cloud markup with subject Compare and the change in its comment. |
-| ui-016 | Review with split view + dimmer | P1 | missing | missing |  |
-| ui-017 | Batch Compare Documents | P2 | missing | missing |  |
-| ui-018 | Batch: add sources | P2 | missing | missing |  |
-| ui-019 | Batch: match pages by | P2 | missing | missing |  |
-| ui-020 | Batch: wildcard match filter | P3 | missing | missing |  |
-| ui-021 | Batch: drag to re-pair | P2 | missing | missing |  |
-| ui-022 | Saved batch file | P3 | missing | missing |  |
-| ui-023 | Batch summary and report | P2 | missing | missing |  |
+| ui-016 | Review with split view + dimmer | P1 | have | missing | `compare_advanced_options_and_review_in_split_view_with_the_dimmer` Compare > Review in split view with the dimmer (or Split + Dimmer in the Compare panel): the older revision beside the newer, synchronised page for page, the drawing dimmed. |
+| ui-017 | Batch Compare Documents | P2 | have | missing | `batch_compare_and_overlay_with_saved_batch_file_and_reports` `batch_compare_wizard_matches_drags_to_repair_and_reports` Batch > Compare Documents wizard / batch_compare: every pair compared, one clouded copy per revised file. |
+| ui-018 | Batch: add sources | P2 | have | missing | `batch_compare_and_overlay_with_saved_batch_file_and_reports` `batch_compare_wizard_matches_drags_to_repair_and_reports` Add files, the open files, a folder, or a folder with subfolders. |
+| ui-019 | Batch: match pages by | P2 | have | missing | `batch_compare_and_overlay_with_saved_batch_file_and_reports` `batch_compare_wizard_matches_drags_to_repair_and_reports` Match by file name + page index, page label, the text of a title-block region, or manual pairs. |
+| ui-020 | Batch: wildcard match filter | P3 | have | missing | `wildcard_filters_cut_the_sheet_key` `batch_compare_and_overlay_with_saved_batch_file_and_reports` Our filter syntax: # digit run, @ letter run, * non-digit run, ? separator, \ escape. |
+| ui-021 | Batch: drag to re-pair | P2 | have | missing | `batch_compare_wizard_matches_drags_to_repair_and_reports` Drag a revised sheet onto another row to swap the pairing; x removes a pair. |
+| ui-022 | Saved batch file | P3 | have | missing | `batch_compare_and_overlay_with_saved_batch_file_and_reports` `batch_compare_wizard_matches_drags_to_repair_and_reports` Save Batch / Open Batch: the lists, matching and pairs as a .pcbatch JSON shared by batch compare and batch overlay. |
+| ui-023 | Batch summary and report | P2 | have | missing | `batch_compare_and_overlay_with_saved_batch_file_and_reports` `batch_compare_wizard_matches_drags_to_repair_and_reports` Pairs with their difference counts; CSV or PDF report (date stamp, page size, a link to each result). |
 
 ### 2. Overlay Pages
 
@@ -851,20 +851,20 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-024 | Overlay Pages | P1 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` `overlay_recolours_layers_and_keeps_them_toggleable` overlay::overlay_pages + tool overlay_pages: vector layers recoloured with Lighten in isolated groups, stacked with Multiply. |
 | ui-025 | Add overlay sources | P1 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` `overlay_pages_writes_the_overlay_and_opens_it` Overlay Pages dialog lists the open documents and added files (check, page, colour, opacity per layer); the result opens in a new tab. |
 | ui-026 | Per-layer color | P1 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` `overlay_recolours_layers_and_keeps_them_toggleable` Default red, blue, green, magenta, orange, cyan; colour per layer. |
-| ui-027 | Per-layer background color | P3 | missing | missing |  |
+| ui-027 | Per-layer background color | P3 | have | missing | `three_points_auto_region_background_and_blend` `overlay_three_points_auto_region_background_and_defaults` Per-layer background colour for the layer's whitespace (transparent by default). |
 | ui-028 | Per-layer opacity | P2 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` opacity per layer. |
-| ui-029 | Blend mode | P2 | partial | missing | `overlay_recolours_layers_and_keeps_them_toggleable` Multiply (darkens where layers share ink); not selectable yet. |
+| ui-029 | Blend mode | P2 | have | missing | `three_points_auto_region_background_and_blend` `overlay_three_points_auto_region_background_and_defaults` Multiply (default), Darken, Normal, Screen or Difference, per layer or as the default. |
 | ui-030 | Advanced color shading | P3 | missing | missing |  |
 | ui-031 | Page Align | P1 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` align page (as positioned) and bounds (stretched to the first page). |
-| ui-032 | Auto Align | P2 | missing | missing |  |
-| ui-033 | Manual Align (3 points) | P1 | partial | missing | `overlay_pages_writes_coloured_toggleable_layers` `two_points_give_scale_rotation_and_offset` Two matching points (scale, rotation, offset), not three. |
-| ui-034 | Select region per layer | P2 | missing | missing |  |
+| ui-032 | Auto Align | P2 | have | missing | `three_points_auto_region_background_and_blend` `overlay_three_points_auto_align_and_defaults` Auto Align fits the layer's linework extents onto the first layer's (uniform scale and offset) for sheets of different size or scale; no Auto Align Limit. |
+| ui-033 | Manual Align (3 points) | P1 | have | missing | `three_points_auto_region_background_and_blend` `overlay_three_points_auto_region_background_and_defaults` `overlay_three_points_auto_align_and_defaults` Three matching points per layer (full affine map); two points also accepted. |
+| ui-034 | Select region per layer | P2 | have | missing | `three_points_auto_region_background_and_blend` `overlay_three_points_auto_region_background_and_defaults` Per-layer region: only that box of the sheet is overlaid. |
 | ui-035 | Page range per layer | P2 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` pages per layer. |
 | ui-036 | Layer name | P3 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` name per layer (default Layer n). |
-| ui-037 | Layer position defaults | P3 | missing | missing |  |
-| ui-038 | Include flattened markups | P3 | missing | missing |  |
+| ui-037 | Layer position defaults | P3 | have | missing | `overlay_three_points_auto_region_background_and_defaults` `overlay_three_points_auto_align_and_defaults` Edit Defaults: rotation, scale and X/Y offset (and blend) for the layers. |
+| ui-038 | Include flattened markups | P3 | have | missing | `recoverable_flatten_unflattens_and_hides_from_compare` `overlay_three_points_auto_region_background_and_defaults` include_flattened (recoverable flattened markups left out by default). |
 | ui-039 | Layer visibility in result | P2 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` Each layer is an optional content group listed in /OCProperties, all on. |
-| ui-040 | Batch Overlay | P2 | missing | missing |  |
+| ui-040 | Batch Overlay | P2 | have | missing | `batch_compare_and_overlay_with_saved_batch_file_and_reports` Batch > Overlay Pages / batch_overlay: same matching, saved batch and reports; one overlay PDF per pair. |
 | ui-041 | Smart Overlay (Max plan) | P3 | missing | missing |  |
 
 ### 3. Search panel (text) and Visual Search
@@ -872,24 +872,24 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | ui-042 | Search panel | P0 | have | have | `search_panel_finds_text_then_counts_and_highlights_the_results` Search panel (Alt+1, Ctrl+F): text and Visual Search tabs, results list, hits highlighted on the pages. |
-| ui-043 | Search scope | P1 | partial | partial | `search_panel_finds_text_then_counts_and_highlights_the_results` All pages, current page or a page range; not other files, Sets or folders. |
+| ui-043 | Search scope | P1 | have | partial | `search_across_files_folders_sets_and_open_documents` `search_scopes_targets_f3_replace_and_selected_text` Current page, page range, document, all open documents, current Set, recent files, folder (subfolders optional); hits in other files open them. |
 | ui-044 | Search in page text | P0 | have | have | `search_panel_finds_text_then_counts_and_highlights_the_results` `text_search_finds_hits_with_rectangles` |
 | ui-045 | Search in markups | P1 | have | missing | `search_panel_finds_text_then_counts_and_highlights_the_results` `markup_text_matches` Comments, subjects, labels and authors of markups; a result selects its markup. |
-| ui-046 | Search file names / properties / form fields | P2 | missing | missing |  |
+| ui-046 | Search file names / properties / form fields | P2 | have | missing | `search_across_files_folders_sets_and_open_documents` `search_all_looks_in_names_properties_and_markups` File names (folder, Set, recent files), document properties (standard and custom) and form field values. |
 | ui-047 | Case sensitive / whole words | P1 | have | have | `markup_text_matches` `text_search_finds_hits_with_rectangles` Match case and Whole words in the Search panel. |
 | ui-048 | Results list | P0 | have | have | `search_panel_finds_text_then_counts_and_highlights_the_results` Results grouped by page with their context; click to centre a result. |
 | ui-049 | Next / previous result | P0 | have | have | `search_panel_finds_text_then_counts_and_highlights_the_results` Prev / Next buttons, wrapping around. |
-| ui-050 | Search selected text | P2 | missing | missing |  |
+| ui-050 | Search selected text | P2 | have | missing | `search_scopes_targets_f3_replace_and_selected_text` `replace_checked_text_and_read_a_selection` Search Selected Text: the dragged text is searched in the current PDF. |
 | ui-051 | Check results + bulk actions | P2 | have | missing | `search_panel_finds_text_then_counts_and_highlights_the_results` Check boxes per result, Check all; Highlight, Count or Redact the checked results. |
 | ui-052 | Apply Count to checked | P1 | have | missing | `search_panel_finds_text_then_counts_and_highlights_the_results` `visual_search_picks_a_region_and_finds_the_symbol` One Count per page at the checked results, subject = the search text. |
-| ui-053 | Replace checked | P3 | missing | missing |  |
+| ui-053 | Replace checked | P3 | have | missing | `replace_checked_text_and_read_a_selection` `search_scopes_targets_f3_replace_and_selected_text` Replace Checked with a font fallback choice (Helvetica, or skip the line). |
 | ui-054 | Clear results | P2 | have | missing | `search_panel_finds_text_then_counts_and_highlights_the_results` |
 | ui-055 | Visual Search | P1 | have | missing | `visual_search_finds_symbols_and_counts_them` `finds_the_symbol_turned_and_on_other_pages` Session::visual_search + tool visual_search: NCC template matching on downsampled grayscale, refined at full resolution, over the chosen pages. |
 | ui-056 | Visual: sensitivity | P1 | have | missing | `visual_search_finds_symbols_and_counts_them` sensitivity 0 to 1 sets the correlation threshold. |
-| ui-057 | Visual: multiple rotations | P1 | partial | missing | `finds_the_symbol_turned_and_on_other_pages` 0/90/180/270 degrees; not 45-degree steps. |
-| ui-058 | Visual: filter by color | P2 | missing | missing |  |
-| ui-059 | Visual: limit by selection | P2 | missing | missing |  |
-| ui-060 | Visual results thumbnails | P1 | missing | missing |  |
+| ui-057 | Visual: multiple rotations | P1 | have | missing | `eighth_turns_colour_filter_and_limit_to_selection` `visual_search_eighth_turns_colour_limit_and_thumbnails` Quarter turns, or 45-degree steps (eight turns). |
+| ui-058 | Visual: filter by color | P2 | have | missing | `eighth_turns_colour_filter_and_limit_to_selection` `visual_search_eighth_turns_colour_limit_and_thumbnails` Only hits whose ink colour matches the selection's (mean ink colour within a tolerance). |
+| ui-059 | Visual: limit by selection | P2 | have | missing | `eighth_turns_colour_filter_and_limit_to_selection` `visual_search_options_and_result_thumbnails` Linework that runs out of the selection box is dropped from the symbol (on the rendered page; vector objects are not split). |
+| ui-060 | Visual results thumbnails | P1 | have | missing | `visual_search_options_and_result_thumbnails` `visual_search_eighth_turns_colour_limit_and_thumbnails` Each visual result shows a thumbnail of the match; click it to zoom there (visual_search thumbnails: PNG). |
 | ui-061 | Visual: count / markup checked results | P1 | have | missing | `visual_search_finds_symbols_and_counts_them` action count (one Count per page) or highlight (a rectangle per hit), one undo step; no hyperlink or bookmark actions. |
 
 ### 4. Spaces, Links, Signatures panels
@@ -901,10 +901,10 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-064 | Highlight / edit spaces | P1 | have | missing | `spaces_add_column_tally_export_import` `spaces_panel_fills_a_room_lists_it_and_tallies_markups` Spaces highlighted on the pages (Highlight toggle; the selected one emphasised); rename in the panel. |
 | ui-065 | Space column in Markups List | P1 | have | missing | `spaces_name_markups_split_counts_and_round_trip` Space column in the Markups List table (crates/model). |
 | ui-066 | Split counts by space | P2 | have | missing | `spaces_add_column_tally_export_import` space_tally splits counts by space. |
-| ui-067 | Snapshot from space | P3 | missing | missing |  |
-| ui-068 | Links panel: Places | P2 | missing | missing |  |
+| ui-067 | Snapshot from space | P3 | have | missing | `snapshots_of_a_region_a_page_and_a_space` `file_attachment_snapshots_and_capture_summary` Spaces panel > Snapshot: the space's box copied as a snapshot (page content; markups are not included). |
+| ui-068 | Links panel: Places | P2 | have | missing | `places_hyperlink_actions_and_markup_edit_action` `places_link_actions_text_and_url_links_and_markup_actions` Links panel Places list grouped by page with a filter; click to jump, Add Here, delete (place_list, place_set, place_delete). |
 | ui-069 | Links panel: Hyperlinks list | P2 | have | missing | `hyperlink_tool_adds_a_page_link_listed_in_the_links_panel` Links panel (Alt+N): every link with its target; go to, follow, delete, highlight. |
-| ui-070 | Hyperlink tool / Edit Action | P2 | partial | missing | `hyperlink_tool_adds_a_page_link_listed_in_the_links_panel` Hyperlink tool (Shift+H): drag the area, then page, web address or file; no Edit Action on an existing link. |
+| ui-070 | Hyperlink tool / Edit Action | P2 | have | missing | `places_hyperlink_actions_and_markup_edit_action` `places_link_actions_text_and_url_links_and_markup_actions` Hyperlink tool and Edit Action on an existing link (target, box, look). |
 | ui-071 | Signatures panel | P3 | have | missing | `signatures_sign_validate_and_track_changes` `sign_with_a_new_digital_id_and_validate` Signatures panel (Alt+4): status icon (valid, invalid, unknown, not signed), signer, date, reason, changes after signing; Validate, Trust Certificate, Sign. |
 | ui-072 | Sign / add field / certify / validate | P3 | have | missing | `signatures_sign_validate_and_track_changes` `forms_create_fill_and_flatten` Tools signature_sign (sign, certify), form_add_field type signature (add field), signature_list (validate). |
 
@@ -1160,8 +1160,8 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| key-043 | Add Signature Field (X) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-044 | Editor (Ctrl + Shift + F) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-043 | Add Signature Field (X) |  | have | missing | `form_keys_add_a_signature_field_and_open_the_editor` X: drag a signature field's box. |
+| key-044 | Editor (Ctrl + Shift + F) |  | have | missing | `form_keys_add_a_signature_field_and_open_the_editor` Ctrl+Shift+F opens the form fields editor. |
 
 ### Markup
 
@@ -1263,8 +1263,8 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| key-116 | Next Result (F3) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-117 | Previous Result (Shift + F3) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-116 | Next Result (F3) |  | have | missing | `search_scopes_targets_f3_replace_and_selected_text` F3: next result. |
+| key-117 | Previous Result (Shift + F3) |  | have | missing | `search_scopes_targets_f3_replace_and_selected_text` Shift+F3: previous result. |
 | key-118 | Search (Ctrl + F) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 
 ### Document

@@ -39,6 +39,105 @@ pub enum OverlayAlign {
     /// `from[i]` on this layer's page lands on `to[i]` on the first layer's page (uniform scale,
     /// rotation and offset).
     Points { from: [Point; 2], to: [Point; 2] },
+    /// Three matching points (Revu's Manual Align): a full affine map, so the sheets may also
+    /// differ in skew or in x and y scale.
+    Three { from: [Point; 3], to: [Point; 3] },
+    /// Found from the drawings: the layer's linework extents are fitted to the first layer's
+    /// (uniform scale and offset), for sheets that differ in size or scale.
+    Auto,
+}
+
+/// How a layer combines with the layers under it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum OverlayBlend {
+    /// Darkens where layers share ink (Revu's default).
+    #[default]
+    Multiply,
+    Darken,
+    Normal,
+    Screen,
+    Difference,
+}
+
+impl OverlayBlend {
+    pub fn from_name(s: &str) -> Option<Self> {
+        Some(match s.to_ascii_lowercase().as_str() {
+            "multiply" => Self::Multiply,
+            "darken" => Self::Darken,
+            "normal" => Self::Normal,
+            "screen" => Self::Screen,
+            "difference" => Self::Difference,
+            _ => return None,
+        })
+    }
+
+    pub fn pdf_name(self) -> &'static str {
+        match self {
+            Self::Multiply => "Multiply",
+            Self::Darken => "Darken",
+            Self::Normal => "Normal",
+            Self::Screen => "Screen",
+            Self::Difference => "Difference",
+        }
+    }
+}
+
+/// A layer's position defaults: turned about the page centre, scaled about it, then moved.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LayerAdjust {
+    /// Degrees counter-clockwise.
+    pub rotation: f64,
+    pub scale: f64,
+    pub dx: f64,
+    pub dy: f64,
+}
+
+impl Default for LayerAdjust {
+    fn default() -> Self {
+        Self {
+            rotation: 0.0,
+            scale: 1.0,
+            dx: 0.0,
+            dy: 0.0,
+        }
+    }
+}
+
+/// The affine map sending three points onto three others.
+pub fn three_point_matrix(from: [Point; 3], to: [Point; 3]) -> Option<[f64; 6]> {
+    let [p0, p1, p2] = from;
+    let det = p0.x * (p1.y - p2.y) - p0.y * (p1.x - p2.x) + (p1.x * p2.y - p2.x * p1.y);
+    if !(det.is_finite() && det.abs() > 1e-6) {
+        return None;
+    }
+    // Solve [x y 1] * [a c e; b d f]^T for each output coordinate (Cramer's rule).
+    let solve = |v0: f64, v1: f64, v2: f64| -> (f64, f64, f64) {
+        let a = (v0 * (p1.y - p2.y) - p0.y * (v1 - v2) + (v1 * p2.y - v2 * p1.y)) / det;
+        let b = (p0.x * (v1 - v2) - v0 * (p1.x - p2.x) + (p1.x * v2 - p2.x * v1)) / det;
+        let c =
+            (p0.x * (p1.y * v2 - p2.y * v1) - p0.y * (p1.x * v2 - p2.x * v1) + v0 * (p1.x * p2.y - p2.x * p1.y)) / det;
+        (a, b, c)
+    };
+    let (a, c, e) = solve(to[0].x, to[1].x, to[2].x);
+    let (b, d, f) = solve(to[0].y, to[1].y, to[2].y);
+    let m = [a, b, c, d, e, f];
+    m.iter().all(|v| v.is_finite()).then_some(m)
+}
+
+/// Auto align: fit the layer page's ink box onto the base page's (uniform scale, centred).
+fn auto_matrix(base: &Arc<Vec<u8>>, base_page: usize, layer: &Arc<Vec<u8>>, page: usize) -> Result<Matrix> {
+    let ink = |bytes: &Arc<Vec<u8>>, p: usize| -> Result<Rect> {
+        let img = crate::raster::Renderable::new(bytes.clone(), true)?.render(p, 0.75, 1500.0)?;
+        crate::compare::ink_box(&img).ok_or_else(|| invalid("auto align needs linework on both pages"))
+    };
+    let (a, b) = (ink(base, base_page)?, ink(layer, page)?);
+    if b.width() < 1.0 || b.height() < 1.0 {
+        return Err(invalid("auto align needs linework on both pages"));
+    }
+    let s = ((a.width() / b.width()) + (a.height() / b.height())) / 2.0;
+    let (acx, acy) = ((a.x0 + a.x1) / 2.0, (a.y0 + a.y1) / 2.0);
+    let (bcx, bcy) = ((b.x0 + b.x1) / 2.0, (b.y0 + b.y1) / 2.0);
+    Ok([s, 0.0, 0.0, s, acx - s * bcx, acy - s * bcy])
 }
 
 /// One layer: a PDF, the pages it contributes, its look.
@@ -53,6 +152,31 @@ pub struct OverlayLayer {
     /// Layer name in the result ("" = "Layer n").
     pub name: String,
     pub align: OverlayAlign,
+    /// Colour of the layer's whitespace (`None` = transparent, the default).
+    pub background: Option<Color>,
+    pub blend: OverlayBlend,
+    /// Only this region of the layer's page (its user space).
+    pub region: Option<Rect>,
+    /// Position defaults applied after alignment.
+    pub adjust: LayerAdjust,
+}
+
+impl OverlayLayer {
+    /// A layer of `bytes` with the defaults: every page, red, opaque, page align, Multiply.
+    pub fn new(bytes: Arc<Vec<u8>>) -> Self {
+        Self {
+            bytes,
+            pages: Vec::new(),
+            color: default_color(0),
+            opacity: 1.0,
+            name: String::new(),
+            align: OverlayAlign::Page,
+            background: None,
+            blend: OverlayBlend::Multiply,
+            region: None,
+            adjust: LayerAdjust::default(),
+        }
+    }
 }
 
 /// The default colours: red, blue, green, magenta, orange, cyan.
@@ -109,10 +233,10 @@ pub fn two_point_matrix(from: [Point; 2], to: [Point; 2]) -> Option<[f64; 6]> {
 }
 
 /// A page with the attributes it inherits.
-struct SrcPage {
-    dict: Dict,
-    resources: Option<Object>,
-    box_: Rect,
+pub(crate) struct SrcPage {
+    pub(crate) dict: Dict,
+    pub(crate) resources: Option<Object>,
+    pub(crate) box_: Rect,
 }
 
 fn num_rect(cos: &CosDoc, o: Option<&Object>) -> Option<Rect> {
@@ -127,7 +251,7 @@ fn num_rect(cos: &CosDoc, o: Option<&Object>) -> Option<Rect> {
     }
 }
 
-fn source_pages(cos: &CosDoc) -> Result<Vec<SrcPage>> {
+pub(crate) fn source_pages(cos: &CosDoc) -> Result<Vec<SrcPage>> {
     let root = cos.root().ok_or_else(|| invalid("the PDF has no catalog"))?;
     let pages = cos
         .dict(&Object::Ref(root))
@@ -180,7 +304,7 @@ fn source_pages(cos: &CosDoc) -> Result<Vec<SrcPage>> {
 }
 
 /// Copies objects from a source document, following references (never `/Parent`).
-struct Importer<'a> {
+pub(crate) struct Importer<'a> {
     src: &'a CosDoc,
     map: HashMap<ObjRef, ObjRef>,
     queue: Vec<ObjRef>,
@@ -188,7 +312,7 @@ struct Importer<'a> {
 }
 
 impl<'a> Importer<'a> {
-    fn new(src: &'a CosDoc) -> Self {
+    pub(crate) fn new(src: &'a CosDoc) -> Self {
         Self {
             src,
             map: HashMap::new(),
@@ -197,7 +321,7 @@ impl<'a> Importer<'a> {
         }
     }
 
-    fn rewrite(&mut self, dst: &mut CosDoc, o: &Object, depth: usize) -> Object {
+    pub(crate) fn rewrite(&mut self, dst: &mut CosDoc, o: &Object, depth: usize) -> Object {
         if depth > MAX_DEPTH {
             return Object::Null;
         }
@@ -228,7 +352,7 @@ impl<'a> Importer<'a> {
             .collect()
     }
 
-    fn drain(&mut self, dst: &mut CosDoc) -> Result<()> {
+    pub(crate) fn drain(&mut self, dst: &mut CosDoc) -> Result<()> {
         while let Some(r) = self.queue.pop() {
             self.copied += 1;
             if self.copied > MAX_OBJECTS {
@@ -244,7 +368,7 @@ impl<'a> Importer<'a> {
 }
 
 /// The page's content streams, decoded and joined.
-fn page_content(cos: &CosDoc, page: &Dict) -> Result<Vec<u8>> {
+pub(crate) fn page_content(cos: &CosDoc, page: &Dict) -> Result<Vec<u8>> {
     let contents = page.get(b"Contents").map(|c| cos.resolve(c));
     let mut streams = Vec::new();
     match contents.as_deref() {
@@ -401,8 +525,45 @@ pub fn overlay_pages(layers: &[OverlayLayer], out: &Path) -> Result<OverlayRepor
                 }
                 OverlayAlign::Points { from, to } => two_point_matrix(from, to)
                     .ok_or_else(|| invalid("alignment points must be two distinct points on each page"))?,
+                OverlayAlign::Three { from, to } => three_point_matrix(from, to)
+                    .ok_or_else(|| invalid("alignment needs three points on each page, not in a line"))?,
+                OverlayAlign::Auto => match layers.first() {
+                    Some(b) if i > 0 => auto_matrix(&b.bytes, page_of(0, k), &l.bytes, page_of(i, k))?,
+                    _ => [1.0, 0.0, 0.0, 1.0, base.x0 - sp.box_.x0, base.y0 - sp.box_.y0],
+                },
             };
-            let m = then(align, to_page);
+            let ad = l.adjust;
+            if !([ad.rotation, ad.scale, ad.dx, ad.dy].iter().all(|v| v.is_finite())
+                && ad.scale > 0.001
+                && ad.scale < 1000.0)
+            {
+                return Err(invalid("layer position: rotation, offset and a scale above 0"));
+            }
+            let (cx, cy) = ((base.x0 + base.x1) / 2.0, (base.y0 + base.y1) / 2.0);
+            let (sn, cs) = ad.rotation.to_radians().sin_cos();
+            let (a, b, c, d) = (cs * ad.scale, sn * ad.scale, -sn * ad.scale, cs * ad.scale);
+            let adjust: Matrix = [
+                a,
+                b,
+                c,
+                d,
+                cx - (a * cx + c * cy) + ad.dx,
+                cy - (b * cx + d * cy) + ad.dy,
+            ];
+            let m = then(then(align, adjust), to_page);
+            let clip = match l.region {
+                Some(r) => {
+                    let r = r.normalized();
+                    format!(
+                        "{} {} {} {} re W n ",
+                        fmt(r.x0),
+                        fmt(r.y0),
+                        fmt(r.width()),
+                        fmt(r.height())
+                    )
+                }
+                None => String::new(),
+            };
             // The source page as a form XObject in its own user space.
             let data = page_content(src_cos, &sp.dict)?;
             let mut fd = Dict::new();
@@ -422,11 +583,22 @@ pub fn overlay_pages(layers: &[OverlayLayer], out: &Path) -> Result<OverlayRepor
             // The recoloured layer: an isolated group on white, the colour laid over with Lighten.
             let c = l.color;
             let group_content = format!(
-                "1 g 0 0 {w} {h} re f\nq {} cm /P Do Q\n/L gs {} {} {} rg 0 0 {w} {h} re f\n",
+                "1 g 0 0 {w} {h} re f\nq {} cm {clip}/P Do Q\n/L gs {} {} {} rg 0 0 {w} {h} re f\n{}",
                 m.iter().map(|v| fmt(*v)).collect::<Vec<_>>().join(" "),
                 fmt(c.r.clamp(0.0, 1.0)),
                 fmt(c.g.clamp(0.0, 1.0)),
                 fmt(c.b.clamp(0.0, 1.0)),
+                match l.background {
+                    Some(bg) => format!(
+                        "/B gs {} {} {} rg 0 0 {w} {h} re f\n",
+                        fmt(bg.r.clamp(0.0, 1.0)),
+                        fmt(bg.g.clamp(0.0, 1.0)),
+                        fmt(bg.b.clamp(0.0, 1.0)),
+                        w = fmt(w),
+                        h = fmt(h)
+                    ),
+                    None => String::new(),
+                },
                 w = fmt(w),
                 h = fmt(h),
             );
@@ -447,12 +619,15 @@ pub fn overlay_pages(layers: &[OverlayLayer], out: &Path) -> Result<OverlayRepor
             lighten.set(b"BM".to_vec(), name("Lighten"));
             let mut gs = Dict::new();
             gs.set(b"L".to_vec(), Object::Dict(lighten));
+            let mut bg_mul = Dict::new();
+            bg_mul.set(b"BM".to_vec(), name("Multiply"));
+            gs.set(b"B".to_vec(), Object::Dict(bg_mul));
             res.set(b"ExtGState".to_vec(), Object::Dict(gs));
             gd.set(b"Resources".to_vec(), Object::Dict(res));
             let layer_form = dst.add(Object::Stream(Stream::flate(gd, group_content.as_bytes())));
 
             let mut multiply = Dict::new();
-            multiply.set(b"BM".to_vec(), name("Multiply"));
+            multiply.set(b"BM".to_vec(), name(l.blend.pdf_name()));
             multiply.set(b"ca".to_vec(), Object::Real(l.opacity));
             multiply.set(b"CA".to_vec(), Object::Real(l.opacity));
             xobjects.set(format!("L{i}").into_bytes(), Object::Ref(layer_form));
@@ -512,13 +687,87 @@ mod tests {
 
     fn layer(bytes: Vec<u8>, color: Color, align: OverlayAlign) -> OverlayLayer {
         OverlayLayer {
-            bytes: Arc::new(bytes),
-            pages: Vec::new(),
             color,
-            opacity: 1.0,
-            name: String::new(),
             align,
+            ..OverlayLayer::new(Arc::new(bytes))
         }
+    }
+
+    #[test]
+    fn three_points_auto_region_background_and_blend() {
+        let m = three_point_matrix(
+            [Point::new(0.0, 0.0), Point::new(10.0, 0.0), Point::new(0.0, 10.0)],
+            [Point::new(5.0, 5.0), Point::new(25.0, 5.0), Point::new(5.0, 35.0)],
+        )
+        .unwrap();
+        assert!(
+            (m[0] - 2.0).abs() < 1e-9 && (m[3] - 3.0).abs() < 1e-9 && (m[4] - 5.0).abs() < 1e-9,
+            "{m:?}"
+        );
+        assert!(three_point_matrix([Point::new(0.0, 0.0); 3], [Point::new(0.0, 0.0); 3]).is_none());
+        assert_eq!(OverlayBlend::from_name("Darken"), Some(OverlayBlend::Darken));
+
+        // The same sheet at half size in the corner of a page: auto align scales it up.
+        let full = pdf(&[SyntheticPage::new(
+            612.0,
+            792.0,
+            format!(
+                "{}{}",
+                line(100.0, 100.0, 500.0, 100.0, 4.0),
+                line(100.0, 100.0, 100.0, 600.0, 4.0)
+            ),
+        )]);
+        let half = pdf(&[SyntheticPage::new(
+            612.0,
+            792.0,
+            format!(
+                "{}{}",
+                line(50.0, 50.0, 250.0, 50.0, 2.0),
+                line(50.0, 50.0, 50.0, 300.0, 2.0)
+            ),
+        )]);
+        let out = tmp("overlay-auto.pdf");
+        let mut b = layer(half, default_color(1), OverlayAlign::Auto);
+        b.background = Some(Color::rgb(1.0, 1.0, 0.0));
+        b.region = Some(Rect::new(0.0, 0.0, 400.0, 400.0));
+        b.blend = OverlayBlend::Darken;
+        overlay_pages(&[layer(full, default_color(0), OverlayAlign::Page), b], &out).unwrap();
+        let img = Renderable::new(Arc::new(std::fs::read(&out).unwrap()), false)
+            .unwrap()
+            .render_rgba(0, 1.0)
+            .unwrap();
+        let [r, g, bl] = img.pixel(300.0, 100.0);
+        assert!(
+            r < 120 && g < 120 && bl < 120,
+            "auto-aligned lines coincide: {:?}",
+            [r, g, bl]
+        );
+        let [r, g, bl] = img.pixel(300.0, 400.0);
+        assert!(r > 200 && g > 200 && bl < 80, "yellow background: {:?}", [r, g, bl]);
+        let three = OverlayAlign::Three {
+            from: [Point::new(50.0, 50.0), Point::new(250.0, 50.0), Point::new(50.0, 300.0)],
+            to: [
+                Point::new(100.0, 100.0),
+                Point::new(500.0, 100.0),
+                Point::new(100.0, 600.0),
+            ],
+        };
+        let half2 = pdf(&[SyntheticPage::new(612.0, 792.0, line(50.0, 50.0, 250.0, 50.0, 2.0))]);
+        let full2 = pdf(&[SyntheticPage::new(612.0, 792.0, line(100.0, 100.0, 500.0, 100.0, 4.0))]);
+        overlay_pages(
+            &[
+                layer(full2, default_color(0), OverlayAlign::Page),
+                layer(half2, default_color(1), three),
+            ],
+            &out,
+        )
+        .unwrap();
+        let img = Renderable::new(Arc::new(std::fs::read(&out).unwrap()), false)
+            .unwrap()
+            .render_rgba(0, 1.0)
+            .unwrap();
+        let [r, g, bl] = img.pixel(300.0, 100.0);
+        assert!(r < 120 && g < 120 && bl < 120, "three-point aligned: {:?}", [r, g, bl]);
     }
 
     #[test]

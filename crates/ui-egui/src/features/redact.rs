@@ -13,6 +13,11 @@ pub struct RedactState {
     pub confirm: bool,
     pub pages: String,
     pub message: String,
+    /// How new marks look (Redaction Properties).
+    pub style: markupcraft_engine::redact::MarkStyle,
+    pub properties_open: bool,
+    /// Also remove the document properties, metadata, attachments and scripts.
+    pub scrub: bool,
 }
 
 impl RedactState {
@@ -33,8 +38,9 @@ impl RedactState {
 /// A box was dragged in Mark for Redaction.
 pub fn rect_picked(app: &mut AppState, page: usize, pts: &[Point]) {
     let Some(r) = super::rect_of(pts) else { return };
+    let style = app.features.redact.style.clone();
     let Some(d) = app.doc_mut() else { return };
-    let res = d.session.redact_mark(page, &[r], &Default::default());
+    let res = d.session.redact_mark(page, &[r], &style);
     app.status = actions::report(res, |_| {
         "Marked for redaction (Esc when done; Document > Apply Redactions)".into()
     });
@@ -54,6 +60,10 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                 .color(Color32::from_rgb(200, 60, 40)),
         );
         super::pages_field(ui, &mut s.pages);
+        ui.checkbox(
+            &mut s.scrub,
+            "Also remove document properties, metadata, attachments and scripts",
+        );
         if !s.message.is_empty() {
             ui.label(RichText::new(&s.message).small());
         }
@@ -91,7 +101,7 @@ pub fn apply(app: &mut AppState) {
             }
         }
     };
-    let r = d.session.redact_apply(pages.as_deref());
+    let r = d.session.redact_apply_with(pages.as_deref(), app.features.redact.scrub);
     let msg = actions::report(r, |rep| {
         let mut s = format!(
             "Redacted {} on {}: {} glyphs, {} images, {} paths removed",

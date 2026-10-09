@@ -1,6 +1,6 @@
 //! Flatten markups into the page content.
 
-use markupcraft_engine::flatten::FlattenFilter;
+use markupcraft_engine::flatten::{FlattenFilter, FlattenOptions};
 use serde_json::json;
 
 use super::{Tool, pages_arg, schema};
@@ -21,7 +21,9 @@ pub static FLATTEN: Tool = Tool {
                 "kinds": strings("Kinds, e.g. [\"Cloud\", \"Text\"]."),
                 "layers": strings("Layer names."),
                 "authors": strings("Authors."),
-                "all": { "type": "boolean", "description": "true to flatten every markup when no filter is given." }
+                "all": { "type": "boolean", "description": "true to flatten every markup when no filter is given." },
+                "recoverable": { "type": "boolean", "description": "Keep them so markup_unflatten can restore them (default false)." },
+                "layer": { "type": "string", "description": "Flatten onto this layer (made if needed)." }
             }),
             &[],
         )
@@ -41,7 +43,26 @@ pub static FLATTEN: Tool = Tool {
             ));
         }
         let before = s.doc().markups.len();
-        let n = s.flatten_markups(&filter)?;
+        let opts = FlattenOptions {
+            recoverable: args.bool_or("recoverable", false)?,
+            layer: args.opt_string("layer")?,
+        };
+        let n = s.flatten_markups_with(&filter, &opts)?;
         Ok(json!({ "flattened": n, "markups_before": before, "document": summary(doc, s) }))
+    },
+};
+
+pub static UNFLATTEN: Tool = Tool {
+    name: "markup_unflatten",
+    title: "Unflatten markups",
+    description: "Document > Unflatten: restore markups flattened with recoverable: true on the pages given (default all). Undoable.",
+    read_only: false,
+    destructive: false,
+    schema: || schema(json!({ "pages": pages_arg("to unflatten (default all)") }), &[]),
+    run: |a, args| {
+        let (doc, s) = a.session(args)?;
+        let pages = args.opt_pages("pages", s.page_count())?.unwrap_or_default();
+        let n = s.unflatten(&pages)?;
+        Ok(json!({ "restored": n, "document": summary(doc, s) }))
     },
 };

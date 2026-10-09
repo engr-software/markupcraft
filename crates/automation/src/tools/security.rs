@@ -29,6 +29,7 @@ fn info_json(s: &Session) -> Value {
         "permissions": perms_json(&i.permissions),
         "pending_change": i.pending_change,
         "save_encrypted": i.save_encrypted,
+        "status": s.security_status().label(),
     })
 }
 

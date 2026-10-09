@@ -450,13 +450,7 @@ impl Session {
     /// File Attachment: a markup at `at` (its top-left corner, page user space) that embeds the
     /// file at `path` (at most 50 MB), shown as `icon` (PushPin, Paperclip, Graph, Tag).
     /// Returns its id.
-    pub fn add_file_attachment(
-        &mut self,
-        page: usize,
-        at: Point,
-        path: &std::path::Path,
-        icon: &str,
-    ) -> Result<String> {
+    pub fn attach_file_markup(&mut self, page: usize, at: Point, path: &std::path::Path, icon: &str) -> Result<String> {
         let meta = std::fs::metadata(path).map_err(|e| invalid(format!("{}: {e}", path.display())))?;
         if !meta.is_file() || meta.len() > markupcraft_revu::kinds::more::MAX_ATTACHMENT as u64 {
             return Err(invalid(format!("{} is not a file of at most 50 MB", path.display())));
