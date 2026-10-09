@@ -117,7 +117,150 @@ pub struct Reply {
     pub dirty: bool,
 }
 
-/// The status values Revu offers by default. "" (None) = no status.
+/// The default status values. "" (None) = no status.
 pub fn review_statuses() -> &'static [&'static str] {
     &["None", "Accepted", "Rejected", "Cancelled", "Completed"]
+}
+
+/// A unique, key-safe id for a new custom column named `name`.
+pub fn make_column_id(name: &str, existing: &[CustomColumn]) -> String {
+    let mut base: String = name
+        .chars()
+        .filter(char::is_ascii_alphanumeric)
+        .map(|c| c.to_ascii_lowercase())
+        .collect();
+    if base.is_empty() || base.starts_with(|c: char| c.is_ascii_digit()) {
+        base = format!("col{base}");
+    }
+    let used = |id: &str| existing.iter().any(|c| c.id == id);
+    if !used(&base) {
+        return base;
+    }
+    (2..=existing.len() + 2)
+        .map(|n| format!("{base}_{n}"))
+        .find(|id| !used(id))
+        .unwrap_or(base)
+}
+
+/// How a Markups List cell is edited in place.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum CellEdit {
+    #[default]
+    None,
+    Text,
+    Number,
+    Date,
+    Choice,
+    Check,
+}
+
+/// One column of the Markups List: a standard Revu column or a custom one (`c:<id>`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TableColumn {
+    /// stable id; custom columns: `c:<CustomColumn::id>`
+    pub id: String,
+    pub header: String,
+    /// default width, pixels
+    pub width: u32,
+    pub right_align: bool,
+    pub visible_by_default: bool,
+    /// sorted as a number
+    pub numeric: bool,
+    /// summed in group and grand totals (per unit)
+    pub total: bool,
+    pub edit: CellEdit,
+    pub custom: bool,
+    /// the list draws the text in the markup's colour
+    pub markup_color: bool,
+}
+
+/// One row of the standard column table: id, header, width, right, visible, numeric, total, edit.
+type StdCol = (&'static str, &'static str, u32, bool, bool, bool, bool, CellEdit);
+
+impl TableColumn {
+    fn standard(c: &StdCol) -> Self {
+        let (id, header, width, right_align, visible, numeric, total, edit) = *c;
+        Self {
+            id: id.into(),
+            header: header.into(),
+            width,
+            right_align,
+            visible_by_default: visible,
+            numeric,
+            total,
+            edit,
+            custom: false,
+            markup_color: id == "subject",
+        }
+    }
+
+    /// The column shown for custom column `c`.
+    pub fn custom(c: &CustomColumn) -> Self {
+        Self {
+            id: format!("c:{}", c.id),
+            header: c.name.clone(),
+            width: 110,
+            right_align: c.numeric(),
+            visible_by_default: true,
+            numeric: c.numeric() || c.kind == ColumnType::Checkmark,
+            total: c.numeric() && c.total,
+            edit: match c.kind {
+                ColumnType::Text => CellEdit::Text,
+                ColumnType::Number | ColumnType::Currency | ColumnType::Percent => CellEdit::Number,
+                ColumnType::Date => CellEdit::Date,
+                ColumnType::Choice => CellEdit::Choice,
+                ColumnType::Formula => CellEdit::None,
+                ColumnType::Checkmark => CellEdit::Check,
+            },
+            custom: true,
+            markup_color: false,
+        }
+    }
+}
+
+const STANDARD: &[StdCol] = {
+    use CellEdit as E;
+    &[
+        ("subject", "Subject", 200, false, true, false, false, E::Text),
+        ("pagelabel", "Page Label", 90, false, true, false, false, E::None),
+        ("label", "Label", 150, false, true, false, false, E::Text),
+        ("measurement", "Measurement", 120, true, true, true, true, E::None),
+        ("author", "Author", 110, false, true, false, false, E::None),
+        ("date", "Date", 120, false, true, false, false, E::None),
+        ("status", "Status", 90, false, true, false, false, E::Choice),
+        ("checkmark", "Checkmark", 84, false, true, false, false, E::Check),
+        ("color", "Color", 70, false, true, false, false, E::None),
+        ("comments", "Comments", 180, false, true, false, false, E::Text),
+        ("page", "Page Index", 70, true, false, true, false, E::None),
+        ("created", "Creation Date", 120, false, false, false, false, E::None),
+        ("layer", "Layer", 100, false, false, false, false, E::None),
+        ("space", "Space", 100, false, false, false, false, E::None),
+        ("lock", "Lock", 50, false, false, false, false, E::Check),
+        ("type", "Type", 90, false, false, false, false, E::None),
+        ("length", "Length", 100, true, false, true, true, E::None),
+        ("area", "Area", 100, true, false, true, true, E::None),
+        ("perimeter", "Perimeter", 100, true, false, true, true, E::None),
+        ("volume", "Volume", 90, true, false, true, true, E::None),
+        ("count", "Count", 60, true, false, true, true, E::None),
+        ("depth", "Depth", 80, true, false, true, false, E::None),
+        ("wallarea", "Wall Area", 90, true, false, true, true, E::None),
+        ("width", "Width", 90, true, false, true, false, E::None),
+        ("height", "Height", 90, true, false, true, false, E::None),
+        ("risedrop", "Rise/Drop", 80, true, false, true, false, E::None),
+        ("slope", "Slope", 70, true, false, true, false, E::None),
+        ("unit", "Unit", 50, false, false, false, false, E::None),
+        ("replies", "Replies", 60, true, false, true, false, E::None),
+        ("id", "Markup ID", 140, false, false, false, false, E::None),
+    ]
+};
+
+/// The standard (non-custom) Markups List columns in Revu's order: the identity and review
+/// columns shown by default first, then the measurement and other optional columns.
+pub fn standard_columns() -> Vec<TableColumn> {
+    STANDARD.iter().map(TableColumn::standard).collect()
+}
+
+/// Ids of the columns shown by default, in order.
+pub fn default_visible_columns() -> Vec<String> {
+    STANDARD.iter().filter(|c| c.4).map(|c| c.0.to_string()).collect()
 }

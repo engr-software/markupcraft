@@ -233,6 +233,7 @@ pub fn write_annot(cos: &mut CosDoc, a: &mut Dict, m: &mut Markup, page: ObjRef)
             pdf::set(a, "Measure", scale::object(sc));
         }
         pdf::set(a, "Contents", s(&m.contents));
+        extras::write_markup(cos, a, m, page);
         return;
     }
 
@@ -395,6 +396,7 @@ pub fn apply(cos: &mut CosDoc, doc: &mut Document) {
         set_annots(cos, pg.id, out, holder);
     }
     doc.order_changed = false;
+    extras::finish_document(cos, doc);
 
     // Calibrated page scales become a full-page viewport, which Revu reads: box relative to the
     // media box corner, /NM id, no /Name (the shape of Revu's own page scale).
