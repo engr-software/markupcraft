@@ -567,10 +567,16 @@ fn panel_access_bars_tab_menu_bottom_layout_and_auto_hide_tabs() {
     run(&mut h, "window.panel_bars");
     h.run_steps(2);
     assert!(h.state().state.open_panels.contains(&"bookmarks"));
-    h.get_by_label("Bookmarks (Alt+B)").click();
+    h.query_all_by_label_contains("Bookmarks (")
+        .next()
+        .expect("bookmarks bar button")
+        .click();
     h.run_steps(3);
     assert!(!h.state().state.open_panels.contains(&"bookmarks"));
-    h.get_by_label("Bookmarks (Alt+B)").click();
+    h.query_all_by_label_contains("Bookmarks (")
+        .next()
+        .expect("bookmarks bar button")
+        .click();
     h.run_steps(3);
     assert!(h.state().state.open_panels.contains(&"bookmarks"));
     // The panel tab's menu (right-click the Thumbnails tab, over its panel): Hide, then Attach Right.
@@ -785,7 +791,11 @@ fn shortcuts_follow_the_profile_and_print_as_a_reference() {
     run(&mut h, "help.shortcut_reference");
     let s = markupcraft_engine::Session::open(&out).unwrap();
     let text = s.renderable(false).unwrap().text(0).unwrap().plain_text();
-    assert!(text.contains("Actual Size") && text.contains("Ctrl+"), "{text}");
+    // macOS lists Cmd keys, the others Ctrl keys.
+    assert!(
+        text.contains("Actual Size") && (text.contains("Ctrl+") || text.contains("Cmd") || text.contains("⌘")),
+        "{text}"
+    );
     assert!(status(&h).starts_with("Wrote"), "{}", status(&h));
 }
 
