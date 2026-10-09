@@ -4,8 +4,13 @@
 //! this folder and add one line to [`REGISTRY`]. Everything shared by all kinds (`/C`, `/BS`,
 //! `/Measure`, `/Contents`, `/AP`, `/Rect` ...) is written by `write::write_annot`.
 
+pub mod common;
+pub mod draw;
 pub mod measure;
-pub mod plain;
+pub mod shapes;
+pub mod snapshot;
+pub mod text;
+pub mod textmarkup;
 
 use markupcraft_geom::{Point, Rect};
 use markupcraft_model::{Kind, Markup, code};
@@ -73,12 +78,26 @@ pub static REGISTRY: &[&AnnotKind] = &[
     &measure::POLYLENGTH,
     &measure::LENGTH,
     &measure::COUNT,
-    &plain::POLYGON,
-    &plain::POLYLINE,
-    &plain::LINE,
-    &plain::RECTANGLE,
-    &plain::ELLIPSE,
-    &plain::INK,
+    &shapes::CLOUD,
+    &shapes::POLYGON,
+    &shapes::POLYLINE,
+    &shapes::LINE,
+    &shapes::RECTANGLE,
+    &text::TEXT,
+    &text::CALLOUT,
+    &text::TYPEWRITER,
+    &shapes::ARROW,
+    &shapes::ELLIPSE,
+    &draw::INK,
+    &draw::HIGHLIGHT,
+    &draw::STAMP,
+    &textmarkup::TEXT_HIGHLIGHT,
+    &textmarkup::UNDERLINE,
+    &textmarkup::STRIKEOUT,
+    &textmarkup::SQUIGGLY,
+    &textmarkup::CARET,
+    &textmarkup::NOTE,
+    &snapshot::SNAPSHOT,
 ];
 
 static FALLBACK: AnnotKind = AnnotKind::new(Kind::Other, "Polygon", None, 0, false);

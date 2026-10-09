@@ -9,6 +9,11 @@
     clippy::unreachable
 )]
 
+pub mod marks;
+pub mod path;
+pub mod shapes;
+pub mod text;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]

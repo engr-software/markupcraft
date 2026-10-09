@@ -5,7 +5,9 @@
 //!   markupcraft-cli resave <in.pdf> <out.pdf>        rewrite every measurement, reload, compare
 //!   markupcraft-cli markupcheck <in.pdf> <out.pdf>   rewrite every other markup, reload, compare
 //!   markupcraft-cli demo <in.pdf> <out.pdf>          add one of each measurement (to check in Revu)
+//!   markupcraft-cli markupdemo <in.pdf> <out.pdf>    add one of every other markup kind to page 1
 
+mod markupdemo;
 mod scorecard;
 
 use std::process::ExitCode;
@@ -14,7 +16,7 @@ fn usage() -> ExitCode {
     eprintln!(
         "usage:\n  markupcraft-cli list <pdf> [--csv out.csv]\n  markupcraft-cli check <pdf>\n  \
          markupcraft-cli resave <in.pdf> <out.pdf>\n  markupcraft-cli markupcheck <in.pdf> <out.pdf>\n  \
-         markupcraft-cli demo <in.pdf> <out.pdf>"
+         markupcraft-cli demo <in.pdf> <out.pdf>\n  markupcraft-cli markupdemo <in.pdf> <out.pdf>"
     );
     ExitCode::from(2)
 }
@@ -34,6 +36,7 @@ fn main() -> ExitCode {
         ("resave", Some(out)) => scorecard::resave(a1, out),
         ("markupcheck", Some(out)) => scorecard::markupcheck(a1, out),
         ("demo", Some(out)) => scorecard::demo(a1, out),
+        ("markupdemo", Some(out)) => markupdemo::markupdemo(a1, out),
         _ => return usage(),
     };
     match result {

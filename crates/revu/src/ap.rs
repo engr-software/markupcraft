@@ -5,6 +5,7 @@
 use std::fmt::Write;
 
 use markupcraft_geom::Point;
+use markupcraft_geom::path::{Path, Seg};
 use markupcraft_model::Color;
 
 #[derive(Default, Debug, Clone)]
@@ -65,6 +66,18 @@ impl Ap {
             if closed {
                 self.op("h ");
             }
+        }
+        self
+    }
+    /// Path operators for `p`, without painting.
+    pub fn segs(&mut self, p: &Path) -> &mut Self {
+        for s in p {
+            match *s {
+                Seg::Move(a) => self.move_to(a),
+                Seg::Line(a) => self.line_to(a),
+                Seg::Curve(a, b, c) => self.curve_to(a, b, c),
+                Seg::Close => self.op("h "),
+            };
         }
         self
     }
