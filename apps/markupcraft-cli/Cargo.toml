@@ -13,6 +13,8 @@ name = "markupcraft-cli"
 path = "src/main.rs"
 
 [dependencies]
+markupcraft-automation = { workspace = true }
+markupcraft-engine = { workspace = true }
 markupcraft-model = { workspace = true }
 markupcraft-measure = { workspace = true }
 markupcraft-revu = { workspace = true }
