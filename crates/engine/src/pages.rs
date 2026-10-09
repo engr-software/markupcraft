@@ -104,11 +104,16 @@ impl ForeignPdf {
             path: path.display().to_string(),
             source: e,
         })?;
+        Self::from_bytes(data, path)
+    }
+
+    /// A PDF held in memory (`path` names it in messages).
+    pub fn from_bytes(data: Vec<u8>, path: impl AsRef<Path>) -> Result<Self> {
         let cos = CosDoc::open(Arc::new(data))?;
         let (_, pages) = flatten(&cos)?;
         let labels = labels::read(&cos, pages.len());
         Ok(Self {
-            path: path.to_path_buf(),
+            path: path.as_ref().to_path_buf(),
             cos,
             pages,
             labels,

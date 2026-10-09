@@ -84,6 +84,9 @@ impl Sel<'_> {
 fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     let mut actions_out: Vec<&'static str> = Vec::new();
+    let user_styles = app.toolchest.extras.line_styles.clone();
+    let custom_statuses = app.toolchest.extras.statuses.clone();
+    let mut new_status: Option<String> = None;
     let Some(doc) = app.doc_mut() else {
         super::empty(ui, "No document open.");
         return;
@@ -127,10 +130,13 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
         ui.add_space(4.0);
         let mut edits: Edits = Vec::new();
         let mut changes: Vec<Change> = Vec::new();
+        let mut reply_acts: Vec<super::properties_more::ReplyAct> = Vec::new();
         let layers: Vec<String> = doc.session.layers().into_iter().map(|l| l.name).collect();
+        let columns = doc.session.doc().columns.clone();
         ui.add_enabled_ui(writable, |ui| {
             general(ui, &sel, &layers, &mut edits, &mut changes);
-            appearance(ui, &sel, &mut edits, &mut changes);
+            super::properties_more::custom_status(ui, &sel_status(&sel), &custom_statuses, &mut edits, &mut new_status);
+            appearance(ui, &sel, &mut edits, &mut changes, &user_styles, &mut actions_out);
             if m.kind.is_text() || m.kind == Kind::Stamp || m.kind.is_measurement() {
                 text(ui, &sel, &mut edits);
             }
@@ -139,6 +145,10 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
             }
             if m.kind == Kind::Note {
                 note(ui, &sel, &mut edits);
+            }
+            super::properties_more::sections(ui, &m, &all, &columns, &mut edits);
+            if n == 1 {
+                super::properties_more::replies(ui, &m, &mut reply_acts);
             }
             layout(ui, &sel, &mut changes);
         });
@@ -192,9 +202,13 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
             });
         apply(doc, &targets, edits);
         apply_changes(doc, &targets, changes);
+        super::properties_more::apply_replies(doc, &m.id, reply_acts);
     });
     for a in actions_out {
         app.queue(a);
+    }
+    if let Some(st) = new_status {
+        app.toolchest.add_status(&st);
     }
 }
 
@@ -326,6 +340,15 @@ fn color_button(ui: &mut egui::Ui, c: &Color) -> Option<Color> {
     ui.color_edit_button_rgb(&mut rgb)
         .changed()
         .then(|| Color::rgb(f64::from(rgb[0]), f64::from(rgb[1]), f64::from(rgb[2])))
+}
+
+/// The status shown for the selection ("" = none, `MIXED` when they differ).
+fn sel_status(sel: &Sel<'_>) -> String {
+    if sel.mixed(|m| m.status.clone()) {
+        MIXED.to_string()
+    } else {
+        sel.first.status.clone()
+    }
 }
 
 fn general(ui: &mut egui::Ui, sel: &Sel<'_>, layers: &[String], edits: &mut Edits, changes: &mut Vec<Change>) {
@@ -486,7 +509,14 @@ fn general(ui: &mut egui::Ui, sel: &Sel<'_>, layers: &[String], edits: &mut Edit
     });
 }
 
-fn appearance(ui: &mut egui::Ui, sel: &Sel<'_>, edits: &mut Edits, changes: &mut Vec<Change>) {
+fn appearance(
+    ui: &mut egui::Ui,
+    sel: &Sel<'_>,
+    edits: &mut Edits,
+    changes: &mut Vec<Change>,
+    user_styles: &[crate::chest_more::LineStyle],
+    actions_out: &mut Vec<&'static str>,
+) {
     let m = sel.first;
     section(ui, "Appearance", "props-appearance", |ui| {
         label(ui, "Color", sel.mixed(|m| m.color));
@@ -606,20 +636,35 @@ fn appearance(ui: &mut egui::Ui, sel: &Sel<'_>, edits: &mut Edits, changes: &mut
 
             let mixed = sel.mixed(|m| m.dash.iter().map(|d| d.to_bits()).collect::<Vec<_>>());
             label(ui, "Line style", mixed);
-            let current = if mixed { MIXED } else { line_style_name(&m.dash) };
+            let user = user_styles.iter().find(|s| s.dash == m.dash).map(|s| s.name.as_str());
+            let current = if mixed {
+                MIXED
+            } else if let (Some(u), "Custom") = (user, line_style_name(&m.dash)) {
+                u
+            } else {
+                line_style_name(&m.dash)
+            };
             egui::ComboBox::from_id_salt("prop-dash")
                 .selected_text(current)
                 .show_ui(ui, |ui| {
-                    for (name, dash) in LINE_STYLES {
-                        if ui.selectable_label(current == *name, *name).clicked() {
+                    let dashes = LINE_STYLES
+                        .iter()
+                        .map(|(n, d)| (*n, d.to_vec()))
+                        .chain(user_styles.iter().map(|s| (s.name.as_str(), s.dash.clone())));
+                    for (name, dash) in dashes {
+                        if ui.selectable_label(current == name, name).clicked() {
                             edits.push((
                                 "dash",
                                 MarkupPatch {
-                                    dash: Some(dash.to_vec()),
+                                    dash: Some(dash),
                                     ..Default::default()
                                 },
                             ));
                         }
+                    }
+                    ui.separator();
+                    if ui.button("Manage Line Styles...").clicked() {
+                        actions_out.push("markup.line_styles");
                     }
                 });
             ui.end_row();

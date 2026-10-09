@@ -8,6 +8,7 @@ pub mod common;
 pub mod draw;
 pub mod measure;
 pub mod measure_more;
+pub mod more;
 pub mod shapes;
 pub mod snapshot;
 pub mod text;
@@ -103,6 +104,9 @@ pub static REGISTRY: &[&AnnotKind] = &[
     &measure_more::DIAMETER,
     &measure_more::RADIUS,
     &measure_more::ANGLE,
+    &more::DIMENSION,
+    &more::ARC,
+    &more::ATTACHMENT,
 ];
 
 static FALLBACK: AnnotKind = AnnotKind::new(Kind::Other, "Polygon", None, 0, false);
@@ -138,6 +142,7 @@ pub fn classify(sub: &str, it: &str, code_: i64) -> Kind {
             _ if code_ == code::AREA => Kind::Area,
             _ => Kind::Polygon,
         },
+        "PolyLine" if it == more::ARC_INTENT => Kind::Arc,
         "PolyLine" => {
             if it == "PolyLineDimension" || code_ == code::LENGTH {
                 Kind::Polylength
@@ -146,6 +151,7 @@ pub fn classify(sub: &str, it: &str, code_: i64) -> Kind {
             }
         }
         "Line" if it == "LineArrow" => Kind::Arrow,
+        "Line" if it == more::DIMENSION_INTENT => Kind::Dimension,
         "Line" => {
             if it == "LineDimension" || code_ == code::LENGTH {
                 Kind::Length
@@ -182,7 +188,7 @@ pub fn app_draws(subtype: &str, intent: &str, our_stamp: bool, foreign_look: boo
         "Line" | "Polygon" | "PolyLine" | "Circle" | "Ink" | "FreeText" => true,
         "Square" => intent != "SquareImage",
         "Stamp" => our_stamp,
-        "Highlight" | "Underline" | "StrikeOut" | "Squiggly" | "Caret" | "Text" => true,
+        "Highlight" | "Underline" | "StrikeOut" | "Squiggly" | "Caret" | "Text" | "FileAttachment" => true,
         _ => false,
     }
 }

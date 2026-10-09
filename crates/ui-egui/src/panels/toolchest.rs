@@ -90,6 +90,7 @@ fn row(
     resp
 }
 
+#[allow(clippy::too_many_arguments)]
 fn item_row(
     ui: &mut egui::Ui,
     t: &Tokens,
@@ -98,6 +99,7 @@ fn item_row(
     it: &ToolItem,
     sets: &[(String, String)],
     acts: &mut Vec<Act>,
+    more: &mut Vec<crate::chest_more::ChestAct>,
 ) {
     let Some(tool) = crate::tools::find(&it.tool) else {
         return;
@@ -184,15 +186,18 @@ fn item_row(
             ui.close();
         }
         if ui.button("Delete").clicked() {
-            acts.push(Act::Delete(s, i));
+            acts.push(Act::Delete(s.clone(), i.clone()));
             ui.close();
         }
+        crate::chest_more::item_menu(ui, app, &s, &i, more);
     });
 }
 
 fn ui(app: &mut AppState, ui: &mut egui::Ui) {
+    crate::chest_more::drop_target(ui, app);
     let t = Tokens::get(ui.ctx());
     let mut acts: Vec<Act> = Vec::new();
+    let mut more: Vec<crate::chest_more::ChestAct> = Vec::new();
     let sets: Vec<(String, String)> = app
         .toolchest
         .sets
@@ -213,6 +218,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                 app.tool_locked = keep;
             }
         });
+        crate::chest_more::options_ui(ui, app);
         ui.horizontal(|ui| {
             let mut view = app.toolchest.view;
             let mut size = app.toolchest.icon_size;
@@ -241,22 +247,25 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                     if app.toolchest.view == ChestView::Detail {
                         ui.vertical(|ui| {
                             for it in app.toolchest.recent.clone() {
-                                item_row(ui, &t, app, "recent", &it, &sets, &mut acts);
+                                item_row(ui, &t, app, "recent", &it, &sets, &mut acts, &mut more);
                             }
                         });
                     } else {
                         for it in app.toolchest.recent.clone() {
-                            item_row(ui, &t, app, "recent", &it, &sets, &mut acts);
+                            item_row(ui, &t, app, "recent", &it, &sets, &mut acts, &mut more);
                         }
                     }
                 });
             });
         // My Tools and the user's sets
         for set in app.toolchest.sets.clone() {
-            let title = match &set.scale {
+            let mut title = match &set.scale {
                 Some(s) => format!("{}  ({})", set.title, s.ratio),
                 None => set.title.clone(),
             };
+            if app.toolchest.is_locked(&set.id) {
+                title.push_str("  (locked)");
+            }
             let header = egui::CollapsingHeader::new(RichText::new(title).strong())
                 .id_salt(("chest-set", &set.id))
                 .default_open(!set.collapsed)
@@ -272,16 +281,20 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                     if app.toolchest.view == ChestView::Symbol {
                         ui.horizontal_wrapped(|ui| {
                             for it in &set.items {
-                                item_row(ui, &t, app, &set.id, it, &sets, &mut acts);
+                                item_row(ui, &t, app, &set.id, it, &sets, &mut acts, &mut more);
                             }
                         });
                     } else {
                         for it in &set.items {
-                            item_row(ui, &t, app, &set.id, it, &sets, &mut acts);
+                            item_row(ui, &t, app, &set.id, it, &sets, &mut acts, &mut more);
                         }
                     }
                 });
+            if header.openness < 0.5 && !set.items.is_empty() {
+                crate::chest_more::flyout(ui, app, &set, &mut more);
+            }
             header.header_response.context_menu(|ui| {
+                crate::chest_more::set_menu(ui, app, &set.id, &mut more);
                 ui.menu_button("Scale", |ui| {
                     if ui.selectable_label(set.scale.is_none(), "None").clicked() {
                         acts.push(Act::SetScale(set.id.clone(), None));
@@ -370,6 +383,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                 });
         }
     });
+    crate::chest_more::apply(app, more);
     for a in acts {
         match a {
             Act::Use(set, item, keep) => {

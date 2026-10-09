@@ -129,6 +129,15 @@ fn read_columns(cos: &CosDoc) -> Vec<CustomColumn> {
             c.total = b;
         }
         c.formula = value_text(d.get(b"Formula"));
+        if let Some(t) = ColumnType::from_name(&value_text(d.get(b"Display")))
+            .filter(|t| matches!(t, ColumnType::Number | ColumnType::Currency | ColumnType::Percent))
+        {
+            c.display = t;
+        }
+        let df = value_text(d.get(b"DateFormat"));
+        if markupcraft_model::columns::DATE_FORMATS.contains(&df.as_str()) {
+            c.date_format = df;
+        }
         if let Some(b) = pdf::boolean(d.get(b"AllowCustom")) {
             c.allow_custom = b;
         }
@@ -487,6 +496,15 @@ fn columns_object(cols: &[CustomColumn]) -> Object {
                 }
                 if c.kind == ColumnType::Formula {
                     pdf::set(&mut d, "Formula", s(&c.formula));
+                    if c.display != ColumnType::Number {
+                        pdf::set(&mut d, "Display", n(c.display.name()));
+                        if c.display == ColumnType::Currency {
+                            pdf::set(&mut d, "Symbol", s(&c.symbol));
+                        }
+                    }
+                }
+                if c.kind == ColumnType::Date && c.date_format != markupcraft_model::columns::DATE_FORMATS[0] {
+                    pdf::set(&mut d, "DateFormat", s(&c.date_format));
                 }
                 if c.kind == ColumnType::Choice {
                     pdf::set(&mut d, "AllowCustom", Object::Bool(c.allow_custom));
@@ -879,6 +897,15 @@ mod tests {
                 kind: ColumnType::Formula,
                 formula: "Area * Phase".into(),
                 decimals: 1,
+                display: ColumnType::Currency,
+                ..Default::default()
+            },
+            CustomColumn {
+                id: "due".into(),
+                name: "Due".into(),
+                kind: ColumnType::Date,
+                date_format: "MM/dd/yyyy".into(),
+                default_value: markupcraft_model::columns::TODAY.into(),
                 ..Default::default()
             },
             CustomColumn {

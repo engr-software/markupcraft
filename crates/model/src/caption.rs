@@ -122,6 +122,129 @@ pub fn offset_to_line_co(m: &Markup, o: Point) -> (f64, f64) {
     }
 }
 
+/// The fields a caption template can show, as `{name}` (Properties > Caption > Edit).
+pub const CAPTION_FIELDS: &[(&str, &str)] = &[
+    ("value", "Measurement"),
+    ("all", "All measurements (P / A / WA / V)"),
+    ("subject", "Subject"),
+    ("label", "Label"),
+    ("author", "Author"),
+    ("layer", "Layer"),
+    ("status", "Status"),
+    ("length", "Length / perimeter"),
+    ("area", "Area"),
+    ("wall area", "Wall area"),
+    ("volume", "Volume"),
+    ("depth", "Depth"),
+    ("slope", "Slope"),
+    ("count", "Count"),
+];
+
+/// Longest caption a template expands to (characters).
+const MAX_CAPTION: usize = 2000;
+
+/// One field's text for `m` (`None` = not a field; `Some("")` = no value).
+pub fn caption_field(m: &Markup, name: &str) -> Option<String> {
+    use crate::measure_extras::{net_area, volume_of, wall_area};
+    let s = m.scale.as_ref().filter(|s| s.valid());
+    let fmt = |v: Option<f64>, area: bool| -> String {
+        match (v, s) {
+            (Some(v), Some(s)) => crate::format_value(v, if area { &s.area } else { &s.dist }),
+            _ => String::new(),
+        }
+    };
+    let closed = crate::measure_extras::closed_shape(m.kind);
+    let length = || -> Option<f64> {
+        let sc = s?;
+        match m.kind {
+            Kind::Area | Kind::Volume | Kind::Perimeter => Some(sc.length_of(&m.pts, closed) * m.slope_factor()),
+            Kind::Length | Kind::Polylength => m.quantity(),
+            _ => None,
+        }
+    };
+    let area = || -> Option<f64> {
+        match m.kind {
+            Kind::Area | Kind::Volume => net_area(m).map(|a| a * m.slope_factor()),
+            _ => None,
+        }
+    };
+    Some(match name.trim() {
+        "value" => m.quantity_text(),
+        "subject" => m.subject.clone(),
+        "label" => m.label.clone(),
+        "author" => m.author.clone(),
+        "layer" => m.layer.clone(),
+        "status" => m.status.clone(),
+        "length" | "perimeter" => fmt(length(), false),
+        "area" => fmt(area(), true),
+        "wall area" => fmt(wall_area(m), true),
+        "volume" => match (volume_of(m).filter(|_| m.depth != 0.0), s) {
+            (Some(v), Some(sc)) if !sc.volume.is_empty() => crate::format_value(v, &sc.volume),
+            _ => String::new(),
+        },
+        "depth" if m.depth != 0.0 => fmt(Some(m.depth), false),
+        "depth" => String::new(),
+        "slope" => m.slope_of().label(),
+        "count" if m.kind == Kind::Count => m.quantity_text(),
+        "count" => String::new(),
+        "all" => {
+            let mut parts = Vec::new();
+            for (tag, key) in [("P", "length"), ("A", "area"), ("WA", "wall area"), ("V", "volume")] {
+                let v = caption_field(m, key).unwrap_or_default();
+                if !v.is_empty() {
+                    parts.push(format!("{tag}: {v}"));
+                }
+            }
+            if parts.is_empty() {
+                m.quantity_text()
+            } else {
+                parts.join(" / ")
+            }
+        }
+        other => {
+            let id = other.strip_prefix("c:")?;
+            m.column_data.get(id).cloned().unwrap_or_default()
+        }
+    })
+}
+
+/// The caption a measurement shows: its template with every `{field}` filled in, or just the
+/// value without one. Unknown `{names}` stay as typed.
+pub fn caption_text(m: &Markup) -> String {
+    if m.caption_template.trim().is_empty() {
+        return m.quantity_text();
+    }
+    let mut out = String::new();
+    let mut rest = m.caption_template.as_str();
+    while let Some(open) = rest.find('{') {
+        out.push_str(rest.get(..open).unwrap_or_default());
+        let after = rest.get(open + 1..).unwrap_or_default();
+        match after.find('}') {
+            Some(close) => {
+                let name = after.get(..close).unwrap_or_default();
+                match caption_field(m, name) {
+                    Some(v) => out.push_str(&v),
+                    None => {
+                        out.push('{');
+                        out.push_str(name);
+                        out.push('}');
+                    }
+                }
+                rest = after.get(close + 1..).unwrap_or_default();
+            }
+            None => {
+                out.push_str(rest.get(open..).unwrap_or_default());
+                rest = "";
+            }
+        }
+        if out.len() > MAX_CAPTION {
+            break;
+        }
+    }
+    out.push_str(rest);
+    out.chars().take(MAX_CAPTION).collect::<String>().trim().to_string()
+}
+
 /// Kinds whose moved caption is stored in Revu's `/CO`.
 pub fn uses_co(k: Kind) -> bool {
     matches!(k, Kind::Area | Kind::Perimeter | Kind::Length)
@@ -178,5 +301,35 @@ mod tests {
         };
         let c = default_caption_anchor(&ang);
         assert!((c.x - c.y).abs() < 1e-9 && (c.x - 20.0 / 2f64.sqrt()).abs() < 1e-9);
+    }
+
+    #[test]
+    fn caption_templates_fill_in_fields() {
+        let mut a = Markup {
+            kind: Kind::Area,
+            subject: "Slab".into(),
+            pts: vec![p(0.0, 0.0), p(90.0, 0.0), p(90.0, 90.0), p(0.0, 90.0)],
+            scale: Some(crate::Scale::architectural(0.125, 1.0)),
+            depth: 0.5,
+            ..Default::default()
+        };
+        assert_eq!(caption_text(&a), "100 sf");
+        a.caption_template = "{subject}\n{value} {nope}".into();
+        assert_eq!(caption_text(&a), "Slab\n100 sf {nope}");
+        a.caption_template = "{all}".into();
+        assert_eq!(caption_text(&a), "P: 40'-0\" / A: 100 sf / WA: 20 sf / V: 50 cu ft");
+        a.column_data.insert("cost".into(), "$12".into());
+        a.caption_template = "{c:cost} {unclosed".into();
+        assert_eq!(caption_text(&a), "$12 {unclosed");
+        a.caption_template = "{slope}".into();
+        a.slope_type = 2;
+        a.slope = 30.0;
+        assert_eq!(caption_text(&a), "30\u{b0}");
+        let c = crate::measure_extras::centroid(&a).unwrap();
+        assert!((c.x - 45.0).abs() < 1e-9 && (c.y - 45.0).abs() < 1e-9);
+        a.holes
+            .push(vec![p(0.0, 0.0), p(45.0, 0.0), p(45.0, 90.0), p(0.0, 90.0)]);
+        let c = crate::measure_extras::centroid(&a).unwrap();
+        assert!((c.x - 67.5).abs() < 1e-9, "{c:?}");
     }
 }

@@ -118,6 +118,8 @@ fn flatten(cos: &mut CosDoc, objs: &HashSet<ObjRef>, ids: &HashSet<String>) -> R
         let mut content = String::new();
         let mut xobjects: Vec<(String, ObjRef)> = Vec::new();
         let mut gone: HashSet<ObjRef> = HashSet::new();
+        // what Unflatten needs to bring each one back: its dictionary and its drawing
+        let mut undo: Vec<(Dict, String)> = Vec::new();
         for entry in &list {
             let Some(r) = entry.as_ref() else { continue };
             let Some(d) = cos.dict(entry) else { continue };
@@ -135,11 +137,12 @@ fn flatten(cos: &mut CosDoc, objs: &HashSet<ObjRef>, ids: &HashSet<String>) -> R
             let rect = nums(cos, d.get(b"Rect"))
                 .filter(|r| r.len() == 4)
                 .map(|r| [r[0].min(r[2]), r[1].min(r[3]), r[0].max(r[2]), r[1].max(r[3])]);
+            let mut line = String::new();
             if let (Some(ap), Some(rect)) = (appearance(cos, &d), rect) {
                 let form = cos.dict(&Object::Ref(ap)).unwrap_or_default();
                 if let Some(m) = placement(cos, &form, rect) {
                     let name = format!("MCFlat{}_{}", ap.num, xobjects.len());
-                    content.push_str(&format!(
+                    line = format!(
                         "q {} {} {} {} {} {} cm /{name} Do Q\n",
                         n(m[0]),
                         n(m[1]),
@@ -147,10 +150,12 @@ fn flatten(cos: &mut CosDoc, objs: &HashSet<ObjRef>, ids: &HashSet<String>) -> R
                         n(m[3]),
                         n(m[4]),
                         n(m[5])
-                    ));
+                    );
+                    content.push_str(&line);
                     xobjects.push((name, ap));
                 }
             }
+            undo.push((d.clone(), line));
             gone.insert(r);
             drawn += 1;
         }
@@ -190,6 +195,7 @@ fn flatten(cos: &mut CosDoc, objs: &HashSet<ObjRef>, ids: &HashSet<String>) -> R
                 d.set(b"Resources".to_vec(), Object::Dict(res));
                 d.set(b"Contents".to_vec(), Object::Array(list));
             })?;
+            crate::unflatten::record(cos, page, (open, close), std::mem::take(&mut undo))?;
         }
         set_annots(cos, page, kept)?;
     }

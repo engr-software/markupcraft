@@ -19,6 +19,7 @@
 pub mod actions;
 pub mod canvas;
 pub mod chest;
+pub mod chest_more;
 pub mod chest_sets;
 pub mod chrome;
 pub mod commands;
@@ -27,14 +28,17 @@ pub mod dialogs;
 pub mod dock;
 pub mod editing;
 pub mod features;
+pub mod gestures;
 pub mod icon_data;
 pub mod icons;
 pub mod interact;
 pub mod keyprefs;
+pub mod more;
 pub mod painter;
 pub mod panels;
 pub mod prefs_ui;
 pub mod richedit;
+pub mod shapes_more;
 pub mod shell;
 pub mod sketch;
 pub mod snapping;
@@ -569,6 +573,7 @@ impl AppState {
             "tool.select" | "tool.pan" => true,
             _ if id.starts_with("panel.") || id.starts_with("snap.") => true,
             _ if features::handles(id) => features::enabled(self, id),
+            _ if more::handles(id) => more::enabled(self, id),
             _ => doc.is_some(),
         }
     }
@@ -576,6 +581,9 @@ impl AppState {
     /// Checkmark state for toggles (`None` = not a toggle).
     pub fn checked(&self, id: &str) -> Option<bool> {
         if let Some(c) = shell::checked(self, id) {
+            return Some(c);
+        }
+        if let Some(c) = more::checked(self, id) {
             return Some(c);
         }
         if let Some(t) = id.strip_prefix("tool.") {
@@ -721,6 +729,7 @@ impl AppState {
         }
         if let Some((tool, m)) = out.created {
             self.toolchest.add_recent(tool, &m);
+            more::created(self, &m);
             let keeps = tool == "count" || self.tool_locked;
             if !keeps && self.tool == tool {
                 self.tool = "select";
@@ -866,7 +875,7 @@ impl AppState {
                     for id in &ids {
                         if let Some(m) = d.session.doc().find(id).filter(|m| m.kind.is_text()).cloned() {
                             let mut s = m.clone();
-                            markupcraft_revu::kinds::text::autosize_text_box(&mut s);
+                            markupcraft_revu::kinds::text::fit_text_box(&mut s);
                             if s.pts != m.pts {
                                 let _ = d.session.set_points(id, s.pts);
                             }
@@ -1221,6 +1230,7 @@ impl eframe::App for MarkupCraftApp {
         windows::show(&mut self.state, &ctx);
         shell::windows(&mut self.state, &ctx);
         features::frame(&mut self.state, &ctx);
+        more::frame(&mut self.state, &ctx);
         viewports::dialog(&mut self.state, &ctx);
         sketch::bar(&mut self.state, &ctx);
         keyprefs::window(&mut self.state, &ctx);

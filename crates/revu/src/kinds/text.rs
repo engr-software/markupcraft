@@ -9,7 +9,7 @@
 //!
 //! Revu draws the border in the text colour; when ours differs `"R G B RG"` leads `/DA`.
 
-use markupcraft_geom::text::{layout_text, line_height, text_height_for, text_inset, to_win_ansi, widest_paragraph};
+use markupcraft_geom::text::{line_height, text_inset, to_win_ansi, widest_paragraph};
 use markupcraft_geom::{Point, Rect};
 use markupcraft_model::rich::{self, CharStyle, TextRun};
 use markupcraft_model::{Color, Kind, Markup, TextStyle};
@@ -78,10 +78,11 @@ pub fn text_css(s: &TextStyle) -> String {
         _ => "left",
     };
     let mut css = format!(
-        "font: {} {}pt; text-align:{align}; margin:3pt; line-height:{}pt; color:{}",
+        "font: {} {}pt; text-align:{align}; margin:{}pt; line-height:{}pt; color:{}",
         s.font,
         num4(s.size),
-        num4(line_height(s.size)),
+        num4(3.0 + if s.margin.is_finite() { s.margin } else { 0.0 }),
+        num4(line_height(s.size) * markupcraft_geom::text::spacing_of(s.line_spacing)),
         s.color.hex()
     );
     if s.bold {
@@ -393,20 +394,57 @@ fn xml_unescape(s: &str) -> String {
 // ---------------------------------------------------------------------------- layout ---
 
 /// Grow (never shrink) the box downwards so the text fits; a Typewriter also fits its width.
+/// The inset of a text markup's text: the frame's (line width + 4) plus its own margin.
+pub fn markup_inset(m: &Markup) -> f64 {
+    let extra = if m.text.margin.is_finite() {
+        m.text.margin.clamp(-4.0, 200.0)
+    } else {
+        0.0
+    };
+    (text_inset(m.line_width) + extra).max(0.0)
+}
+
+/// A text markup's lines laid out in box `b` (its margin and line spacing applied).
+pub fn markup_lines(m: &Markup, b: Rect) -> Vec<markupcraft_geom::text::TextLine> {
+    let f = font_of(&m.text);
+    markupcraft_geom::text::layout_text_spaced(b, &m.contents, &f, m.text.align, markup_inset(m), m.text.line_spacing)
+}
+
+fn height_for(m: &Markup, f: &markupcraft_geom::text::Font, width: f64, inset: f64) -> f64 {
+    markupcraft_geom::text::text_height_spaced(&m.contents, f, width, inset, m.text.line_spacing)
+}
+
 pub fn autosize_text_box(m: &mut Markup) {
     if m.pts.len() < 4 {
         return;
     }
     let mut b = box_of(m);
     let f = font_of(&m.text);
-    let inset = text_inset(m.line_width);
+    let inset = markup_inset(m);
     if m.kind == Kind::Typewriter {
         b.x1 = b.x0 + (widest_paragraph(&m.contents, &f) + 2.0 * inset + 1.0).max(2.0 * inset + f.size);
     }
-    let need = text_height_for(&m.contents, &f, b.x1 - b.x0, inset);
+    let need = height_for(m, &f, b.x1 - b.x0, inset);
     if m.kind == Kind::Typewriter || need > b.y1 - b.y0 {
         b.y0 = b.y1 - need;
     }
+    let rest: Vec<Point> = m.pts.iter().skip(4).copied().collect();
+    m.pts = b.corners().to_vec();
+    m.pts.extend(rest);
+}
+
+/// Autosize Text Box (Alt+Z): the frame shrinks or grows to fit its text exactly (the widest
+/// line and every line), keeping its top-left corner. Empty text keeps the frame.
+pub fn fit_text_box(m: &mut Markup) {
+    if m.pts.len() < 4 || m.contents.trim().is_empty() {
+        return;
+    }
+    let mut b = box_of(m);
+    let f = font_of(&m.text);
+    let inset = markup_inset(m);
+    let w = (widest_paragraph(&m.contents, &f) + 2.0 * inset + 1.0).max(2.0 * inset + f.size);
+    b.x1 = b.x0 + w;
+    b.y0 = b.y1 - height_for(m, &f, w, inset);
     let rest: Vec<Point> = m.pts.iter().skip(4).copied().collect();
     m.pts = b.corners().to_vec();
     m.pts.extend(rest);
@@ -453,7 +491,7 @@ fn draw_text(ap: &mut Ap, m: &Markup, extent: &mut Vec<Point>) {
     // Text.
     let st = &m.text;
     let f = font_of(st);
-    let lines = layout_text(b, &m.contents, &f, st.align, text_inset(w));
+    let lines = markup_lines(m, b);
     if !m.rich.is_empty() {
         draw_rich_lines(ap, m, &lines);
         return;
@@ -558,6 +596,13 @@ fn write_text(a: &mut Dict, m: &Markup) {
     pdf::set(a, "DA", s(&default_appearance(m)));
     pdf::set(a, "DS", s(&text_css(&m.text)));
     pdf::set(a, "RC", s(&rich_text(m)));
+    super::common::set_or_remove(a, "PCTextMargin", m.text.margin != 0.0, crate::pdf::real(m.text.margin));
+    super::common::set_or_remove(
+        a,
+        "PCLineSpacing",
+        markupcraft_geom::text::spacing_of(m.text.line_spacing) != 1.0,
+        crate::pdf::real(m.text.line_spacing),
+    );
     if has_leader(m)
         && let (Some(tip), Some(knee)) = (m.pts.get(4), m.pts.get(5))
     {
@@ -581,6 +626,12 @@ fn read_text(cos: &CosDoc, a: &Dict, m: &mut Markup) {
     if let Some(Object::String(ds)) = a.get(b"DS").map(|o| cos.resolve(o)).as_deref() {
         parse_text_css(&ds.to_text(), &mut m.text);
     }
+    m.text.margin = pdf::num(a.get(b"PCTextMargin"))
+        .filter(|v| v.is_finite())
+        .unwrap_or(0.0);
+    m.text.line_spacing = pdf::num(a.get(b"PCLineSpacing"))
+        .map(markupcraft_geom::text::spacing_of)
+        .unwrap_or(1.0);
     if !border {
         m.color = m.text.color;
     }

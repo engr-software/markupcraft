@@ -7,7 +7,7 @@ use egui::epaint::{Mesh, PathShape, PathStroke};
 use egui::text::{LayoutJob, TextFormat};
 use egui::{Align2, Color32, FontFamily, FontId, Painter, Pos2, Rect, Shape, Stroke, Vec2, pos2, vec2};
 use markupcraft_geom::path::Seg;
-use markupcraft_geom::text::{layout_text, stamp_lines, text_inset};
+use markupcraft_geom::text::stamp_lines;
 use markupcraft_geom::{Point, shapes};
 use markupcraft_model::{Kind, Markup, caption, measure_extras};
 use markupcraft_render::PageGeom;
@@ -67,6 +67,12 @@ pub fn handles(m: &Markup) -> Vec<Point> {
     match m.kind {
         Kind::TextHighlight | Kind::Underline | Kind::Strikeout | Kind::Squiggly | Kind::Ink | Kind::Highlight => {
             Vec::new()
+        }
+        _ if m.pts.len() <= 500 => {
+            // the cutouts' vertices follow the outline's (engine vertex numbering)
+            let mut h = m.pts.clone();
+            h.extend(m.holes.iter().flatten().take(500));
+            h
         }
         _ => m.pts.iter().take(500).copied().collect(),
     }
@@ -197,7 +203,8 @@ pub fn paint_markup(p: &Painter, xf: &Xf, m: &Markup) {
                 }
             }
         }
-        Kind::Rectangle | Kind::Attachment | Kind::Hyperlink | Kind::Caret => {
+        Kind::Attachment => crate::shapes_more::paint_attachment(p, xf, m),
+        Kind::Rectangle | Kind::Hyperlink | Kind::Caret => {
             let pts = screen(&box_of(m).corners());
             if let Some(f) = fill {
                 fill_polygon(p, &pts, f);
@@ -307,6 +314,7 @@ pub fn paint_markup(p: &Painter, xf: &Xf, m: &Markup) {
                 }
             }
         }
+        Kind::Note if m.icon == crate::shapes_more::FLAG_ICON => crate::shapes_more::paint_flag(p, xf, m),
         Kind::Note => {
             let b = box_of(m);
             let at = xf.to_screen(Point::new(b.x0, b.y1));
@@ -327,7 +335,18 @@ pub fn paint_markup(p: &Painter, xf: &Xf, m: &Markup) {
                 );
             }
         }
+        Kind::Dimension => crate::shapes_more::paint_dimension(p, xf, m, stroke),
+        Kind::Arc => {
+            let pts = screen(&markupcraft_revu::kinds::more::arc_polyline(m, 48));
+            stroke_path(p, &pts, false, stroke, &m.dash, xf);
+            line_endings(p, &pts, m, stroke);
+        }
         Kind::Other => {}
+    }
+    if m.show_centroid
+        && let Some(c) = measure_extras::centroid(m)
+    {
+        crate::shapes_more::paint_centroid(p, xf.to_screen(c), stroke.color);
     }
     if let Some(h) = m.hatch.filter(|h| h.valid()) {
         paint_hatch(p, xf, m, &h);
@@ -481,11 +500,10 @@ pub fn paint_text_lines(p: &Painter, xf: &Xf, m: &Markup, b: markupcraft_geom::R
     if size < 3.0 || m.contents.is_empty() {
         return;
     }
-    let font = font_of(&m.text);
     let col = color32(&m.text.color, m.opacity);
     let clip = p.clip_rect().intersect(xf.rect_of(b).expand(2.0));
     let cp = p.with_clip_rect(clip);
-    let lines = layout_text(b, &m.contents, &font, m.text.align, text_inset(m.line_width));
+    let lines = markupcraft_revu::kinds::text::markup_lines(m, b);
     if !m.rich.is_empty() {
         let starts = markupcraft_revu::kinds::text::line_starts(&m.contents, &lines);
         for (l, s0) in lines.iter().zip(&starts).take(400) {
@@ -585,7 +603,7 @@ fn paint_caption(p: &Painter, xf: &Xf, m: &Markup) {
     if m.hide_caption {
         return;
     }
-    let text = match m.quantity_text() {
+    let text = match caption::caption_text(m) {
         t if !t.is_empty() => t,
         _ => m.contents.lines().next().unwrap_or_default().to_string(),
     };
@@ -598,6 +616,16 @@ fn paint_caption(p: &Painter, xf: &Xf, m: &Markup) {
     }
     let r = caption_rect(p, xf, m, &text, size);
     let col = color32(&m.color, 1.0);
+    if m.caption_leader && m.caption_offset.is_some() {
+        let from = xf.to_screen(caption::default_caption_anchor(m));
+        let to = r.center();
+        // from the caption's nearest edge
+        let edge = pos2(from.x.clamp(r.left(), r.right()), from.y.clamp(r.top(), r.bottom()));
+        if edge.distance(from) > 2.0 {
+            p.line_segment([if r.contains(from) { to } else { edge }, from], Stroke::new(1.0, col));
+            p.circle_filled(from, 2.0, col);
+        }
+    }
     p.rect_filled(r.expand(1.0), 1.0, Color32::from_white_alpha(170));
     let galley = p.layout_no_wrap(text, FontId::proportional(size), col);
     p.galley(r.min, galley, col);
@@ -615,7 +643,7 @@ pub fn caption_hit_rect(p: &Painter, xf: &Xf, m: &Markup) -> Option<Rect> {
     if !m.kind.is_measurement() || m.kind == Kind::Count || m.hide_caption {
         return None;
     }
-    let text = m.quantity_text();
+    let text = caption::caption_text(m);
     if text.is_empty() {
         return None;
     }
@@ -639,7 +667,7 @@ fn paint_segment_values(p: &Painter, xf: &Xf, m: &Markup) {
 }
 
 /// Stroke a path, dashed when `dash` is set (PDF units).
-fn stroke_path(p: &Painter, pts: &[Pos2], closed: bool, stroke: Stroke, dash: &[f64], xf: &Xf) {
+pub(crate) fn stroke_path(p: &Painter, pts: &[Pos2], closed: bool, stroke: Stroke, dash: &[f64], xf: &Xf) {
     if pts.len() < 2 || stroke.width <= 0.0 {
         return;
     }
@@ -786,7 +814,7 @@ fn tick(p: &Painter, pts: &[Pos2], at: Pos2, stroke: Stroke) {
 }
 
 /// PDF line endings (`/LE`) at both ends of an open path.
-fn line_endings(p: &Painter, pts: &[Pos2], m: &Markup, stroke: Stroke) {
+pub(crate) fn line_endings(p: &Painter, pts: &[Pos2], m: &Markup, stroke: Stroke) {
     if pts.len() < 2 {
         return;
     }
@@ -863,7 +891,12 @@ pub fn paint_selection(p: &Painter, xf: &Xf, m: &Markup, t: &Tokens, editable: b
     if !editable || m.locked() {
         return;
     }
-    for h in handles(m) {
+    let arcs = !m.arcs.is_empty() && !uses_rect(m.kind);
+    for (i, h) in handles(m).into_iter().enumerate() {
+        if arcs && !measure_extras::is_editable_vertex(m, i) {
+            // arc interior points: only the arc's middle (its handle) is drawn
+            continue;
+        }
         let c = xf.to_screen(h);
         let hr = Rect::from_center_size(c, Vec2::splat(7.0));
         p.rect_filled(hr, 1.0, Color32::WHITE);
@@ -900,6 +933,11 @@ pub fn hit(m: &Markup, at: Point, tol: f64) -> bool {
         | Kind::Radius
         | Kind::Angle => near_path(&m.pts, false),
         Kind::Count => m.pts.iter().any(|q| q.dist(at) <= 6.0 * m.symbol_scale.max(0.1) + tol),
+        Kind::Arc => near_path(&markupcraft_revu::kinds::more::arc_polyline(m, 48), false),
+        Kind::Dimension => match markupcraft_revu::kinds::more::dimension_lines(m) {
+            Some((a, b, ea, eb)) => near_path(&[a, b], false) || near_path(&ea, false) || near_path(&eb, false),
+            None => near_path(&m.pts, false),
+        },
         Kind::TextHighlight | Kind::Underline | Kind::Strikeout | Kind::Squiggly => m
             .pts
             .as_chunks::<4>()

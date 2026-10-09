@@ -262,8 +262,13 @@ pub fn wrapped_lines(contents: &str, f: &Font, box_width: f64, inset: f64) -> Ve
 /// Wrap `contents` into box `b` and place each line: `align` 0 left, 1 centre, 2 right;
 /// first baseline at top - inset - 0.7762 x size (Revu's).
 pub fn layout_text(b: Rect, contents: &str, f: &Font, align: i32, inset: f64) -> Vec<TextLine> {
+    layout_text_spaced(b, contents, f, align, inset, 1.0)
+}
+
+/// [`layout_text`] with lines `spacing` times Revu's line height apart.
+pub fn layout_text_spaced(b: Rect, contents: &str, f: &Font, align: i32, inset: f64, spacing: f64) -> Vec<TextLine> {
     let b = b.normalized();
-    let lh = line_height(f.size);
+    let lh = line_height(f.size) * spacing_of(spacing);
     let mut y = b.y1 - inset - 0.7762 * f.size;
     let mut out = Vec::new();
     for l in wrapped_lines(contents, f, b.x1 - b.x0, inset) {
@@ -282,8 +287,22 @@ pub fn layout_text(b: Rect, contents: &str, f: &Font, align: i32, inset: f64) ->
 /// Height a box `box_width` wide needs for its text (Revu's autosize rule:
 /// 2 x inset + (lines - 1) x line height + one font size).
 pub fn text_height_for(contents: &str, f: &Font, box_width: f64, inset: f64) -> f64 {
+    text_height_spaced(contents, f, box_width, inset, 1.0)
+}
+
+/// [`text_height_for`] with lines `spacing` times Revu's line height apart.
+pub fn text_height_spaced(contents: &str, f: &Font, box_width: f64, inset: f64, spacing: f64) -> f64 {
     let n = wrapped_lines(contents, f, box_width, inset).len().max(1);
-    2.0 * inset + (n - 1) as f64 * line_height(f.size) + f.size
+    2.0 * inset + (n - 1) as f64 * line_height(f.size) * spacing_of(spacing) + f.size
+}
+
+/// A usable line spacing (0.5 to 5; anything else is single).
+pub fn spacing_of(spacing: f64) -> f64 {
+    if spacing.is_finite() && (0.5..=5.0).contains(&spacing) {
+        spacing
+    } else {
+        1.0
+    }
 }
 
 /// Width of the widest paragraph, unwrapped.

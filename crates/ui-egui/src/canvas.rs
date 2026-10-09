@@ -1031,7 +1031,7 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
                     && m.flags & (markupcraft_model::flags::HIDDEN | markupcraft_model::flags::NO_VIEW) == 0
                 {
                     snapshot_preview(&painter, view, pages, xf, m);
-                    painter::paint_markup(&painter, xf, m);
+                    crate::more::paint(&painter, xf, m, cx);
                 }
             }
         }

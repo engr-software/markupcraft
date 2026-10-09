@@ -22,6 +22,7 @@ mod layout;
 mod legend;
 mod links;
 mod marks;
+mod markup_ops;
 mod markups;
 mod ocr;
 mod pages;
@@ -201,6 +202,20 @@ pub static TOOLS: &[&Tool] = &[
     &docfile::DESKEW,
     &docfile::STANDARDS,
     &docfile::REGION_LABELS,
+    &markup_ops::INK_ERASE,
+    &markup_ops::COUNT_EDIT,
+    &markup_ops::SELECT_LASSO,
+    &markup_ops::ARC_EDIT,
+    &markup_ops::CUTOUT_SPLIT,
+    &markup_ops::RECALCULATE,
+    &markup_ops::MEASURE_PROPS,
+    &markup_ops::UNFLATTEN,
+    &markup_ops::IMPORT_PDF,
+    &markup_ops::ATTACH_FILE,
+    &markup_ops::SAVE_ATTACHED,
+    &markup_ops::REPLY,
+    &markup_ops::SUMMARY_APPEND,
+    &markup_ops::SCALE_TEMPORARY,
 ];
 
 pub fn find(name: &str) -> Option<&'static Tool> {

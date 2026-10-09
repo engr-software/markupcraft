@@ -45,6 +45,8 @@ pub const ALL_KINDS: &[Kind] = &[
     Kind::Radius,
     Kind::Hyperlink,
     Kind::Attachment,
+    Kind::Dimension,
+    Kind::Arc,
 ];
 
 fn squash(s: &str) -> String {
@@ -196,6 +198,25 @@ pub struct MarkupPatch {
     pub symbol_paths: Option<Vec<Vec<Point>>>,
     /// rich text runs of a text markup (char offsets into its contents)
     pub rich: Option<Vec<markupcraft_model::rich::TextRun>>,
+    /// Dimension: offset of the dimension line and the extension past it (points)
+    pub leader: Option<f64>,
+    pub leader_ext: Option<f64>,
+    /// a measurement's slope: (`/SlopeType` 0 none, 1 pitch, 2 degrees, 3 grade; its value)
+    pub slope: Option<(i64, f64)>,
+    /// a measurement's caption contents (`{value}`, `{subject}` ...; "" = the value)
+    pub caption_template: Option<String>,
+    /// join a moved caption to its markup with a leader line
+    pub caption_leader: Option<bool>,
+    /// mark an area's centroid
+    pub show_centroid: Option<bool>,
+    /// a Count's item width and height (first `/D` unit)
+    pub item_width: Option<f64>,
+    pub item_height: Option<f64>,
+    /// a text box's margin beyond its frame's (points) and its line spacing (x single)
+    pub text_margin: Option<f64>,
+    pub line_spacing: Option<f64>,
+    /// a note's pop-up shown open
+    pub popup_open: Option<bool>,
 }
 
 fn unit_range(name: &str, v: Option<f64>) -> Result<()> {
@@ -308,6 +329,38 @@ impl MarkupPatch {
                 ));
             }
         }
+        if let Some(v) = self.text_margin
+            && !(v.is_finite() && (-4.0..=200.0).contains(&v))
+        {
+            return Err(invalid("the text margin must be -4 to 200 points"));
+        }
+        if let Some(v) = self.line_spacing
+            && !(v.is_finite() && (0.5..=5.0).contains(&v))
+        {
+            return Err(invalid("line spacing must be 0.5 to 5 times single"));
+        }
+        for (name, v) in [("item_width", self.item_width), ("item_height", self.item_height)] {
+            if let Some(x) = v
+                && !(x.is_finite() && (0.0..=1.0e6).contains(&x))
+            {
+                return Err(invalid(format!("{name} must be a number from 0")));
+            }
+        }
+        for (name, v) in [("leader", self.leader), ("leader_ext", self.leader_ext)] {
+            if let Some(x) = v
+                && !(x.is_finite() && x.abs() <= 10_000.0)
+            {
+                return Err(invalid(format!("{name} must be a number of points up to 10000")));
+            }
+        }
+        if let Some((t, v)) = self.slope
+            && (!(0..=3).contains(&t) || !v.is_finite() || v.abs() > 1.0e6 || (t == 2 && v.abs() >= 90.0))
+        {
+            return Err(invalid(
+                "slope type must be 0 (none), 1 (pitch: rise in 12), 2 (degrees, under 90) or 3 (grade %)",
+            ));
+        }
+        text_len("caption_template", &self.caption_template)?;
         for (k, v) in &self.columns {
             if k.is_empty() || k.len() > 256 || v.len() > MAX_TEXT {
                 return Err(invalid(
@@ -453,6 +506,39 @@ impl MarkupPatch {
             } else {
                 CountSymbol::Custom
             };
+        }
+        if let Some(v) = self.leader {
+            m.leader = v;
+        }
+        if let Some(v) = self.leader_ext {
+            m.leader_ext = v.abs();
+        }
+        if let Some((t, v)) = self.slope {
+            (m.slope_type, m.slope) = if t == 0 { (0, 0.0) } else { (t, v) };
+        }
+        if let Some(v) = &self.caption_template {
+            m.caption_template = v.clone();
+        }
+        if let Some(v) = self.caption_leader {
+            m.caption_leader = v;
+        }
+        if let Some(v) = self.show_centroid {
+            m.show_centroid = v;
+        }
+        if let Some(v) = self.item_width {
+            m.item_width = v;
+        }
+        if let Some(v) = self.text_margin {
+            m.text.margin = v;
+        }
+        if let Some(v) = self.popup_open {
+            m.popup_open = v;
+        }
+        if let Some(v) = self.line_spacing {
+            m.text.line_spacing = v;
+        }
+        if let Some(v) = self.item_height {
+            m.item_height = v;
         }
         if self.locked == Some(true) {
             m.set_locked(true);

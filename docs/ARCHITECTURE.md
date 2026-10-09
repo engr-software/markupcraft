@@ -63,7 +63,9 @@ Measurements are ordinary annotations plus Revu keys:
   `/DepthUnit`, `/Cap`, `/SlopeType`, `/PitchRun`, `/AlignOnSegment`, `/LE`, `/LL`, `/LLE`.
 - MarkupCraft's own keys (when Revu's storage is not known yet): `/PCCutouts`, `/PCCountSymbol`,
   `/PCSymbolScale`, `/PCCountShape`, `/PCSegmentValues`, `/PCRiseDrop`, `/PCCaptionOffset`,
-  `/PCArcs`, `/PCColumns`, `/PCColumnData`, `/PCStamp`.
+  `/PCArcs`, `/PCColumns`, `/PCColumnData`, `/PCStamp`, `/PCSlope` (with Revu's `/SlopeType`), `/PCCaption`
+  (caption contents), `/PCCapLeader`, `/PCCentroid`; our intents `/PCDimension` (a `/Line` with `/LL` `/LLE`)
+  and `/PCArc` (a three-point `/PolyLine`).
 
 ## The interface (`crates/ui-egui`)
 
@@ -89,6 +91,15 @@ Measurements are ordinary annotations plus Revu keys:
   plus an arm there. Preferences (`prefs_ui.rs`) edit the engine's `prefs` (per profile) plus
   the interface preferences in `<config>/ui/<profile>.json` (`shell::UiPrefs`, including the
   dock layout).
+- More markup and takeoff work: `more.rs` (its own command table joined to the menus: the
+  Measure tool, Recalculate, Review Text, Import / Export Markups, Unflatten, Edit Action,
+  temporary measurements, display options; Count series and arc / cutout rows of the canvas
+  menu), `gestures.rs` (the Eraser, Lasso, Select Text, Insert / Replace Text, Flag and File
+  Attachment tools, `ToolKind::Special`), `chest_more.rs` (Tool Chest options and the user's
+  library, saved in the Tool Chest file: scale presets, line styles, profile columns, custom
+  statuses, pinned and locked sets) and `panels/properties_more.rs` (Properties sections for
+  dimensions, captions, slope, counts, attachments, text layout and replies). Their engine
+  calls live in `markup_ops.rs`, `unflatten.rs` and `summary_links.rs`.
 - Document and review features (`features/`, one file each: search, compare, overlay, summary,
   print, document operations, redaction, forms, spelling, stamps, batch, Dynamic Fill, spaces,
   links, signatures, sets) keep their state in `AppState::features`, add menu rows in

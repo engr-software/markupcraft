@@ -918,7 +918,20 @@ fn circle_correction(n: usize) -> f64 {
 
 /// Volume = net area x depth (`/V`'s first unit; depth in the first `/D` unit).
 pub fn volume_of(m: &Markup) -> Option<f64> {
-    Some(net_area(m)? * m.depth)
+    let base = net_area(m)? * m.depth;
+    // area unit x depth unit, in the volume unit (sf x ft = cu ft; sf x ft in cu yd / 27)
+    let s = m.scale.as_ref()?;
+    match (
+        units::format_unit(&s.area),
+        units::format_unit(&s.dist),
+        units::format_unit(&s.volume),
+    ) {
+        (Some(a), Some(d), Some(v)) => {
+            let k = a.meters() * a.meters() * d.meters() / (v.meters() * v.meters() * v.meters());
+            Some(base * k)
+        }
+        _ => Some(base),
+    }
 }
 
 /// Wall area = perimeter x depth (Perimeter, Area, Volume, Polylength with a depth).
@@ -975,6 +988,42 @@ impl Slope {
         }
     }
 
+    /// From `/SlopeType` and its value (pitch: rise in 12; degrees; grade %). Unknown types,
+    /// non-finite values and vertical slopes are no slope.
+    pub fn from_parts(kind: i64, value: f64) -> Slope {
+        if !value.is_finite() || value == 0.0 {
+            return Slope::None;
+        }
+        match kind {
+            1 => Slope::Pitch { rise: value, run: 12.0 },
+            2 if value.abs() < 90.0 => Slope::Degrees(value),
+            3 => Slope::Grade(value),
+            _ => Slope::None,
+        }
+    }
+
+    /// The value stored with [`Slope::type_code`] (pitch: rise per 12 of run).
+    pub fn value(self) -> f64 {
+        match self {
+            Slope::None => 0.0,
+            Slope::Pitch { rise, run } if run != 0.0 => rise * 12.0 / run,
+            Slope::Pitch { .. } => 0.0,
+            Slope::Degrees(d) => d,
+            Slope::Grade(g) => g,
+        }
+    }
+
+    /// `4:12`, `30°`, `8%` (empty for none).
+    pub fn label(self) -> String {
+        let v = |x: f64| markupcraft_measure::fmt_g(x, 4);
+        match self {
+            Slope::None => String::new(),
+            Slope::Pitch { .. } => format!("{}:12", v(self.value())),
+            Slope::Degrees(d) => format!("{}\u{b0}", v(d)),
+            Slope::Grade(g) => format!("{}%", v(g)),
+        }
+    }
+
     /// Revu's `/SlopeType` (0 none, 1 pitch, 2 degrees, 3 grade).
     pub fn type_code(self) -> i64 {
         match self {
@@ -984,6 +1033,43 @@ impl Slope {
             Slope::Grade(_) => 3,
         }
     }
+}
+
+/// The area-weighted centre of an Area, Volume or Perimeter outline (cutouts deducted); the
+/// vertex mean when the outline has no area.
+pub fn centroid(m: &Markup) -> Option<Point> {
+    if !closed_shape(m.kind) || m.pts.len() < 3 {
+        return None;
+    }
+    let moment = |ring: &[Point]| -> (f64, f64, f64) {
+        let n = ring.len();
+        let (mut a, mut cx, mut cy) = (0.0, 0.0, 0.0);
+        for i in 0..n {
+            let (Some(p), Some(q)) = (ring.get(i), ring.get((i + 1) % n)) else {
+                continue;
+            };
+            let c = p.x * q.y - q.x * p.y;
+            a += c;
+            cx += (p.x + q.x) * c;
+            cy += (p.y + q.y) * c;
+        }
+        (a / 2.0, cx / 6.0, cy / 6.0)
+    };
+    let sign = |a: f64| if a < 0.0 { -1.0 } else { 1.0 };
+    let (a0, x0, y0) = moment(&m.pts);
+    let s0 = sign(a0);
+    let (mut a, mut x, mut y) = (a0 * s0, x0 * s0, y0 * s0);
+    for h in m.holes.iter().filter(|h| h.len() >= 3) {
+        let (ah, xh, yh) = moment(h);
+        let sh = sign(ah);
+        a -= ah * sh;
+        x -= xh * sh;
+        y -= yh * sh;
+    }
+    if a.abs() < 1e-9 || !(x.is_finite() && y.is_finite()) {
+        return Some(markupcraft_geom::vertex_mean(&m.pts));
+    }
+    Some(Point::new(x / a, y / a))
 }
 
 /// Distance from `p` to the outline of `m` (PDF units), for hit tests on the new kinds.

@@ -46,6 +46,7 @@ fn marks_of(m: &Markup) -> Vec<Mark> {
     match m.kind {
         Kind::Caret => vec![caret_mark(box_of(m))],
         Kind::Note => note_icon(box_of(m), &m.icon),
+        Kind::Attachment => note_icon(box_of(m), if m.icon.is_empty() { "PushPin" } else { &m.icon }),
         _ => Vec::new(),
     }
 }
@@ -53,7 +54,7 @@ fn marks_of(m: &Markup) -> Vec<Mark> {
 /// Icon outlines: near-black.
 const INK: Color = Color::rgb(0.1, 0.1, 0.1);
 
-fn draw_marks(ap: &mut Ap, m: &Markup, extent: &mut Vec<Point>) {
+pub(super) fn draw_marks(ap: &mut Ap, m: &Markup, extent: &mut Vec<Point>) {
     let c = m.color;
     let quad = quad_style(m.kind).is_some();
     for k in marks_of(m) {

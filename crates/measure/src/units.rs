@@ -349,6 +349,35 @@ pub fn set_display_unit(s: &mut Scale, d: DisplayUnit) -> bool {
     true
 }
 
+/// The length unit of a format array's first entry (`sf` -> feet, `cu yd` -> yards).
+pub fn format_unit(fa: &[NumberFormat]) -> Option<LengthUnit> {
+    LengthUnit::from_label(&fa.first()?.unit)
+}
+
+/// Show areas in `u` squared (`sf`, `sy`, `m²` ...) whatever the length unit, keeping their
+/// precision. False when the scale's `/X` unit is unknown.
+pub fn set_area_unit(s: &mut Scale, u: LengthUnit) -> bool {
+    let Some(xu) = scale_real_unit(s) else {
+        return false;
+    };
+    let k = xu.meters() / u.meters();
+    let p = s.area.last().map_or(Precision::decimals(2), precision_of);
+    s.area = vec![nf(u.area_label(), k * k, p, " ", "")];
+    true
+}
+
+/// Show volumes in `u` cubed (`cu ft`, `cu yd`, `m³` ...), keeping their precision. False
+/// when the scale's `/X` unit is unknown.
+pub fn set_volume_unit(s: &mut Scale, u: LengthUnit) -> bool {
+    let Some(xu) = scale_real_unit(s) else {
+        return false;
+    };
+    let k = xu.meters() / u.meters();
+    let p = s.volume.last().map_or(Precision::decimals(2), precision_of);
+    s.volume = vec![nf(u.volume_label(), k * k * k, p, " ", "")];
+    true
+}
+
 /// Change the precision of `/D`'s last unit (and `/A`, `/V` when decimal).
 pub fn set_precision(s: &mut Scale, p: Precision) {
     let (f, den) = p.fmt_den();

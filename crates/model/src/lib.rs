@@ -112,6 +112,10 @@ pub enum Kind {
     Hyperlink,
     /// `/FileAttachment`
     Attachment,
+    /// `/Line` + `/IT /PCDimension`: a dimension line with extension lines and typed text
+    Dimension,
+    /// `/PolyLine` + `/IT /PCArc`: a three-point arc (start, a point on it, end)
+    Arc,
 }
 
 impl Kind {
@@ -150,6 +154,8 @@ impl Kind {
             Kind::Radius => "Radius",
             Kind::Hyperlink => "Hyperlink",
             Kind::Attachment => "File Attachment",
+            Kind::Dimension => "Dimension",
+            Kind::Arc => "Arc",
         }
     }
 
@@ -203,6 +209,7 @@ impl Default for Color {
 
 /// Font of a text-bearing markup (FreeText `/DA` `/DS` `/RC`).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct TextStyle {
     /// family: Helvetica, Times, Courier (CSS name as Revu writes it)
     pub font: String,
@@ -213,6 +220,10 @@ pub struct TextStyle {
     /// 0 left, 1 center, 2 right
     pub align: i32,
     pub color: Color,
+    /// text box margin beyond the frame's own (points; `/PCTextMargin`)
+    pub margin: f64,
+    /// line spacing, a multiple of Revu's 1.15 x size (`/PCLineSpacing`)
+    pub line_spacing: f64,
 }
 
 impl Default for TextStyle {
@@ -225,6 +236,8 @@ impl Default for TextStyle {
             underline: false,
             align: 0,
             color: Color::RED,
+            margin: 0.0,
+            line_spacing: 1.0,
         }
     }
 }
@@ -264,6 +277,7 @@ pub mod flags {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Markup {
     // identity
     /// `/NM`
@@ -383,6 +397,30 @@ pub struct Markup {
     pub irt: Option<ObjId>,
     /// keys we do not model, kept as raw PDF source text for round trips (informational)
     pub extra: BTreeMap<String, String>,
+
+    // dimensions, slope and captions
+    /// Dimension: offset of the dimension line from the measured points (`/LL`, points)
+    pub leader: f64,
+    /// Dimension: extension lines run this far past the dimension line (`/LLE`, points)
+    pub leader_ext: f64,
+    /// Measurement slope (`/SlopeType`): 0 none, 1 pitch (rise in 12), 2 degrees, 3 grade %
+    pub slope_type: i64,
+    /// the slope's value in its type (`/PCSlope`)
+    pub slope: f64,
+    /// a moved caption is joined to its markup by a leader line (`/PCCapLeader`)
+    pub caption_leader: bool,
+    /// the caption's contents ("" = the value): `{value}` and other fields, see `caption_text`
+    pub caption_template: String,
+    /// Area / Volume: mark the centroid (`/PCCentroid`)
+    pub show_centroid: bool,
+    /// Count: each item's width and height (first `/D` unit; `/PCCountDims`), with `depth`
+    pub item_width: f64,
+    pub item_height: f64,
+    /// File Attachment: the attached file's name (`/FS /UF`)
+    pub attachment_name: String,
+    /// File Attachment: the file to embed when it is written (not kept once in the file)
+    #[serde(skip)]
+    pub attachment_data: Option<std::sync::Arc<Vec<u8>>>,
 }
 
 impl Default for Markup {
@@ -447,6 +485,17 @@ impl Default for Markup {
             group: String::new(),
             irt: None,
             extra: BTreeMap::new(),
+            leader: 0.0,
+            leader_ext: 0.0,
+            slope_type: 0,
+            slope: 0.0,
+            caption_leader: false,
+            caption_template: String::new(),
+            show_centroid: false,
+            item_width: 0.0,
+            item_height: 0.0,
+            attachment_name: String::new(),
+            attachment_data: None,
         }
     }
 }
@@ -499,20 +548,39 @@ impl Markup {
             return measure_extras::angle_of(self);
         }
         let s = self.scale.as_ref().filter(|s| s.valid())?;
+        let k = self.slope_factor();
         match self.kind {
             Kind::Area => {
                 let mut a = s.area_of(&self.pts);
                 for h in &self.holes {
                     a -= s.area_of(h);
                 }
-                Some(a.max(0.0))
+                Some(a.max(0.0) * k)
             }
-            Kind::Length => Some(s.length_of(&self.pts, false)),
-            Kind::Polylength => Some(s.length_of(&self.pts, false) + self.rise_drop.abs()),
-            Kind::Perimeter => Some(s.length_of(&self.pts, true)),
+            Kind::Length => Some(s.length_of(&self.pts, false) * k),
+            Kind::Polylength => Some(s.length_of(&self.pts, false) * k + self.rise_drop.abs()),
+            Kind::Perimeter => Some(s.length_of(&self.pts, true) * k),
             Kind::Volume => measure_extras::volume_of(self),
             Kind::Diameter | Kind::Radius => measure_extras::circle_measure(self),
             _ => None,
+        }
+    }
+
+    /// The measurement's slope (Measurement Properties > Slope).
+    pub fn slope_of(&self) -> measure_extras::Slope {
+        measure_extras::Slope::from_parts(self.slope_type, self.slope)
+    }
+
+    /// True length or area per unit of plan for the slope (1 without one): applied to Length,
+    /// Polylength, Perimeter and Area.
+    pub fn slope_factor(&self) -> f64 {
+        if matches!(
+            self.kind,
+            Kind::Length | Kind::Polylength | Kind::Perimeter | Kind::Area
+        ) {
+            self.slope_of().factor()
+        } else {
+            1.0
         }
     }
 

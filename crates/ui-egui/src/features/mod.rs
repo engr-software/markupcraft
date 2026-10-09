@@ -67,7 +67,7 @@ pub static COMMANDS: &[Command] = &[
     c("file.overlay", "Overlay Pages...", "File", 20, None, "layers"),
     // Markup
     c("markup.stamps", "Stamp Library...", "Markup", 20, None, "stamp"),
-    c("markup.image", "Image...", "Markup", 20, None, ""),
+    c("markup.image", "Image...", "Markup", 20, key(Key::I), ""),
     c("markup.hyperlink", "Hyperlink", "Markup", 20, shift(Key::H), ""),
     c("markup.summary", "Markup Summary...", "Markup", 21, None, "file-spreadsheet"),
     c("markup.spell", "Check Spelling...", "Markup", 21, key(Key::F7), "type"),

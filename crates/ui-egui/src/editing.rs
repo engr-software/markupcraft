@@ -28,6 +28,12 @@ pub struct EditState {
     pub viewports_panel: crate::viewports::PanelState,
     /// The scale of the tool set the active Tool Chest item comes from.
     pub item_scale: Option<markupcraft_model::Scale>,
+    /// Measure tool, Resume Count, Review Text (`more`).
+    pub more: crate::more::MoreState,
+    /// Tool Chest runtime state (item origins, the Line Styles window).
+    pub chest_rt: crate::chest_more::ChestRuntime,
+    /// Tool Chest > Options > Keep comments.
+    pub chest_comments: crate::chest_more::CommentMode,
 }
 
 /// A file dialog answered for an editing feature.
@@ -61,13 +67,16 @@ pub fn dialog_answer(app: &mut AppState, tag: &str, arg: &str, path: &std::path:
             }
         }
         "export_keys" | "import_keys" => crate::keyprefs::dialog_answer(app, tag, path),
+        t if crate::more::handles_dialog(t) => crate::more::dialog_answer(app, t, arg, path),
+        t if crate::chest_more::handles_dialog(t) => crate::chest_more::dialog_answer(app, t, arg, path),
         _ => String::new(),
     }
 }
 
 /// Commands handled here.
 pub fn handles(id: &str) -> bool {
-    id.starts_with("edit.nudge_")
+    crate::more::handles(id)
+        || id.starts_with("edit.nudge_")
         || matches!(
             id,
             "markup.format_painter" | "file.save_all" | "view.highlight_viewports" | "tools.customize_keys"
@@ -101,6 +110,10 @@ pub fn nudge_of(id: &str) -> Option<(f64, f64)> {
 }
 
 pub fn run(app: &mut AppState, id: &str) {
+    if crate::more::handles(id) {
+        crate::more::run(app, id);
+        return;
+    }
     if let Some((dx, dy)) = nudge_of(id) {
         if let Some(d) = app.doc_mut() {
             if d.view.draft.is_some() || d.view.editor.is_some() {
@@ -197,6 +210,7 @@ pub fn paint_format(doc: &mut crate::DocTab, template: &Markup, id: &str, out: &
 /// Esc: the Format Painter ends with the rest of the tool.
 pub fn escape(app: &mut AppState) {
     app.edit.painter = None;
+    crate::more::escape(app);
 }
 
 #[cfg(test)]

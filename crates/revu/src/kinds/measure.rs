@@ -82,6 +82,7 @@ pub(super) fn polish_keys(a: &mut Dict, m: &Markup) {
             .collect(),
     );
     set_or_remove(a, "PCArcs", !m.arcs.is_empty(), arcs);
+    super::more::write_measure_extras(a, m);
 }
 
 fn line_geometry(a: &mut Dict, m: &Markup) {
@@ -262,6 +263,9 @@ pub fn read_takeoff_keys(_doc: &CosDoc, a: &Dict, m: &mut Markup) {
         }
     }
     markupcraft_model::measure_extras::validate_arcs(m);
+    if m.kind.is_measurement() {
+        super::more::read_measure_extras(a, m);
+    }
     if m.count_symbol == CountSymbol::Custom && m.symbol_paths.is_empty() {
         m.count_symbol = CountSymbol::Circle;
     }

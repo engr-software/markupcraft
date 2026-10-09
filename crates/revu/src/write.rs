@@ -66,21 +66,36 @@ fn appearance(cos: &mut CosDoc, m: &mut Markup, ak: &AnnotKind) -> Object {
 
     // The quantity, drawn like Revu does, so other viewers show it too.
     let label = if m.kind.is_measurement() && m.kind != Kind::Count && !m.hide_caption {
-        m.quantity_text()
+        caption::caption_text(m)
     } else {
         String::new()
     };
+    if m.kind.is_measurement() {
+        kinds::more::draw_centroid(&mut ap, m, &mut extent);
+    }
     if !label.is_empty() {
         let a = caption::caption_anchor(m);
-        let size = 10.0;
-        let w = 0.55 * size * label.chars().count() as f64;
-        ap.op("BT /Helv ")
-            .nums(&[size], "Tf")
-            .fill_rgb(&c)
-            .nums(&[a.x - w / 2.0, a.y + 3.0], "Td");
-        ap.op(&format!("({}) Tj ET\n", Ap::text_literal(&label)));
-        extent.push(Point::new(a.x - w / 2.0, a.y));
-        extent.push(Point::new(a.x + w / 2.0, a.y + 3.0 + size));
+        kinds::more::draw_caption_leader(&mut ap, m, a, &mut extent);
+        // the caption size set in Properties > Caption (Revu writes it in /DS)
+        let size = if m.text.size.is_finite() {
+            m.text.size.clamp(2.0, 144.0)
+        } else {
+            12.0
+        };
+        let lines: Vec<&str> = label.lines().take(20).collect();
+        let n = lines.len() as f64;
+        for (i, line) in lines.iter().enumerate() {
+            let w = 0.55 * size * line.chars().count() as f64;
+            // the block of lines centred on the anchor, the first line on top
+            let y = a.y + 3.0 + (n - 1.0) * size * 0.6 - i as f64 * size * 1.2;
+            ap.op("BT /Helv ")
+                .nums(&[size], "Tf")
+                .fill_rgb(&c)
+                .nums(&[a.x - w / 2.0, y], "Td");
+            ap.op(&format!("({}) Tj ET\n", Ap::text_literal(line)));
+            extent.push(Point::new(a.x - w / 2.0, y));
+            extent.push(Point::new(a.x + w / 2.0, y + size));
+        }
     }
 
     let r = match ak.rect_of {
@@ -263,8 +278,15 @@ pub fn write_annot(cos: &mut CosDoc, a: &mut Dict, m: &mut Markup, page: ObjRef)
     pdf::set(a, "Contents", s(&m.contents));
     if m.kind.is_measurement() {
         let c = |v: f64| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
+        let size = if m.text.size.is_finite() {
+            m.text.size.clamp(2.0, 144.0)
+        } else {
+            12.0
+        };
         let ds = format!(
-            "font: Helvetica 12pt; text-align:center; line-height:13.8pt; color:#{:02X}{:02X}{:02X}",
+            "font: Helvetica {}pt; text-align:center; line-height:{}pt; color:#{:02X}{:02X}{:02X}",
+            crate::ap::f3(size).trim_end_matches('0').trim_end_matches('.'),
+            crate::ap::f3(size * 1.15).trim_end_matches('0').trim_end_matches('.'),
             c(m.color.r),
             c(m.color.g),
             c(m.color.b)

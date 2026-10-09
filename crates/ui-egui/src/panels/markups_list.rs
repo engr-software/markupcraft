@@ -109,6 +109,10 @@ enum Act {
     SetCell(String, String, String),
     StartEdit(String, String, String),
     Command(&'static str),
+    /// Put the selection on this layer ("" = none)
+    Layer(String),
+    /// A legend of the selected rows' subjects
+    Legend,
     CopyRows,
 }
 
@@ -221,6 +225,10 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                 export = Some(Purpose::ExportTotals);
                 ui.close();
             }
+            if ui.button("Append Summary with Links").clicked() {
+                acts.push(Act::Command("markup.summary_append"));
+                ui.close();
+            }
             if ui.button("Summary (XML)...").clicked() {
                 export = Some(Purpose::ExportXml);
                 ui.close();
@@ -237,6 +245,8 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     flatten(&root, &mut lines);
     lines.push(Line::Total(&root));
     let selection = doc.selection().to_vec();
+    let layer_names: Vec<String> = doc.session.layers().into_iter().map(|l| l.name).collect();
+    let custom_statuses = app.toolchest.extras.statuses.clone();
     let add = ui.input(|i| i.modifiers.shift || i.modifiers.command);
     let markups = &doc.session.doc().markups;
     let editing = list.editing.clone();
@@ -468,9 +478,13 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                                     acts.push(Act::Select(*i, false));
                                 }
                                 ui.menu_button("Status", |ui| {
-                                    for st in markupcraft_model::review_statuses() {
-                                        if ui.button(*st).clicked() {
-                                            acts.push(Act::SetCell(m.id.clone(), "status".into(), st.to_string()));
+                                    let all = markupcraft_model::review_statuses()
+                                        .iter()
+                                        .map(|s| s.to_string())
+                                        .chain(custom_statuses.iter().cloned());
+                                    for st in all {
+                                        if ui.button(&st).clicked() {
+                                            acts.push(Act::SetCell(m.id.clone(), "status".into(), st));
                                             ui.close();
                                         }
                                     }
@@ -491,6 +505,22 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                                 };
                                 if ui.button(label).clicked() {
                                     acts.push(Act::Command(cmd));
+                                    ui.close();
+                                }
+                                ui.menu_button("Layer", |ui| {
+                                    if ui.button("None").clicked() {
+                                        acts.push(Act::Layer(String::new()));
+                                        ui.close();
+                                    }
+                                    for l in &layer_names {
+                                        if ui.button(l).clicked() {
+                                            acts.push(Act::Layer(l.clone()));
+                                            ui.close();
+                                        }
+                                    }
+                                });
+                                if ui.button("Create Legend").clicked() {
+                                    acts.push(Act::Legend);
                                     ui.close();
                                 }
                                 if ui.button("Copy Rows").clicked() {
@@ -575,6 +605,8 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                 }
             }
             Act::Command(c) => commands.push(c),
+            Act::Layer(name) => app.status = crate::more::list_layer(doc, &name),
+            Act::Legend => app.status = crate::more::list_legend(doc),
             Act::CopyRows => {
                 let sel = doc.selection().to_vec();
                 let idx: Vec<usize> = doc
@@ -593,6 +625,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
             }
         }
     }
+    let mut editor_out = EditorOut::default();
     if let Some(cols) = list.columns_editor.as_mut() {
         let mut open = true;
         let mut apply = false;
@@ -600,8 +633,23 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
             .open(&mut open)
             .default_width(520.0)
             .show(ui.ctx(), |ui| {
-                apply = columns_editor(ui, cols);
+                apply = columns_editor(ui, cols, &mut editor_out);
             });
+        if editor_out.save_profile {
+            app.toolchest.save_profile_columns(cols);
+            app.status = format!("Saved {} to the profile", actions::plural(cols.len(), "column"));
+        }
+        if editor_out.load_profile {
+            let mut added = 0;
+            for c in app.toolchest.extras.columns.clone() {
+                if !cols.iter().any(|o| o.name == c.name) {
+                    let id = make_column_id(&c.name, cols);
+                    cols.push(CustomColumn { id, ..c });
+                    added += 1;
+                }
+            }
+            app.status = format!("Added {} from the profile", actions::plural(added, "column"));
+        }
         if apply {
             let r = doc.session.set_custom_columns(cols.clone());
             match r {
@@ -619,6 +667,9 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
         } else if !open {
             list.columns_editor = None;
         }
+    }
+    if let Some(id) = editor_out.import_csv {
+        app.dialogs.open(Purpose::Edit("choice_csv", id), dialogs::CSV, false);
     }
     let name = doc.name.trim_end_matches(".pdf").to_string();
     for c in commands {
@@ -662,7 +713,16 @@ fn select_row(doc: &mut DocTab, i: usize, add: bool) {
 }
 
 /// The Manage Columns editor; true when Apply was clicked.
-fn columns_editor(ui: &mut egui::Ui, cols: &mut Vec<CustomColumn>) -> bool {
+/// What the Manage Columns window asks for besides Apply.
+#[derive(Debug, Default)]
+struct EditorOut {
+    /// import a Choice column's items from CSV (its id)
+    import_csv: Option<String>,
+    save_profile: bool,
+    load_profile: bool,
+}
+
+fn columns_editor(ui: &mut egui::Ui, cols: &mut Vec<CustomColumn>, out: &mut EditorOut) -> bool {
     let mut remove = None;
     egui::ScrollArea::vertical().max_height(360.0).show(ui, |ui| {
         egui::Grid::new("columns-editor")
@@ -698,11 +758,43 @@ fn columns_editor(ui: &mut egui::Ui, cols: &mut Vec<CustomColumn>) -> bool {
                     ui.checkbox(&mut c.total, "");
                     match c.kind {
                         ColumnType::Formula => {
-                            ui.add(
-                                egui::TextEdit::singleline(&mut c.formula)
-                                    .hint_text("e.g. Measurement * Unit Cost")
-                                    .desired_width(180.0),
-                            );
+                            ui.horizontal(|ui| {
+                                ui.add(
+                                    egui::TextEdit::singleline(&mut c.formula)
+                                        .hint_text("e.g. Measurement * Unit Cost")
+                                        .desired_width(180.0),
+                                );
+                                egui::ComboBox::from_id_salt(("col-display", i))
+                                    .selected_text(c.display.name())
+                                    .show_ui(ui, |ui| {
+                                        for k in [ColumnType::Number, ColumnType::Currency, ColumnType::Percent] {
+                                            ui.selectable_value(&mut c.display, k, k.name());
+                                        }
+                                    });
+                            });
+                        }
+                        ColumnType::Date => {
+                            ui.horizontal(|ui| {
+                                egui::ComboBox::from_id_salt(("col-date", i))
+                                    .selected_text(c.date_format.as_str())
+                                    .show_ui(ui, |ui| {
+                                        for f in markupcraft_model::columns::DATE_FORMATS {
+                                            ui.selectable_value(&mut c.date_format, f.to_string(), *f);
+                                        }
+                                    });
+                                let mut today = c.default_value == markupcraft_model::columns::TODAY;
+                                if ui
+                                    .checkbox(&mut today, "Default: current date")
+                                    .on_hover_text("New rows show the date the markup was made")
+                                    .changed()
+                                {
+                                    c.default_value = if today {
+                                        markupcraft_model::columns::TODAY.into()
+                                    } else {
+                                        String::new()
+                                    };
+                                }
+                            });
                         }
                         ColumnType::Choice => {
                             let mut text: String =
@@ -724,6 +816,13 @@ fn columns_editor(ui: &mut egui::Ui, cols: &mut Vec<CustomColumn>) -> bool {
                                         ..Default::default()
                                     })
                                     .collect();
+                            }
+                            if ui
+                                .small_button("Import...")
+                                .on_hover_text("Items from a CSV file: item, subject, value")
+                                .clicked()
+                            {
+                                out.import_csv = Some(c.id.clone());
                             }
                         }
                         _ => {
@@ -755,6 +854,21 @@ fn columns_editor(ui: &mut egui::Ui, cols: &mut Vec<CustomColumn>) -> bool {
         }
         if ui.button("Apply").clicked() {
             apply = true;
+        }
+        ui.separator();
+        if ui
+            .button("Save to Profile")
+            .on_hover_text("Keep these columns for other documents")
+            .clicked()
+        {
+            out.save_profile = true;
+        }
+        if ui
+            .button("Load from Profile")
+            .on_hover_text("Add the columns saved to the profile")
+            .clicked()
+        {
+            out.load_profile = true;
         }
     });
     apply

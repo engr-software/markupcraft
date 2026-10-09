@@ -14,8 +14,8 @@ pub const MAX_COORD: f64 = 1.0e7;
 /// Fewest and most points a kind takes.
 pub fn point_limits(kind: Kind) -> (usize, usize) {
     match kind {
-        Kind::Length | Kind::Line | Kind::Arrow | Kind::Diameter | Kind::Radius => (2, 2),
-        Kind::Angle => (3, 3),
+        Kind::Length | Kind::Line | Kind::Arrow | Kind::Diameter | Kind::Radius | Kind::Dimension => (2, 2),
+        Kind::Angle | Kind::Arc => (3, 3),
         Kind::Area | Kind::Perimeter | Kind::Polygon | Kind::Cloud | Kind::Volume => (3, MAX_POINTS),
         Kind::Polylength | Kind::Polyline | Kind::Ink | Kind::Highlight => (2, MAX_POINTS),
         Kind::Rectangle | Kind::Ellipse | Kind::Text | Kind::Typewriter | Kind::Stamp | Kind::Snapshot => {
@@ -230,11 +230,44 @@ pub fn move_vertex(m: &mut Markup, index: usize, p: Point) -> Result<()> {
         return Ok(());
     }
     let n = m.pts.len();
-    let v = m
-        .pts
-        .get_mut(index)
-        .ok_or_else(|| invalid(format!("vertex {} does not exist (the markup has {n})", index + 1)))?;
-    *v = p;
+    if index >= n {
+        // Past the outline: the cutouts' vertices, in order.
+        let mut k = index - n;
+        for h in &mut m.holes {
+            if let Some(v) = h.get_mut(k) {
+                *v = p;
+                m.dirty = true;
+                return Ok(());
+            }
+            k -= h.len();
+        }
+        return Err(invalid(format!(
+            "vertex {} does not exist (the markup has {n})",
+            index + 1
+        )));
+    }
+    // A point inside an arc bends the arc (its handle is the yellow one).
+    if let Some(arc) = markupcraft_model::measure_extras::arc_containing(m, index) {
+        markupcraft_model::measure_extras::bend_arc(m, arc, p);
+        return Ok(());
+    }
+    // Moving an arc's end vertex: the arcs it ends keep their bulge through their handles.
+    let keep: Vec<(usize, Point)> = (0..m.arcs.len())
+        .filter(|a| {
+            m.arcs.get(*a).is_some_and(|(first, _)| *first == index)
+                || markupcraft_model::measure_extras::arc_end(m, *a) == Some(index)
+        })
+        .filter_map(|a| {
+            let h = markupcraft_model::measure_extras::arc_handle(m, a)?;
+            Some((a, *m.pts.get(h)?))
+        })
+        .collect();
+    if let Some(v) = m.pts.get_mut(index) {
+        *v = p;
+    }
+    for (a, handle) in keep {
+        markupcraft_model::measure_extras::bend_arc(m, a, handle);
+    }
     m.dirty = true;
     Ok(())
 }

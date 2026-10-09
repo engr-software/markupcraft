@@ -48,6 +48,9 @@ pub struct ToolItem {
     #[serde(default)]
     pub mode: Mode,
     pub markup: Markup,
+    /// Sequence: the label's (and a Drawing item's text's) trailing number counts up each use
+    #[serde(default)]
+    pub sequence: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -75,6 +78,8 @@ struct FileFormat {
     view: crate::chest_sets::ChestView,
     #[serde(default = "crate::chest_sets::default_icon_size")]
     icon_size: f32,
+    #[serde(default)]
+    extras: crate::chest_more::ChestExtras,
 }
 
 /// The user's Tool Chest.
@@ -94,6 +99,8 @@ pub struct ToolChest {
     pub view: crate::chest_sets::ChestView,
     /// Symbol view tile size, points
     pub icon_size: f32,
+    /// Options, user scale presets, line styles, profile columns (`chest_more`)
+    pub extras: crate::chest_more::ChestExtras,
     counter: u64,
 }
 
@@ -113,6 +120,7 @@ impl Default for ToolChest {
             error: None,
             view: Default::default(),
             icon_size: crate::chest_sets::default_icon_size(),
+            extras: Default::default(),
             counter: 0,
         }
     }
@@ -192,6 +200,8 @@ impl ToolChest {
                 c.defaults = f.defaults;
                 c.view = f.view;
                 c.icon_size = f.icon_size.clamp(16.0, 96.0);
+                c.extras = f.extras;
+                c.extras.sanitize();
                 c.sanitize();
             }
             Ok(_) | Err(_) => {
@@ -239,6 +249,7 @@ impl ToolChest {
             defaults: self.defaults.clone(),
             view: self.view,
             icon_size: self.icon_size,
+            extras: self.extras.clone(),
         };
         let r = serde_json::to_string_pretty(&f)
             .map_err(|e| e.to_string())
@@ -286,12 +297,17 @@ impl ToolChest {
             tool: tool.id.into(),
             mode: Mode::Properties,
             markup: template_of(m),
+            sequence: false,
         };
         let target = if self.sets.iter().any(|s| s.id == set) {
             set
         } else {
             MY_TOOLS
         };
+        if self.is_locked(target) {
+            self.error = Some("That tool set is locked: unlock it to add tools".into());
+            return None;
+        }
         let s = self.sets.iter_mut().find(|s| s.id == target)?;
         s.items.push(item);
         self.save();
@@ -311,11 +327,12 @@ impl ToolChest {
                 id,
                 name,
                 tool: tool.into(),
-                mode: Mode::Properties,
+                mode: self.extras.recent_mode,
                 markup: template_of(m),
+                sequence: false,
             },
         );
-        self.recent.truncate(RECENT_MAX);
+        self.recent.truncate(self.extras.recent_max.max(1));
     }
 
     /// A new, empty tool set; returns its id.
@@ -334,7 +351,7 @@ impl ToolChest {
 
     /// Delete a tool set (not My Tools).
     pub fn remove_set(&mut self, id: &str) {
-        if id == MY_TOOLS {
+        if id == MY_TOOLS || self.is_locked(id) {
             return;
         }
         self.sets.retain(|s| s.id != id);
@@ -342,6 +359,9 @@ impl ToolChest {
     }
 
     pub fn rename_set(&mut self, id: &str, title: &str) {
+        if self.is_locked(id) {
+            return;
+        }
         if let Some(s) = self.sets.iter_mut().find(|s| s.id == id) {
             s.title = title.into();
         }
@@ -351,6 +371,9 @@ impl ToolChest {
     pub fn remove_item(&mut self, set: &str, item: &str) {
         if set == "recent" {
             self.recent.retain(|i| i.id != item);
+            return;
+        }
+        if self.is_locked(set) {
             return;
         }
         if let Some(s) = self.sets.iter_mut().find(|s| s.id == set) {
@@ -383,6 +406,9 @@ impl ToolChest {
             return;
         };
         it.id = self.new_id("t");
+        if self.is_locked(to_set) {
+            return;
+        }
         if let Some(s) = self.sets.iter_mut().find(|s| s.id == to_set) {
             s.items.push(it);
         }

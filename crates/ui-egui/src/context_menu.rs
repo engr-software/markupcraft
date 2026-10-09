@@ -164,6 +164,9 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, out: &mut CanvasOut) {
     command(ui, out, "Format Painter", "markup.format_painter", single && writable);
 
     // Measurement and vertex items.
+    if writable && !m.locked() {
+        crate::more::context_items(ui, doc, out, &target, &m);
+    }
     if single && writable && !m.locked() {
         let mut extra = false;
         if matches!(m.kind, Kind::Polylength | Kind::Perimeter | Kind::Area | Kind::Volume) {

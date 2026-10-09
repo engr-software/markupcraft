@@ -3,6 +3,7 @@
 
 pub static ICONS: &[(&str, &[u8])] = &[
     ("pencil-ruler", include_bytes!("../assets/icons/pencil-ruler.svg")),
+    ("flag", include_bytes!("../assets/icons/flag.svg")),
     ("keyboard", include_bytes!("../assets/icons/keyboard.svg")),
     ("arrow-down", include_bytes!("../assets/icons/arrow-down.svg")),
     ("arrow-up", include_bytes!("../assets/icons/arrow-up.svg")),

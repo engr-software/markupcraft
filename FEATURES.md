@@ -9,21 +9,21 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | Area | Rows | Proven | Have | Partial | Missing | Excluded | C++ have | C++ partial |
 |---|---|---|---|---|---|---|---|---|
-| Measurement and takeoff | 134 | 2 | 73 | 19 | 40 | 0 | 47 | 17 |
-| Markup tools, Properties, Tool Chest, layers, Markups List | 192 | 0 | 121 | 27 | 44 | 0 | 86 | 23 |
+| Measurement and takeoff | 134 | 2 | 110 | 13 | 9 | 0 | 47 | 17 |
+| Markup tools, Properties, Tool Chest, layers, Markups List | 192 | 0 | 171 | 7 | 14 | 0 | 86 | 23 |
 | Documents, pages, batch, print, search, security | 217 | 0 | 119 | 44 | 48 | 6 | 38 | 23 |
 | Compare/overlay, interface, preferences, mouse, Studio | 226 | 0 | 125 | 27 | 43 | 31 | 24 | 22 |
-| Default keyboard shortcuts | 177 | 0 | 145 | 1 | 27 | 4 | 11 | 18 |
-| **All** | 946 | 2 | 583 | 118 | 202 | 41 | 206 | 103 |
+| Default keyboard shortcuts | 177 | 0 | 160 | 1 | 12 | 4 | 11 | 18 |
+| **All** | 946 | 2 | 685 | 92 | 126 | 41 | 206 | 103 |
 
 ### By priority (rows in scope)
 
 | Priority | Proven | Have | Partial | Missing |
 |---|---|---|---|---|
-| P0 | 2 | 118 | 16 | 5 |
-| P1 | 0 | 145 | 48 | 24 |
-| P2 | 0 | 117 | 26 | 66 |
-| P3 | 0 | 58 | 27 | 80 |
+| P0 | 2 | 133 | 5 | 1 |
+| P1 | 0 | 170 | 35 | 12 |
+| P2 | 0 | 144 | 24 | 41 |
+| P3 | 0 | 78 | 27 | 60 |
 
 ## Measurement and takeoff
 
@@ -34,15 +34,15 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | meas-001 | Calibrate | P0 | have | have | `calibrate_asks_for_the_distance_and_sets_the_scale` `calibrate_measure_and_viewports_survive_save` Calibrate tool (Measure menu, Measurements panel): two clicks or a drag, then a dialog for the real distance (feet-inches accepted), unit, pages and whether measurements update. |
 | meas-002 | Preset scales | P0 | have | have | `scale_quantities` `measurements_panel_sets_a_custom_scale_on_every_page` Architectural, engineering and metric presets in the Measurements panel and the Properties panel scale picker. |
 | meas-003 | Custom scale | P0 | have | have | `scale_quantities` `measurements_panel_sets_a_custom_scale_on_every_page` Measurements panel: paper length and unit = real length and unit. |
-| meas-004 | Save custom/calibrated scale as preset | P2 | missing | missing |  |
+| meas-004 | Save custom/calibrated scale as preset | P2 | have | missing | `scale_presets_and_separate_y_scale` Measurements panel: + Add Preset saves the page scale under a name; the user's presets list first in the Preset menu with a delete button (the built-ins cannot be deleted). Kept in the Tool Chest file. |
 | meas-005 | Apply scale to page range | P0 | have | partial | `measurements_panel_sets_a_custom_scale_on_every_page` `page_ranges` Apply to: this page, all, or a range like 1-3, 7 (Measurements panel and Calibrate). |
 | meas-006 | Add Scale to More Pages | P1 | have | have | `measurements_panel_sets_a_custom_scale_on_every_page` Apply to other pages from the Measurements panel and the Calibrate dialog. |
 | meas-007 | Per-page scale | P0 | have | have | `viewport_wins_over_page_scale` `calibrate_measure_and_viewports_survive_save` `measurements_panel_sets_a_custom_scale_on_every_page` Page scale read from and written to /VP; no UI. |
-| meas-008 | Separate Y scale | P3 | missing | missing |  |
-| meas-009 | Precision | P0 | partial | have | `feet_inches_quarter` `decimal_area_strips_zeros_and_groups` Precision and display unit pickers in the Measurements and Properties panels (no UI test yet). |
+| meas-008 | Separate Y scale | P3 | have | missing | `scale_presets_and_separate_y_scale` Measurements panel > Separate Y Scale: a vertical ratio of its own, written as the /Measure /Y number format; only the scale applied from then on changes. |
+| meas-009 | Precision | P0 | have | have | `perimeter_rise_drop_vertices_and_precision` `measurements_panel_sets_a_custom_scale_on_every_page` Precision and display unit pickers in the Measurements and Properties panels (decimal places, or fractions for inches and feet-inches). |
 | meas-010 | Scale shown in status bar | P1 | have | have | `opens_the_sample_and_hides_what_it_draws` Status bar shows the scale under the pointer (viewport first, else the page scale). |
-| meas-011 | Protected / temporary page scales | P3 | missing | missing |  |
-| meas-012 | Recalculate | P1 | missing | have |  |
+| meas-011 | Protected / temporary page scales | P3 | have | missing | `protected_and_temporary_scales` `a_temporary_scale_is_not_saved` Measurements panel: Protect scale locks the page's scale controls (for the session); Temporary (not saved) measures with a scale the file does not keep, so the file's own comes back when it is opened again. |
+| meas-012 | Recalculate | P1 | have | have | `measure_tool_switches_modes_and_recalculates` `lasso_arcs_cutouts_and_recalculate` Measure > Recalculate Measurements: every measurement takes the scale now in effect where it sits, keeping its units and precision; one undo step (measure_recalculate tool). |
 | meas-013 | "Scale not set" state | P1 | have | partial | `measuring_without_a_scale_says_so` Measuring on a page without a scale says so next to the cursor and in the status bar; the Measurements panel shows Not set. |
 
 ### Viewports
@@ -62,14 +62,14 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 |---|---|---|---|---|---|
 | meas-020 | Length | P0 | proven | have | `cli: check` `cli: resave` Matches Revu on the reference set: value and label identical on 410/410 Revu-made measurements (check) and 410/410 after rewrite and reload (resave). No drawing tool yet (no UI). |
 | meas-021 | Polylength | P0 | have | have | `length_and_polylength_measure` Polylength read/write and quantity (incl. Rise/Drop); not on the reference set; no tool. |
-| meas-022 | Perimeter | P1 | partial | have | `square_area_and_perimeter` Perimeter tool built (click points, Enter / double-click); no UI test yet. |
+| meas-022 | Perimeter | P1 | have | have | `perimeter_rise_drop_vertices_and_precision` Perimeter tool (Shift+Alt+P): click points, Enter / double-click; a depth gives wall area. |
 | meas-023 | Backspace removes last point | P0 | have | missing | `polyline_takes_clicks_backspace_and_enter` Every point tool. |
 | meas-024 | Enter / double-click to finish; click first point to close | P0 | have | have | `polyline_takes_clicks_backspace_and_enter` `area_shows_its_value_and_finishes_on_double_click` `clicking_the_first_point_closes_a_polygon_and_ellipse_drags` `length_and_polylength_measure` Enter, double-click or right-click finishes; clicking the first point closes a closed shape. |
-| meas-025 | Rise/Drop (Polylength) | P1 | partial | have | Rise/Drop field in Properties; no UI test yet. |
-| meas-026 | Slope (Length/Area) | P2 | missing | missing |  |
+| meas-025 | Rise/Drop (Polylength) | P1 | have | have | `perimeter_rise_drop_vertices_and_precision` `segment_values_and_arcs_round_trip` Properties > Rise/Drop on a Polylength adds to its length (our key /PCRiseDrop). |
+| meas-026 | Slope (Length/Area) | P2 | have | missing | `caption_slope_centroid_and_units_from_properties` `measurement_extras_round_trip` `slope_caption_and_centroid_properties` Properties > Takeoff > Slope: pitch (rise in 12), degrees or grade %; Length, Polylength, Perimeter and Area report the true sloped value. Revu's /SlopeType plus our /PCSlope value. |
 | meas-027 | Show Segment Values | P1 | have | have | `segment_values_toggle_from_the_menu` Right-click menu and Properties checkbox; values drawn on the canvas per segment. |
-| meas-028 | Convert segment to arc | P1 | partial | have | Arcs stored as /PCArcs; no editing. |
-| meas-029 | Add / delete control point | P1 | missing | have |  |
+| meas-028 | Convert segment to arc | P1 | have | have | `convert_to_arc_and_cutout_to_measurement_from_the_menu` `ctrl_drag_curves_a_segment_and_its_handle_bends_it` `lasso_arcs_cutouts_and_recalculate` Right-click a segment > Convert to Arc / Convert to Line, Ctrl+drag a segment of the selected markup to curve it, drag the arc's middle handle to bend it; the value follows. Stored as a 32-chord polyline in /Vertices + /PCArcs. |
+| meas-029 | Add / delete control point | P1 | have | have | `perimeter_rise_drop_vertices_and_precision` Right-click a segment > Add Vertex, a vertex > Delete Vertex. |
 
 ### Area and volume tools
 
@@ -80,14 +80,14 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | meas-032 | Volume | P2 | have | missing | `volume_and_area_by_rectangle` Measure > Volume (Shift+Alt+V): an Area outline with a depth (1 unit until set in Properties). |
 | meas-033 | Depth | P1 | have | missing | `measurement_caption_depth_and_count_symbol` Properties > Depth on Area, Volume, Perimeter and Polylength. |
 | meas-034 | Wall Area | P2 | have | missing | `measurement_caption_depth_and_count_symbol` Properties shows the Wall Area (perimeter x depth) once a depth is set. |
-| meas-035 | Show All Measurements | P1 | missing | missing |  |
-| meas-036 | Show Centroid | P3 | missing | missing |  |
+| meas-035 | Show All Measurements | P1 | have | missing | `caption_slope_centroid_and_units_from_properties` `caption_templates_fill_in_fields` Properties > Caption Contents > Show All Measurements: P / A / WA / V in one caption. |
+| meas-036 | Show Centroid | P3 | have | missing | `caption_slope_centroid_and_units_from_properties` `caption_templates_fill_in_fields` `measurement_extras_round_trip` Properties > Takeoff > Show Centroid marks the area-weighted centre (cutouts deducted); our key /PCCentroid. |
 | meas-037 | Polygon Cutout | P0 | have | partial | `area_with_cutout` `cutout_cuts_a_hole_in_the_area` `cutouts_are_one_step_each` `cutout_add_and_delete` Polygon Cutout tool: draw inside an Area (the selected one first); right-click > Delete Cutout. |
 | meas-038 | Ellipse Cutout | P1 | have | have | `ellipse_cutout_cuts_an_ellipse` Measure > Ellipse Cutout: drag an ellipse inside an Area; a 64-vertex hole. |
-| meas-039 | Edit / delete cutout | P1 | partial | have | Right-click > Delete Cutout and the cutout_delete tool; editing cutout vertices not yet. |
-| meas-040 | Cutout to its own measurement | P3 | missing | missing |  |
+| meas-039 | Edit / delete cutout | P1 | have | have | `cutout_vertices_drag_add_and_delete` `cutout_cuts_a_hole_in_the_area` Cutout vertices drag like the outline's; right-click inside a cutout > Add Cutout Vertex / Delete Cutout Vertex / Delete Cutout. |
+| meas-040 | Cutout to its own measurement | P3 | have | missing | `convert_to_arc_and_cutout_to_measurement_from_the_menu` `lasso_arcs_cutouts_and_recalculate` Right-click inside a cutout > Cutout to Measurement: a new Area / Volume of the hole with the parent's look and scale (cutout_to_measurement tool). |
 | meas-041 | Hatch fill | P2 | have | missing | `dynamic_fill_makes_areas_spaces_and_hatch` `hatch_saves_into_the_appearance_and_reads_back` markup_hatch: six line hatches (our own key /PCHatch) drawn into the appearance, clipped to the shape and its cutouts. |
-| meas-042 | Rotate measurement | P3 | missing | missing |  |
+| meas-042 | Rotate measurement | P3 | have | missing | `dimension_offset_and_measurement_rotation_snaps` `layout_moves_resizes_and_rotates` The rotation handle turns a measurement in 15-degree steps (Shift: single degrees); Properties > Layout > Rotation takes a typed angle. |
 
 ### Circular and angular tools
 
@@ -105,13 +105,13 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | meas-047 | Count | P0 | have | have | `count_adds_items_until_enter` Click per item; Enter or Esc ends the group; the tool stays active. |
 | meas-048 | Count symbol choice / scale | P0 | have | partial | `measurement_caption_depth_and_count_symbol` Symbol, size, and a custom symbol in Properties. |
 | meas-049 | Custom count symbol from any markup | P1 | have | have | `measurement_caption_depth_and_count_symbol` Select a Count and any other markup: Properties > Use the ... as the symbol. |
-| meas-050 | Resume Count | P0 | missing | have |  |
-| meas-051 | Delete one item from a count group | P0 | missing | have |  |
-| meas-052 | Split / merge counts | P2 | missing | missing |  |
-| meas-053 | Count dimensions | P3 | missing | missing |  |
+| meas-050 | Resume Count | P0 | have | have | `count_series_from_the_canvas_menu` `count_series_resume_delete_split_and_merge` Right-click a count > Resume Count: new clicks join that series until Esc. |
+| meas-051 | Delete one item from a count group | P0 | have | have | `count_series_from_the_canvas_menu` `count_series_resume_delete_split_and_merge` Right-click a count item > Delete Count Item; the series renumbers, the last item deletes the count. |
+| meas-052 | Split / merge counts | P2 | have | missing | `count_series_from_the_canvas_menu` `count_series_resume_delete_split_and_merge` Right-click a count item > Split Off This Item / Split Count Here; select counts > Merge Counts (same page). |
+| meas-053 | Count dimensions | P3 | have | missing | `measurement_extras_round_trip` `list_filters_dim_the_page_display_options_and_columns` Properties > Item Size: a Count's item width, height and depth (our key /PCCountDims), shown in the Width, Height and Depth columns in the scale's unit. |
 | meas-054 | Count grouped per page or Space | P1 | have | partial | `spaces_add_column_tally_export_import` `spaces_name_markups_split_counts_and_round_trip` space_tally: counted items per subject per page and space (each Count point in its own space). |
-| meas-055 | Live count preview | P2 | missing | missing |  |
-| meas-056 | Count statuses | P3 | missing | missing |  |
+| meas-055 | Live count preview | P2 | partial | missing | `cloud_drags_a_rectangle_and_count_shows_a_live_total` While counting, the running count shows in the lower-right of the view (and the status bar); clicking it does not reopen a panel. |
+| meas-056 | Count statuses | P3 | partial | missing | `count_series_resume_delete_split_and_merge` `line_styles_custom_statuses_and_profile_columns` Counts take the review statuses and custom ones (Installed ...), and items split off take their own; visual status reports are not built. |
 
 ### Dynamic Fill and auto-detection
 
@@ -146,12 +146,12 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | meas-073 | Snap to Content | P0 | have | have | `snap_to_content_lands_on_a_wall_corner` `sample_pages_have_linework` `content_markup_and_grid` Page linework (paths in content and forms) indexed per page on a worker; Ctrl+Shift+F8. |
 | meas-074 | Snap to Markup | P1 | have | have | `snap_to_markup_and_grid` `content_markup_and_grid` Vertices, segment midpoints, nearest point and box centres of the page's markups; Ctrl+Shift+F7. |
 | meas-075 | Snap to Grid | P3 | have | missing | `snap_to_markup_and_grid` Quarter-inch grid; Ctrl+Shift+F9. |
-| meas-076 | Show Grid | P3 | partial | missing | View > Show Grid (Shift+F9) draws the quarter-inch grid; spacing not configurable yet. |
+| meas-076 | Show Grid | P3 | have | missing | `rulers_crosshair_and_dimmer` `preferences_dialog_applies_and_persists` View > Show Grid (Shift+F9); spacing from Preferences > Grid & Snap. |
 | meas-077 | Snap point types | P1 | have | have | `content_markup_and_grid` `snap_to_content_lands_on_a_wall_corner` Endpoint, intersection, midpoint, nearest, centre and grid, each with its own indicator glyph. |
-| meas-078 | Snap sensitivity | P2 | missing | missing |  |
+| meas-078 | Snap sensitivity | P2 | have | missing | `preferences_dialog_applies_and_persists` Preferences > Grid & Snap > Snap sensitivity sets the capture radius. |
 | meas-079 | Rulers | P3 | have | missing | `rulers_crosshair_and_dimmer` `ruler_ticks_stay_readable` View > Rulers (Ctrl+R) with selectable units. |
-| meas-080 | Pan while drawing | P0 | missing | have |  |
-| meas-081 | Ctrl wheel toggle zoom/pan | P1 | missing | partial |  |
+| meas-080 | Pan while drawing | P0 | have | have | `space_pans_while_drawing_and_autosize_shrinks_a_text_box` Hold Space and drag to pan; the drawing in progress keeps its points. |
+| meas-081 | Ctrl wheel toggle zoom/pan | P1 | have | partial | `wheel_zooms_or_scrolls_by_preference_and_ctrl_swaps` Ctrl swaps wheel zoom and scroll. |
 | meas-082 | Copy in straight line | P1 | have | have | `ctrl_shift_drag_copies_in_a_straight_line` |
 
 ### Measurement properties, captions and appearance
@@ -160,24 +160,24 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 |---|---|---|---|---|---|
 | meas-083 | Subject | P0 | have | have | `general_fields_take_typing_as_one_undo_step` Properties > Subject (typing is one undo step); no UI test of typing yet. |
 | meas-084 | Label | P0 | have | have | `general_fields_take_typing_as_one_undo_step` Properties > Label; no UI test of typing yet. |
-| meas-085 | Per-measurement units | P0 | missing | partial |  |
+| meas-085 | Per-measurement units | P0 | have | partial | `caption_slope_centroid_and_units_from_properties` `perimeter_rise_drop_vertices_and_precision` Properties > Units sets a measurement's length unit; Takeoff > Area unit and Volume unit set its own area and volume units (sf, sy, m², cu yd ...), the scale unchanged. |
 | meas-086 | Set as Default | P0 | have | have | `set_as_default_styles_new_markups` `tool_sets_persist_and_reload` Right-click > Set as Default or Properties > Options; saved with the Tool Chest. |
-| meas-087 | Show Caption + Edit caption contents | P1 | partial | partial | `measurement_caption_depth_and_count_symbol` `hidden_and_captionless_markups_save_and_reopen` Properties > Show Caption (/Cap); editing the caption's contents not yet. |
+| meas-087 | Show Caption + Edit caption contents | P1 | have | partial | `caption_slope_centroid_and_units_from_properties` `caption_templates_fill_in_fields` Properties > Caption > Show Caption; Caption Contents takes text with fields ({value}, {subject}, {area}, {c:<column>} ...) from an Insert field list; our key /PCCaption. |
 | meas-088 | Move caption independently | P1 | have | have | `shift_drag_moves_a_caption_alone` Shift-drag a caption; stored as /CO; right-click > Reset Caption Position. |
-| meas-089 | Caption leader line | P2 | missing | missing |  |
-| meas-090 | Caption default placement | P1 | missing | partial |  |
-| meas-091 | Line endpoints (Start/End) | P2 | missing | missing |  |
-| meas-092 | Line style / width / opacity / color / fill | P1 | partial | partial | Properties: color, fill, opacity, fill opacity, line width, style, endings; no UI test per field yet. |
-| meas-093 | Font for captions | P2 | missing | missing |  |
+| meas-089 | Caption leader line | P2 | have | missing | `caption_slope_centroid_and_units_from_properties` `measurement_extras_round_trip` Properties > Caption Contents > Show Caption Leader Line joins a moved caption to its markup; our key /PCCapLeader. |
+| meas-090 | Caption default placement | P1 | partial | partial | Area, Volume and Perimeter captions sit at the vertex mean (Revu's /CO anchor in the reference set); Polylength at the middle segment, or beside the last segment with segment values; Length along the line. Perimeter along its last segment is not done. |
+| meas-091 | Line endpoints (Start/End) | P2 | have | missing | `line_endings_cloud_and_text_style` Properties > Start / End endings on Length and Polylength (and lines); their size follows the line width. |
+| meas-092 | Line style / width / opacity / color / fill | P1 | have | partial | `appearance_pickers_change_the_markup` `line_styles_custom_statuses_and_profile_columns` Properties: colour, fill, opacity, fill opacity, line width, line style including the user's own line styles, endings, blend mode. |
+| meas-093 | Font for captions | P2 | partial | missing | `measurement_extras_round_trip` Properties > Caption sets the caption's font size (2-144, saved in /DS and drawn at that size on the canvas and in the saved appearance), font, colour and bold / italic / underline; the saved appearance draws Helvetica in the markup colour, and strike-through, superscript and subscript are not offered. |
 | meas-094 | Live measure readout | P1 | have | have | `area_shows_its_value_and_finishes_on_double_click` `measuring_without_a_scale_says_so` The value under construction follows the cursor and shows in the status bar. |
-| meas-095 | Temporary vs persistent measurements | P2 | missing | missing |  |
-| meas-096 | Measure tool (unified) | P2 | missing | missing |  |
+| meas-095 | Temporary vs persistent measurements | P2 | have | missing | `temporary_measurements_and_keep_last_subject` Measure > Make Annotations from Measurements: off, a measurement tool only reads its value out. |
+| meas-096 | Measure tool (unified) | P2 | have | missing | `measure_tool_switches_modes_and_recalculates` Measure (M): opens the Measurements panel and switches between the measurement modes from its mode row. |
 | meas-097 | Measurements panel | P0 | have | partial | `measurements_panel_sets_a_custom_scale_on_every_page` Measurements panel (Alt+U): page scale, presets, custom scale, calibrate, units and precision, viewports, selection totals. |
-| meas-098 | Properties toolbar Totals | P1 | missing | have |  |
+| meas-098 | Properties toolbar Totals | P1 | have | have | `markups_list_shows_totals_and_status` Totals of the selected measurements by unit in the Measurements panel and the Markups List footer. |
 | meas-099 | Bulk edit selected measurements | P0 | have | partial | `properties_edit_every_selected_markup` Properties edits apply to every selected markup. |
-| meas-100 | Layer, Author, Comment fields | P2 | missing | partial |  |
+| meas-100 | Layer, Author, Comment fields | P2 | have | partial | `general_fields_take_typing_as_one_undo_step` `layers_from_properties` Properties > General: Subject, Label, Author, Layer; a measurement's comment is its value (Revu writes the quantity into /Contents). |
 | meas-101 | Lock markup | P2 | have | missing | `extras_columns_status_replies_lock_round_trip` `properties_edit_every_selected_markup` Properties > Options > Locked, Ctrl+Shift+L, right-click. |
-| meas-102 | Legacy Subject/Label persist | P3 | missing | missing |  |
+| meas-102 | Legacy Subject/Label persist | P3 | have | missing | `temporary_measurements_and_keep_last_subject` Measure > Keep Last Subject and Label: a new measurement takes the last one of its kind's subject and label. |
 
 ### Tool Chest for takeoff
 
@@ -187,22 +187,22 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | meas-104 | Properties Mode vs Drawing Mode | P1 | have | missing | `drawing_mode_places_a_copy` `tool_sets_persist_and_reload` Tool Chest item right-click: Properties Mode / Drawing Mode. |
 | meas-105 | Tool sets (e.g. one per system) | P0 | have | have | `tool_sets_persist_and_reload` New / rename / delete tool sets; copy items between sets. |
 | meas-106 | Dynamic Tool Set Scaler | P2 | have | missing | `tool_chest_symbol_view_scale_export_and_import` `reorder_export_import_and_rescale` A tool set's scale (header right-click > Scale): its Drawing-mode items placed on a page at another scale are resized to keep their real size. |
-| meas-107 | Takeoff profile | P3 | missing | missing |  |
+| meas-107 | Takeoff profile | P3 | partial | missing | `drag_to_tool_chest_edit_action_and_takeoff_workspace` Window > Takeoff Workspace opens the Measurements panel, Markups List and Tool Chest in the measure mode; it is a command, not a saved profile. |
 
 ### Markups List, custom columns and formulas
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | meas-108 | Measurement column with totals | P0 | have | have | `list_group_sort_and_totals_per_unit` `cli_list_and_summary_end_to_end` Measurement column with group and grand totals per unit (markupcraft-cli list/summary); no panel UI. |
-| meas-109 | Measurement-specific columns | P1 | partial | partial | `list_cells_formula_choice_currency_status` Length, Area, Perimeter, Volume, Count, Depth, Rise/Drop, Width, Height, Unit, Page Label, Layer columns; Wall Area, Space and Slope stay blank. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table. |
+| meas-109 | Measurement-specific columns | P1 | have | partial | `list_wall_area_slope_and_geometry_columns` `spaces_name_markups_split_counts_and_round_trip` Length, Area, Perimeter, Volume, Count, Depth, Rise/Drop, Width, Height, Wall Area, Slope, Unit, Space, Page Label and Layer columns. |
 | meas-110 | Sort / group / filter list | P0 | have | have | `list_group_sort_and_totals_per_unit` `list_filters_search_and_scope` `cli_list_and_summary_end_to_end` Headless (crates/model table, CLI --group/--sort/--filter); no panel UI. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table. |
 | meas-111 | Custom column: Number | P1 | have | have | `list_custom_column_types` Headless; stored as /PCColumns + /PCColumnData. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table. |
 | meas-112 | Custom column: Choice with values | P1 | have | have | `list_cells_formula_choice_currency_status` Choice items with subject and value; value used by formulas. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table. |
 | meas-113 | Custom column: Formula | P1 | have | have | `formula_functions_and_constants` `list_cells_formula_choice_currency_status` + - * / ^ %, pi, e, sqrt/trig/log/ln/exp/floor/ceil(ing)/round/min/max/pow/if, column references. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table. |
 | meas-114 | Custom column: Text / Date / Checkmark | P2 | have | partial | `list_custom_column_types` Text, Date (stored as typed) and Checkmark columns. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table. |
-| meas-115 | Formula display format (e.g. currency) | P2 | partial | partial | `list_custom_column_types` Number columns format as number/currency/percent; a Formula column shows a plain number. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table. |
-| meas-116 | Custom columns in captions | P2 | missing | missing |  |
-| meas-117 | Statuses | P3 | partial | have | `extras_columns_status_replies_lock_round_trip` Default status set as /StateModel /Review replies; no custom status sets. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table. |
+| meas-115 | Formula display format (e.g. currency) | P2 | have | partial | `list_formula_display_and_date_formats` `extras_columns_status_replies_lock_round_trip` Manage Columns: a Formula column shows its number as Number, Currency or Percent (saved as /Display); number columns as number, currency or percent. |
+| meas-116 | Custom columns in captions | P2 | have | missing | `caption_templates_fill_in_fields` `caption_slope_centroid_and_units_from_properties` Caption Contents > Insert field lists the custom columns ({c:<id>}). |
+| meas-117 | Statuses | P3 | have | have | `line_styles_custom_statuses_and_profile_columns` `extras_columns_status_replies_lock_round_trip` None, Accepted, Rejected, Cancelled, Completed plus the user's own statuses (Properties > Custom Status, kept for the status menus); stored as /StateModel /Review replies, filterable in the Status column. |
 
 ### Spaces (location grouping)
 
@@ -243,22 +243,22 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | mark-001 | Text Box | P0 | have | have | `cli: markupcheck` `text_box_typewriter_and_note_type_in_place` `an_empty_text_box_is_not_added` Drag a box or click, type in the editor over the page; double-click to edit later. |
-| mark-002 | Autosize Text Box | P1 | partial | partial | Alt+Z autosizes; text boxes grow with their text when typed. |
+| mark-002 | Autosize Text Box | P1 | have | partial | `space_pans_while_drawing_and_autosize_shrinks_a_text_box` Alt+Z fits the frame to its text exactly (shrinks or grows); typing grows a box. |
 | mark-003 | Typewriter | P1 | have | have | `text_box_typewriter_and_note_type_in_place` |
 | mark-004 | Note | P1 | have | have | `text_box_typewriter_and_note_type_in_place` Click to place, type the comment; icon in Properties. |
 | mark-005 | Callout | P0 | have | have | `cli: markupcheck` `callout_tip_then_box_then_text` Click the tip, then where the box goes (or drag), then type. |
 | mark-006 | Rich text editing in text markups | P1 | have | partial | `rich_text_saves_as_spans_and_reloads_editable` `toggle_and_merge` `runs_follow_edits` `replacing_a_word_keeps_runs` In the text editor, Ctrl+B / Ctrl+I / Ctrl+U and the editor toolbar (bold, italic, underline, colour) style the selected characters; saved as /RC spans and drawn into the /AP; MarkupCraft's own spans reload editable (other writers' spans keep their look). |
 | mark-007 | Spell check | P2 | have | have | `spell_check_flags_markup_text_with_suggestions` `the_bundled_dictionary_checks_english` `affix_expansion_and_checks` Tool spell_check: markup comment text (or given text) against assets/dictionaries/en_US, read by a pure-Rust Hunspell affix expander; REP / one-edit / two-edit suggestions; words with digits, one letter or ALL CAPS skipped; accept list. No underline-as-you-type UI yet. |
-| mark-008 | Review Text (text-edit view) | P3 | missing | missing |  |
+| mark-008 | Review Text (text-edit view) | P3 | have | missing | `review_text_edits_comments_in_sequence` Markup > Review Text (Shift+Alt+R): every markup with text in page order, Previous / Next selects and goes to each, the text is edited in place (one undo step per field). |
 | mark-009 | Text Highlight | P2 | have | have | `text_markups_follow_the_page_text` Over the page text layer; on pages without text the dragged rectangle. |
 | mark-010 | Underline text | P2 | have | have | `text_markups_follow_the_page_text` |
 | mark-011 | Strikethrough text | P2 | have | have | `strikethrough_marks_text` |
-| mark-012 | Squiggly text | P3 | missing | have |  |
-| mark-013 | Insert/Replace text markup (caret) | P3 | missing | have |  |
-| mark-014 | Sequences / incrementing text | P1 | missing | missing |  |
+| mark-012 | Squiggly text | P3 | have | have | `dimension_arc_squiggly_and_flag_tools_draw` Squiggly tool (Shift+U): drag across page text or click a word; /Squiggly with /QuadPoints. |
+| mark-013 | Insert/Replace text markup (caret) | P3 | have | have | `insert_and_replace_text_add_carets` Insert / Replace Text tool: a click places a /Caret and asks for the text to insert; a drag strikes the words through and adds the caret after them, grouped (Acrobat-style /Caret; Revu's own storage unchecked). |
+| mark-014 | Sequences / incrementing text | P1 | have | missing | `tool_chest_sequence_pin_lock_options_and_update_on_reuse` `sequences_and_dashes` Tool Chest item > Sequence: its label (and a Drawing-mode item's text) ends in a number that counts up each time the item is placed (A1, A2 ...). |
 | mark-015 | Text font properties | P0 | have | have | `properties_panel_edits_go_through_the_engine` Properties > Text: font, size, colour, bold, italic, underline, alignment. |
-| mark-016 | Text box margins / line spacing | P2 | missing | missing |  |
-| mark-017 | Callout leader/leader end | P1 | partial | have | Leader tip and knee are handles; end style in Properties. |
+| mark-016 | Text box margins / line spacing | P2 | have | missing | `text_box_margin_and_line_spacing_from_properties` `text_margin_and_line_spacing_round_trip` Properties > Text Layout: margin (points beyond the frame's own) and line spacing (x single); written in /DS and our keys /PCTextMargin, /PCLineSpacing. |
+| mark-017 | Callout leader/leader end | P1 | have | have | `callout_tip_then_box_then_text` `line_endings_cloud_and_text_style` Callout leader with a knee (both handles), line style and end style in Properties. |
 
 ### B. Line and shape markups
 
@@ -266,22 +266,22 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 |---|---|---|---|---|---|
 | mark-018 | Line | P0 | have | have | `cli: markupcheck` `shift_constrains_a_line_and_a_drag_makes_an_arrow` `snap_to_content_lands_on_a_wall_corner` Read/write in the file (markupcheck); no drawing tool. |
 | mark-019 | Arrow | P0 | have | have | `cli: markupcheck` `shift_constrains_a_line_and_a_drag_makes_an_arrow` Revu arrows are read and rewritten (markupcheck); no tool. |
-| mark-020 | Dimension | P2 | missing | missing |  |
+| mark-020 | Dimension | P2 | have | missing | `dimension_arc_squiggly_and_flag_tools_draw` `dimension_and_arc_round_trip` `dimension_and_arc_markups_save_and_reopen` Dimension tool (Shift+L): two clicks or a drag; arrowheads both ends, the scaled length as its text, offset (/LL) and extension (/LLE) lines. Stored as /Line /IT /PCDimension (our intent until Revu's is checked). |
 | mark-021 | Polyline | P1 | have | have | `cli: markupcheck` `polyline_takes_clicks_backspace_and_enter` Read/write in the file (markupcheck); no drawing tool. |
 | mark-022 | Polygon | P1 | have | have | `cli: markupcheck` `clicking_the_first_point_closes_a_polygon_and_ellipse_drags` `escape_cancels_a_drawing` Read/write in the file (markupcheck); no drawing tool. |
 | mark-023 | Rectangle | P0 | have | have | `cli: markupcheck` `rectangle_tool_draws_and_returns_to_select` `set_as_default_styles_new_markups` Read/write in the file (markupcheck); no drawing tool. |
 | mark-024 | Ellipse | P1 | have | have | `clicking_the_first_point_closes_a_polygon_and_ellipse_drags` Read/write in the file; no drawing tool. |
-| mark-025 | Arc | P2 | missing | missing |  |
+| mark-025 | Arc | P2 | have | missing | `dimension_arc_squiggly_and_flag_tools_draw` `dimension_and_arc_round_trip` `dimension_and_arc_markups_save_and_reopen` Arc tool (Shift+C): start, end, then a point on the arc; drawn as Bezier curves. Stored as /PolyLine /IT /PCArc with the three points (our intent). |
 | mark-026 | Cloud | P0 | have | have | `cli: markupcheck` `cloud_plus_adds_a_cloud_and_its_callout_as_a_group` Revu clouds are read and rewritten (markupcheck); no tool. |
 | mark-027 | Cloud+ | P0 | have | partial | `cloud_plus_adds_a_cloud_and_its_callout_as_a_group` Cloud, then a click places a callout pointing at it; the two are grouped. |
-| mark-028 | Rectangle/polygon cloud modes | P1 | missing | have |  |
+| mark-028 | Rectangle/polygon cloud modes | P1 | have | have | `cloud_drags_a_rectangle_and_count_shows_a_live_total` Cloud tool: a drag draws a rectangle cloud, clicks a polygon cloud. |
 | mark-029 | Pen (freehand ink) | P1 | have | have | `pen_and_highlight_draw_freehand` One stroke per markup. |
 | mark-030 | Highlighter (freehand) | P1 | have | have | `pen_and_highlight_draw_freehand` |
-| mark-031 | Eraser | P2 | missing | missing |  |
+| mark-031 | Eraser | P2 | have | missing | `eraser_lasso_and_select_text_gestures` `eraser_cuts_ink_and_deletes_what_is_rubbed_out` `erasing_splits_strokes` Eraser (Shift+E): drag across Pen and Highlight strokes; points under it are removed, strokes split, emptied markups deleted; one undo step (ink_erase tool). |
 | mark-032 | Shift-constrain while drawing | P0 | have | have | `shift_constrains_a_line_and_a_drag_makes_an_arrow` `shift_constrains_to_45_degrees` |
-| mark-033 | Spacebar pan while drawing | P1 | missing | have |  |
+| mark-033 | Spacebar pan while drawing | P1 | have | have | `space_pans_while_drawing_and_autosize_shrinks_a_text_box` |
 | mark-034 | Shape fill hatch patterns | P2 | have | missing | `dynamic_fill_makes_areas_spaces_and_hatch` `hatch_lines_cover_the_box` Diagonal, BackDiagonal, Horizontal, Vertical, Cross, DiagonalCross on Area, Polygon, Rectangle, Ellipse, Cloud, Volume. |
-| mark-035 | Flag | P3 | missing | missing |  |
+| mark-035 | Flag | P3 | have | missing | `dimension_arc_squiggly_and_flag_tools_draw` Flag (Shift+F): a click places a flag marker, a /Text note with /Name /Flag (drawn by us; the Revu pairing of this tool is uncertain). |
 
 ### C. Stamps, images, links, attachments, capture
 
@@ -320,20 +320,20 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-061 | General: Date / modified | P2 | have | missing | `hidden_and_captionless_markups_save_and_reopen` `general_fields_take_typing_as_one_undo_step` Properties > Date (modified; Not saved yet for new markups) and Created. |
 | mark-062 | General: Label | P0 | have | partial | `general_fields_take_typing_as_one_undo_step` Properties > Label. |
 | mark-063 | General: Comments | P0 | have | missing | `general_fields_take_typing_as_one_undo_step` Properties > Comments for non-text markups. |
-| mark-064 | General: Reply count / status | P2 | partial | missing | `general_fields_take_typing_as_one_undo_step` Properties > Replies shows the count and the latest review state; no reply editing in the panel. |
-| mark-065 | Appearance: Color (stroke) | P0 | partial | partial | Properties > Color (all selected). |
-| mark-066 | Appearance: Fill color | P0 | partial | missing | Properties > Fill on/off and colour. |
+| mark-064 | General: Reply count / status | P2 | have | missing | `replies_in_properties_and_a_linked_summary` Properties > General shows the reply count and latest review state; Properties > Replies lists, adds, edits and deletes replies. |
+| mark-065 | Appearance: Color (stroke) | P0 | have | partial | `appearance_pickers_change_the_markup` `properties_edit_every_selected_markup` Properties > Color (every selected markup). |
+| mark-066 | Appearance: Fill color | P0 | have | missing | `appearance_pickers_change_the_markup` Properties > Fill on/off and colour, fill opacity. |
 | mark-067 | Appearance: Opacity | P0 | have | missing | `appearance_pickers_change_the_markup` Properties > Opacity slider (one undo step per drag, or a typed value). |
 | mark-068 | Appearance: Fill opacity | P0 | have | missing | `appearance_pickers_change_the_markup` Properties > Fill opacity slider. |
 | mark-069 | Appearance: Line width | P0 | have | missing | `appearance_pickers_change_the_markup` Properties > Line width. |
 | mark-070 | Appearance: Line style | P1 | have | missing | `line_styles_are_valid_dashes` Solid, dashed, dotted, dash dot, long dash. |
-| mark-071 | Custom line style editor / line style sets | P2 | missing | missing |  |
+| mark-071 | Custom line style editor / line style sets | P2 | have | missing | `line_styles_custom_statuses_and_profile_columns` `sequences_and_dashes` Markup > Line Styles...: named dash patterns, listed in Properties > Line style; a set is exported and imported as JSON to share (dash patterns only, no symbol line styles). |
 | mark-072 | Appearance: Line start / end | P1 | have | missing | `line_endings_cloud_and_text_style` Properties > Start / End line endings. |
 | mark-073 | Appearance: Cloud style / intensity | P0 | have | missing | `line_endings_cloud_and_text_style` Properties > Cloud intensity. |
 | mark-074 | Appearance: Blend mode | P1 | have | missing | `appearance_pickers_change_the_markup` `hidden_and_captionless_markups_save_and_reopen` Properties > Blend mode Normal / Multiply (/BM). |
 | mark-075 | Appearance: Hatch | P2 | have | missing | `appearance_pickers_change_the_markup` `hatch_lines_clip_to_the_shape` Properties > Hatch style, spacing and colour on closed shapes; drawn live on the canvas. |
 | mark-076 | Appearance: Font | P0 | have | missing | `line_endings_cloud_and_text_style` `properties_panel_edits_go_through_the_engine` Properties > Font, size, colour, bold, italic, underline, alignment. |
-| mark-077 | Appearance: Icon (note/attachment) | P3 | partial | missing | Properties > Note icon. |
+| mark-077 | Appearance: Icon (note/attachment) | P3 | have | missing | `file_attachment_tool_icon_and_save` `file_attachment_embeds_its_file` Properties > Note icon (Comment, Note, Key, Help, ...) and File Attachment icon (PushPin, Paperclip, Graph, Tag). The File Attachment tool (F) embeds the chosen file (/FS /EF); right-click > Save Attached File. |
 | mark-078 | Layout: X, Y | P2 | have | missing | `layout_moves_resizes_and_rotates` Properties > Layout X, Y in inches from the page corner. |
 | mark-079 | Layout: Width, Height | P2 | have | missing | `layout_moves_resizes_and_rotates` Properties > Layout Width, Height. |
 | mark-080 | Layout: Rotation | P2 | have | missing | `layout_moves_resizes_and_rotates` Properties > Layout Rotation: quarter turns or any angle (boxes by quarter turns). |
@@ -354,7 +354,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 |---|---|---|---|---|---|
 | mark-091 | Select tool | P0 | have | have | `click_selects_drag_moves_delete_and_undo` |
 | mark-092 | Marquee multi-select | P0 | have | have | `box_select_and_view_commands` `properties_edit_every_selected_markup` |
-| mark-093 | Lasso select | P2 | missing | missing |  |
+| mark-093 | Lasso select | P2 | have | missing | `eraser_lasso_and_select_text_gestures` `lasso_arcs_cutouts_and_recalculate` `lasso_takes_whole_markups` Lasso (Shift+O): drag a loop; markups wholly inside are selected (Shift or Ctrl adds); select_lasso tool. |
 | mark-094 | Select All | P0 | have | have | `engine_commands_and_page_operations` |
 | mark-095 | Cut / Copy / Paste | P0 | have | have | `engine_commands_and_page_operations` `copy_paste_across_pages_and_groups` MarkupCraft clipboard (Ctrl+X/C/V); Ctrl+V pastes at the pointer. |
 | mark-096 | Paste in Place | P0 | have | have | `engine_commands_and_page_operations` Ctrl+Shift+V. |
@@ -371,11 +371,11 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-107 | Distribute horizontally/vertically | P3 | have | have | `align_distribute_and_flip_from_the_keyboard` `align_distribute_flip_and_copy` Markup > Distribute Horizontally/Vertically: equal gaps between three or more markups. |
 | mark-108 | Bring Forward / to Front | P2 | have | have | `arrange_and_save_order` `engine_commands_and_page_operations` Ctrl+] / Ctrl+Shift+], right-click > Arrange. |
 | mark-109 | Send Backward / to Back | P2 | have | have | `arrange_and_save_order` `engine_commands_and_page_operations` Ctrl+[ / Ctrl+Shift+[, right-click > Arrange. |
-| mark-110 | Edit vertices | P0 | partial | partial | Drag vertices; right-click > Add Vertex / Delete Vertex (no UI test yet). |
+| mark-110 | Edit vertices | P0 | have | partial | `perimeter_rise_drop_vertices_and_precision` `cutout_vertices_drag_add_and_delete` Drag vertices; right-click > Add Vertex / Delete Vertex. |
 | mark-111 | Snap to Content / Grid / Markup | P0 | have | missing | `snap_to_content_lands_on_a_wall_corner` `snap_to_markup_and_grid` Status bar toggles while drawing and reshaping. |
-| mark-112 | Grid and rulers | P3 | missing | missing |  |
+| mark-112 | Grid and rulers | P3 | have | missing | `rulers_crosshair_and_dimmer` View > Rulers (Ctrl+R) and Show Grid (Shift+F9). |
 | mark-113 | Right-click markup context menu | P0 | have | partial | `context_menu_saves_a_look_to_the_tool_chest` `segment_values_toggle_from_the_menu` Edit text, cut/copy/paste/duplicate/delete, properties, status, checkmark, lock, group, arrange, segment values, caption reset, add/delete vertex, delete cutout, Set as Default, Add to Tool Chest. |
-| mark-114 | Hide Markups | P1 | missing | have |  |
+| mark-114 | Hide Markups | P1 | have | have | `hide_markups_hides_them_from_view_only` `hidden_and_captionless_markups_save_and_reopen` View > Hide Markups hides them from view only; Properties > Hidden sets the PDF Hidden flag. |
 
 ### F. Tool Chest
 
@@ -385,22 +385,22 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-116 | Tool sets | P0 | have | have | `tool_sets_persist_and_reload` JSON file in the user configuration folder. |
 | mark-117 | My Tools | P0 | have | have | `tool_sets_persist_and_reload` `context_menu_saves_a_look_to_the_tool_chest` |
 | mark-118 | Recent Tools | P1 | have | have | `recent_tools_dedupe_and_cap` `context_menu_saves_a_look_to_the_tool_chest` This session only, 12 newest. |
-| mark-119 | Recent Tools options | P3 | missing | missing |  |
+| mark-119 | Recent Tools options | P3 | have | missing | `tool_chest_sequence_pin_lock_options_and_update_on_reuse` Tool Chest > Options: how many recent tools are kept, the mode new recent tools take, Clear Recent Tools. |
 | mark-120 | Properties Mode vs Drawing Mode | P0 | have | have | `drawing_mode_places_a_copy` `tool_sets_persist_and_reload` |
-| mark-121 | Single-click vs double-click (sticky) tool | P0 | partial | have | Double-click a Tool Chest tool or tick Keep tool selected; Count stays active. |
-| mark-122 | Tool item properties / edit | P1 | partial | have | Rename, mode, delete, copy to set; editing an item's look in place not yet. |
-| mark-123 | Update Tool Set Item on Reuse | P2 | missing | missing |  |
-| mark-124 | Comment persistence setting | P3 | missing | missing |  |
+| mark-121 | Single-click vs double-click (sticky) tool | P0 | have | have | `reuse_tool_keeps_drawing` `count_adds_items_until_enter` Double-click a Tool Chest tool or tick Keep tool selected to keep drawing; Count stays active. |
+| mark-122 | Tool item properties / edit | P1 | have | have | `tool_chest_sequence_pin_lock_options_and_update_on_reuse` `tool_chest_symbol_view_scale_export_and_import` Item right-click: Properties / Drawing mode, Update from Selection (the item takes the selected markup's look), Sequence, move, copy, rename, delete. |
+| mark-123 | Update Tool Set Item on Reuse | P2 | have | missing | `tool_chest_sequence_pin_lock_options_and_update_on_reuse` Tool Chest > Options > Update Tool Set Item on Reuse: changing the look of a markup drawn from a tool updates that tool. |
+| mark-124 | Comment persistence setting | P3 | have | missing | `tool_chest_sequence_pin_lock_options_and_update_on_reuse` Tool Chest > Options > Keep comments: No, Except text boxes (default) or All markups. |
 | mark-125 | Tool set scale | P1 | have | partial | `tool_chest_symbol_view_scale_export_and_import` `reorder_export_import_and_rescale` Tool set header right-click > Scale; shown beside the set's name. |
 | mark-126 | Symbol view / Detail view | P3 | have | missing | `tool_chest_symbol_view_scale_export_and_import` Detail (rows) or Symbol (icon tiles) view at the top of the Tool Chest; saved with the chest. |
 | mark-127 | Icon size slider | P3 | have | missing | `tool_chest_symbol_view_scale_export_and_import` Symbol view: an icon size slider (16 to 96 points), saved with the chest. |
 | mark-128 | Manage Tool Sets | P1 | have | partial | `reorder_export_import_and_rescale` New, rename, delete, Move Up / Move Down tool sets and items. |
 | mark-129 | Import / Export tool set (.btx) | P0 | partial | partial | `tool_chest_symbol_view_scale_export_and_import` `reorder_export_import_and_rescale` Export / Import a tool set as MarkupCraft's own JSON (.mctools); Revu's .btx is not read or written. |
-| mark-130 | Pin tool set to toolbar | P2 | missing | missing |  |
-| mark-131 | Collapsed set flyout | P3 | missing | missing |  |
-| mark-132 | Shared tool set lock/checkout | P3 | missing | missing |  |
+| mark-130 | Pin tool set to toolbar | P2 | have | missing | `tool_chest_sequence_pin_lock_options_and_update_on_reuse` Tool set right-click > Pin to Toolbar: the set floats as a toolbar of its tools (closing it unpins). |
+| mark-131 | Collapsed set flyout | P3 | have | missing | `collapsed_tool_set_flyout_picks_a_tool` A collapsed tool set shows a flyout of its tools next to its header. |
+| mark-132 | Shared tool set lock/checkout | P3 | partial | missing | `tool_chest_sequence_pin_lock_options_and_update_on_reuse` Tool set right-click > Lock Tool Set / Unlock (Check Out): a locked set takes no new, changed or removed tools; there are no network-shared sets. |
 | mark-133 | Profiles | P2 | have | missing | `preferences_profiles_set_switch_export_import` Profiles (see ui-100). |
-| mark-134 | Add markup to Tool Chest by drag | P1 | missing | missing |  |
+| mark-134 | Add markup to Tool Chest by drag | P1 | have | missing | `drag_to_tool_chest_edit_action_and_takeoff_workspace` Drag selected markups off the page onto the Tool Chest panel: they are added to My Tools (and stay where they were on the page). |
 
 ### G. Layers (PDF optional content)
 
@@ -426,59 +426,59 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | mark-149 | Markups List panel | P0 | have | have | `list_default_columns_in_revu_order` `cli_list_and_summary_end_to_end` `markups_list_shows_totals_and_status` `clicking_a_list_row_selects_its_markup` `export_writes_the_list_with_totals` On the model table: columns, group by, filters, search, scope, totals row and footer, status and checkmark cells, inline edits, export. |
-| mark-150 | Standard columns: identity | P0 | partial | have | `list_default_columns_in_revu_order` `list_cells_formula_choice_currency_status` Subject, Label, Page Label, Page Index, Author, Date, Creation Date, Color, Comments, Layer, Markup ID; Space blank; no Sequence. |
-| mark-151 | Standard columns: measurement | P0 | partial | partial | `list_cells_formula_choice_currency_status` Measurement, Length, Area, Perimeter, Volume, Count, Depth, Width, Height, Rise/Drop, Unit; Wall Area and Slope blank. |
-| mark-152 | Standard columns: geometry | P3 | missing | missing |  |
+| mark-150 | Standard columns: identity | P0 | have | have | `list_cells_formula_choice_currency_status` `drag_to_tool_chest_edit_action_and_takeoff_workspace` Subject, Label, Page Label, Page Index, Author, Date, Creation Date, Color, Comments, Layer, Space, Markup ID, Sequence (the number a sequence tool gave the label). |
+| mark-151 | Standard columns: measurement | P0 | have | partial | `list_wall_area_slope_and_geometry_columns` Measurement, Length, Area, Perimeter, Wall Area, Volume, Count, Depth, Width, Height, Rise/Drop, Slope, Unit. |
+| mark-152 | Standard columns: geometry | P3 | have | missing | `list_wall_area_slope_and_geometry_columns` X, Y, X Center, Y Center (the markup's extent, inches from the page's lower-left corner), Document Width and Height (the page, inches). |
 | mark-153 | Standard columns: review | P1 | partial | partial | `list_cells_formula_choice_currency_status` Status, Checkmark, Lock; no Capture / Legend / 3D View. |
-| mark-154 | Show/hide columns | P0 | partial | have | `cli_list_and_summary_end_to_end` Columns menu shows or hides any column. |
+| mark-154 | Show/hide columns | P0 | have | have | `list_filters_dim_the_page_display_options_and_columns` `markups_list_saves_views_and_copies_rows` The Columns menu (and the header right-click) shows or hides any column. |
 | mark-155 | Manage Columns dialog | P1 | have | have | `extras_columns_status_replies_lock_round_trip` `cells_and_custom_columns` `custom_columns_and_cells` Manage Columns window: name, type, decimals, total, formula, choices. |
 | mark-156 | Custom column: Text | P1 | have | have | `list_custom_column_types` Default value; no multiline wrap. |
 | mark-157 | Custom column: Number | P1 | have | have | `list_custom_column_types` `list_cells_formula_choice_currency_status` Number, Currency, Percent; decimals, symbol, default; no min/max. |
-| mark-158 | Custom column: Date | P2 | partial | partial | `list_custom_column_types` Stored as typed; no date format or current-date default. |
+| mark-158 | Custom column: Date | P2 | have | partial | `list_formula_display_and_date_formats` `extras_columns_status_replies_lock_round_trip` Manage Columns: a Date column's format (yyyy-MM-dd, MM/dd/yyyy, dd/MM/yyyy, MMM d, yyyy) and default none, current date (the markup's creation date) or typed text. |
 | mark-159 | Custom column: Checkmark | P2 | have | have | `list_custom_column_types` |
-| mark-160 | Custom column: Choice | P0 | partial | have | `list_cells_formula_choice_currency_status` Items with subject + value, custom text; no CSV import of items yet. |
+| mark-160 | Custom column: Choice | P0 | have | have | `line_styles_custom_statuses_and_profile_columns` `list_cells_formula_choice_currency_status` Choice items with a subject and a value, custom text, and Import... from CSV (item, subject, value). |
 | mark-161 | Custom column: Formula | P0 | have | have | `formula_functions_and_constants` `list_cells_formula_choice_currency_status` `list_formula_errors_and_blanks` Errors (unknown column, division by zero, circular) show as #ERR, never crash. |
 | mark-162 | Totals for custom columns | P0 | have | have | `list_group_sort_and_totals_per_unit` `cli_list_and_summary_end_to_end` |
-| mark-163 | Save columns to profile | P1 | partial | partial | `views_and_widths_persist` Column choices are saved in named views and column widths are remembered; Revu profiles are not. |
+| mark-163 | Save columns to profile | P1 | partial | partial | `line_styles_custom_statuses_and_profile_columns` Manage Columns > Save to Profile keeps the column definitions; Load from Profile adds them to another document (on request, not to every new document); column layouts are saved by name. |
 | mark-164 | Sort by column | P0 | have | have | `list_group_sort_and_totals_per_unit` Secondary sort by creation date, then file order; headless. |
 | mark-165 | Group by column (section dividers) | P0 | have | have | `list_group_sort_and_totals_per_unit` `cli_list_and_summary_end_to_end` Any column, nested, subtotals per unit; headless. |
-| mark-166 | Column filters | P0 | partial | partial | `list_filters_search_and_scope` Header right-click > Filter by values. |
+| mark-166 | Column filters | P0 | have | partial | `list_filters_dim_the_page_display_options_and_columns` Header right-click > Filter by values, and the search box; markups the filters leave out are drawn faded on the page. |
 | mark-167 | Search markups | P1 | have | have | `list_filters_search_and_scope` Headless quick search over the shown columns. |
 | mark-168 | Saved filter configurations | P2 | have | missing | `markups_list_saves_views_and_copies_rows` `views_and_widths_persist` Markups List > Views: save the current columns, sort, grouping, filters and search under a name; apply or delete saved views; kept in the settings folder. |
 | mark-169 | Inline cell editing | P0 | have | have | `list_set_cell_validates_input` `cells_and_custom_columns` `custom_columns_and_cells` Double-click a Subject, Label, Comments or custom cell to type; status and choice cells are menus; list_cell_set does the same headlessly. |
 | mark-170 | Status | P1 | have | have | `extras_columns_status_replies_lock_round_trip` None/Accepted/Rejected/Cancelled/Completed as /StateModel /Review replies (ISO 32000-1 12.5.6.4); no custom status sets. |
 | mark-171 | Checkmark | P1 | have | have | `extras_columns_status_replies_lock_round_trip` /StateModel /Marked replies. |
-| mark-172 | Replies | P1 | partial | partial | `extras_columns_status_replies_lock_round_trip` Read, list, add and write replies; no delete, no threads of threads. |
+| mark-172 | Replies | P1 | have | partial | `replies_in_properties_and_a_linked_summary` `replies_and_a_linked_summary` `extras_columns_status_replies_lock_round_trip` Replies (/IRT) read, listed (Replies column), added, edited and deleted in Properties > Replies (markup_reply tool); replies to replies are read into the markup's one thread. |
 | mark-173 | Select-in-list syncs page | P0 | have | have | `clicking_a_list_row_selects_its_markup` Clicking a row selects the markup and brings it into view. |
 | mark-174 | Copy rows | P1 | have | have | `markups_list_saves_views_and_copies_rows` Row right-click > Copy Rows: the selected markups' visible cells as tab-separated text. |
 | mark-175 | Summary: CSV | P0 | have | have | `csv_summary_with_groups_and_totals` `cli_list_and_summary_end_to_end` `cli: summary` Visible columns, filters, grouping, totals; spreadsheet-safe. |
 | mark-176 | Summary: XML | P2 | have | have | `csv_summary_with_groups_and_totals` `cli: summary` |
 | mark-177 | Summary: PDF report | P1 | have | partial | `markup_summary_writes_excel_pdf_and_csv` Markup Summary as a PDF report. |
-| mark-178 | Summary appended with links | P2 | missing | missing |  |
-| mark-179 | Import markups | P1 | partial | have | `xfdf_export_import_round_trip` XFDF / FDF import (pdfcraft-xfdf), merging by markup id; Revu-only keys (measurements) are not carried by XFDF. |
-| mark-180 | Export markups | P2 | partial | missing | `xfdf_export_import_round_trip` XFDF / FDF export of every markup (pdfcraft-xfdf); Revu-only keys are not carried. |
+| mark-178 | Summary appended with links | P2 | have | missing | `summary_appended_links_each_row_to_its_page` `replies_and_a_linked_summary` `replies_in_properties_and_a_linked_summary` Markup > Append Summary with Links (also in the Markups List Export menu): summary pages at the end of the document, each row a link to its markup's page; one undo step. |
+| mark-179 | Import markups | P1 | have | have | `import_and_export_markups_as_xfdf` `unflatten_after_save_and_import_markups_from_a_pdf` Markup > Import Markups (Ctrl+F3): from another PDF (same page numbers, new annotations with their look, subject and status; kinds MarkupCraft cannot write and snapshots skipped) or XFDF / FDF (same /NM replaces). No BAX; Revu-only keys are not carried by XFDF. |
+| mark-180 | Export markups | P2 | have | missing | `import_and_export_markups_as_xfdf` Markup > Export Markups (Ctrl+F2): every markup to XFDF or FDF (pdfcraft-xfdf); Revu's BAX is not written and Revu-only keys (measurements) are not carried. |
 | mark-181 | Flatten markups | P1 | have | partial | `flatten_markups_by_filter` Headless (engine + automation tool); no UI yet. markup_flatten by ids (the selection), pages, kinds, layers, authors. |
-| mark-182 | Unflatten | P2 | missing | missing |  |
-| mark-183 | Lock / unlock from list | P1 | partial | have | `list_set_cell_validates_input` `extras_columns_status_replies_lock_round_trip` Row right-click > Lock / Unlock. |
-| mark-184 | Layer from list | P2 | missing | missing |  |
-| mark-185 | Legend from list | P2 | missing | missing |  |
-| mark-186 | Properties from list | P1 | partial | have | Row right-click > Properties. |
-| mark-187 | Delete from list | P0 | partial | have | Row right-click > Delete. |
+| mark-182 | Unflatten | P2 | have | missing | `unflatten_brings_back_what_flatten_burned_in` `unflatten_after_save_and_import_markups_from_a_pdf` Document > Unflatten (Ctrl+Shift+U): markups MarkupCraft flattened come back as annotations, also after a save (Flatten keeps each one's dictionary and the streams it added on the page, /PCFlattened); their pop-ups and replies do not come back. Content another program flattened cannot be unflattened. |
+| mark-183 | Lock / unlock from list | P1 | have | have | `markups_list_row_menu_layer_legend_lock_and_delete` Markups List row right-click > Lock / Unlock (the /F Locked flag). |
+| mark-184 | Layer from list | P2 | have | missing | `markups_list_row_menu_layer_legend_lock_and_delete` Markups List row right-click > Layer > a layer or None. |
+| mark-185 | Legend from list | P2 | have | missing | `markups_list_row_menu_layer_legend_lock_and_delete` Markups List row right-click > Create Legend: a legend of the selected rows' subjects at the page's top left (the whole document when they span pages). |
+| mark-186 | Properties from list | P1 | have | have | `markups_list_row_menu_layer_legend_lock_and_delete` Markups List row right-click > Properties. |
+| mark-187 | Delete from list | P0 | have | have | `markups_list_row_menu_layer_legend_lock_and_delete` Markups List row right-click > Delete. |
 
 ### I. Measurement-adjacent markup tools (listed here for shortcut completeness; full detail belongs in the measure inventory)
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | mark-188 | Length / Polylength / Area / Perimeter / Count | P0 | have | have | `length_and_polylength_measure` `area_shows_its_value_and_finishes_on_double_click` `count_adds_items_until_enter` |
-| mark-189 | Angle, Radius, Diameter, Volume | P2 | missing | missing |  |
-| mark-190 | Measure Tool (generic) | P1 | missing | partial |  |
+| mark-189 | Angle, Radius, Diameter, Volume | P2 | have | missing | `revu_default_shortcuts_are_bound` `angle_diameter_and_radius_tools_measure` `volume_and_area_by_rectangle` Angle, Radius, Diameter and Volume tools on Shift+Alt+G / U / D / V. |
+| mark-190 | Measure Tool (generic) | P1 | have | partial | `measure_tool_switches_modes_and_recalculates` `revu_markup_measure_and_selection_shortcuts_are_bound` Measure (M) opens the Measurements panel in the last measurement mode; the panel's mode row switches Length, Polylength, Area, Perimeter, Count, Volume, Angle, Diameter, Radius. |
 
 ### J. Customization
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | mark-191 | Custom keyboard shortcuts | P2 | have | missing | `keyboard_shortcuts_can_be_changed` `parse_assign_and_round_trip` Tools > Customize Keyboard: any command, tool or panel gets new keys (press them), Clear, Reset, Reset All, Import / Export; saved in keyboard.json; menus show the user's keys. |
-| mark-192 | Markup display preferences | P3 | missing | missing |  |
+| mark-192 | Markup display preferences | P3 | have | missing | `note_pop_ups_open_and_show_or_hide` `list_filters_dim_the_page_display_options_and_columns` View > Note Pop-ups (open note pop-ups drawn on the page; Properties > Pop-up open), Rollover Comments (a markup's subject and comments under the pointer) and Line Weights (off: hairlines at every zoom). |
 
 ## Documents, pages, batch, print, search, security
 
@@ -1114,31 +1114,31 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-004 | Align Middle (Ctrl + Alt + M) |  | have | missing | `revu_default_shortcuts_are_bound` `align_distribute_and_flip_from_the_keyboard` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-005 | Align Right (Ctrl + Alt + R) |  | have | missing | `revu_default_shortcuts_are_bound` `align_distribute_and_flip_from_the_keyboard` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-006 | Align Top (Ctrl + Alt + T) |  | have | missing | `revu_default_shortcuts_are_bound` `align_distribute_and_flip_from_the_keyboard` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-007 | Arc (Shift + C) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-007 | Arc (Shift + C) |  | have | missing | `revu_markup_measure_and_selection_shortcuts_are_bound` `dimension_arc_squiggly_and_flag_tools_draw` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-008 | Arrow (A) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-009 | Autosize Text Box (Alt + Z) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-010 | Bring Forward (Ctrl + ]) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-011 | Bring to Front (Ctrl + Shift + ]) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-012 | Callout (Q) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-013 | Camera (Ctrl + Alt + I) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-013 | Camera (Ctrl + Alt + I) |  | missing | missing | Camera capture needs a camera device API; not built for the desktop build yet (Image places a picture file). |
 | key-014 | Spell Check (F7) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-015 | Cloud (C) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-016 | Cloud+ (K) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-017 | Dimension (Shift + L) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-018 | Edit Action (Ctrl + Shift + E) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-017 | Dimension (Shift + L) |  | have | missing | `revu_markup_measure_and_selection_shortcuts_are_bound` `dimension_arc_squiggly_and_flag_tools_draw` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-018 | Edit Action (Ctrl + Shift + E) |  | have | missing | `revu_markup_measure_and_selection_shortcuts_are_bound` `drag_to_tool_chest_edit_action_and_takeoff_workspace` Edit Action (Ctrl+Shift+E): the selected markup links to a page or web address (a link annotation over it). |
 | key-019 | Ellipse (E) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-020 | Eraser (Shift + E) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-021 | Export Markups (Ctrl + F2) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-022 | File Attachment (F) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-023 | Flag (Shift + F) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-020 | Eraser (Shift + E) |  | have | missing | `revu_markup_measure_and_selection_shortcuts_are_bound` `eraser_lasso_and_select_text_gestures` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-021 | Export Markups (Ctrl + F2) |  | have | missing | `revu_markup_measure_and_selection_shortcuts_are_bound` `import_and_export_markups_as_xfdf` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-022 | File Attachment (F) |  | have | missing | `revu_markup_measure_and_selection_shortcuts_are_bound` `file_attachment_tool_icon_and_save` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-023 | Flag (Shift + F) |  | have | missing | `revu_markup_measure_and_selection_shortcuts_are_bound` `dimension_arc_squiggly_and_flag_tools_draw` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-024 | Flip Horizontal (Ctrl + Alt + H) |  | have | missing | `revu_default_shortcuts_are_bound` `align_distribute_and_flip_from_the_keyboard` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-025 | Flip Vertical (Ctrl + Alt + V) |  | have | missing | `revu_default_shortcuts_are_bound` `align_distribute_and_flip_from_the_keyboard` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-026 | Group (Ctrl + G) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-027 | Highlight (H) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-028 | Hyperlink (Shift + H) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-029 | Image (I) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-030 | Image From Scanner (Shift + I) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-031 | Import (Ctrl + F3) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-029 | Image (I) |  | have | missing | `revu_markup_measure_and_selection_shortcuts_are_bound` `stamp_library_places_a_stamp_and_an_image` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-030 | Image From Scanner (Shift + I) |  | missing | missing | Scanning needs a scanner (TWAIN / WIA) API; not built yet (Image places a picture file). |
+| key-031 | Import (Ctrl + F3) |  | have | missing | `revu_markup_measure_and_selection_shortcuts_are_bound` `import_and_export_markups_as_xfdf` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 
 ### Measure
 
@@ -1150,7 +1150,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-035 | Diameter (Shift + Alt + D) |  | have | missing | `revu_default_shortcuts_are_bound` `angle_diameter_and_radius_tools_measure` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-036 | Dynamic Fill (J) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-037 | Length (Shift + Alt + L) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-038 | Measure Tool (M) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-038 | Measure Tool (M) |  | have | missing | `revu_markup_measure_and_selection_shortcuts_are_bound` `measure_tool_switches_modes_and_recalculates` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-039 | Perimeter (Shift + Alt + P) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-040 | Polylength (Shift + Alt + Q) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-041 | Radius (Shift + Alt + U) |  | have | missing | `revu_default_shortcuts_are_bound` `angle_diameter_and_radius_tools_measure` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
@@ -1175,7 +1175,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-050 | Polyline (Shift + N) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-051 | Rectangle (R) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-052 | Remove From Group (Ctrl + Shift + Alt + G) |  | have | missing | `revu_default_shortcuts_are_bound` `apply_to_all_pages_and_remove_from_group` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-053 | Review Text (Shift + Alt + R) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-053 | Review Text (Shift + Alt + R) |  | have | missing | `revu_markup_measure_and_selection_shortcuts_are_bound` `review_text_edits_comments_in_sequence` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-054 | Send Backward (Ctrl + [) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-055 | Send to Back (Ctrl + Shift + [) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-056 | Stamp (S) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
@@ -1250,14 +1250,14 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| key-108 | Lasso (Shift + O) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-108 | Lasso (Shift + O) |  | have | missing | `revu_markup_measure_and_selection_shortcuts_are_bound` `eraser_lasso_and_select_text_gestures` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-109 | Pan (Shift + V) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-110 | Select (V) |  | have | have | `revu_default_shortcuts_are_bound` |
-| key-111 | Select Text (Shift + T) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-112 | Toggle Zoom Tool (Shift + Z) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-111 | Select Text (Shift + T) |  | have | missing | `revu_markup_measure_and_selection_shortcuts_are_bound` `eraser_lasso_and_select_text_gestures` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-112 | Toggle Zoom Tool (Shift + Z) |  | have | missing | `revu_markup_measure_and_selection_shortcuts_are_bound` `zoom_tool_clicks_and_boxes` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-113 | Zoom In (Plus) |  | have | have | `revu_default_shortcuts_are_bound` |
 | key-114 | Zoom Out (Minus) |  | have | have | `revu_default_shortcuts_are_bound` |
-| key-115 | Zoom Tool (Z) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-115 | Zoom Tool (Z) |  | have | missing | `revu_markup_measure_and_selection_shortcuts_are_bound` `zoom_tool_clicks_and_boxes` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 
 ### Search
 

@@ -358,7 +358,7 @@ impl<'a> MarkupTable<'a> {
                 }
                 _ => Cell::default(),
             },
-            "depth" => match dist {
+            "depth" if m.kind != Kind::Count => match dist {
                 Some(fa) if m.kind == Kind::Volume || m.depth > 0.0 => measured(m.depth, fa),
                 _ => Cell::default(),
             },
@@ -366,6 +366,19 @@ impl<'a> MarkupTable<'a> {
                 Some(fa) if m.kind == Kind::Polylength && m.rise_drop != 0.0 => measured(m.rise_drop, fa),
                 _ => Cell::default(),
             },
+            "width" | "height" | "depth" if m.kind == Kind::Count => {
+                // a count's item dimensions, in the unit of the scale where it sits
+                let v = match id {
+                    "width" => m.item_width,
+                    "height" => m.item_height,
+                    _ => m.depth,
+                };
+                let page_scale = m.pts.first().and_then(|p| self.doc.pages.get(m.page)?.scale_at(*p));
+                match m.scale.as_ref().filter(|s| s.valid()).or(page_scale) {
+                    Some(s) if v > 0.0 => measured(v, &s.dist),
+                    _ => Cell::default(),
+                }
+            }
             "width" | "height" => match (&m.scale, dist) {
                 (Some(s), Some(fa))
                     if !m.pts.is_empty()
@@ -384,7 +397,50 @@ impl<'a> MarkupTable<'a> {
                 }
                 _ => Cell::default(),
             },
-            // wallarea, slope: no data in the model yet (blank).
+            "wallarea" => match (crate::measure_extras::wall_area(m), m.scale.as_ref()) {
+                (Some(v), Some(s)) => measured(v, &s.area),
+                _ => Cell::default(),
+            },
+            "slope" => match m.slope_of() {
+                crate::measure_extras::Slope::None => Cell::default(),
+                sl => Cell::num(sl.value(), sl.label(), ""),
+            },
+            "x" | "y" | "xcenter" | "ycenter" => {
+                // the markup's extent, inches from the page's lower-left corner
+                let b = markupcraft_geom::bbox(&m.pts).unwrap_or_else(|| m.rect.normalized());
+                let origin = self.doc.pages.get(m.page).map(|p| p.crop.normalized());
+                let (ox, oy) = origin.map_or((0.0, 0.0), |c| (c.x0, c.y0));
+                let v = match id {
+                    "x" => b.x0 - ox,
+                    "y" => b.y0 - oy,
+                    "xcenter" => (b.x0 + b.x1) / 2.0 - ox,
+                    _ => (b.y0 + b.y1) / 2.0 - oy,
+                } / 72.0;
+                Cell::num(v, format!("{v:.2} in"), "in")
+            }
+            "sequence" => {
+                // the number a sequence tool gave it: the label's trailing number
+                let digits: String = m
+                    .label
+                    .chars()
+                    .rev()
+                    .take_while(char::is_ascii_digit)
+                    .collect::<Vec<_>>()
+                    .into_iter()
+                    .rev()
+                    .collect();
+                match digits.parse::<u64>() {
+                    Ok(n) if digits.len() <= 15 => Cell::num(n as f64, digits, ""),
+                    _ => Cell::default(),
+                }
+            }
+            "docwidth" | "docheight" => match self.doc.pages.get(m.page).map(|p| p.crop.normalized()) {
+                Some(c) => {
+                    let v = if id == "docwidth" { c.width() } else { c.height() } / 72.0;
+                    Cell::num(v, format!("{v:.2} in"), "in")
+                }
+                None => Cell::default(),
+            },
             _ => Cell::default(),
         }
     }
@@ -673,7 +729,20 @@ fn comments(m: &Markup) -> String {
 fn custom_cell(cc: &CustomColumn, m: &Markup) -> Cell {
     let raw = m.column_data.get(&cc.id).unwrap_or(&cc.default_value);
     match cc.kind {
-        ColumnType::Text | ColumnType::Date => Cell::text(raw),
+        ColumnType::Date => {
+            // the default "current date" is the markup's creation date
+            let src = if raw == crate::columns::TODAY {
+                m.created.as_str()
+            } else {
+                raw.as_str()
+            };
+            match crate::columns::parse_date(src) {
+                Some(d) => Cell::text(crate::columns::format_date(d, &cc.date_format)),
+                None if raw == crate::columns::TODAY => Cell::default(),
+                None => Cell::text(raw),
+            }
+        }
+        ColumnType::Text => Cell::text(raw),
         ColumnType::Checkmark => check_cell(truthy(raw), "Checked"),
         ColumnType::Choice => Cell {
             text: raw.clone(),
@@ -690,7 +759,12 @@ fn custom_cell(cc: &CustomColumn, m: &Markup) -> Cell {
 
 /// A number shown in a numeric custom column's format.
 fn number_cell(cc: &CustomColumn, v: f64) -> Cell {
-    match cc.kind {
+    let kind = if cc.kind == ColumnType::Formula {
+        cc.display
+    } else {
+        cc.kind
+    };
+    match kind {
         ColumnType::Currency => {
             let sign = if v < 0.0 { "-" } else { "" };
             Cell::num(
@@ -951,6 +1025,61 @@ pub(crate) mod tests {
         let n = standard_columns().len();
         assert_eq!(t.columns().len(), n + 3);
         assert_eq!(t.columns().get(n).map(|c| c.id.as_str()), Some("c:unitcost"));
+    }
+
+    #[test]
+    fn list_formula_display_and_date_formats() {
+        let mut doc = sample();
+        for c in &mut doc.columns {
+            if c.kind == ColumnType::Formula {
+                c.display = ColumnType::Currency;
+            }
+        }
+        doc.columns.push(CustomColumn {
+            id: "due".into(),
+            name: "Due".into(),
+            kind: ColumnType::Date,
+            date_format: "MMM d, yyyy".into(),
+            default_value: crate::columns::TODAY.into(),
+            ..Default::default()
+        });
+        doc.markups[0].created = "D:20261009120000".into();
+        doc.markups[1].column_data.insert("due".into(), "2026-12-25".into());
+        let t = MarkupTable::new(&doc);
+        assert_eq!(
+            t.cell_by_id(0, "c:total").text,
+            "$200.00",
+            "a formula shown as currency"
+        );
+        assert_eq!(t.cell_by_id(0, "c:due").text, "Oct 9, 2026", "the current-date default");
+        assert_eq!(t.cell_by_id(1, "c:due").text, "Dec 25, 2026");
+        assert_eq!(t.cell_by_id(2, "c:due").text, "", "no creation date: blank");
+        assert_eq!(crate::columns::format_date((2026, 1, 2), "dd/MM/yyyy"), "02/01/2026");
+        assert_eq!(crate::columns::parse_date("01/31/2026"), Some((2026, 1, 31)));
+        assert_eq!(crate::columns::parse_date("2026-13-01"), None);
+    }
+
+    #[test]
+    fn list_wall_area_slope_and_geometry_columns() {
+        let mut doc = sample();
+        doc.markups[0].depth = 2.0;
+        doc.markups[2].slope_type = 1;
+        doc.markups[2].slope = 12.0;
+        let t = MarkupTable::new(&doc);
+        // 10 ft square, 2 ft deep: 40 ft perimeter x 2 ft
+        assert_eq!(t.cell_by_id(0, "wallarea").text, "80 sf");
+        assert_eq!(t.cell_by_id(1, "wallarea").text, "");
+        assert_eq!(t.cell_by_id(2, "slope").text, "12:12");
+        // 30 ft at 12:12 is 42.43 ft of slope
+        near(t.cell_by_id(2, "length").num, 30.0 * 2f64.sqrt(), "sloped length");
+        // the area's lower-left corner is 100 pt from the page corner; letter is 8.5 x 11
+        assert_eq!(t.cell_by_id(0, "x").text, "1.39 in");
+        assert_eq!(
+            t.cell_by_id(0, "ycenter").text,
+            format!("{:.2} in", (100.0 + 45.0) / 72.0)
+        );
+        assert_eq!(t.cell_by_id(0, "docwidth").text, "8.50 in");
+        assert_eq!(t.cell_by_id(0, "docheight").text, "11.00 in");
     }
 
     #[test]

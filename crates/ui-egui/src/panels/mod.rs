@@ -11,6 +11,7 @@ pub mod list_views;
 pub mod markups_list;
 pub mod measurements;
 pub mod properties;
+pub mod properties_more;
 pub mod search;
 pub mod sets;
 pub mod signatures;

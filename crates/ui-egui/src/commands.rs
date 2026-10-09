@@ -337,6 +337,7 @@ pub fn all() -> impl Iterator<Item = &'static Command> {
         .iter()
         .chain(crate::features::COMMANDS)
         .chain(crate::shell::extra::COMMANDS)
+        .chain(crate::more::COMMANDS)
 }
 
 pub fn find(id: &str) -> Option<&'static Command> {

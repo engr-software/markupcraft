@@ -62,6 +62,7 @@ pub struct ChoiceItem {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct CustomColumn {
     /// stable key, letters / digits / '_'
     pub id: String,
@@ -75,6 +76,10 @@ pub struct CustomColumn {
     pub items: Vec<ChoiceItem>,
     pub allow_custom: bool,
     pub formula: String,
+    /// a Formula column shows its number as Number, Currency or Percent
+    pub display: ColumnType,
+    /// a Date column's format: `yyyy-MM-dd`, `MM/dd/yyyy`, `dd/MM/yyyy`, `MMM d, yyyy`
+    pub date_format: String,
 }
 
 impl Default for CustomColumn {
@@ -90,6 +95,8 @@ impl Default for CustomColumn {
             items: Vec::new(),
             allow_custom: false,
             formula: String::new(),
+            display: ColumnType::Number,
+            date_format: DATE_FORMATS[0].into(),
         }
     }
 }
@@ -100,6 +107,49 @@ impl CustomColumn {
             self.kind,
             ColumnType::Number | ColumnType::Currency | ColumnType::Percent | ColumnType::Formula
         )
+    }
+}
+
+/// The date formats a Date column offers.
+pub const DATE_FORMATS: &[&str] = &["yyyy-MM-dd", "MM/dd/yyyy", "dd/MM/yyyy", "MMM d, yyyy"];
+
+/// A Date column's default that means the markup's creation date.
+pub const TODAY: &str = "{today}";
+
+/// `(year, month, day)` of `yyyy-mm-dd`, `D:yyyymmdd...` or `mm/dd/yyyy` text.
+pub fn parse_date(s: &str) -> Option<(i32, u32, u32)> {
+    let t = s.trim();
+    let t = t.strip_prefix("D:").unwrap_or(t);
+    let digits = |r: std::ops::Range<usize>| t.get(r).filter(|x| x.bytes().all(|b| b.is_ascii_digit()));
+    let ok = |y: i32, m: u32, d: u32| ((1..=12).contains(&m) && (1..=31).contains(&d)).then_some((y, m, d));
+    if t.len() >= 8 && digits(0..8).is_some() {
+        return ok(
+            digits(0..4)?.parse().ok()?,
+            digits(4..6)?.parse().ok()?,
+            digits(6..8)?.parse().ok()?,
+        );
+    }
+    let parts: Vec<&str> = t.split(['-', '/']).collect();
+    match parts.as_slice() {
+        [y, m, d] if y.len() == 4 => ok(y.parse().ok()?, m.parse().ok()?, d.parse().ok()?),
+        [m, d, y] if y.len() == 4 => ok(y.parse().ok()?, m.parse().ok()?, d.parse().ok()?),
+        _ => None,
+    }
+}
+
+/// A date in a Date column's format.
+pub fn format_date((y, m, d): (i32, u32, u32), fmt: &str) -> String {
+    const MONTHS: [&str; 12] = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ];
+    match fmt {
+        "MM/dd/yyyy" => format!("{m:02}/{d:02}/{y:04}"),
+        "dd/MM/yyyy" => format!("{d:02}/{m:02}/{y:04}"),
+        "MMM d, yyyy" => format!(
+            "{} {d}, {y:04}",
+            MONTHS.get((m as usize).saturating_sub(1)).copied().unwrap_or("")
+        ),
+        _ => format!("{y:04}-{m:02}-{d:02}"),
     }
 }
 
@@ -251,6 +301,13 @@ const STANDARD: &[StdCol] = {
         ("unit", "Unit", 50, false, false, false, false, E::None),
         ("replies", "Replies", 60, true, false, true, false, E::None),
         ("id", "Markup ID", 140, false, false, false, false, E::None),
+        ("sequence", "Sequence", 70, true, false, true, false, E::None),
+        ("x", "X", 70, true, false, true, false, E::None),
+        ("y", "Y", 70, true, false, true, false, E::None),
+        ("xcenter", "X Center", 80, true, false, true, false, E::None),
+        ("ycenter", "Y Center", 80, true, false, true, false, E::None),
+        ("docwidth", "Document Width", 110, true, false, true, false, E::None),
+        ("docheight", "Document Height", 110, true, false, true, false, E::None),
     ]
 };
 

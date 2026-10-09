@@ -8,6 +8,7 @@
 
 pub mod draw;
 pub mod measure;
+pub mod more;
 pub mod pan;
 pub mod select;
 pub mod shapes;
@@ -33,6 +34,8 @@ pub enum Role {
     CloudPlus,
     /// a dragged box that becomes a viewport (asks for its name and scale)
     Viewport,
+    /// start, end, then a point on the arc: an Arc through them
+    Arc3,
     /// three points on a circle: a Radius measurement from its centre
     Radius3,
 }
@@ -72,6 +75,11 @@ pub fn role_points(role: Role, pts: &[Point]) -> Vec<Point> {
     {
         return vec![c, *a];
     }
+    if role == Role::Arc3
+        && let [a, b, t] = pts
+    {
+        return vec![*a, *t, *b];
+    }
     pts.to_vec()
 }
 
@@ -105,6 +113,8 @@ pub enum ToolKind {
     /// Press, drag, release an outline that becomes a polygon of `kind` (Area by rectangle),
     /// a cutout (Ellipse Cutout) or a viewport.
     Drag { kind: Kind, shape: DragShape, role: Role },
+    /// A gesture of its own (`crate::gestures`): eraser, lasso, select text, insert text, flag.
+    Special(more::Special),
 }
 
 pub struct ToolDef {
@@ -140,6 +150,7 @@ impl ToolDef {
             | ToolKind::TextMarkup(kind) => Some(kind),
             ToolKind::Stamp => Some(Kind::Stamp),
             ToolKind::Note => Some(Kind::Note),
+            ToolKind::Special(s) => s.creates(),
         }
     }
 
@@ -190,6 +201,15 @@ pub static TOOLS: &[&ToolDef] = &[
     &measure::VIEWPORT,
     &crate::shell::deskew::TOOL,
     &crate::shell::deskew::REGION_TOOL,
+    &more::SQUIGGLY,
+    &more::INSERT_TEXT,
+    &more::ARC,
+    &more::DIMENSION,
+    &more::ERASER,
+    &more::FLAG,
+    &more::LASSO,
+    &more::SELECT_TEXT,
+    &more::FILE_ATTACHMENT,
 ];
 
 pub fn find(id: &str) -> Option<&'static ToolDef> {
@@ -233,6 +253,12 @@ pub fn default_look(kind: Kind) -> Markup {
     m.text.color = Color::RED;
     match kind {
         Kind::Arrow => m.line_start = "OpenArrow".into(),
+        Kind::Dimension => {
+            m.line_start = "OpenArrow".into();
+            m.line_end = "OpenArrow".into();
+            m.leader_ext = 4.0;
+            m.text.size = 10.0;
+        }
         Kind::Cloud => m.cloud = 2.0,
         Kind::Callout => {
             m.line_end = "OpenArrow".into();
@@ -301,6 +327,13 @@ pub fn apply_look(template: &Markup, m: &mut Markup) {
     m.depth = template.depth;
     m.rise_drop = template.rise_drop;
     m.column_data = template.column_data.clone();
+    m.leader = template.leader;
+    m.leader_ext = template.leader_ext;
+    m.slope_type = template.slope_type;
+    m.slope = template.slope;
+    m.caption_template = template.caption_template.clone();
+    m.caption_leader = template.caption_leader;
+    m.show_centroid = template.show_centroid;
     if !template.stamp.is_empty() {
         m.stamp = template.stamp.clone();
     }

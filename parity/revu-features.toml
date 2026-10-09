@@ -54,9 +54,10 @@ section = "Scale and calibration"
 name = "Save custom/calibrated scale as preset"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:60"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["scale_presets_and_separate_y_scale"]
+notes = "Measurements panel: + Add Preset saves the page scale under a name; the user's presets list first in the Preset menu with a delete button (the built-ins cannot be deleted). Kept in the Tool Chest file."
 
 [[feature]]
 id = "meas-005"
@@ -105,9 +106,10 @@ section = "Scale and calibration"
 name = "Separate Y scale"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:64"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["scale_presets_and_separate_y_scale"]
+notes = "Measurements panel > Separate Y Scale: a vertical ratio of its own, written as the /Measure /Y number format; only the scale applied from then on changes."
 
 [[feature]]
 id = "meas-009"
@@ -117,10 +119,10 @@ section = "Scale and calibration"
 name = "Precision"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:65"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["feet_inches_quarter", "decimal_area_strips_zeros_and_groups"]
-notes = "Precision and display unit pickers in the Measurements and Properties panels (no UI test yet)."
+evidence = ["perimeter_rise_drop_vertices_and_precision", "measurements_panel_sets_a_custom_scale_on_every_page"]
+notes = "Precision and display unit pickers in the Measurements and Properties panels (decimal places, or fractions for inches and feet-inches)."
 
 [[feature]]
 id = "meas-010"
@@ -143,9 +145,10 @@ section = "Scale and calibration"
 name = "Protected / temporary page scales"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:67"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["protected_and_temporary_scales", "a_temporary_scale_is_not_saved"]
+notes = "Measurements panel: Protect scale locks the page's scale controls (for the session); Temporary (not saved) measures with a scale the file does not keep, so the file's own comes back when it is opened again."
 
 [[feature]]
 id = "meas-012"
@@ -155,9 +158,10 @@ section = "Scale and calibration"
 name = "Recalculate"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:68"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["measure_tool_switches_modes_and_recalculates", "lasso_arcs_cutouts_and_recalculate"]
+notes = "Measure > Recalculate Measurements: every measurement takes the scale now in effect where it sits, keeping its units and precision; one undo step (measure_recalculate tool)."
 
 [[feature]]
 id = "meas-013"
@@ -284,10 +288,10 @@ section = "Linear tools"
 name = "Perimeter"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:88"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["square_area_and_perimeter"]
-notes = "Perimeter tool built (click points, Enter / double-click); no UI test yet."
+evidence = ["perimeter_rise_drop_vertices_and_precision"]
+notes = "Perimeter tool (Shift+Alt+P): click points, Enter / double-click; a depth gives wall area."
 
 [[feature]]
 id = "meas-023"
@@ -323,10 +327,10 @@ section = "Linear tools"
 name = "Rise/Drop (Polylength)"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:91"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = []
-notes = "Rise/Drop field in Properties; no UI test yet."
+evidence = ["perimeter_rise_drop_vertices_and_precision", "segment_values_and_arcs_round_trip"]
+notes = "Properties > Rise/Drop on a Polylength adds to its length (our key /PCRiseDrop)."
 
 [[feature]]
 id = "meas-026"
@@ -336,9 +340,10 @@ section = "Linear tools"
 name = "Slope (Length/Area)"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:92"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["caption_slope_centroid_and_units_from_properties", "measurement_extras_round_trip", "slope_caption_and_centroid_properties"]
+notes = "Properties > Takeoff > Slope: pitch (rise in 12), degrees or grade %; Length, Polylength, Perimeter and Area report the true sloped value. Revu's /SlopeType plus our /PCSlope value."
 
 [[feature]]
 id = "meas-027"
@@ -361,10 +366,10 @@ section = "Linear tools"
 name = "Convert segment to arc"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:94"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = []
-notes = "Arcs stored as /PCArcs; no editing."
+evidence = ["convert_to_arc_and_cutout_to_measurement_from_the_menu", "ctrl_drag_curves_a_segment_and_its_handle_bends_it", "lasso_arcs_cutouts_and_recalculate"]
+notes = "Right-click a segment > Convert to Arc / Convert to Line, Ctrl+drag a segment of the selected markup to curve it, drag the arc's middle handle to bend it; the value follows. Stored as a 32-chord polyline in /Vertices + /PCArcs."
 
 [[feature]]
 id = "meas-029"
@@ -374,9 +379,10 @@ section = "Linear tools"
 name = "Add / delete control point"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:95"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["perimeter_rise_drop_vertices_and_precision"]
+notes = "Right-click a segment > Add Vertex, a vertex > Delete Vertex."
 
 [[feature]]
 id = "meas-030"
@@ -451,9 +457,10 @@ section = "Area and volume tools"
 name = "Show All Measurements"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:106"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["caption_slope_centroid_and_units_from_properties", "caption_templates_fill_in_fields"]
+notes = "Properties > Caption Contents > Show All Measurements: P / A / WA / V in one caption."
 
 [[feature]]
 id = "meas-036"
@@ -463,9 +470,10 @@ section = "Area and volume tools"
 name = "Show Centroid"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:107"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["caption_slope_centroid_and_units_from_properties", "caption_templates_fill_in_fields", "measurement_extras_round_trip"]
+notes = "Properties > Takeoff > Show Centroid marks the area-weighted centre (cutouts deducted); our key /PCCentroid."
 
 [[feature]]
 id = "meas-037"
@@ -501,10 +509,10 @@ section = "Area and volume tools"
 name = "Edit / delete cutout"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:110"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = []
-notes = "Right-click > Delete Cutout and the cutout_delete tool; editing cutout vertices not yet."
+evidence = ["cutout_vertices_drag_add_and_delete", "cutout_cuts_a_hole_in_the_area"]
+notes = "Cutout vertices drag like the outline's; right-click inside a cutout > Add Cutout Vertex / Delete Cutout Vertex / Delete Cutout."
 
 [[feature]]
 id = "meas-040"
@@ -514,9 +522,10 @@ section = "Area and volume tools"
 name = "Cutout to its own measurement"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:111"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["convert_to_arc_and_cutout_to_measurement_from_the_menu", "lasso_arcs_cutouts_and_recalculate"]
+notes = "Right-click inside a cutout > Cutout to Measurement: a new Area / Volume of the hole with the parent's look and scale (cutout_to_measurement tool)."
 
 [[feature]]
 id = "meas-041"
@@ -539,9 +548,10 @@ section = "Area and volume tools"
 name = "Rotate measurement"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:113"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["dimension_offset_and_measurement_rotation_snaps", "layout_moves_resizes_and_rotates"]
+notes = "The rotation handle turns a measurement in 15-degree steps (Shift: single degrees); Properties > Layout > Rotation takes a typed angle."
 
 [[feature]]
 id = "meas-043"
@@ -642,9 +652,10 @@ section = "Count"
 name = "Resume Count"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:131"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["count_series_from_the_canvas_menu", "count_series_resume_delete_split_and_merge"]
+notes = "Right-click a count > Resume Count: new clicks join that series until Esc."
 
 [[feature]]
 id = "meas-051"
@@ -654,9 +665,10 @@ section = "Count"
 name = "Delete one item from a count group"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:132"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["count_series_from_the_canvas_menu", "count_series_resume_delete_split_and_merge"]
+notes = "Right-click a count item > Delete Count Item; the series renumbers, the last item deletes the count."
 
 [[feature]]
 id = "meas-052"
@@ -666,9 +678,10 @@ section = "Count"
 name = "Split / merge counts"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:133"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["count_series_from_the_canvas_menu", "count_series_resume_delete_split_and_merge"]
+notes = "Right-click a count item > Split Off This Item / Split Count Here; select counts > Merge Counts (same page)."
 
 [[feature]]
 id = "meas-053"
@@ -678,9 +691,10 @@ section = "Count"
 name = "Count dimensions"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:134"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["measurement_extras_round_trip", "list_filters_dim_the_page_display_options_and_columns"]
+notes = "Properties > Item Size: a Count's item width, height and depth (our key /PCCountDims), shown in the Width, Height and Depth columns in the scale's unit."
 
 [[feature]]
 id = "meas-054"
@@ -703,9 +717,10 @@ section = "Count"
 name = "Live count preview"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:136"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["cloud_drags_a_rectangle_and_count_shows_a_live_total"]
+notes = "While counting, the running count shows in the lower-right of the view (and the status bar); clicking it does not reopen a panel."
 
 [[feature]]
 id = "meas-056"
@@ -715,9 +730,10 @@ section = "Count"
 name = "Count statuses"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:137"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["count_series_resume_delete_split_and_merge", "line_styles_custom_statuses_and_profile_columns"]
+notes = "Counts take the review statuses and custom ones (Installed ...), and items split off take their own; visual status reports are not built."
 
 [[feature]]
 id = "meas-057"
@@ -970,10 +986,10 @@ section = "Drawing aids and snapping"
 name = "Show Grid"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:172"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "View > Show Grid (Shift+F9) draws the quarter-inch grid; spacing not configurable yet."
+evidence = ["rulers_crosshair_and_dimmer", "preferences_dialog_applies_and_persists"]
+notes = "View > Show Grid (Shift+F9); spacing from Preferences > Grid & Snap."
 
 [[feature]]
 id = "meas-077"
@@ -996,9 +1012,10 @@ section = "Drawing aids and snapping"
 name = "Snap sensitivity"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:174"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_dialog_applies_and_persists"]
+notes = "Preferences > Grid & Snap > Snap sensitivity sets the capture radius."
 
 [[feature]]
 id = "meas-079"
@@ -1021,9 +1038,10 @@ section = "Drawing aids and snapping"
 name = "Pan while drawing"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:176"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["space_pans_while_drawing_and_autosize_shrinks_a_text_box"]
+notes = "Hold Space and drag to pan; the drawing in progress keeps its points."
 
 [[feature]]
 id = "meas-081"
@@ -1033,9 +1051,10 @@ section = "Drawing aids and snapping"
 name = "Ctrl wheel toggle zoom/pan"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:177"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["wheel_zooms_or_scrolls_by_preference_and_ctrl_swaps"]
+notes = "Ctrl swaps wheel zoom and scroll."
 
 [[feature]]
 id = "meas-082"
@@ -1083,9 +1102,10 @@ section = "Measurement properties, captions and appearance"
 name = "Per-measurement units"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:186"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["caption_slope_centroid_and_units_from_properties", "perimeter_rise_drop_vertices_and_precision"]
+notes = "Properties > Units sets a measurement's length unit; Takeoff > Area unit and Volume unit set its own area and volume units (sf, sy, m², cu yd ...), the scale unchanged."
 
 [[feature]]
 id = "meas-086"
@@ -1108,10 +1128,10 @@ section = "Measurement properties, captions and appearance"
 name = "Show Caption + Edit caption contents"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:188"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["measurement_caption_depth_and_count_symbol", "hidden_and_captionless_markups_save_and_reopen"]
-notes = "Properties > Show Caption (/Cap); editing the caption's contents not yet."
+evidence = ["caption_slope_centroid_and_units_from_properties", "caption_templates_fill_in_fields"]
+notes = "Properties > Caption > Show Caption; Caption Contents takes text with fields ({value}, {subject}, {area}, {c:<column>} ...) from an Insert field list; our key /PCCaption."
 
 [[feature]]
 id = "meas-088"
@@ -1134,9 +1154,10 @@ section = "Measurement properties, captions and appearance"
 name = "Caption leader line"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:190"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["caption_slope_centroid_and_units_from_properties", "measurement_extras_round_trip"]
+notes = "Properties > Caption Contents > Show Caption Leader Line joins a moved caption to its markup; our key /PCCapLeader."
 
 [[feature]]
 id = "meas-090"
@@ -1146,9 +1167,10 @@ section = "Measurement properties, captions and appearance"
 name = "Caption default placement"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:191"
-status = "missing"
+status = "partial"
 cpp = "partial"
 evidence = []
+notes = "Area, Volume and Perimeter captions sit at the vertex mean (Revu's /CO anchor in the reference set); Polylength at the middle segment, or beside the last segment with segment values; Length along the line. Perimeter along its last segment is not done."
 
 [[feature]]
 id = "meas-091"
@@ -1158,9 +1180,10 @@ section = "Measurement properties, captions and appearance"
 name = "Line endpoints (Start/End)"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:192"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["line_endings_cloud_and_text_style"]
+notes = "Properties > Start / End endings on Length and Polylength (and lines); their size follows the line width."
 
 [[feature]]
 id = "meas-092"
@@ -1170,10 +1193,10 @@ section = "Measurement properties, captions and appearance"
 name = "Line style / width / opacity / color / fill"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:193"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = []
-notes = "Properties: color, fill, opacity, fill opacity, line width, style, endings; no UI test per field yet."
+evidence = ["appearance_pickers_change_the_markup", "line_styles_custom_statuses_and_profile_columns"]
+notes = "Properties: colour, fill, opacity, fill opacity, line width, line style including the user's own line styles, endings, blend mode."
 
 [[feature]]
 id = "meas-093"
@@ -1183,9 +1206,10 @@ section = "Measurement properties, captions and appearance"
 name = "Font for captions"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:194"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["measurement_extras_round_trip"]
+notes = "Properties > Caption sets the caption's font size (2-144, saved in /DS and drawn at that size on the canvas and in the saved appearance), font, colour and bold / italic / underline; the saved appearance draws Helvetica in the markup colour, and strike-through, superscript and subscript are not offered."
 
 [[feature]]
 id = "meas-094"
@@ -1208,9 +1232,10 @@ section = "Measurement properties, captions and appearance"
 name = "Temporary vs persistent measurements"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:196"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["temporary_measurements_and_keep_last_subject"]
+notes = "Measure > Make Annotations from Measurements: off, a measurement tool only reads its value out."
 
 [[feature]]
 id = "meas-096"
@@ -1220,9 +1245,10 @@ section = "Measurement properties, captions and appearance"
 name = "Measure tool (unified)"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:197"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["measure_tool_switches_modes_and_recalculates"]
+notes = "Measure (M): opens the Measurements panel and switches between the measurement modes from its mode row."
 
 [[feature]]
 id = "meas-097"
@@ -1245,9 +1271,10 @@ section = "Measurement properties, captions and appearance"
 name = "Properties toolbar Totals"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:199"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["markups_list_shows_totals_and_status"]
+notes = "Totals of the selected measurements by unit in the Measurements panel and the Markups List footer."
 
 [[feature]]
 id = "meas-099"
@@ -1270,9 +1297,10 @@ section = "Measurement properties, captions and appearance"
 name = "Layer, Author, Comment fields"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:201"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["general_fields_take_typing_as_one_undo_step", "layers_from_properties"]
+notes = "Properties > General: Subject, Label, Author, Layer; a measurement's comment is its value (Revu writes the quantity into /Contents)."
 
 [[feature]]
 id = "meas-101"
@@ -1295,9 +1323,10 @@ section = "Measurement properties, captions and appearance"
 name = "Legacy Subject/Label persist"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:203"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["temporary_measurements_and_keep_last_subject"]
+notes = "Measure > Keep Last Subject and Label: a new measurement takes the last one of its kind's subject and label."
 
 [[feature]]
 id = "meas-103"
@@ -1358,9 +1387,10 @@ section = "Tool Chest for takeoff"
 name = "Takeoff profile"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:213"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["drag_to_tool_chest_edit_action_and_takeoff_workspace"]
+notes = "Window > Takeoff Workspace opens the Measurements panel, Markups List and Tool Chest in the measure mode; it is a command, not a saved profile."
 
 [[feature]]
 id = "meas-108"
@@ -1383,10 +1413,10 @@ section = "Markups List, custom columns and formulas"
 name = "Measurement-specific columns"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:220"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["list_cells_formula_choice_currency_status"]
-notes = "Length, Area, Perimeter, Volume, Count, Depth, Rise/Drop, Width, Height, Unit, Page Label, Layer columns; Wall Area, Space and Slope stay blank. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table."
+evidence = ["list_wall_area_slope_and_geometry_columns", "spaces_name_markups_split_counts_and_round_trip"]
+notes = "Length, Area, Perimeter, Volume, Count, Depth, Rise/Drop, Width, Height, Wall Area, Slope, Unit, Space, Page Label and Layer columns."
 
 [[feature]]
 id = "meas-110"
@@ -1461,10 +1491,10 @@ section = "Markups List, custom columns and formulas"
 name = "Formula display format (e.g. currency)"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:226"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["list_custom_column_types"]
-notes = "Number columns format as number/currency/percent; a Formula column shows a plain number. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table."
+evidence = ["list_formula_display_and_date_formats", "extras_columns_status_replies_lock_round_trip"]
+notes = "Manage Columns: a Formula column shows its number as Number, Currency or Percent (saved as /Display); number columns as number, currency or percent."
 
 [[feature]]
 id = "meas-116"
@@ -1474,9 +1504,10 @@ section = "Markups List, custom columns and formulas"
 name = "Custom columns in captions"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:227"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["caption_templates_fill_in_fields", "caption_slope_centroid_and_units_from_properties"]
+notes = "Caption Contents > Insert field lists the custom columns ({c:<id>})."
 
 [[feature]]
 id = "meas-117"
@@ -1486,10 +1517,10 @@ section = "Markups List, custom columns and formulas"
 name = "Statuses"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:228"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["extras_columns_status_replies_lock_round_trip"]
-notes = "Default status set as /StateModel /Review replies; no custom status sets. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table."
+evidence = ["line_styles_custom_statuses_and_profile_columns", "extras_columns_status_replies_lock_round_trip"]
+notes = "None, Accepted, Rejected, Cancelled, Completed plus the user's own statuses (Properties > Custom Status, kept for the status menus); stored as /StateModel /Review replies, filterable in the Status column."
 
 [[feature]]
 id = "meas-118"
@@ -1728,10 +1759,10 @@ section = "A. Text and comment markups"
 name = "Autosize Text Box"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:36"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = []
-notes = "Alt+Z autosizes; text boxes grow with their text when typed."
+evidence = ["space_pans_while_drawing_and_autosize_shrinks_a_text_box"]
+notes = "Alt+Z fits the frame to its text exactly (shrinks or grows); typing grows a box."
 
 [[feature]]
 id = "mark-003"
@@ -1805,9 +1836,10 @@ section = "A. Text and comment markups"
 name = "Review Text (text-edit view)"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:42"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["review_text_edits_comments_in_sequence"]
+notes = "Markup > Review Text (Shift+Alt+R): every markup with text in page order, Previous / Next selects and goes to each, the text is edited in place (one undo step per field)."
 
 [[feature]]
 id = "mark-009"
@@ -1854,9 +1886,10 @@ section = "A. Text and comment markups"
 name = "Squiggly text"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:46"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["dimension_arc_squiggly_and_flag_tools_draw"]
+notes = "Squiggly tool (Shift+U): drag across page text or click a word; /Squiggly with /QuadPoints."
 
 [[feature]]
 id = "mark-013"
@@ -1866,9 +1899,10 @@ section = "A. Text and comment markups"
 name = "Insert/Replace text markup (caret)"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:47"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["insert_and_replace_text_add_carets"]
+notes = "Insert / Replace Text tool: a click places a /Caret and asks for the text to insert; a drag strikes the words through and adds the caret after them, grouped (Acrobat-style /Caret; Revu's own storage unchecked)."
 
 [[feature]]
 id = "mark-014"
@@ -1878,9 +1912,10 @@ section = "A. Text and comment markups"
 name = "Sequences / incrementing text"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:48"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["tool_chest_sequence_pin_lock_options_and_update_on_reuse", "sequences_and_dashes"]
+notes = "Tool Chest item > Sequence: its label (and a Drawing-mode item's text) ends in a number that counts up each time the item is placed (A1, A2 ...)."
 
 [[feature]]
 id = "mark-015"
@@ -1903,9 +1938,10 @@ section = "A. Text and comment markups"
 name = "Text box margins / line spacing"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:50"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["text_box_margin_and_line_spacing_from_properties", "text_margin_and_line_spacing_round_trip"]
+notes = "Properties > Text Layout: margin (points beyond the frame's own) and line spacing (x single); written in /DS and our keys /PCTextMargin, /PCLineSpacing."
 
 [[feature]]
 id = "mark-017"
@@ -1915,10 +1951,10 @@ section = "A. Text and comment markups"
 name = "Callout leader/leader end"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:51"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = []
-notes = "Leader tip and knee are handles; end style in Properties."
+evidence = ["callout_tip_then_box_then_text", "line_endings_cloud_and_text_style"]
+notes = "Callout leader with a knee (both handles), line style and end style in Properties."
 
 [[feature]]
 id = "mark-018"
@@ -1954,9 +1990,10 @@ section = "B. Line and shape markups"
 name = "Dimension"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:59"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["dimension_arc_squiggly_and_flag_tools_draw", "dimension_and_arc_round_trip", "dimension_and_arc_markups_save_and_reopen"]
+notes = "Dimension tool (Shift+L): two clicks or a drag; arrowheads both ends, the scaled length as its text, offset (/LL) and extension (/LLE) lines. Stored as /Line /IT /PCDimension (our intent until Revu's is checked)."
 
 [[feature]]
 id = "mark-021"
@@ -2018,9 +2055,10 @@ section = "B. Line and shape markups"
 name = "Arc"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:64"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["dimension_arc_squiggly_and_flag_tools_draw", "dimension_and_arc_round_trip", "dimension_and_arc_markups_save_and_reopen"]
+notes = "Arc tool (Shift+C): start, end, then a point on the arc; drawn as Bezier curves. Stored as /PolyLine /IT /PCArc with the three points (our intent)."
 
 [[feature]]
 id = "mark-026"
@@ -2056,9 +2094,10 @@ section = "B. Line and shape markups"
 name = "Rectangle/polygon cloud modes"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:67"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["cloud_drags_a_rectangle_and_count_shows_a_live_total"]
+notes = "Cloud tool: a drag draws a rectangle cloud, clicks a polygon cloud."
 
 [[feature]]
 id = "mark-029"
@@ -2093,9 +2132,10 @@ section = "B. Line and shape markups"
 name = "Eraser"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:70"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["eraser_lasso_and_select_text_gestures", "eraser_cuts_ink_and_deletes_what_is_rubbed_out", "erasing_splits_strokes"]
+notes = "Eraser (Shift+E): drag across Pen and Highlight strokes; points under it are removed, strokes split, emptied markups deleted; one undo step (ink_erase tool)."
 
 [[feature]]
 id = "mark-032"
@@ -2117,9 +2157,9 @@ section = "B. Line and shape markups"
 name = "Spacebar pan while drawing"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:72"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["space_pans_while_drawing_and_autosize_shrinks_a_text_box"]
 
 [[feature]]
 id = "mark-034"
@@ -2142,9 +2182,10 @@ section = "B. Line and shape markups"
 name = "Flag"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:74"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["dimension_arc_squiggly_and_flag_tools_draw"]
+notes = "Flag (Shift+F): a click places a flag marker, a /Text note with /Name /Flag (drawn by us; the Revu pairing of this tool is uncertain)."
 
 [[feature]]
 id = "mark-036"
@@ -2507,10 +2548,10 @@ section = "D. Properties panel"
 name = "General: Reply count / status"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:113"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["general_fields_take_typing_as_one_undo_step"]
-notes = "Properties > Replies shows the count and the latest review state; no reply editing in the panel."
+evidence = ["replies_in_properties_and_a_linked_summary"]
+notes = "Properties > General shows the reply count and latest review state; Properties > Replies lists, adds, edits and deletes replies."
 
 [[feature]]
 id = "mark-065"
@@ -2520,10 +2561,10 @@ section = "D. Properties panel"
 name = "Appearance: Color (stroke)"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:114"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = []
-notes = "Properties > Color (all selected)."
+evidence = ["appearance_pickers_change_the_markup", "properties_edit_every_selected_markup"]
+notes = "Properties > Color (every selected markup)."
 
 [[feature]]
 id = "mark-066"
@@ -2533,10 +2574,10 @@ section = "D. Properties panel"
 name = "Appearance: Fill color"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:115"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "Properties > Fill on/off and colour."
+evidence = ["appearance_pickers_change_the_markup"]
+notes = "Properties > Fill on/off and colour, fill opacity."
 
 [[feature]]
 id = "mark-067"
@@ -2598,9 +2639,10 @@ section = "D. Properties panel"
 name = "Custom line style editor / line style sets"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:120"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["line_styles_custom_statuses_and_profile_columns", "sequences_and_dashes"]
+notes = "Markup > Line Styles...: named dash patterns, listed in Properties > Line style; a set is exported and imported as JSON to share (dash patterns only, no symbol line styles)."
 
 [[feature]]
 id = "mark-072"
@@ -2675,10 +2717,10 @@ section = "D. Properties panel"
 name = "Appearance: Icon (note/attachment)"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:126"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "Properties > Note icon."
+evidence = ["file_attachment_tool_icon_and_save", "file_attachment_embeds_its_file"]
+notes = "Properties > Note icon (Comment, Note, Key, Help, ...) and File Attachment icon (PushPin, Paperclip, Graph, Tag). The File Attachment tool (F) embeds the chosen file (/FS /EF); right-click > Save Attached File."
 
 [[feature]]
 id = "mark-078"
@@ -2878,9 +2920,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Lasso select"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:147"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["eraser_lasso_and_select_text_gestures", "lasso_arcs_cutouts_and_recalculate", "lasso_takes_whole_markups"]
+notes = "Lasso (Shift+O): drag a loop; markups wholly inside are selected (Shift or Ctrl adds); select_lasso tool."
 
 [[feature]]
 id = "mark-094"
@@ -3094,10 +3137,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Edit vertices"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:164"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = []
-notes = "Drag vertices; right-click > Add Vertex / Delete Vertex (no UI test yet)."
+evidence = ["perimeter_rise_drop_vertices_and_precision", "cutout_vertices_drag_add_and_delete"]
+notes = "Drag vertices; right-click > Add Vertex / Delete Vertex."
 
 [[feature]]
 id = "mark-111"
@@ -3120,9 +3163,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Grid and rulers"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:166"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["rulers_crosshair_and_dimmer"]
+notes = "View > Rulers (Ctrl+R) and Show Grid (Shift+F9)."
 
 [[feature]]
 id = "mark-113"
@@ -3145,9 +3189,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Hide Markups"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:168"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["hide_markups_hides_them_from_view_only", "hidden_and_captionless_markups_save_and_reopen"]
+notes = "View > Hide Markups hides them from view only; Properties > Hidden sets the PDF Hidden flag."
 
 [[feature]]
 id = "mark-115"
@@ -3207,9 +3252,10 @@ section = "F. Tool Chest"
 name = "Recent Tools options"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:178"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["tool_chest_sequence_pin_lock_options_and_update_on_reuse"]
+notes = "Tool Chest > Options: how many recent tools are kept, the mode new recent tools take, Clear Recent Tools."
 
 [[feature]]
 id = "mark-120"
@@ -3231,10 +3277,10 @@ section = "F. Tool Chest"
 name = "Single-click vs double-click (sticky) tool"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:180"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = []
-notes = "Double-click a Tool Chest tool or tick Keep tool selected; Count stays active."
+evidence = ["reuse_tool_keeps_drawing", "count_adds_items_until_enter"]
+notes = "Double-click a Tool Chest tool or tick Keep tool selected to keep drawing; Count stays active."
 
 [[feature]]
 id = "mark-122"
@@ -3244,10 +3290,10 @@ section = "F. Tool Chest"
 name = "Tool item properties / edit"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:181"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = []
-notes = "Rename, mode, delete, copy to set; editing an item's look in place not yet."
+evidence = ["tool_chest_sequence_pin_lock_options_and_update_on_reuse", "tool_chest_symbol_view_scale_export_and_import"]
+notes = "Item right-click: Properties / Drawing mode, Update from Selection (the item takes the selected markup's look), Sequence, move, copy, rename, delete."
 
 [[feature]]
 id = "mark-123"
@@ -3257,9 +3303,10 @@ section = "F. Tool Chest"
 name = "Update Tool Set Item on Reuse"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:182"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["tool_chest_sequence_pin_lock_options_and_update_on_reuse"]
+notes = "Tool Chest > Options > Update Tool Set Item on Reuse: changing the look of a markup drawn from a tool updates that tool."
 
 [[feature]]
 id = "mark-124"
@@ -3269,9 +3316,10 @@ section = "F. Tool Chest"
 name = "Comment persistence setting"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:183"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["tool_chest_sequence_pin_lock_options_and_update_on_reuse"]
+notes = "Tool Chest > Options > Keep comments: No, Except text boxes (default) or All markups."
 
 [[feature]]
 id = "mark-125"
@@ -3346,9 +3394,10 @@ section = "F. Tool Chest"
 name = "Pin tool set to toolbar"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:189"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["tool_chest_sequence_pin_lock_options_and_update_on_reuse"]
+notes = "Tool set right-click > Pin to Toolbar: the set floats as a toolbar of its tools (closing it unpins)."
 
 [[feature]]
 id = "mark-131"
@@ -3358,9 +3407,10 @@ section = "F. Tool Chest"
 name = "Collapsed set flyout"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:190"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["collapsed_tool_set_flyout_picks_a_tool"]
+notes = "A collapsed tool set shows a flyout of its tools next to its header."
 
 [[feature]]
 id = "mark-132"
@@ -3370,9 +3420,10 @@ section = "F. Tool Chest"
 name = "Shared tool set lock/checkout"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:191"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["tool_chest_sequence_pin_lock_options_and_update_on_reuse"]
+notes = "Tool set right-click > Lock Tool Set / Unlock (Check Out): a locked set takes no new, changed or removed tools; there are no network-shared sets."
 
 [[feature]]
 id = "mark-133"
@@ -3395,9 +3446,10 @@ section = "F. Tool Chest"
 name = "Add markup to Tool Chest by drag"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:193"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["drag_to_tool_chest_edit_action_and_takeoff_workspace"]
+notes = "Drag selected markups off the page onto the Tool Chest panel: they are added to My Tools (and stay where they were on the page)."
 
 [[feature]]
 id = "mark-135"
@@ -3598,10 +3650,10 @@ section = "H. Markups List"
 name = "Standard columns: identity"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:219"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["list_default_columns_in_revu_order", "list_cells_formula_choice_currency_status"]
-notes = "Subject, Label, Page Label, Page Index, Author, Date, Creation Date, Color, Comments, Layer, Markup ID; Space blank; no Sequence."
+evidence = ["list_cells_formula_choice_currency_status", "drag_to_tool_chest_edit_action_and_takeoff_workspace"]
+notes = "Subject, Label, Page Label, Page Index, Author, Date, Creation Date, Color, Comments, Layer, Space, Markup ID, Sequence (the number a sequence tool gave the label)."
 
 [[feature]]
 id = "mark-151"
@@ -3611,10 +3663,10 @@ section = "H. Markups List"
 name = "Standard columns: measurement"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:220"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["list_cells_formula_choice_currency_status"]
-notes = "Measurement, Length, Area, Perimeter, Volume, Count, Depth, Width, Height, Rise/Drop, Unit; Wall Area and Slope blank."
+evidence = ["list_wall_area_slope_and_geometry_columns"]
+notes = "Measurement, Length, Area, Perimeter, Wall Area, Volume, Count, Depth, Width, Height, Rise/Drop, Slope, Unit."
 
 [[feature]]
 id = "mark-152"
@@ -3624,9 +3676,10 @@ section = "H. Markups List"
 name = "Standard columns: geometry"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:221"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["list_wall_area_slope_and_geometry_columns"]
+notes = "X, Y, X Center, Y Center (the markup's extent, inches from the page's lower-left corner), Document Width and Height (the page, inches)."
 
 [[feature]]
 id = "mark-153"
@@ -3649,10 +3702,10 @@ section = "H. Markups List"
 name = "Show/hide columns"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:223"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["cli_list_and_summary_end_to_end"]
-notes = "Columns menu shows or hides any column."
+evidence = ["list_filters_dim_the_page_display_options_and_columns", "markups_list_saves_views_and_copies_rows"]
+notes = "The Columns menu (and the header right-click) shows or hides any column."
 
 [[feature]]
 id = "mark-155"
@@ -3701,10 +3754,10 @@ section = "H. Markups List"
 name = "Custom column: Date"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:227"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["list_custom_column_types"]
-notes = "Stored as typed; no date format or current-date default."
+evidence = ["list_formula_display_and_date_formats", "extras_columns_status_replies_lock_round_trip"]
+notes = "Manage Columns: a Date column's format (yyyy-MM-dd, MM/dd/yyyy, dd/MM/yyyy, MMM d, yyyy) and default none, current date (the markup's creation date) or typed text."
 
 [[feature]]
 id = "mark-159"
@@ -3726,10 +3779,10 @@ section = "H. Markups List"
 name = "Custom column: Choice"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:229"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["list_cells_formula_choice_currency_status"]
-notes = "Items with subject + value, custom text; no CSV import of items yet."
+evidence = ["line_styles_custom_statuses_and_profile_columns", "list_cells_formula_choice_currency_status"]
+notes = "Choice items with a subject and a value, custom text, and Import... from CSV (item, subject, value)."
 
 [[feature]]
 id = "mark-161"
@@ -3766,8 +3819,8 @@ priority = "P1"
 source = "docs/revu_features/02_markups.md:232"
 status = "partial"
 cpp = "partial"
-evidence = ["views_and_widths_persist"]
-notes = "Column choices are saved in named views and column widths are remembered; Revu profiles are not."
+evidence = ["line_styles_custom_statuses_and_profile_columns"]
+notes = "Manage Columns > Save to Profile keeps the column definitions; Load from Profile adds them to another document (on request, not to every new document); column layouts are saved by name."
 
 [[feature]]
 id = "mark-164"
@@ -3803,10 +3856,10 @@ section = "H. Markups List"
 name = "Column filters"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:235"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["list_filters_search_and_scope"]
-notes = "Header right-click > Filter by values."
+evidence = ["list_filters_dim_the_page_display_options_and_columns"]
+notes = "Header right-click > Filter by values, and the search box; markups the filters leave out are drawn faded on the page."
 
 [[feature]]
 id = "mark-167"
@@ -3881,10 +3934,10 @@ section = "H. Markups List"
 name = "Replies"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:241"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["extras_columns_status_replies_lock_round_trip"]
-notes = "Read, list, add and write replies; no delete, no threads of threads."
+evidence = ["replies_in_properties_and_a_linked_summary", "replies_and_a_linked_summary", "extras_columns_status_replies_lock_round_trip"]
+notes = "Replies (/IRT) read, listed (Replies column), added, edited and deleted in Properties > Replies (markup_reply tool); replies to replies are read into the markup's one thread."
 
 [[feature]]
 id = "mark-173"
@@ -3958,9 +4011,10 @@ section = "H. Markups List"
 name = "Summary appended with links"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:247"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["summary_appended_links_each_row_to_its_page", "replies_and_a_linked_summary", "replies_in_properties_and_a_linked_summary"]
+notes = "Markup > Append Summary with Links (also in the Markups List Export menu): summary pages at the end of the document, each row a link to its markup's page; one undo step."
 
 [[feature]]
 id = "mark-179"
@@ -3970,10 +4024,10 @@ section = "H. Markups List"
 name = "Import markups"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:248"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["xfdf_export_import_round_trip"]
-notes = "XFDF / FDF import (pdfcraft-xfdf), merging by markup id; Revu-only keys (measurements) are not carried by XFDF."
+evidence = ["import_and_export_markups_as_xfdf", "unflatten_after_save_and_import_markups_from_a_pdf"]
+notes = "Markup > Import Markups (Ctrl+F3): from another PDF (same page numbers, new annotations with their look, subject and status; kinds MarkupCraft cannot write and snapshots skipped) or XFDF / FDF (same /NM replaces). No BAX; Revu-only keys are not carried by XFDF."
 
 [[feature]]
 id = "mark-180"
@@ -3983,10 +4037,10 @@ section = "H. Markups List"
 name = "Export markups"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:249"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["xfdf_export_import_round_trip"]
-notes = "XFDF / FDF export of every markup (pdfcraft-xfdf); Revu-only keys are not carried."
+evidence = ["import_and_export_markups_as_xfdf"]
+notes = "Markup > Export Markups (Ctrl+F2): every markup to XFDF or FDF (pdfcraft-xfdf); Revu's BAX is not written and Revu-only keys (measurements) are not carried."
 
 [[feature]]
 id = "mark-181"
@@ -4009,9 +4063,10 @@ section = "H. Markups List"
 name = "Unflatten"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:251"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["unflatten_brings_back_what_flatten_burned_in", "unflatten_after_save_and_import_markups_from_a_pdf"]
+notes = "Document > Unflatten (Ctrl+Shift+U): markups MarkupCraft flattened come back as annotations, also after a save (Flatten keeps each one's dictionary and the streams it added on the page, /PCFlattened); their pop-ups and replies do not come back. Content another program flattened cannot be unflattened."
 
 [[feature]]
 id = "mark-183"
@@ -4021,10 +4076,10 @@ section = "H. Markups List"
 name = "Lock / unlock from list"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:252"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["list_set_cell_validates_input", "extras_columns_status_replies_lock_round_trip"]
-notes = "Row right-click > Lock / Unlock."
+evidence = ["markups_list_row_menu_layer_legend_lock_and_delete"]
+notes = "Markups List row right-click > Lock / Unlock (the /F Locked flag)."
 
 [[feature]]
 id = "mark-184"
@@ -4034,9 +4089,10 @@ section = "H. Markups List"
 name = "Layer from list"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:253"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["markups_list_row_menu_layer_legend_lock_and_delete"]
+notes = "Markups List row right-click > Layer > a layer or None."
 
 [[feature]]
 id = "mark-185"
@@ -4046,9 +4102,10 @@ section = "H. Markups List"
 name = "Legend from list"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:254"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["markups_list_row_menu_layer_legend_lock_and_delete"]
+notes = "Markups List row right-click > Create Legend: a legend of the selected rows' subjects at the page's top left (the whole document when they span pages)."
 
 [[feature]]
 id = "mark-186"
@@ -4058,10 +4115,10 @@ section = "H. Markups List"
 name = "Properties from list"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:255"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = []
-notes = "Row right-click > Properties."
+evidence = ["markups_list_row_menu_layer_legend_lock_and_delete"]
+notes = "Markups List row right-click > Properties."
 
 [[feature]]
 id = "mark-187"
@@ -4071,10 +4128,10 @@ section = "H. Markups List"
 name = "Delete from list"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:256"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = []
-notes = "Row right-click > Delete."
+evidence = ["markups_list_row_menu_layer_legend_lock_and_delete"]
+notes = "Markups List row right-click > Delete."
 
 [[feature]]
 id = "mark-188"
@@ -4096,9 +4153,10 @@ section = "I. Measurement-adjacent markup tools (listed here for shortcut comple
 name = "Angle, Radius, Diameter, Volume"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:263"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound", "angle_diameter_and_radius_tools_measure", "volume_and_area_by_rectangle"]
+notes = "Angle, Radius, Diameter and Volume tools on Shift+Alt+G / U / D / V."
 
 [[feature]]
 id = "mark-190"
@@ -4108,9 +4166,10 @@ section = "I. Measurement-adjacent markup tools (listed here for shortcut comple
 name = "Measure Tool (generic)"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:264"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["measure_tool_switches_modes_and_recalculates", "revu_markup_measure_and_selection_shortcuts_are_bound"]
+notes = "Measure (M) opens the Measurements panel in the last measurement mode; the panel's mode row switches Length, Polylength, Area, Perimeter, Count, Volume, Angle, Diameter, Radius."
 
 [[feature]]
 id = "mark-191"
@@ -4133,9 +4192,10 @@ section = "J. Customization"
 name = "Markup display preferences"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:271"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["note_pop_ups_open_and_show_or_hide", "list_filters_dim_the_page_display_options_and_columns"]
+notes = "View > Note Pop-ups (open note pop-ups drawn on the page; Properties > Pop-up open), Rollover Comments (a markup's subject and comments under the pointer) and Line Weights (off: hairlines at every zoom)."
 
 [[feature]]
 id = "doc-001"
@@ -9919,9 +9979,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Arc (Shift + C)"
 source = "docs/revu_features/05_shortcuts.md:36"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "dimension_arc_squiggly_and_flag_tools_draw"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9994,7 +10054,7 @@ source = "docs/revu_features/05_shortcuts.md:42"
 status = "missing"
 cpp = "missing"
 evidence = []
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+notes = "Camera capture needs a camera device API; not built for the desktop build yet (Image places a picture file)."
 
 [[feature]]
 id = "key-014"
@@ -10039,9 +10099,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Dimension (Shift + L)"
 source = "docs/revu_features/05_shortcuts.md:46"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "dimension_arc_squiggly_and_flag_tools_draw"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10051,10 +10111,10 @@ area = "shortcuts"
 section = "Markup"
 name = "Edit Action (Ctrl + Shift + E)"
 source = "docs/revu_features/05_shortcuts.md:47"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "drag_to_tool_chest_edit_action_and_takeoff_workspace"]
+notes = "Edit Action (Ctrl+Shift+E): the selected markup links to a page or web address (a link annotation over it)."
 
 [[feature]]
 id = "key-019"
@@ -10075,9 +10135,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Eraser (Shift + E)"
 source = "docs/revu_features/05_shortcuts.md:49"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "eraser_lasso_and_select_text_gestures"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10087,9 +10147,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Export Markups (Ctrl + F2)"
 source = "docs/revu_features/05_shortcuts.md:50"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "import_and_export_markups_as_xfdf"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10099,9 +10159,9 @@ area = "shortcuts"
 section = "Markup"
 name = "File Attachment (F)"
 source = "docs/revu_features/05_shortcuts.md:51"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "file_attachment_tool_icon_and_save"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10111,9 +10171,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Flag (Shift + F)"
 source = "docs/revu_features/05_shortcuts.md:52"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "dimension_arc_squiggly_and_flag_tools_draw"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10183,9 +10243,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Image (I)"
 source = "docs/revu_features/05_shortcuts.md:58"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "stamp_library_places_a_stamp_and_an_image"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10198,7 +10258,7 @@ source = "docs/revu_features/05_shortcuts.md:59"
 status = "missing"
 cpp = "missing"
 evidence = []
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+notes = "Scanning needs a scanner (TWAIN / WIA) API; not built yet (Image places a picture file)."
 
 [[feature]]
 id = "key-031"
@@ -10207,9 +10267,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Import (Ctrl + F3)"
 source = "docs/revu_features/05_shortcuts.md:60"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "import_and_export_markups_as_xfdf"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10291,9 +10351,9 @@ area = "shortcuts"
 section = "Measure"
 name = "Measure Tool (M)"
 source = "docs/revu_features/05_shortcuts.md:67"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "measure_tool_switches_modes_and_recalculates"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10471,9 +10531,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Review Text (Shift + Alt + R)"
 source = "docs/revu_features/05_shortcuts.md:82"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "review_text_edits_comments_in_sequence"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11124,9 +11184,9 @@ area = "shortcuts"
 section = "Selection"
 name = "Lasso (Shift + O)"
 source = "docs/revu_features/05_shortcuts.md:137"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "eraser_lasso_and_select_text_gestures"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11159,9 +11219,9 @@ area = "shortcuts"
 section = "Selection"
 name = "Select Text (Shift + T)"
 source = "docs/revu_features/05_shortcuts.md:140"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "eraser_lasso_and_select_text_gestures"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11171,9 +11231,9 @@ area = "shortcuts"
 section = "Selection"
 name = "Toggle Zoom Tool (Shift + Z)"
 source = "docs/revu_features/05_shortcuts.md:141"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "zoom_tool_clicks_and_boxes"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11205,9 +11265,9 @@ area = "shortcuts"
 section = "Selection"
 name = "Zoom Tool (Z)"
 source = "docs/revu_features/05_shortcuts.md:144"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "zoom_tool_clicks_and_boxes"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]

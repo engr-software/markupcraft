@@ -280,6 +280,51 @@ pub fn note_icon(b: Rect, icon: &str) -> Vec<Mark> {
             );
             out.push(u.ink(p, s / 14.0));
         }
+        "PushPin" => {
+            out.push(u.ink(u.poly(&[(0.5, 0.5), (0.24, 0.06)], false), s / 10.0));
+            out.push(body(u.circle(0.58, 0.68, 0.26)));
+        }
+        "Paperclip" => {
+            let clip = u.poly(
+                &[
+                    (0.42, 0.3),
+                    (0.42, 0.78),
+                    (0.52, 0.9),
+                    (0.62, 0.78),
+                    (0.62, 0.2),
+                    (0.47, 0.06),
+                    (0.32, 0.2),
+                    (0.32, 0.86),
+                ],
+                false,
+            );
+            out.push(u.ink(clip, s / 12.0));
+        }
+        "Graph" => {
+            out.push(body(
+                u.poly(&[(0.08, 0.08), (0.92, 0.08), (0.92, 0.92), (0.08, 0.92)], true),
+            ));
+            out.push(u.ink(u.poly(&[(0.28, 0.2), (0.28, 0.5)], false), s / 9.0));
+            out.push(u.ink(u.poly(&[(0.5, 0.2), (0.5, 0.75)], false), s / 9.0));
+            out.push(u.ink(u.poly(&[(0.72, 0.2), (0.72, 0.6)], false), s / 9.0));
+        }
+        "Tag" => {
+            out.push(body(u.poly(
+                &[(0.06, 0.5), (0.36, 0.82), (0.94, 0.82), (0.94, 0.18), (0.36, 0.18)],
+                true,
+            )));
+            out.push(Mark {
+                path: u.circle(0.3, 0.5, 0.07),
+                fill: true,
+                fill_white: true,
+                ..Default::default()
+            });
+        }
+        "Flag" => {
+            // a pennant on a pole (the Flag markup)
+            out.push(u.ink(u.poly(&[(0.2, 0.04), (0.2, 0.96)], false), s / 10.0));
+            out.push(body(u.poly(&[(0.2, 0.96), (0.9, 0.78), (0.2, 0.56)], true)));
+        }
         "Paragraph" => {
             out.push(body(u.circle(0.42, 0.66, 0.24)));
             let mut stems = u.poly(&[(0.42, 0.9), (0.78, 0.9)], false);
