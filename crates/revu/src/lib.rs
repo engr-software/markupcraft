@@ -94,9 +94,11 @@ pub fn save(file: &mut PdfFile, doc: &mut Document, out: impl AsRef<Path>, mode:
         mod_date: Some(pdf_date_now()),
         ..Default::default()
     };
-    let bytes = match mode {
-        SaveMode::Incremental if !file.cos.full_save_required() => pdfcraft_cos::write_incremental(&file.cos, &opts)?,
-        _ => pdfcraft_cos::write_full(&file.cos, &opts)?,
+    let incremental = mode == SaveMode::Incremental && !file.cos.full_save_required();
+    let bytes = if incremental {
+        pdfcraft_cos::write_incremental(&file.cos, &opts)?
+    } else {
+        pdfcraft_cos::write_full(&file.cos, &opts)?
     };
     let mut tmp = out.as_os_str().to_owned();
     tmp.push(".markupcraft-tmp");
@@ -120,6 +122,9 @@ pub fn save(file: &mut PdfFile, doc: &mut Document, out: impl AsRef<Path>, mode:
         Err(e) => return Err(e.into()),
     };
     file.path = out.to_path_buf();
+    if !incremental {
+        renumber_markups(&file.cos, doc);
+    }
     for m in &mut doc.markups {
         if m.dirty {
             m.stored_look = false;
@@ -129,6 +134,41 @@ pub fn save(file: &mut PdfFile, doc: &mut Document, out: impl AsRef<Path>, mode:
     doc.deleted.clear();
     doc.path = out.display().to_string();
     Ok(())
+}
+
+/// A full save numbers every object afresh: point each markup at its annotation in the new
+/// file (by page and `/Annots` slot, which a full save keeps, checked against `/NM`), so later
+/// edits write to the right object.
+fn renumber_markups(cos: &CosDoc, doc: &mut Document) {
+    let fresh = read::load(cos, "");
+    let mut by_slot: std::collections::HashMap<(usize, usize), &markupcraft_model::Markup> =
+        std::collections::HashMap::new();
+    let mut by_id: std::collections::HashMap<(usize, &str), &markupcraft_model::Markup> =
+        std::collections::HashMap::new();
+    for f in &fresh.markups {
+        if let Some(i) = f.annot_index {
+            by_slot.insert((f.page, i), f);
+        }
+        if !f.id.is_empty() {
+            by_id.insert((f.page, f.id.as_str()), f);
+        }
+    }
+    for m in &mut doc.markups {
+        if !m.in_file() {
+            continue;
+        }
+        let found = by_id
+            .get(&(m.page, m.id.as_str()))
+            .or_else(|| m.annot_index.and_then(|i| by_slot.get(&(m.page, i))));
+        match found {
+            Some(f) => {
+                m.obj = f.obj;
+                m.annot_index = f.annot_index;
+            }
+            // not in the new file: written as a new annotation next time
+            None => m.obj = (0, 0),
+        }
+    }
 }
 
 /// 16 uppercase letters, the shape Revu uses for `/NM`.

@@ -39,8 +39,15 @@ pub fn temp_dir(tag: &str) -> PathBuf {
 }
 
 /// The automation tool table rooted at `dir` (every path a tool touches stays inside it).
+/// Preferences, stamps and tool sets go to `dir/config`, never the user's real config folder.
 pub fn automation(dir: &Path) -> Automation {
-    Automation::new().with_root(dir).unwrap().with_author("Acceptance")
+    let config = dir.join("config");
+    std::fs::create_dir_all(&config).unwrap();
+    Automation::new()
+        .with_root(dir)
+        .unwrap()
+        .with_author("Acceptance")
+        .with_config_dir(config)
 }
 
 /// Call a tool; panic with the tool's own error message if it fails.

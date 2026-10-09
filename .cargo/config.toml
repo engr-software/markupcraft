@@ -1,2 +1,6 @@
 [alias]
 xtask = "run -p xtask --"
+
+# Tests and dev runs keep their settings out of the user's real config folder.
+[env]
+MARKUPCRAFT_CONFIG_DIR = { value = "target/dev-config", relative = true }

@@ -1652,6 +1652,20 @@ pub(crate) fn text_quads(doc: &mut DocTab, xf: &Xf, page: usize, a: Point, b: Po
 // ---- select tool -----------------------------------------------------------------------------
 
 /// The topmost markup at `at` on `page`.
+/// A click on a grouped markup selects its whole group (Revu); others select themselves.
+fn group_of(doc: &DocTab, id: &str) -> Vec<String> {
+    let d = doc.session.doc();
+    match d.find(id).filter(|m| !m.group.is_empty()) {
+        Some(m) => d
+            .markups
+            .iter()
+            .filter(|o| o.page == m.page && o.group == m.group)
+            .map(|o| o.id.clone())
+            .collect(),
+        None => vec![id.to_string()],
+    }
+}
+
 pub fn top_hit(doc: &DocTab, page: usize, at: Point, tol: f64) -> Option<String> {
     doc.session
         .doc()
@@ -1835,7 +1849,7 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
                 } else if let Some(id) = top_hit(doc, page, at, tol) {
                     if !selection.contains(&id) {
                         let mut sel = if add { selection } else { Vec::new() };
-                        sel.push(id);
+                        sel.extend(group_of(doc, &id));
                         actions::select(&mut doc.session, sel);
                     }
                     doc.view.gesture = Some(Gesture::Move {
@@ -1883,7 +1897,10 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
                 let tol = f64::from(PICK / xf.k.max(1e-6));
                 match top_hit(doc, page, xf.to_user(s), tol) {
                     Some(id) if add => actions::toggle_selected(&mut doc.session, &id),
-                    Some(id) => actions::select(&mut doc.session, vec![id]),
+                    Some(id) => {
+                        let ids = group_of(doc, &id);
+                        actions::select(&mut doc.session, ids);
+                    }
                     None if !add => doc.session.clear_selection(),
                     None => {}
                 }

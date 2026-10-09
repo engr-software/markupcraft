@@ -1758,6 +1758,8 @@ source = "docs/revu_features/02_markups.md:35"
 status = "have"
 cpp = "have"
 evidence = ["cli: markupcheck", "text_box_typewriter_and_note_type_in_place", "an_empty_text_box_is_not_added"]
+accepted = ["text_kinds_save_as_freetext_and_note", "text_tools_draw_and_type_in_place"]
+acceptance = "pass"
 notes = "Drag a box or click, type in the editor over the page; double-click to edit later."
 
 [[feature]]
@@ -1771,6 +1773,8 @@ source = "docs/revu_features/02_markups.md:36"
 status = "have"
 cpp = "partial"
 evidence = ["space_pans_while_drawing_and_autosize_shrinks_a_text_box"]
+accepted = ["autosize_fits_the_frame_to_its_text"]
+acceptance = "pass"
 notes = "Alt+Z fits the frame to its text exactly (shrinks or grows); typing grows a box."
 
 [[feature]]
@@ -1784,6 +1788,8 @@ source = "docs/revu_features/02_markups.md:37"
 status = "have"
 cpp = "have"
 evidence = ["text_box_typewriter_and_note_type_in_place"]
+accepted = ["text_kinds_save_as_freetext_and_note", "text_tools_draw_and_type_in_place"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-004"
@@ -1796,6 +1802,8 @@ source = "docs/revu_features/02_markups.md:38"
 status = "have"
 cpp = "have"
 evidence = ["text_box_typewriter_and_note_type_in_place"]
+accepted = ["text_kinds_save_as_freetext_and_note", "text_tools_draw_and_type_in_place"]
+acceptance = "pass"
 notes = "Click to place, type the comment; icon in Properties."
 
 [[feature]]
@@ -1809,6 +1817,8 @@ source = "docs/revu_features/02_markups.md:39"
 status = "have"
 cpp = "have"
 evidence = ["cli: markupcheck", "callout_tip_then_box_then_text"]
+accepted = ["text_kinds_save_as_freetext_and_note", "text_tools_draw_and_type_in_place"]
+acceptance = "pass"
 notes = "Click the tip, then where the box goes (or drag), then type."
 
 [[feature]]
@@ -1822,7 +1832,9 @@ source = "docs/revu_features/02_markups.md:40"
 status = "have"
 cpp = "partial"
 evidence = ["rich_text_saves_as_spans_and_reloads_editable", "toggle_and_merge", "runs_follow_edits", "replacing_a_word_keeps_runs"]
-notes = "In the text editor, Ctrl+B / Ctrl+I / Ctrl+U and the editor toolbar (bold, italic, underline, colour) style the selected characters; saved as /RC spans and drawn into the /AP; MarkupCraft's own spans reload editable (other writers' spans keep their look)."
+accepted = ["rich_text_runs_are_saved_as_rc_spans"]
+acceptance = "gap"
+notes = "In the text editor, Ctrl+B / Ctrl+I / Ctrl+U and the editor toolbar (bold, italic, underline, colour) style the selected characters; saved as /RC spans and drawn into the /AP; MarkupCraft's own spans reload editable (other writers' spans keep their look). Acceptance: Ctrl+B / Ctrl+I / Ctrl+U style the selected characters only; with nothing selected they do nothing, where Revu's editor turns the style on for the text typed next."
 
 [[feature]]
 id = "mark-007"
@@ -1835,6 +1847,8 @@ source = "docs/revu_features/02_markups.md:41"
 status = "have"
 cpp = "have"
 evidence = ["spell_check_flags_markup_text_with_suggestions", "the_bundled_dictionary_checks_english", "affix_expansion_and_checks"]
+accepted = ["spell_check_reports_misspelled_markup_words"]
+acceptance = "pass"
 notes = "Tool spell_check: markup comment text (or given text) against assets/dictionaries/en_US, read by a pure-Rust Hunspell affix expander; REP / one-edit / two-edit suggestions; words with digits, one letter or ALL CAPS skipped; accept list. No underline-as-you-type UI yet."
 
 [[feature]]
@@ -1848,6 +1862,8 @@ source = "docs/revu_features/02_markups.md:42"
 status = "have"
 cpp = "missing"
 evidence = ["review_text_edits_comments_in_sequence"]
+accepted = ["review_text_steps_through_markup_text"]
+acceptance = "pass"
 notes = "Markup > Review Text (Shift+Alt+R): every markup with text in page order, Previous / Next selects and goes to each, the text is edited in place (one undo step per field)."
 
 [[feature]]
@@ -1861,6 +1877,8 @@ source = "docs/revu_features/02_markups.md:43"
 status = "have"
 cpp = "have"
 evidence = ["text_markups_follow_the_page_text"]
+accepted = ["text_markup_tools_mark_page_text"]
+acceptance = "pass"
 notes = "Over the page text layer; on pages without text the dragged rectangle."
 
 [[feature]]
@@ -1874,6 +1892,8 @@ source = "docs/revu_features/02_markups.md:44"
 status = "have"
 cpp = "have"
 evidence = ["text_markups_follow_the_page_text"]
+accepted = ["text_markup_tools_mark_page_text"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-011"
@@ -1886,6 +1906,8 @@ source = "docs/revu_features/02_markups.md:45"
 status = "have"
 cpp = "have"
 evidence = ["strikethrough_marks_text"]
+accepted = ["text_markup_tools_mark_page_text"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-012"
@@ -1898,6 +1920,8 @@ source = "docs/revu_features/02_markups.md:46"
 status = "have"
 cpp = "have"
 evidence = ["dimension_arc_squiggly_and_flag_tools_draw"]
+accepted = ["text_markup_tools_mark_page_text"]
+acceptance = "pass"
 notes = "Squiggly tool (Shift+U): drag across page text or click a word; /Squiggly with /QuadPoints."
 
 [[feature]]
@@ -1911,6 +1935,8 @@ source = "docs/revu_features/02_markups.md:47"
 status = "have"
 cpp = "have"
 evidence = ["insert_and_replace_text_add_carets"]
+accepted = ["text_markup_tools_mark_page_text"]
+acceptance = "pass"
 notes = "Insert / Replace Text tool: a click places a /Caret and asks for the text to insert; a drag strikes the words through and adds the caret after them, grouped (Acrobat-style /Caret; Revu's own storage unchecked)."
 
 [[feature]]
@@ -1924,6 +1950,8 @@ source = "docs/revu_features/02_markups.md:48"
 status = "have"
 cpp = "missing"
 evidence = ["tool_chest_sequence_pin_lock_options_and_update_on_reuse", "sequences_and_dashes"]
+accepted = ["sequence_tool_counts_up"]
+acceptance = "pass"
 notes = "Tool Chest item > Sequence: its label (and a Drawing-mode item's text) ends in a number that counts up each time the item is placed (A1, A2 ...)."
 
 [[feature]]
@@ -1937,7 +1965,9 @@ source = "docs/revu_features/02_markups.md:49"
 status = "have"
 cpp = "have"
 evidence = ["properties_panel_edits_go_through_the_engine"]
-notes = "Properties > Text: font, size, colour, bold, italic, underline, alignment."
+accepted = ["text_font_properties_are_saved"]
+acceptance = "gap"
+notes = "Properties > Text: font, size, colour, bold, italic, underline, alignment. Acceptance: alignment is left, centre or right only (no justify) and there is no vertical alignment."
 
 [[feature]]
 id = "mark-016"
@@ -1950,6 +1980,8 @@ source = "docs/revu_features/02_markups.md:50"
 status = "have"
 cpp = "missing"
 evidence = ["text_box_margin_and_line_spacing_from_properties", "text_margin_and_line_spacing_round_trip"]
+accepted = ["text_box_margin_and_line_spacing"]
+acceptance = "pass"
 notes = "Properties > Text Layout: margin (points beyond the frame's own) and line spacing (x single); written in /DS and our keys /PCTextMargin, /PCLineSpacing."
 
 [[feature]]
@@ -1963,7 +1995,9 @@ source = "docs/revu_features/02_markups.md:51"
 status = "have"
 cpp = "have"
 evidence = ["callout_tip_then_box_then_text", "line_endings_cloud_and_text_style"]
-notes = "Callout leader with a knee (both handles), line style and end style in Properties."
+accepted = ["text_kinds_save_as_freetext_and_note", "text_tools_draw_and_type_in_place"]
+acceptance = "fixed"
+notes = "Callout leader with a knee (both handles), line style and end style in Properties. Acceptance: markup_add gave a Callout (and an Arrow or Dimension) no arrowhead unless one was passed; it now gets the drawing tool's default."
 
 [[feature]]
 id = "mark-018"
@@ -1976,6 +2010,8 @@ source = "docs/revu_features/02_markups.md:57"
 status = "have"
 cpp = "have"
 evidence = ["cli: markupcheck", "shift_constrains_a_line_and_a_drag_makes_an_arrow", "snap_to_content_lands_on_a_wall_corner"]
+accepted = ["shapes_save_as_revu_annotations", "shape_tools_draw_on_their_shortcuts"]
+acceptance = "pass"
 notes = "Read/write in the file (markupcheck); no drawing tool."
 
 [[feature]]
@@ -1989,7 +2025,9 @@ source = "docs/revu_features/02_markups.md:58"
 status = "have"
 cpp = "have"
 evidence = ["cli: markupcheck", "shift_constrains_a_line_and_a_drag_makes_an_arrow"]
-notes = "Revu arrows are read and rewritten (markupcheck); no tool."
+accepted = ["shapes_save_as_revu_annotations", "shape_tools_draw_on_their_shortcuts"]
+acceptance = "fixed"
+notes = "Revu arrows are read and rewritten (markupcheck); no tool. Acceptance: an Arrow added by markup_add had no arrowhead (no /LE, none drawn); it now gets the Arrow tool's head."
 
 [[feature]]
 id = "mark-020"
@@ -2002,6 +2040,8 @@ source = "docs/revu_features/02_markups.md:59"
 status = "have"
 cpp = "missing"
 evidence = ["dimension_arc_squiggly_and_flag_tools_draw", "dimension_and_arc_round_trip", "dimension_and_arc_markups_save_and_reopen"]
+accepted = ["shape_tools_draw_on_their_shortcuts"]
+acceptance = "pass"
 notes = "Dimension tool (Shift+L): two clicks or a drag; arrowheads both ends, the scaled length as its text, offset (/LL) and extension (/LLE) lines. Stored as /Line /IT /PCDimension (our intent until Revu's is checked)."
 
 [[feature]]
@@ -2015,6 +2055,8 @@ source = "docs/revu_features/02_markups.md:60"
 status = "have"
 cpp = "have"
 evidence = ["cli: markupcheck", "polyline_takes_clicks_backspace_and_enter"]
+accepted = ["shapes_save_as_revu_annotations", "shape_tools_draw_on_their_shortcuts"]
+acceptance = "pass"
 notes = "Read/write in the file (markupcheck); no drawing tool."
 
 [[feature]]
@@ -2028,6 +2070,8 @@ source = "docs/revu_features/02_markups.md:61"
 status = "have"
 cpp = "have"
 evidence = ["cli: markupcheck", "clicking_the_first_point_closes_a_polygon_and_ellipse_drags", "escape_cancels_a_drawing"]
+accepted = ["shapes_save_as_revu_annotations", "shape_tools_draw_on_their_shortcuts"]
+acceptance = "pass"
 notes = "Read/write in the file (markupcheck); no drawing tool."
 
 [[feature]]
@@ -2041,6 +2085,8 @@ source = "docs/revu_features/02_markups.md:62"
 status = "have"
 cpp = "have"
 evidence = ["cli: markupcheck", "rectangle_tool_draws_and_returns_to_select", "set_as_default_styles_new_markups"]
+accepted = ["shapes_save_as_revu_annotations", "shape_tools_draw_on_their_shortcuts"]
+acceptance = "pass"
 notes = "Read/write in the file (markupcheck); no drawing tool."
 
 [[feature]]
@@ -2054,6 +2100,8 @@ source = "docs/revu_features/02_markups.md:63"
 status = "have"
 cpp = "have"
 evidence = ["clicking_the_first_point_closes_a_polygon_and_ellipse_drags"]
+accepted = ["shapes_save_as_revu_annotations", "shape_tools_draw_on_their_shortcuts"]
+acceptance = "pass"
 notes = "Read/write in the file; no drawing tool."
 
 [[feature]]
@@ -2067,6 +2115,8 @@ source = "docs/revu_features/02_markups.md:64"
 status = "have"
 cpp = "missing"
 evidence = ["dimension_arc_squiggly_and_flag_tools_draw", "dimension_and_arc_round_trip", "dimension_and_arc_markups_save_and_reopen"]
+accepted = ["shape_tools_draw_on_their_shortcuts"]
+acceptance = "pass"
 notes = "Arc tool (Shift+C): start, end, then a point on the arc; drawn as Bezier curves. Stored as /PolyLine /IT /PCArc with the three points (our intent)."
 
 [[feature]]
@@ -2080,6 +2130,8 @@ source = "docs/revu_features/02_markups.md:65"
 status = "have"
 cpp = "have"
 evidence = ["cli: markupcheck", "cloud_plus_adds_a_cloud_and_its_callout_as_a_group"]
+accepted = ["shapes_save_as_revu_annotations", "shape_tools_draw_on_their_shortcuts"]
+acceptance = "pass"
 notes = "Revu clouds are read and rewritten (markupcheck); no tool."
 
 [[feature]]
@@ -2093,7 +2145,9 @@ source = "docs/revu_features/02_markups.md:66"
 status = "have"
 cpp = "partial"
 evidence = ["cloud_plus_adds_a_cloud_and_its_callout_as_a_group"]
-notes = "Cloud, then a click places a callout pointing at it; the two are grouped."
+accepted = ["cloud_plus_is_a_cloud_with_a_grouped_callout"]
+acceptance = "fixed"
+notes = "Cloud, then a click places a callout pointing at it; the two are grouped. Acceptance: a click on a grouped markup selected only that markup; it now selects the whole group (Cloud+ cloud and callout together)."
 
 [[feature]]
 id = "mark-028"
@@ -2106,6 +2160,8 @@ source = "docs/revu_features/02_markups.md:67"
 status = "have"
 cpp = "have"
 evidence = ["cloud_drags_a_rectangle_and_count_shows_a_live_total"]
+accepted = ["shape_tools_draw_on_their_shortcuts"]
+acceptance = "pass"
 notes = "Cloud tool: a drag draws a rectangle cloud, clicks a polygon cloud."
 
 [[feature]]
@@ -2119,6 +2175,8 @@ source = "docs/revu_features/02_markups.md:68"
 status = "have"
 cpp = "have"
 evidence = ["pen_and_highlight_draw_freehand"]
+accepted = ["shape_tools_draw_on_their_shortcuts"]
+acceptance = "pass"
 notes = "One stroke per markup."
 
 [[feature]]
@@ -2132,6 +2190,8 @@ source = "docs/revu_features/02_markups.md:69"
 status = "have"
 cpp = "have"
 evidence = ["pen_and_highlight_draw_freehand"]
+accepted = ["shape_tools_draw_on_their_shortcuts"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-031"
@@ -2144,6 +2204,8 @@ source = "docs/revu_features/02_markups.md:70"
 status = "have"
 cpp = "missing"
 evidence = ["eraser_lasso_and_select_text_gestures", "eraser_cuts_ink_and_deletes_what_is_rubbed_out", "erasing_splits_strokes"]
+accepted = ["eraser_splits_ink_strokes"]
+acceptance = "pass"
 notes = "Eraser (Shift+E): drag across Pen and Highlight strokes; points under it are removed, strokes split, emptied markups deleted; one undo step (ink_erase tool)."
 
 [[feature]]
@@ -2157,6 +2219,8 @@ source = "docs/revu_features/02_markups.md:71"
 status = "have"
 cpp = "have"
 evidence = ["shift_constrains_a_line_and_a_drag_makes_an_arrow", "shift_constrains_to_45_degrees"]
+accepted = ["shift_constrains_while_drawing"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-033"
@@ -2169,6 +2233,8 @@ source = "docs/revu_features/02_markups.md:72"
 status = "have"
 cpp = "have"
 evidence = ["space_pans_while_drawing_and_autosize_shrinks_a_text_box"]
+accepted = ["space_pans_without_cancelling_the_markup"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-034"
@@ -2181,6 +2247,8 @@ source = "docs/revu_features/02_markups.md:73"
 status = "have"
 cpp = "missing"
 evidence = ["dynamic_fill_makes_areas_spaces_and_hatch", "hatch_lines_cover_the_box"]
+accepted = ["hatch_patterns_fill_closed_shapes"]
+acceptance = "pass"
 notes = "Diagonal, BackDiagonal, Horizontal, Vertical, Cross, DiagonalCross on Area, Polygon, Rectangle, Ellipse, Cloud, Volume."
 
 [[feature]]
@@ -2194,6 +2262,8 @@ source = "docs/revu_features/02_markups.md:74"
 status = "have"
 cpp = "missing"
 evidence = ["dimension_arc_squiggly_and_flag_tools_draw"]
+accepted = ["flag_places_a_marker"]
+acceptance = "pass"
 notes = "Flag (Shift+F): a click places a flag marker, a /Text note with /Name /Flag (drawn by us; the Revu pairing of this tool is uncertain)."
 
 [[feature]]
@@ -2207,6 +2277,8 @@ source = "docs/revu_features/02_markups.md:80"
 status = "have"
 cpp = "partial"
 evidence = ["stamp_places_the_chosen_design"]
+accepted = ["stamps_place_create_and_fill_dynamic_text"]
+acceptance = "pass"
 notes = "Click to place (or drag the box) the design chosen in Tool Chest > Stamps; our own designs."
 
 [[feature]]
@@ -2220,6 +2292,8 @@ source = "docs/revu_features/02_markups.md:81"
 status = "have"
 cpp = "missing"
 evidence = ["stamps_builtin_custom_dynamic_fields_and_images"]
+accepted = ["stamps_place_create_and_fill_dynamic_text"]
+acceptance = "pass"
 notes = "Stamp library in the config folder (stamps/library.json): stamp_list, stamp_create, stamp_remove; built-in designs are our own."
 
 [[feature]]
@@ -2233,6 +2307,8 @@ source = "docs/revu_features/02_markups.md:82"
 status = "have"
 cpp = "missing"
 evidence = ["stamps_builtin_custom_dynamic_fields_and_images"]
+accepted = ["stamps_place_create_and_fill_dynamic_text"]
+acceptance = "pass"
 notes = "stamp_create: text stamps (first line big, colour) or image stamps."
 
 [[feature]]
@@ -2246,6 +2322,8 @@ source = "docs/revu_features/02_markups.md:83"
 status = "have"
 cpp = "missing"
 evidence = ["stamps_builtin_custom_dynamic_fields_and_images", "fields_expand_dates_pages_files_and_prompts"]
+accepted = ["stamps_place_create_and_fill_dynamic_text"]
+acceptance = "pass"
 notes = "{user} {date[:FMT]} {time[:FMT]} {datetime:FMT} {page} {pagenum} {pages} {file} {filename} {path} {prompt:Label=Default}, filled when placed. Times are UTC unless a time is given."
 
 [[feature]]
@@ -2259,6 +2337,8 @@ source = "docs/revu_features/02_markups.md:84"
 status = "have"
 cpp = "missing"
 evidence = ["interactive_stamps_stamp_settings_symbols_and_file_links", "interactive_stamps_stamp_settings_and_mark_text_for_redaction", "interactive_stamp_fields_fill_on_placing_and_stay_editable"]
+accepted = ["interactive_stamp_fields_are_filled_later"]
+acceptance = "pass"
 notes = "Stamp templates with {check:Label}, {field:Label=Default} and {choice:Label=A|B|C} fields (plus the dynamic fields): Markup > Interactive Stamp places one; Edit Stamp Fields fills them in later (values kept in the markup, the stamp redrawn); stamp_interactive tool."
 
 [[feature]]
@@ -2272,6 +2352,8 @@ source = "docs/revu_features/02_markups.md:85"
 status = "have"
 cpp = "missing"
 evidence = ["stamps_builtin_custom_dynamic_fields_and_images"]
+accepted = ["image_stamps_and_image_markups"]
+acceptance = "pass"
 notes = "Image stamps from a PNG (alpha as a soft mask) or a PDF page (copied as a form XObject), placed directly or from the library."
 
 [[feature]]
@@ -2285,6 +2367,8 @@ source = "docs/revu_features/02_markups.md:86"
 status = "have"
 cpp = "missing"
 evidence = ["stamp_library_places_a_stamp_and_an_image", "raster_dynamic_fill_redaction_kinds_snapshot_cut_and_image_markups"]
+accepted = ["image_stamps_and_image_markups"]
+acceptance = "pass"
 notes = "Markup > Image (I) places a PNG or JPEG (click or box) as an Image markup (a Stamp annotation with the subject Image, as Revu saves images); it moves and resizes like any box, its picture fitted to the new box."
 
 [[feature]]
@@ -2298,7 +2382,9 @@ source = "docs/revu_features/02_markups.md:87"
 status = "have"
 cpp = "missing"
 evidence = ["scanner_and_camera_into_markups_pages_and_new_pdfs", "scanner_and_camera_pages_markups_and_new_pdfs", "an_escl_scanner_scans_pages_into_a_document"]
-notes = "Markup > Image From Scanner (Shift+I): network scanners over eSCL (AirScan / Mopria, plain http) - Connect reads the capabilities, Scan / Scan Next runs on a worker, Finish places the image. Scanners reachable only through TWAIN, WIA or SANE drivers are not supported."
+accepted = ["image_from_scanner_reports_an_unreachable_scanner", "image_stamps_and_image_markups"]
+acceptance = "gap"
+notes = "Markup > Image From Scanner (Shift+I): network scanners over eSCL (AirScan / Mopria, plain http) - Connect reads the capabilities, Scan / Scan Next runs on a worker, Finish places the image. Scanners reachable only through TWAIN, WIA or SANE drivers are not supported. Acceptance: only network (eSCL) scanners; Revu acquires from local scanners through their TWAIN / WIA drivers."
 
 [[feature]]
 id = "mark-044"
@@ -2311,6 +2397,8 @@ source = "docs/revu_features/02_markups.md:88"
 status = "have"
 cpp = "have"
 evidence = ["cli: markupcheck", "snapshot_copies_a_region_and_ctrl_v_pastes_it"]
+accepted = ["snapshots_copy_paste_and_cut"]
+acceptance = "pass"
 notes = "Drag a region; Ctrl+V pastes it at the pointer."
 
 [[feature]]
@@ -2324,6 +2412,8 @@ source = "docs/revu_features/02_markups.md:89"
 status = "have"
 cpp = "have"
 evidence = ["snapshots_of_a_region_a_page_and_a_space", "snapshots_and_file_attachment_markups_with_capture_summary", "file_attachment_snapshots_and_capture_summary"]
+accepted = ["snapshots_copy_paste_and_cut"]
+acceptance = "pass"
 notes = "Edit > Copy Page to Snapshot (Ctrl+Alt+C): the whole page as a snapshot on the clipboard; Ctrl+V pastes it."
 
 [[feature]]
@@ -2337,6 +2427,8 @@ source = "docs/revu_features/02_markups.md:90"
 status = "have"
 cpp = "partial"
 evidence = ["cut_removes_the_content_and_paste_brings_it_back_as_a_snapshot", "raster_dynamic_fill_redaction_kinds_snapshot_cut_and_image_markups", "viewport_calibrate_raster_fill_redaction_kinds_and_snapshot_cut"]
+accepted = ["snapshots_copy_paste_and_cut"]
+acceptance = "pass"
 notes = "Snapshot tool (G) and snapshot_copy copy a region in vector form; Edit > Cut Snapshot (snapshot_cut) copies it and removes that content from the page (no box drawn); Paste places it."
 
 [[feature]]
@@ -2350,6 +2442,8 @@ source = "docs/revu_features/02_markups.md:91"
 status = "have"
 cpp = "missing"
 evidence = ["links_to_pages_urls_and_files", "hyperlink_tool_adds_a_page_link_listed_in_the_links_panel"]
+accepted = ["hyperlinks_and_markup_actions"]
+acceptance = "pass"
 notes = "Markup > Hyperlink (Shift+H): drag the link area, choose page, web address or file."
 
 [[feature]]
@@ -2363,7 +2457,9 @@ source = "docs/revu_features/02_markups.md:92"
 status = "have"
 cpp = "missing"
 evidence = ["urls_text_links_and_markup_actions", "places_hyperlink_actions_and_markup_edit_action", "places_link_actions_text_and_url_links_and_markup_actions"]
-notes = "Edit Action (Ctrl+Shift+E) on the selected markup: page with zoom, Place, view, Space, URL, file; kept on save; markup_action tool."
+accepted = ["hyperlinks_and_markup_actions", "edits_after_a_full_save_reach_the_right_annotation"]
+acceptance = "fixed"
+notes = "Edit Action (Ctrl+Shift+E) on the selected markup: page with zoom, Place, view, Space, URL, file; kept on save; markup_action tool. Acceptance: after a full save (which renumbers objects) markups kept their old object numbers, so Edit Action (and any later edit of a saved markup) wrote to the wrong object; markups are now re-pointed at their annotations after a full save."
 
 [[feature]]
 id = "mark-049"
@@ -2376,6 +2472,8 @@ source = "docs/revu_features/02_markups.md:93"
 status = "have"
 cpp = "missing"
 evidence = ["file_attachments_round_trip_and_export", "snapshots_and_file_attachment_markups_with_capture_summary", "file_attachment_snapshots_and_capture_summary"]
+accepted = ["file_attachments_and_capture_summary"]
+acceptance = "pass"
 notes = "Markup > File Attachment (F): embed a file shown as a paperclip (or pin) icon; a File Attachment markup in the list; kept on save."
 
 [[feature]]
@@ -2389,7 +2487,9 @@ source = "docs/revu_features/02_markups.md:94"
 status = "partial"
 cpp = "missing"
 evidence = ["scanner_and_camera_into_markups_pages_and_new_pdfs", "scanner_and_camera_pages_markups_and_new_pdfs", "a_camera_frame_becomes_a_pdf"]
-notes = "Markup > Camera (Ctrl+Alt+I) takes still pictures into an image markup, pages or a new PDF. The system camera comes from nokhwa behind the app's `camera` cargo feature (off by default; tested with a test camera, never a real one); no video or audio capture."
+accepted = ["camera_capture_makes_an_image_markup"]
+acceptance = "gap"
+notes = "Markup > Camera (Ctrl+Alt+I) takes still pictures into an image markup, pages or a new PDF. The system camera comes from nokhwa behind the app's `camera` cargo feature (off by default; tested with a test camera, never a real one); no video or audio capture. Acceptance: still pictures only; Revu also captures video and audio."
 
 [[feature]]
 id = "mark-051"
@@ -2402,6 +2502,8 @@ source = "docs/revu_features/02_markups.md:95"
 status = "have"
 cpp = "missing"
 evidence = ["file_attachments_round_trip_and_export", "snapshots_and_file_attachment_markups_with_capture_summary", "file_attachment_snapshots_and_capture_summary"]
+accepted = ["file_attachments_and_capture_summary"]
+acceptance = "pass"
 notes = "Capture Summary: every File Attachment markup's file saved to a folder with a CSV summary (page, file, size, description, author); no camera capture."
 
 [[feature]]
@@ -2415,6 +2517,8 @@ source = "docs/revu_features/02_markups.md:96"
 status = "have"
 cpp = "have"
 evidence = ["tool_chest_symbol_view_scale_export_and_import", "interactive_stamps_stamp_settings_symbols_and_file_links"]
+accepted = ["tool_set_scale_resizes_symbols", "properties_and_drawing_modes_single_and_double_click"]
+acceptance = "pass"
 notes = "Drawing-mode Tool Chest items are symbols: placed by click, resized to the page scale, shown as tiles in Symbol view; Markup > Add Selection to Tool Chest as Symbol saves the selected markup into a Symbols tool set at its page scale. A symbol is one markup."
 
 [[feature]]
@@ -2428,6 +2532,8 @@ source = "docs/revu_features/02_markups.md:97"
 status = "have"
 cpp = "missing"
 evidence = ["sketch_to_scale_places_typed_lengths", "mark_text_for_redaction_snapshot_content_and_sketch_commands"]
+accepted = ["sketch_to_scale_places_typed_segments"]
+acceptance = "pass"
 notes = "The Sketch to Scale bar while drawing, plus Tools > Sketch commands (Place Typed Segment, Finish Shape, Relative Angles) whose shortcuts can be customized."
 
 [[feature]]
@@ -2441,6 +2547,8 @@ source = "docs/revu_features/02_markups.md:98"
 status = "have"
 cpp = "missing"
 evidence = ["legends_list_subjects_and_follow_edits", "legend_lists_subjects_counts_totals_and_follows_edits"]
+accepted = ["legend_lists_subjects_and_updates"]
+acceptance = "pass"
 notes = "A FreeText legend (/PCLegend) with our own table appearance and the table as /Contents; legend_update recomputes it after edits."
 
 [[feature]]
@@ -2454,6 +2562,8 @@ source = "docs/revu_features/02_markups.md:99"
 status = "have"
 cpp = "missing"
 evidence = ["spaces_add_column_tally_export_import"]
+accepted = ["spaces_name_the_markups_inside"]
+acceptance = "pass"
 notes = "Markups take the name of the space they are in (Space column)."
 
 [[feature]]
@@ -2467,6 +2577,8 @@ source = "docs/revu_features/02_markups.md:100"
 status = "have"
 cpp = "missing"
 evidence = ["dynamic_fill_makes_areas_spaces_and_hatch"]
+accepted = ["dynamic_fill_traces_an_enclosed_room"]
+acceptance = "pass"
 notes = "Headless dynamic_fill (vector linework); no canvas tool yet."
 
 [[feature]]
@@ -2480,6 +2592,8 @@ source = "docs/revu_features/02_markups.md:106"
 status = "have"
 cpp = "have"
 evidence = ["properties_panel_edits_go_through_the_engine", "properties_edit_every_selected_markup"]
+accepted = ["properties_panel_follows_the_selection"]
+acceptance = "pass"
 notes = "General, Appearance, Text, Measurement, Note, Layout and Options sections; page info when nothing is selected."
 
 [[feature]]
@@ -2493,6 +2607,8 @@ source = "docs/revu_features/02_markups.md:107"
 status = "have"
 cpp = "have"
 evidence = ["properties_edit_every_selected_markup"]
+accepted = ["properties_panel_follows_the_selection"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-059"
@@ -2505,6 +2621,8 @@ source = "docs/revu_features/02_markups.md:108"
 status = "have"
 cpp = "partial"
 evidence = ["general_fields_take_typing_as_one_undo_step"]
+accepted = ["general_properties_are_saved"]
+acceptance = "pass"
 notes = "Properties > Subject; typing a word is one undo step."
 
 [[feature]]
@@ -2518,6 +2636,8 @@ source = "docs/revu_features/02_markups.md:109"
 status = "have"
 cpp = "missing"
 evidence = ["general_fields_take_typing_as_one_undo_step"]
+accepted = ["general_properties_are_saved"]
+acceptance = "pass"
 notes = "Properties > Author."
 
 [[feature]]
@@ -2531,6 +2651,8 @@ source = "docs/revu_features/02_markups.md:110"
 status = "have"
 cpp = "missing"
 evidence = ["hidden_and_captionless_markups_save_and_reopen", "general_fields_take_typing_as_one_undo_step"]
+accepted = ["general_properties_are_saved"]
+acceptance = "pass"
 notes = "Properties > Date (modified; Not saved yet for new markups) and Created."
 
 [[feature]]
@@ -2544,6 +2666,8 @@ source = "docs/revu_features/02_markups.md:111"
 status = "have"
 cpp = "partial"
 evidence = ["general_fields_take_typing_as_one_undo_step"]
+accepted = ["general_properties_are_saved"]
+acceptance = "pass"
 notes = "Properties > Label."
 
 [[feature]]
@@ -2557,6 +2681,8 @@ source = "docs/revu_features/02_markups.md:112"
 status = "have"
 cpp = "missing"
 evidence = ["general_fields_take_typing_as_one_undo_step"]
+accepted = ["general_properties_are_saved"]
+acceptance = "pass"
 notes = "Properties > Comments for non-text markups."
 
 [[feature]]
@@ -2570,6 +2696,8 @@ source = "docs/revu_features/02_markups.md:113"
 status = "have"
 cpp = "missing"
 evidence = ["replies_in_properties_and_a_linked_summary"]
+accepted = ["general_properties_are_saved"]
+acceptance = "pass"
 notes = "Properties > General shows the reply count and latest review state; Properties > Replies lists, adds, edits and deletes replies."
 
 [[feature]]
@@ -2583,6 +2711,8 @@ source = "docs/revu_features/02_markups.md:114"
 status = "have"
 cpp = "partial"
 evidence = ["appearance_pickers_change_the_markup", "properties_edit_every_selected_markup"]
+accepted = ["appearance_properties_are_saved"]
+acceptance = "pass"
 notes = "Properties > Color (every selected markup)."
 
 [[feature]]
@@ -2596,6 +2726,8 @@ source = "docs/revu_features/02_markups.md:115"
 status = "have"
 cpp = "missing"
 evidence = ["appearance_pickers_change_the_markup"]
+accepted = ["appearance_properties_are_saved"]
+acceptance = "pass"
 notes = "Properties > Fill on/off and colour, fill opacity."
 
 [[feature]]
@@ -2609,6 +2741,8 @@ source = "docs/revu_features/02_markups.md:116"
 status = "have"
 cpp = "missing"
 evidence = ["appearance_pickers_change_the_markup"]
+accepted = ["appearance_properties_are_saved"]
+acceptance = "pass"
 notes = "Properties > Opacity slider (one undo step per drag, or a typed value)."
 
 [[feature]]
@@ -2622,6 +2756,8 @@ source = "docs/revu_features/02_markups.md:117"
 status = "have"
 cpp = "missing"
 evidence = ["appearance_pickers_change_the_markup"]
+accepted = ["appearance_properties_are_saved"]
+acceptance = "pass"
 notes = "Properties > Fill opacity slider."
 
 [[feature]]
@@ -2635,6 +2771,8 @@ source = "docs/revu_features/02_markups.md:118"
 status = "have"
 cpp = "missing"
 evidence = ["appearance_pickers_change_the_markup"]
+accepted = ["appearance_properties_are_saved"]
+acceptance = "pass"
 notes = "Properties > Line width."
 
 [[feature]]
@@ -2648,6 +2786,8 @@ source = "docs/revu_features/02_markups.md:119"
 status = "have"
 cpp = "missing"
 evidence = ["line_styles_are_valid_dashes"]
+accepted = ["appearance_properties_are_saved"]
+acceptance = "pass"
 notes = "Solid, dashed, dotted, dash dot, long dash."
 
 [[feature]]
@@ -2661,6 +2801,8 @@ source = "docs/revu_features/02_markups.md:120"
 status = "have"
 cpp = "missing"
 evidence = ["line_styles_custom_statuses_and_profile_columns", "sequences_and_dashes"]
+accepted = ["line_style_sets_are_managed_and_shared"]
+acceptance = "pass"
 notes = "Markup > Line Styles...: named dash patterns, listed in Properties > Line style; a set is exported and imported as JSON to share (dash patterns only, no symbol line styles)."
 
 [[feature]]
@@ -2674,6 +2816,8 @@ source = "docs/revu_features/02_markups.md:121"
 status = "have"
 cpp = "missing"
 evidence = ["line_endings_cloud_and_text_style"]
+accepted = ["appearance_properties_are_saved"]
+acceptance = "pass"
 notes = "Properties > Start / End line endings."
 
 [[feature]]
@@ -2687,6 +2831,8 @@ source = "docs/revu_features/02_markups.md:122"
 status = "have"
 cpp = "missing"
 evidence = ["line_endings_cloud_and_text_style"]
+accepted = ["appearance_properties_are_saved"]
+acceptance = "pass"
 notes = "Properties > Cloud intensity."
 
 [[feature]]
@@ -2700,6 +2846,8 @@ source = "docs/revu_features/02_markups.md:123"
 status = "have"
 cpp = "missing"
 evidence = ["appearance_pickers_change_the_markup", "hidden_and_captionless_markups_save_and_reopen"]
+accepted = ["appearance_properties_are_saved"]
+acceptance = "pass"
 notes = "Properties > Blend mode Normal / Multiply (/BM)."
 
 [[feature]]
@@ -2713,6 +2861,8 @@ source = "docs/revu_features/02_markups.md:124"
 status = "have"
 cpp = "missing"
 evidence = ["appearance_pickers_change_the_markup", "hatch_lines_clip_to_the_shape"]
+accepted = ["hatch_patterns_fill_closed_shapes"]
+acceptance = "pass"
 notes = "Properties > Hatch style, spacing and colour on closed shapes; drawn live on the canvas."
 
 [[feature]]
@@ -2726,6 +2876,8 @@ source = "docs/revu_features/02_markups.md:125"
 status = "have"
 cpp = "missing"
 evidence = ["line_endings_cloud_and_text_style", "properties_panel_edits_go_through_the_engine"]
+accepted = ["text_font_properties_are_saved"]
+acceptance = "pass"
 notes = "Properties > Font, size, colour, bold, italic, underline, alignment."
 
 [[feature]]
@@ -2739,6 +2891,8 @@ source = "docs/revu_features/02_markups.md:126"
 status = "have"
 cpp = "missing"
 evidence = ["file_attachment_tool_icon_and_save", "file_attachment_embeds_its_file"]
+accepted = ["file_attachments_and_capture_summary"]
+acceptance = "pass"
 notes = "Properties > Note icon (Comment, Note, Key, Help, ...) and File Attachment icon (PushPin, Paperclip, Graph, Tag). The File Attachment tool (F) embeds the chosen file (/FS /EF); right-click > Save Attached File."
 
 [[feature]]
@@ -2752,6 +2906,8 @@ source = "docs/revu_features/02_markups.md:127"
 status = "have"
 cpp = "missing"
 evidence = ["layout_moves_resizes_and_rotates"]
+accepted = ["layout_position_size_and_rotation"]
+acceptance = "pass"
 notes = "Properties > Layout X, Y in inches from the page corner."
 
 [[feature]]
@@ -2765,6 +2921,8 @@ source = "docs/revu_features/02_markups.md:128"
 status = "have"
 cpp = "missing"
 evidence = ["layout_moves_resizes_and_rotates"]
+accepted = ["layout_position_size_and_rotation"]
+acceptance = "pass"
 notes = "Properties > Layout Width, Height."
 
 [[feature]]
@@ -2778,7 +2936,9 @@ source = "docs/revu_features/02_markups.md:129"
 status = "have"
 cpp = "missing"
 evidence = ["layout_moves_resizes_and_rotates"]
-notes = "Properties > Layout Rotation: quarter turns or any angle (boxes by quarter turns)."
+accepted = ["layout_position_size_and_rotation"]
+acceptance = "gap"
+notes = "Properties > Layout Rotation: quarter turns or any angle (boxes by quarter turns). Acceptance: boxes (rectangle, ellipse, text box, stamp) turn by quarter turns only and other angles are refused; Revu turns any markup to any angle."
 
 [[feature]]
 id = "mark-081"
@@ -2791,6 +2951,8 @@ source = "docs/revu_features/02_markups.md:130"
 status = "have"
 cpp = "missing"
 evidence = ["rotation_handle_turns_a_markup"]
+accepted = ["rotation_handle_turns_the_markup"]
+acceptance = "pass"
 notes = "A handle above the selected markup turns it about its centre; Shift snaps to 15 degrees, rectangles and ellipses turn by quarter turns."
 
 [[feature]]
@@ -2804,6 +2966,8 @@ source = "docs/revu_features/02_markups.md:131"
 status = "have"
 cpp = "missing"
 evidence = ["layers_create_assign_hide_filter_rename_delete"]
+accepted = ["layer_property_puts_a_markup_on_a_layer"]
+acceptance = "pass"
 notes = "Markup layer through layer_assign or the layer field of markup_edit; saved as /OC."
 
 [[feature]]
@@ -2817,6 +2981,8 @@ source = "docs/revu_features/02_markups.md:132"
 status = "have"
 cpp = "have"
 evidence = ["set_as_default_styles_new_markups"]
+accepted = ["set_as_default_and_add_to_tool_chest"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-085"
@@ -2829,6 +2995,8 @@ source = "docs/revu_features/02_markups.md:133"
 status = "have"
 cpp = "have"
 evidence = ["context_menu_saves_a_look_to_the_tool_chest"]
+accepted = ["set_as_default_and_add_to_tool_chest"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-083"
@@ -2841,6 +3009,8 @@ source = "docs/revu_features/02_markups.md:134"
 status = "have"
 cpp = "have"
 evidence = ["extras_columns_status_replies_lock_round_trip", "properties_edit_every_selected_markup"]
+accepted = ["lock_keeps_a_markup_from_changing"]
+acceptance = "pass"
 notes = "Lock flag in the model and file; no UI."
 
 [[feature]]
@@ -2854,6 +3024,8 @@ source = "docs/revu_features/02_markups.md:135"
 status = "have"
 cpp = "partial"
 evidence = ["measurement_caption_depth_and_count_symbol"]
+accepted = ["measurement_properties"]
+acceptance = "pass"
 notes = "Properties > Measurement: value, Show Caption, scale, units, precision, segment values, rise/drop, depth, wall area, circle area, count symbol."
 
 [[feature]]
@@ -2867,6 +3039,8 @@ source = "docs/revu_features/02_markups.md:136"
 status = "have"
 cpp = "have"
 evidence = ["shift_drag_moves_a_caption_alone"]
+accepted = ["shift_drag_moves_a_measurement_caption"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-088"
@@ -2879,6 +3053,8 @@ source = "docs/revu_features/02_markups.md:137"
 status = "have"
 cpp = "have"
 evidence = ["format_painter_copies_a_look"]
+accepted = ["format_painter_copies_the_look"]
+acceptance = "pass"
 notes = "Markup > Format Painter (and right-click): clicks copy the selected markup's look onto other markups until Esc."
 
 [[feature]]
@@ -2892,6 +3068,8 @@ source = "docs/revu_features/02_markups.md:138"
 status = "have"
 cpp = "have"
 evidence = ["align_distribute_and_flip_from_the_keyboard", "align_distribute_flip_and_copy"]
+accepted = ["flip_mirrors_the_selection"]
+acceptance = "pass"
 notes = "Markup > Flip Horizontal (Ctrl+Alt+H) / Vertical (Ctrl+Alt+V) about the selection's centre; text stays readable."
 
 [[feature]]
@@ -2905,6 +3083,8 @@ source = "docs/revu_features/02_markups.md:139"
 status = "have"
 cpp = "missing"
 evidence = ["a_multi_selection_shows_mixed_values_and_sets_them_all", "hidden_and_captionless_markups_save_and_reopen"]
+accepted = ["annotation_flags_hidden_print_no_view"]
+acceptance = "pass"
 notes = "Properties > Options: Print, Hidden, No View (/F); hidden markups are not drawn."
 
 [[feature]]
@@ -2918,6 +3098,8 @@ source = "docs/revu_features/02_markups.md:145"
 status = "have"
 cpp = "have"
 evidence = ["click_selects_drag_moves_delete_and_undo"]
+accepted = ["select_click_shift_box_and_all"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-092"
@@ -2930,6 +3112,8 @@ source = "docs/revu_features/02_markups.md:146"
 status = "have"
 cpp = "have"
 evidence = ["box_select_and_view_commands", "properties_edit_every_selected_markup"]
+accepted = ["select_click_shift_box_and_all"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-093"
@@ -2942,6 +3126,8 @@ source = "docs/revu_features/02_markups.md:147"
 status = "have"
 cpp = "missing"
 evidence = ["eraser_lasso_and_select_text_gestures", "lasso_arcs_cutouts_and_recalculate", "lasso_takes_whole_markups"]
+accepted = ["lasso_selects_markups_inside_the_loop"]
+acceptance = "pass"
 notes = "Lasso (Shift+O): drag a loop; markups wholly inside are selected (Shift or Ctrl adds); select_lasso tool."
 
 [[feature]]
@@ -2955,6 +3141,8 @@ source = "docs/revu_features/02_markups.md:148"
 status = "have"
 cpp = "have"
 evidence = ["engine_commands_and_page_operations"]
+accepted = ["select_click_shift_box_and_all"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-095"
@@ -2967,6 +3155,8 @@ source = "docs/revu_features/02_markups.md:149"
 status = "have"
 cpp = "have"
 evidence = ["engine_commands_and_page_operations", "copy_paste_across_pages_and_groups"]
+accepted = ["clipboard_copy_cut_paste_and_paste_in_place"]
+acceptance = "pass"
 notes = "MarkupCraft clipboard (Ctrl+X/C/V); Ctrl+V pastes at the pointer."
 
 [[feature]]
@@ -2980,6 +3170,8 @@ source = "docs/revu_features/02_markups.md:150"
 status = "have"
 cpp = "have"
 evidence = ["engine_commands_and_page_operations"]
+accepted = ["clipboard_copy_cut_paste_and_paste_in_place"]
+acceptance = "pass"
 notes = "Ctrl+Shift+V."
 
 [[feature]]
@@ -2993,7 +3185,9 @@ source = "docs/revu_features/02_markups.md:151"
 status = "have"
 cpp = "have"
 evidence = ["apply_to_all_pages_and_remove_from_group", "markup_align_aligns_distributes_flips_and_copies_to_pages"]
-notes = "Markup > Apply to All Pages (right-click too); markup_align to_pages copies to chosen pages."
+accepted = ["apply_to_pages_copies_to_the_same_place"]
+acceptance = "gap"
+notes = "Markup > Apply to All Pages (right-click too); markup_align to_pages copies to chosen pages. Acceptance: Apply to All Pages copies at once with no dialog; markup_align to_pages takes a page list or range, but there is no odd / even or portrait / landscape choice."
 
 [[feature]]
 id = "mark-098"
@@ -3006,6 +3200,8 @@ source = "docs/revu_features/02_markups.md:152"
 status = "have"
 cpp = "have"
 evidence = ["ctrl_shift_drag_copies_in_a_straight_line"]
+accepted = ["ctrl_shift_drag_copies_in_a_straight_line"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-099"
@@ -3018,6 +3214,8 @@ source = "docs/revu_features/02_markups.md:153"
 status = "have"
 cpp = "have"
 evidence = ["click_selects_drag_moves_delete_and_undo"]
+accepted = ["delete_undo_redo_and_nudge"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-100"
@@ -3030,6 +3228,8 @@ source = "docs/revu_features/02_markups.md:154"
 status = "have"
 cpp = "have"
 evidence = ["click_selects_drag_moves_delete_and_undo", "polyline_takes_clicks_backspace_and_enter"]
+accepted = ["delete_undo_redo_and_nudge"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-101"
@@ -3042,6 +3242,8 @@ source = "docs/revu_features/02_markups.md:155"
 status = "have"
 cpp = "have"
 evidence = ["arrow_keys_nudge_the_selection", "nudges_are_one_point_or_ten"]
+accepted = ["delete_undo_redo_and_nudge"]
+acceptance = "pass"
 notes = "Arrow keys move the selection 1 point, Shift+arrow 10 points; one undo step per key."
 
 [[feature]]
@@ -3055,7 +3257,9 @@ source = "docs/revu_features/02_markups.md:156"
 status = "have"
 cpp = "have"
 evidence = ["extras_groups_round_trip", "copy_paste_across_pages_and_groups", "cloud_plus_adds_a_cloud_and_its_callout_as_a_group"]
-notes = "Ctrl+G, Markup menu, right-click."
+accepted = ["group_ungroup_and_remove_from_group", "cloud_plus_is_a_cloud_with_a_grouped_callout"]
+acceptance = "fixed"
+notes = "Ctrl+G, Markup menu, right-click. Acceptance: a click on a grouped markup selected only that markup; it now selects the whole group (Remove From Group still works on one markup picked in the Markups List)."
 
 [[feature]]
 id = "mark-103"
@@ -3068,6 +3272,8 @@ source = "docs/revu_features/02_markups.md:157"
 status = "have"
 cpp = "have"
 evidence = ["extras_groups_round_trip", "copy_paste_across_pages_and_groups"]
+accepted = ["group_ungroup_and_remove_from_group"]
+acceptance = "pass"
 notes = "Ctrl+Shift+G, Markup menu, right-click."
 
 [[feature]]
@@ -3081,6 +3287,8 @@ source = "docs/revu_features/02_markups.md:158"
 status = "have"
 cpp = "have"
 evidence = ["apply_to_all_pages_and_remove_from_group", "removing_the_last_but_one_member_ends_the_group"]
+accepted = ["group_ungroup_and_remove_from_group"]
+acceptance = "pass"
 notes = "Markup > Remove From Group (Ctrl+Shift+Alt+G), right-click on a grouped markup."
 
 [[feature]]
@@ -3094,7 +3302,9 @@ source = "docs/revu_features/02_markups.md:159"
 status = "have"
 cpp = "have"
 evidence = ["align_distribute_and_flip_from_the_keyboard", "align_distribute_flip_and_copy", "markup_align_aligns_distributes_flips_and_copies_to_pages"]
-notes = "Markup > Align Left/Center/Right (Ctrl+Alt+L/E/R), right-click > Align; the joint extent of the selection."
+accepted = ["align_and_distribute"]
+acceptance = "gap"
+notes = "Markup > Align Left/Center/Right (Ctrl+Alt+L/E/R), right-click > Align; the joint extent of the selection. Acceptance: markups align to the joint extent of the selection, not to a reference markup as in Revu."
 
 [[feature]]
 id = "mark-106"
@@ -3107,7 +3317,9 @@ source = "docs/revu_features/02_markups.md:160"
 status = "have"
 cpp = "have"
 evidence = ["align_distribute_and_flip_from_the_keyboard", "align_distribute_flip_and_copy"]
-notes = "Markup > Align Top/Middle/Bottom (Ctrl+Alt+T/M/B)."
+accepted = ["align_and_distribute"]
+acceptance = "gap"
+notes = "Markup > Align Top/Middle/Bottom (Ctrl+Alt+T/M/B). Acceptance: markups align to the joint extent of the selection, not to a reference markup as in Revu."
 
 [[feature]]
 id = "mark-107"
@@ -3120,6 +3332,8 @@ source = "docs/revu_features/02_markups.md:161"
 status = "have"
 cpp = "have"
 evidence = ["align_distribute_and_flip_from_the_keyboard", "align_distribute_flip_and_copy"]
+accepted = ["align_and_distribute"]
+acceptance = "pass"
 notes = "Markup > Distribute Horizontally/Vertically: equal gaps between three or more markups."
 
 [[feature]]
@@ -3133,6 +3347,8 @@ source = "docs/revu_features/02_markups.md:162"
 status = "have"
 cpp = "have"
 evidence = ["arrange_and_save_order", "engine_commands_and_page_operations"]
+accepted = ["bring_forward_and_send_back"]
+acceptance = "pass"
 notes = "Ctrl+] / Ctrl+Shift+], right-click > Arrange."
 
 [[feature]]
@@ -3146,6 +3362,8 @@ source = "docs/revu_features/02_markups.md:163"
 status = "have"
 cpp = "have"
 evidence = ["arrange_and_save_order", "engine_commands_and_page_operations"]
+accepted = ["bring_forward_and_send_back"]
+acceptance = "pass"
 notes = "Ctrl+[ / Ctrl+Shift+[, right-click > Arrange."
 
 [[feature]]
@@ -3159,6 +3377,8 @@ source = "docs/revu_features/02_markups.md:164"
 status = "have"
 cpp = "partial"
 evidence = ["perimeter_rise_drop_vertices_and_precision", "cutout_vertices_drag_add_and_delete"]
+accepted = ["edit_vertices"]
+acceptance = "pass"
 notes = "Drag vertices; right-click > Add Vertex / Delete Vertex."
 
 [[feature]]
@@ -3172,6 +3392,8 @@ source = "docs/revu_features/02_markups.md:165"
 status = "have"
 cpp = "missing"
 evidence = ["snap_to_content_lands_on_a_wall_corner", "snap_to_markup_and_grid"]
+accepted = ["snap_to_markup_points_while_drawing"]
+acceptance = "pass"
 notes = "Status bar toggles while drawing and reshaping."
 
 [[feature]]
@@ -3185,6 +3407,8 @@ source = "docs/revu_features/02_markups.md:166"
 status = "have"
 cpp = "missing"
 evidence = ["rulers_crosshair_and_dimmer"]
+accepted = ["grid_and_rulers"]
+acceptance = "pass"
 notes = "View > Rulers (Ctrl+R) and Show Grid (Shift+F9)."
 
 [[feature]]
@@ -3198,7 +3422,9 @@ source = "docs/revu_features/02_markups.md:167"
 status = "have"
 cpp = "partial"
 evidence = ["context_menu_saves_a_look_to_the_tool_chest", "segment_values_toggle_from_the_menu"]
-notes = "Edit text, cut/copy/paste/duplicate/delete, properties, status, checkmark, lock, group, arrange, segment values, caption reset, add/delete vertex, delete cutout, Set as Default, Add to Tool Chest."
+accepted = ["right_click_menu_on_a_markup"]
+acceptance = "gap"
+notes = "Edit text, cut/copy/paste/duplicate/delete, properties, status, checkmark, lock, group, arrange, segment values, caption reset, add/delete vertex, delete cutout, Set as Default, Add to Tool Chest. Acceptance: the markup right-click menu has no Reply, Flip, Edit Action or Flatten (they are in the Markup menu and Properties)."
 
 [[feature]]
 id = "mark-114"
@@ -3211,6 +3437,8 @@ source = "docs/revu_features/02_markups.md:168"
 status = "have"
 cpp = "have"
 evidence = ["hide_markups_hides_them_from_view_only", "hidden_and_captionless_markups_save_and_reopen"]
+accepted = ["hide_markups_from_view"]
+acceptance = "pass"
 notes = "View > Hide Markups hides them from view only; Properties > Hidden sets the PDF Hidden flag."
 
 [[feature]]
@@ -3224,6 +3452,8 @@ source = "docs/revu_features/02_markups.md:174"
 status = "have"
 cpp = "have"
 evidence = ["context_menu_saves_a_look_to_the_tool_chest", "tool_sets_persist_and_reload"]
+accepted = ["tool_chest_sets_and_my_tools_persist"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-116"
@@ -3236,6 +3466,8 @@ source = "docs/revu_features/02_markups.md:175"
 status = "have"
 cpp = "have"
 evidence = ["tool_sets_persist_and_reload"]
+accepted = ["tool_chest_sets_and_my_tools_persist"]
+acceptance = "pass"
 notes = "JSON file in the user configuration folder."
 
 [[feature]]
@@ -3249,6 +3481,8 @@ source = "docs/revu_features/02_markups.md:176"
 status = "have"
 cpp = "have"
 evidence = ["tool_sets_persist_and_reload", "context_menu_saves_a_look_to_the_tool_chest"]
+accepted = ["tool_chest_sets_and_my_tools_persist"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-118"
@@ -3261,6 +3495,8 @@ source = "docs/revu_features/02_markups.md:177"
 status = "have"
 cpp = "have"
 evidence = ["recent_tools_dedupe_and_cap", "context_menu_saves_a_look_to_the_tool_chest"]
+accepted = ["recent_tools_fill_while_drawing"]
+acceptance = "pass"
 notes = "This session only, 12 newest."
 
 [[feature]]
@@ -3274,6 +3510,8 @@ source = "docs/revu_features/02_markups.md:178"
 status = "have"
 cpp = "missing"
 evidence = ["tool_chest_sequence_pin_lock_options_and_update_on_reuse"]
+accepted = ["recent_tools_fill_while_drawing"]
+acceptance = "pass"
 notes = "Tool Chest > Options: how many recent tools are kept, the mode new recent tools take, Clear Recent Tools."
 
 [[feature]]
@@ -3287,6 +3525,8 @@ source = "docs/revu_features/02_markups.md:179"
 status = "have"
 cpp = "have"
 evidence = ["drawing_mode_places_a_copy", "tool_sets_persist_and_reload"]
+accepted = ["properties_and_drawing_modes_single_and_double_click"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-121"
@@ -3299,6 +3539,8 @@ source = "docs/revu_features/02_markups.md:180"
 status = "have"
 cpp = "have"
 evidence = ["reuse_tool_keeps_drawing", "count_adds_items_until_enter"]
+accepted = ["properties_and_drawing_modes_single_and_double_click"]
+acceptance = "pass"
 notes = "Double-click a Tool Chest tool or tick Keep tool selected to keep drawing; Count stays active."
 
 [[feature]]
@@ -3312,6 +3554,8 @@ source = "docs/revu_features/02_markups.md:181"
 status = "have"
 cpp = "have"
 evidence = ["tool_chest_sequence_pin_lock_options_and_update_on_reuse", "tool_chest_symbol_view_scale_export_and_import"]
+accepted = ["manage_tool_sets_and_items"]
+acceptance = "pass"
 notes = "Item right-click: Properties / Drawing mode, Update from Selection (the item takes the selected markup's look), Sequence, move, copy, rename, delete."
 
 [[feature]]
@@ -3325,6 +3569,8 @@ source = "docs/revu_features/02_markups.md:182"
 status = "have"
 cpp = "missing"
 evidence = ["tool_chest_sequence_pin_lock_options_and_update_on_reuse"]
+accepted = ["update_tool_item_on_reuse"]
+acceptance = "pass"
 notes = "Tool Chest > Options > Update Tool Set Item on Reuse: changing the look of a markup drawn from a tool updates that tool."
 
 [[feature]]
@@ -3338,6 +3584,8 @@ source = "docs/revu_features/02_markups.md:183"
 status = "have"
 cpp = "missing"
 evidence = ["tool_chest_sequence_pin_lock_options_and_update_on_reuse"]
+accepted = ["tool_comment_persistence_option"]
+acceptance = "pass"
 notes = "Tool Chest > Options > Keep comments: No, Except text boxes (default) or All markups."
 
 [[feature]]
@@ -3351,6 +3599,8 @@ source = "docs/revu_features/02_markups.md:184"
 status = "have"
 cpp = "partial"
 evidence = ["tool_chest_symbol_view_scale_export_and_import", "reorder_export_import_and_rescale"]
+accepted = ["tool_set_scale_resizes_symbols"]
+acceptance = "pass"
 notes = "Tool set header right-click > Scale; shown beside the set's name."
 
 [[feature]]
@@ -3364,6 +3614,8 @@ source = "docs/revu_features/02_markups.md:185"
 status = "have"
 cpp = "missing"
 evidence = ["tool_chest_symbol_view_scale_export_and_import"]
+accepted = ["symbol_and_detail_views_and_icon_size"]
+acceptance = "pass"
 notes = "Detail (rows) or Symbol (icon tiles) view at the top of the Tool Chest; saved with the chest."
 
 [[feature]]
@@ -3377,6 +3629,8 @@ source = "docs/revu_features/02_markups.md:186"
 status = "have"
 cpp = "missing"
 evidence = ["tool_chest_symbol_view_scale_export_and_import"]
+accepted = ["symbol_and_detail_views_and_icon_size"]
+acceptance = "pass"
 notes = "Symbol view: an icon size slider (16 to 96 points), saved with the chest."
 
 [[feature]]
@@ -3390,6 +3644,8 @@ source = "docs/revu_features/02_markups.md:187"
 status = "have"
 cpp = "partial"
 evidence = ["reorder_export_import_and_rescale"]
+accepted = ["manage_tool_sets_and_items"]
+acceptance = "pass"
 notes = "New, rename, delete, Move Up / Move Down tool sets and items."
 
 [[feature]]
@@ -3403,7 +3659,9 @@ source = "docs/revu_features/02_markups.md:188"
 status = "partial"
 cpp = "partial"
 evidence = ["tool_chest_symbol_view_scale_export_and_import", "reorder_export_import_and_rescale"]
-notes = "Export / Import a tool set as MarkupCraft's own JSON (.mctools), shareable through a shared folder (Add Shared Tool Set). Revu's .btx format has no public specification, so .btx files are not read or written."
+accepted = ["tool_set_export_and_import"]
+acceptance = "gap"
+notes = "Export / Import a tool set as MarkupCraft's own JSON (.mctools), shareable through a shared folder (Add Shared Tool Set). Revu's .btx format has no public specification, so .btx files are not read or written. Acceptance: a set is shared as .mctools only; a Revu .btx file is refused."
 
 [[feature]]
 id = "mark-130"
@@ -3416,6 +3674,8 @@ source = "docs/revu_features/02_markups.md:189"
 status = "have"
 cpp = "missing"
 evidence = ["tool_chest_sequence_pin_lock_options_and_update_on_reuse"]
+accepted = ["pinned_and_collapsed_tool_sets"]
+acceptance = "pass"
 notes = "Tool set right-click > Pin to Toolbar: the set floats as a toolbar of its tools (closing it unpins)."
 
 [[feature]]
@@ -3429,6 +3689,8 @@ source = "docs/revu_features/02_markups.md:190"
 status = "have"
 cpp = "missing"
 evidence = ["collapsed_tool_set_flyout_picks_a_tool"]
+accepted = ["pinned_and_collapsed_tool_sets"]
+acceptance = "pass"
 notes = "A collapsed tool set shows a flyout of its tools next to its header."
 
 [[feature]]
@@ -3442,6 +3704,8 @@ source = "docs/revu_features/02_markups.md:191"
 status = "have"
 cpp = "missing"
 evidence = ["shared_tool_sets_check_out_and_in_through_a_shared_folder"]
+accepted = ["shared_tool_set_check_out_and_in"]
+acceptance = "pass"
 notes = "Tools > Add Shared Tool Set links a .mctools file in a shared (network) folder: read-only until Check Out (the set's right-click menu), which writes <file>.lock naming who has it; others see Checked out by <name> and cannot check it out; Check In writes the set back and unlocks; Refresh reads the shared file again. Lock Tool Set / Unlock also works on any set."
 
 [[feature]]
@@ -3455,6 +3719,8 @@ source = "docs/revu_features/02_markups.md:192"
 status = "have"
 cpp = "missing"
 evidence = ["preferences_profiles_set_switch_export_import"]
+accepted = ["profiles_switch_and_export"]
+acceptance = "pass"
 notes = "Profiles (see ui-100)."
 
 [[feature]]
@@ -3468,6 +3734,8 @@ source = "docs/revu_features/02_markups.md:193"
 status = "have"
 cpp = "missing"
 evidence = ["drag_to_tool_chest_edit_action_and_takeoff_workspace"]
+accepted = ["drag_a_markup_onto_the_tool_chest"]
+acceptance = "pass"
 notes = "Drag selected markups off the page onto the Tool Chest panel: they are added to My Tools (and stay where they were on the page)."
 
 [[feature]]
@@ -3481,6 +3749,8 @@ source = "docs/revu_features/02_markups.md:199"
 status = "have"
 cpp = "missing"
 evidence = ["layers_create_assign_hide_filter_rename_delete", "layers_panel_creates_assigns_hides_and_isolates"]
+accepted = ["layers_create_toggle_isolate_rename_delete"]
+acceptance = "pass"
 notes = "Layers panel (Alt+Y): view, print and lock toggles, counts, new, rename, delete, isolate, show all, assign selected, select markups, flatten; hidden layers are not drawn."
 
 [[feature]]
@@ -3494,6 +3764,8 @@ source = "docs/revu_features/02_markups.md:200"
 status = "have"
 cpp = "missing"
 evidence = ["layers_create_assign_hide_filter_rename_delete", "layers_create_assign_state_save_and_reopen"]
+accepted = ["layers_create_toggle_isolate_rename_delete"]
+acceptance = "pass"
 notes = "layer_set visible: the default configuration's /OFF list. Headless; no panel UI."
 
 [[feature]]
@@ -3507,6 +3779,8 @@ source = "docs/revu_features/02_markups.md:201"
 status = "have"
 cpp = "missing"
 evidence = ["layers_create_assign_hide_filter_rename_delete"]
+accepted = ["layers_create_toggle_isolate_rename_delete"]
+acceptance = "pass"
 notes = "layer_create adds an /OCG to /OCProperties (/OCGs, /D /Order)."
 
 [[feature]]
@@ -3520,6 +3794,8 @@ source = "docs/revu_features/02_markups.md:202"
 status = "have"
 cpp = "missing"
 evidence = ["hierarchy_and_configurations", "layer_hierarchy_configurations_views_import_and_export", "layers_tree_drag_configurations_page_only_preview_import_and_export"]
+accepted = ["layer_hierarchy"]
+acceptance = "pass"
 notes = "Drag a layer onto another to nest it (the /Order tree); Top Level takes it out; layer_nest reorders and nests."
 
 [[feature]]
@@ -3533,7 +3809,9 @@ source = "docs/revu_features/02_markups.md:203"
 status = "have"
 cpp = "missing"
 evidence = ["layers_create_assign_hide_filter_rename_delete", "layers_create_assign_state_save_and_reopen"]
-notes = "layer_assign puts markups on a layer: /OC on each annotation, written on save; the layer is created when new."
+accepted = ["markups_are_put_on_a_layer_after_drawing"]
+acceptance = "gap"
+notes = "layer_assign puts markups on a layer: /OC on each annotation, written on save; the layer is created when new. Acceptance: there is no Markup Layer that new markups are drawn on; markups are put on a layer after drawing."
 
 [[feature]]
 id = "mark-140"
@@ -3546,6 +3824,8 @@ source = "docs/revu_features/02_markups.md:204"
 status = "have"
 cpp = "missing"
 evidence = ["layers_create_assign_hide_filter_rename_delete", "rename_delete_isolate_and_undo"]
+accepted = ["layers_create_toggle_isolate_rename_delete"]
+acceptance = "pass"
 notes = "layer_set isolate: only that layer stays on."
 
 [[feature]]
@@ -3559,6 +3839,8 @@ source = "docs/revu_features/02_markups.md:205"
 status = "have"
 cpp = "missing"
 evidence = ["layers_create_assign_hide_filter_rename_delete", "rename_delete_isolate_and_undo"]
+accepted = ["layers_create_toggle_isolate_rename_delete"]
+acceptance = "pass"
 notes = "layer_set show_all turns every layer on."
 
 [[feature]]
@@ -3572,6 +3854,8 @@ source = "docs/revu_features/02_markups.md:206"
 status = "have"
 cpp = "missing"
 evidence = ["hierarchy_and_configurations", "layer_hierarchy_configurations_views_import_and_export", "layers_tree_drag_configurations_page_only_preview_import_and_export"]
+accepted = ["layer_configurations"]
+acceptance = "pass"
 notes = "Named visibility presets saved in /OCProperties /Configs: save, switch, delete."
 
 [[feature]]
@@ -3585,6 +3869,8 @@ source = "docs/revu_features/02_markups.md:207"
 status = "have"
 cpp = "missing"
 evidence = ["hierarchy_and_configurations", "layer_hierarchy_configurations_views_import_and_export", "layers_tree_drag_configurations_page_only_preview_import_and_export"]
+accepted = ["layer_view_options"]
+acceptance = "pass"
 notes = "Print Layers / Export Layers show only the layers set to print or export (export state per layer); End Preview restores the visibility (the preview is an undoable view change)."
 
 [[feature]]
@@ -3598,6 +3884,8 @@ source = "docs/revu_features/02_markups.md:208"
 status = "have"
 cpp = "missing"
 evidence = ["import_a_page_as_a_layer_and_export_it_alone", "layer_hierarchy_configurations_views_import_and_export", "layers_tree_drag_configurations_page_only_preview_import_and_export"]
+accepted = ["layer_view_options"]
+acceptance = "pass"
 notes = "This page only (layers used by the page's markups and content) and A-Z sorting in the Layers panel."
 
 [[feature]]
@@ -3611,6 +3899,8 @@ source = "docs/revu_features/02_markups.md:209"
 status = "have"
 cpp = "missing"
 evidence = ["layers_create_assign_hide_filter_rename_delete", "rename_delete_isolate_and_undo"]
+accepted = ["layers_create_toggle_isolate_rename_delete"]
+acceptance = "pass"
 notes = "layer_rename (markups follow) and layer_delete (markups left on no layer, or deleted with it). Undoable."
 
 [[feature]]
@@ -3624,6 +3914,8 @@ source = "docs/revu_features/02_markups.md:210"
 status = "have"
 cpp = "missing"
 evidence = ["layers_create_assign_hide_filter_rename_delete", "layers_create_assign_state_save_and_reopen"]
+accepted = ["layers_create_toggle_isolate_rename_delete"]
+acceptance = "pass"
 notes = "Visible, print and locked states (layer_set), saved in the file."
 
 [[feature]]
@@ -3637,6 +3929,8 @@ source = "docs/revu_features/02_markups.md:211"
 status = "have"
 cpp = "missing"
 evidence = ["import_a_page_as_a_layer_and_export_it_alone", "layer_hierarchy_configurations_views_import_and_export", "layers_tree_drag_configurations_page_only_preview_import_and_export"]
+accepted = ["import_and_export_a_layer"]
+acceptance = "pass"
 notes = "Import: a page of another PDF drawn as a new layer; Export: a PDF with only that layer's page content and markups."
 
 [[feature]]
@@ -3650,6 +3944,8 @@ source = "docs/revu_features/02_markups.md:212"
 status = "have"
 cpp = "missing"
 evidence = ["recoverable_flatten_onto_a_layer_and_unflatten", "recoverable_flatten_unflattens_and_hides_from_compare"]
+accepted = ["flatten_and_unflatten"]
+acceptance = "pass"
 notes = "Flatten markups of chosen layers onto a layer (recoverable), and Unflatten restores them (by page)."
 
 [[feature]]
@@ -3663,6 +3959,8 @@ source = "docs/revu_features/02_markups.md:218"
 status = "have"
 cpp = "have"
 evidence = ["list_default_columns_in_revu_order", "cli_list_and_summary_end_to_end", "markups_list_shows_totals_and_status", "clicking_a_list_row_selects_its_markup", "export_writes_the_list_with_totals"]
+accepted = ["markups_list_panel_and_row_selection"]
+acceptance = "pass"
 notes = "On the model table: columns, group by, filters, search, scope, totals row and footer, status and checkmark cells, inline edits, export."
 
 [[feature]]
@@ -3676,6 +3974,8 @@ source = "docs/revu_features/02_markups.md:219"
 status = "have"
 cpp = "have"
 evidence = ["list_cells_formula_choice_currency_status", "drag_to_tool_chest_edit_action_and_takeoff_workspace"]
+accepted = ["standard_columns"]
+acceptance = "pass"
 notes = "Subject, Label, Page Label, Page Index, Author, Date, Creation Date, Color, Comments, Layer, Space, Markup ID, Sequence (the number a sequence tool gave the label)."
 
 [[feature]]
@@ -3689,6 +3989,8 @@ source = "docs/revu_features/02_markups.md:220"
 status = "have"
 cpp = "partial"
 evidence = ["list_wall_area_slope_and_geometry_columns"]
+accepted = ["standard_columns"]
+acceptance = "pass"
 notes = "Measurement, Length, Area, Perimeter, Wall Area, Volume, Count, Depth, Width, Height, Rise/Drop, Slope, Unit."
 
 [[feature]]
@@ -3702,6 +4004,8 @@ source = "docs/revu_features/02_markups.md:221"
 status = "have"
 cpp = "missing"
 evidence = ["list_wall_area_slope_and_geometry_columns"]
+accepted = ["standard_columns"]
+acceptance = "pass"
 notes = "X, Y, X Center, Y Center (the markup's extent, inches from the page's lower-left corner), Document Width and Height (the page, inches)."
 
 [[feature]]
@@ -3715,6 +4019,8 @@ source = "docs/revu_features/02_markups.md:222"
 status = "have"
 cpp = "partial"
 evidence = ["toolset_legend_and_review_columns_capture_legend_3d_view"]
+accepted = ["standard_columns"]
+acceptance = "pass"
 notes = "Status, Checkmark, Lock, Capture (the file a File Attachment captured), Legend (a legend markup) and 3D View columns. MarkupCraft makes no 3D views, so the 3D View column stays empty."
 
 [[feature]]
@@ -3728,6 +4034,8 @@ source = "docs/revu_features/02_markups.md:223"
 status = "have"
 cpp = "have"
 evidence = ["list_filters_dim_the_page_display_options_and_columns", "markups_list_saves_views_and_copies_rows"]
+accepted = ["show_hide_and_manage_columns"]
+acceptance = "pass"
 notes = "The Columns menu (and the header right-click) shows or hides any column."
 
 [[feature]]
@@ -3741,6 +4049,8 @@ source = "docs/revu_features/02_markups.md:224"
 status = "have"
 cpp = "have"
 evidence = ["extras_columns_status_replies_lock_round_trip", "cells_and_custom_columns", "custom_columns_and_cells"]
+accepted = ["show_hide_and_manage_columns"]
+acceptance = "pass"
 notes = "Manage Columns window: name, type, decimals, total, formula, choices."
 
 [[feature]]
@@ -3754,7 +4064,9 @@ source = "docs/revu_features/02_markups.md:225"
 status = "have"
 cpp = "have"
 evidence = ["list_custom_column_types"]
-notes = "Default value; no multiline wrap."
+accepted = ["custom_columns_and_formula_totals"]
+acceptance = "fixed"
+notes = "Default value; no multiline wrap. Acceptance: columns_set dropped choice items given as {item, subject, value} and had no default value or date format; it now takes them (and its formula example now brackets a name with spaces)."
 
 [[feature]]
 id = "mark-157"
@@ -3767,6 +4079,8 @@ source = "docs/revu_features/02_markups.md:226"
 status = "have"
 cpp = "have"
 evidence = ["list_custom_column_types", "list_cells_formula_choice_currency_status"]
+accepted = ["custom_columns_and_formula_totals"]
+acceptance = "pass"
 notes = "Number, Currency, Percent; decimals, symbol, default; no min/max."
 
 [[feature]]
@@ -3780,6 +4094,8 @@ source = "docs/revu_features/02_markups.md:227"
 status = "have"
 cpp = "partial"
 evidence = ["list_formula_display_and_date_formats", "extras_columns_status_replies_lock_round_trip"]
+accepted = ["custom_columns_and_formula_totals"]
+acceptance = "pass"
 notes = "Manage Columns: a Date column's format (yyyy-MM-dd, MM/dd/yyyy, dd/MM/yyyy, MMM d, yyyy) and default none, current date (the markup's creation date) or typed text."
 
 [[feature]]
@@ -3793,6 +4109,8 @@ source = "docs/revu_features/02_markups.md:228"
 status = "have"
 cpp = "have"
 evidence = ["list_custom_column_types"]
+accepted = ["custom_columns_and_formula_totals"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-160"
@@ -3805,7 +4123,9 @@ source = "docs/revu_features/02_markups.md:229"
 status = "have"
 cpp = "have"
 evidence = ["line_styles_custom_statuses_and_profile_columns", "list_cells_formula_choice_currency_status"]
-notes = "Choice items with a subject and a value, custom text, and Import... from CSV (item, subject, value)."
+accepted = ["custom_columns_and_formula_totals"]
+acceptance = "fixed"
+notes = "Choice items with a subject and a value, custom text, and Import... from CSV (item, subject, value). Acceptance: columns_set dropped choice items given as {item, subject, value} and had no default value or date format; it now takes them (and its formula example now brackets a name with spaces)."
 
 [[feature]]
 id = "mark-161"
@@ -3818,6 +4138,8 @@ source = "docs/revu_features/02_markups.md:230"
 status = "have"
 cpp = "have"
 evidence = ["formula_functions_and_constants", "list_cells_formula_choice_currency_status", "list_formula_errors_and_blanks"]
+accepted = ["custom_columns_and_formula_totals"]
+acceptance = "pass"
 notes = "Errors (unknown column, division by zero, circular) show as #ERR, never crash."
 
 [[feature]]
@@ -3831,6 +4153,8 @@ source = "docs/revu_features/02_markups.md:231"
 status = "have"
 cpp = "have"
 evidence = ["list_group_sort_and_totals_per_unit", "cli_list_and_summary_end_to_end"]
+accepted = ["custom_columns_and_formula_totals"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-163"
@@ -3843,6 +4167,8 @@ source = "docs/revu_features/02_markups.md:232"
 status = "have"
 cpp = "partial"
 evidence = ["profile_columns_every_document_takeoff_profile_and_toolset_legend"]
+accepted = ["custom_columns_saved_to_the_profile"]
+acceptance = "pass"
 notes = "Manage Columns > Save to Profile keeps column definitions; Markup > Profile Columns lists them, deletes them from the profile, adds them to this document, or to every document opened; column layouts are saved by name."
 
 [[feature]]
@@ -3856,6 +4182,8 @@ source = "docs/revu_features/02_markups.md:233"
 status = "have"
 cpp = "have"
 evidence = ["list_group_sort_and_totals_per_unit"]
+accepted = ["sort_group_filter_and_search"]
+acceptance = "pass"
 notes = "Secondary sort by creation date, then file order; headless."
 
 [[feature]]
@@ -3869,6 +4197,8 @@ source = "docs/revu_features/02_markups.md:234"
 status = "have"
 cpp = "have"
 evidence = ["list_group_sort_and_totals_per_unit", "cli_list_and_summary_end_to_end"]
+accepted = ["sort_group_filter_and_search"]
+acceptance = "pass"
 notes = "Any column, nested, subtotals per unit; headless."
 
 [[feature]]
@@ -3882,6 +4212,8 @@ source = "docs/revu_features/02_markups.md:235"
 status = "have"
 cpp = "partial"
 evidence = ["list_filters_dim_the_page_display_options_and_columns"]
+accepted = ["sort_group_filter_and_search"]
+acceptance = "pass"
 notes = "Header right-click > Filter by values, and the search box; markups the filters leave out are drawn faded on the page."
 
 [[feature]]
@@ -3895,6 +4227,8 @@ source = "docs/revu_features/02_markups.md:236"
 status = "have"
 cpp = "have"
 evidence = ["list_filters_search_and_scope"]
+accepted = ["sort_group_filter_and_search"]
+acceptance = "pass"
 notes = "Headless quick search over the shown columns."
 
 [[feature]]
@@ -3908,6 +4242,8 @@ source = "docs/revu_features/02_markups.md:237"
 status = "have"
 cpp = "missing"
 evidence = ["markups_list_saves_views_and_copies_rows", "views_and_widths_persist"]
+accepted = ["saved_list_views"]
+acceptance = "pass"
 notes = "Markups List > Views: save the current columns, sort, grouping, filters and search under a name; apply or delete saved views; kept in the settings folder."
 
 [[feature]]
@@ -3921,6 +4257,8 @@ source = "docs/revu_features/02_markups.md:238"
 status = "have"
 cpp = "have"
 evidence = ["list_set_cell_validates_input", "cells_and_custom_columns", "custom_columns_and_cells"]
+accepted = ["cells_status_checkmark_and_replies"]
+acceptance = "pass"
 notes = "Double-click a Subject, Label, Comments or custom cell to type; status and choice cells are menus; list_cell_set does the same headlessly."
 
 [[feature]]
@@ -3934,6 +4272,8 @@ source = "docs/revu_features/02_markups.md:239"
 status = "have"
 cpp = "have"
 evidence = ["extras_columns_status_replies_lock_round_trip"]
+accepted = ["cells_status_checkmark_and_replies"]
+acceptance = "pass"
 notes = "None/Accepted/Rejected/Cancelled/Completed as /StateModel /Review replies (ISO 32000-1 12.5.6.4); no custom status sets."
 
 [[feature]]
@@ -3947,6 +4287,8 @@ source = "docs/revu_features/02_markups.md:240"
 status = "have"
 cpp = "have"
 evidence = ["extras_columns_status_replies_lock_round_trip"]
+accepted = ["cells_status_checkmark_and_replies"]
+acceptance = "pass"
 notes = "/StateModel /Marked replies."
 
 [[feature]]
@@ -3960,6 +4302,8 @@ source = "docs/revu_features/02_markups.md:241"
 status = "have"
 cpp = "partial"
 evidence = ["replies_in_properties_and_a_linked_summary", "replies_and_a_linked_summary", "extras_columns_status_replies_lock_round_trip"]
+accepted = ["cells_status_checkmark_and_replies"]
+acceptance = "pass"
 notes = "Replies (/IRT) read, listed (Replies column), added, edited and deleted in Properties > Replies (markup_reply tool); replies to replies are read into the markup's one thread."
 
 [[feature]]
@@ -3973,6 +4317,8 @@ source = "docs/revu_features/02_markups.md:242"
 status = "have"
 cpp = "have"
 evidence = ["clicking_a_list_row_selects_its_markup"]
+accepted = ["markups_list_panel_and_row_selection"]
+acceptance = "pass"
 notes = "Clicking a row selects the markup and brings it into view."
 
 [[feature]]
@@ -3986,6 +4332,8 @@ source = "docs/revu_features/02_markups.md:243"
 status = "have"
 cpp = "have"
 evidence = ["markups_list_saves_views_and_copies_rows"]
+accepted = ["copy_rows_as_tab_separated_text"]
+acceptance = "pass"
 notes = "Row right-click > Copy Rows: the selected markups' visible cells as tab-separated text."
 
 [[feature]]
@@ -3999,6 +4347,8 @@ source = "docs/revu_features/02_markups.md:244"
 status = "have"
 cpp = "have"
 evidence = ["csv_summary_with_groups_and_totals", "cli_list_and_summary_end_to_end", "cli: summary"]
+accepted = ["summary_csv_xml_pdf_and_appended_links"]
+acceptance = "pass"
 notes = "Visible columns, filters, grouping, totals; spreadsheet-safe."
 
 [[feature]]
@@ -4012,6 +4362,8 @@ source = "docs/revu_features/02_markups.md:245"
 status = "have"
 cpp = "have"
 evidence = ["csv_summary_with_groups_and_totals", "cli: summary"]
+accepted = ["summary_csv_xml_pdf_and_appended_links"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-177"
@@ -4024,6 +4376,8 @@ source = "docs/revu_features/02_markups.md:246"
 status = "have"
 cpp = "partial"
 evidence = ["markup_summary_writes_excel_pdf_and_csv"]
+accepted = ["summary_csv_xml_pdf_and_appended_links"]
+acceptance = "pass"
 notes = "Markup Summary as a PDF report."
 
 [[feature]]
@@ -4037,6 +4391,8 @@ source = "docs/revu_features/02_markups.md:247"
 status = "have"
 cpp = "missing"
 evidence = ["summary_appended_links_each_row_to_its_page", "replies_and_a_linked_summary", "replies_in_properties_and_a_linked_summary"]
+accepted = ["summary_csv_xml_pdf_and_appended_links"]
+acceptance = "pass"
 notes = "Markup > Append Summary with Links (also in the Markups List Export menu): summary pages at the end of the document, each row a link to its markup's page; one undo step."
 
 [[feature]]
@@ -4050,6 +4406,8 @@ source = "docs/revu_features/02_markups.md:248"
 status = "have"
 cpp = "have"
 evidence = ["import_and_export_markups_as_xfdf", "unflatten_after_save_and_import_markups_from_a_pdf"]
+accepted = ["import_and_export_markups"]
+acceptance = "pass"
 notes = "Markup > Import Markups (Ctrl+F3): from another PDF (same page numbers, new annotations with their look, subject and status; kinds MarkupCraft cannot write and snapshots skipped) or XFDF / FDF (same /NM replaces). No BAX; Revu-only keys are not carried by XFDF."
 
 [[feature]]
@@ -4063,7 +4421,9 @@ source = "docs/revu_features/02_markups.md:249"
 status = "have"
 cpp = "missing"
 evidence = ["import_and_export_markups_as_xfdf"]
-notes = "Markup > Export Markups (Ctrl+F2): every markup to XFDF or FDF (pdfcraft-xfdf); Revu's BAX is not written and Revu-only keys (measurements) are not carried."
+accepted = ["import_and_export_markups"]
+acceptance = "gap"
+notes = "Markup > Export Markups (Ctrl+F2): every markup to XFDF or FDF (pdfcraft-xfdf); Revu's BAX is not written and Revu-only keys (measurements) are not carried. Acceptance: XFDF / FDF only; Revu's BAX is not written."
 
 [[feature]]
 id = "mark-181"
@@ -4076,6 +4436,8 @@ source = "docs/revu_features/02_markups.md:250"
 status = "have"
 cpp = "partial"
 evidence = ["flatten_markups_by_filter"]
+accepted = ["flatten_and_unflatten"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. markup_flatten by ids (the selection), pages, kinds, layers, authors."
 
 [[feature]]
@@ -4089,6 +4451,8 @@ source = "docs/revu_features/02_markups.md:251"
 status = "have"
 cpp = "missing"
 evidence = ["unflatten_brings_back_what_flatten_burned_in", "unflatten_after_save_and_import_markups_from_a_pdf"]
+accepted = ["flatten_and_unflatten"]
+acceptance = "pass"
 notes = "Document > Unflatten (Ctrl+Shift+U): markups MarkupCraft flattened come back as annotations, also after a save (Flatten keeps each one's dictionary and the streams it added on the page, /PCFlattened); their pop-ups and replies do not come back. Content another program flattened cannot be unflattened."
 
 [[feature]]
@@ -4102,6 +4466,8 @@ source = "docs/revu_features/02_markups.md:252"
 status = "have"
 cpp = "have"
 evidence = ["markups_list_row_menu_layer_legend_lock_and_delete"]
+accepted = ["lock_keeps_a_markup_from_changing", "markups_list_row_menu"]
+acceptance = "pass"
 notes = "Markups List row right-click > Lock / Unlock (the /F Locked flag)."
 
 [[feature]]
@@ -4115,6 +4481,8 @@ source = "docs/revu_features/02_markups.md:253"
 status = "have"
 cpp = "missing"
 evidence = ["markups_list_row_menu_layer_legend_lock_and_delete"]
+accepted = ["markups_list_row_menu"]
+acceptance = "pass"
 notes = "Markups List row right-click > Layer > a layer or None."
 
 [[feature]]
@@ -4128,6 +4496,8 @@ source = "docs/revu_features/02_markups.md:254"
 status = "have"
 cpp = "missing"
 evidence = ["markups_list_row_menu_layer_legend_lock_and_delete"]
+accepted = ["markups_list_row_menu", "legend_lists_subjects_and_updates"]
+acceptance = "pass"
 notes = "Markups List row right-click > Create Legend: a legend of the selected rows' subjects at the page's top left (the whole document when they span pages)."
 
 [[feature]]
@@ -4141,6 +4511,8 @@ source = "docs/revu_features/02_markups.md:255"
 status = "have"
 cpp = "have"
 evidence = ["markups_list_row_menu_layer_legend_lock_and_delete"]
+accepted = ["markups_list_row_menu"]
+acceptance = "pass"
 notes = "Markups List row right-click > Properties."
 
 [[feature]]
@@ -4154,6 +4526,8 @@ source = "docs/revu_features/02_markups.md:256"
 status = "have"
 cpp = "have"
 evidence = ["markups_list_row_menu_layer_legend_lock_and_delete"]
+accepted = ["markups_list_row_menu"]
+acceptance = "pass"
 notes = "Markups List row right-click > Delete."
 
 [[feature]]
@@ -4167,6 +4541,8 @@ source = "docs/revu_features/02_markups.md:262"
 status = "have"
 cpp = "have"
 evidence = ["length_and_polylength_measure", "area_shows_its_value_and_finishes_on_double_click", "count_adds_items_until_enter"]
+accepted = ["measurement_tools_on_their_shortcuts"]
+acceptance = "pass"
 
 [[feature]]
 id = "mark-189"
@@ -4179,6 +4555,8 @@ source = "docs/revu_features/02_markups.md:263"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound", "angle_diameter_and_radius_tools_measure", "volume_and_area_by_rectangle"]
+accepted = ["measurement_tools_on_their_shortcuts"]
+acceptance = "pass"
 notes = "Angle, Radius, Diameter and Volume tools on Shift+Alt+G / U / D / V."
 
 [[feature]]
@@ -4192,7 +4570,9 @@ source = "docs/revu_features/02_markups.md:264"
 status = "have"
 cpp = "partial"
 evidence = ["measure_tool_switches_modes_and_recalculates", "revu_markup_measure_and_selection_shortcuts_are_bound"]
-notes = "Measure (M) opens the Measurements panel in the last measurement mode; the panel's mode row switches Length, Polylength, Area, Perimeter, Count, Volume, Angle, Diameter, Radius."
+accepted = ["measure_key_opens_the_measurements_panel"]
+acceptance = "fixed"
+notes = "Measure (M) opens the Measurements panel in the last measurement mode; the panel's mode row switches Length, Polylength, Area, Perimeter, Count, Volume, Angle, Diameter, Radius. Acceptance: M came back to the mode last picked in the panel, not the measurement last used from its shortcut; any measurement tool now sets it."
 
 [[feature]]
 id = "mark-191"
@@ -4205,6 +4585,8 @@ source = "docs/revu_features/02_markups.md:270"
 status = "have"
 cpp = "missing"
 evidence = ["keyboard_shortcuts_can_be_changed", "parse_assign_and_round_trip"]
+accepted = ["custom_keyboard_shortcuts"]
+acceptance = "pass"
 notes = "Tools > Customize Keyboard: any command, tool or panel gets new keys (press them), Clear, Reset, Reset All, Import / Export; saved in keyboard.json; menus show the user's keys."
 
 [[feature]]
@@ -4218,6 +4600,8 @@ source = "docs/revu_features/02_markups.md:271"
 status = "have"
 cpp = "missing"
 evidence = ["note_pop_ups_open_and_show_or_hide", "list_filters_dim_the_page_display_options_and_columns"]
+accepted = ["markup_display_preferences"]
+acceptance = "pass"
 notes = "View > Note Pop-ups (open note pop-ups drawn on the page; Properties > Pop-up open), Rollover Comments (a markup's subject and comments under the pointer) and Line Weights (off: hairlines at every zoom)."
 
 [[feature]]

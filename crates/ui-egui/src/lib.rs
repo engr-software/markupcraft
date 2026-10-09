@@ -720,6 +720,13 @@ impl AppState {
             self.apply_canvas_out(out);
         }
         self.tool = id;
+        // Measure (M) comes back to the measurement used last, however it was picked.
+        if matches!(
+            id,
+            "length" | "polylength" | "area" | "perimeter" | "count" | "volume" | "angle" | "diameter" | "radius"
+        ) {
+            self.edit.more.measure_tool = id;
+        }
         if self
             .active_item
             .as_ref()

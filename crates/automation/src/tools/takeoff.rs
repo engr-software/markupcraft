@@ -129,14 +129,41 @@ fn column_of(v: &Value, existing: &[CustomColumn]) -> Result<CustomColumn> {
         c.allow_custom = ac;
     }
     if let Some(items) = v["items"].as_array() {
-        c.items = items
-            .iter()
-            .filter_map(Value::as_str)
-            .map(|t| ChoiceItem {
-                text: t.to_string(),
-                ..Default::default()
-            })
-            .collect();
+        // A choice is its text, or {item, subject, value} (the item offered for that subject,
+        // with the number formulas use).
+        let mut out = Vec::with_capacity(items.len());
+        for it in items {
+            let item = match it {
+                Value::String(t) => ChoiceItem {
+                    text: t.to_string(),
+                    ..Default::default()
+                },
+                Value::Object(_) => ChoiceItem {
+                    text: it["item"]
+                        .as_str()
+                        .or_else(|| it["text"].as_str())
+                        .ok_or_else(|| bad_args("a choice item needs its item text"))?
+                        .to_string(),
+                    subject: it["subject"].as_str().unwrap_or_default().to_string(),
+                    value: it["value"].as_f64().filter(|x| x.is_finite()),
+                },
+                _ => return Err(bad_args("choice items are text or {item, subject, value}")),
+            };
+            out.push(item);
+        }
+        c.items = out;
+    }
+    if let Some(d) = v["default"].as_str() {
+        c.default_value = d.to_string();
+    }
+    if let Some(f) = v["date_format"].as_str() {
+        if !markupcraft_model::columns::DATE_FORMATS.contains(&f) {
+            return Err(bad_args(format!(
+                "date_format {f:?} is not one of {:?}",
+                markupcraft_model::columns::DATE_FORMATS
+            )));
+        }
+        c.date_format = f.to_string();
     }
     Ok(c)
 }
@@ -144,7 +171,7 @@ fn column_of(v: &Value, existing: &[CustomColumn]) -> Result<CustomColumn> {
 pub static COLUMNS_SET: Tool = Tool {
     name: "columns_set",
     title: "Set the custom columns",
-    description: "Replace the document's Markups List custom columns (the Manage Columns dialog). Each column: name, type (Text, Number, Currency, Percent, Date, Choice, Formula, Checkmark), and optionally id, decimals, total, formula (e.g. \"Measurement * Unit Cost\"), symbol, items (choices), allow_custom. Values already on markups are kept. Undoable.",
+    description: "Replace the document's Markups List custom columns (the Manage Columns dialog). Each column: name, type (Text, Number, Currency, Percent, Date, Choice, Formula, Checkmark), and optionally id, decimals, total, formula (e.g. \"Measurement * [Unit Cost]\"; a column name with spaces goes in brackets), symbol, items (choices: text, or {item, subject, value}), allow_custom, default (the value new markups get), date_format. Values already on markups are kept. Undoable.",
     read_only: false,
     destructive: true,
     schema: || {

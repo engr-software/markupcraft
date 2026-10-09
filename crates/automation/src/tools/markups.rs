@@ -87,6 +87,16 @@ pub static ADD: Tool = Tool {
         if kind.is_measurement() {
             m.line_width = 2.0;
         }
+        // The arrowheads the drawing tools give these kinds (an Arrow without a head is a Line).
+        match kind {
+            markupcraft_model::Kind::Arrow => m.line_start = "OpenArrow".into(),
+            markupcraft_model::Kind::Dimension => {
+                m.line_start = "OpenArrow".into();
+                m.line_end = "OpenArrow".into();
+            }
+            markupcraft_model::Kind::Callout => m.line_end = "OpenArrow".into(),
+            _ => {}
+        }
         let locked = patch.locked;
         let mut p = patch.clone();
         p.locked = None;
