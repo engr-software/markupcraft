@@ -231,6 +231,19 @@ pub fn follow_target(app: &mut AppState, t: &LinkTarget, ctx: &egui::Context) {
             if let Some(d) = app.doc_mut() {
                 let n = d.session.page_count();
                 d.view.go_to_page(*p, n);
+                // The target's zoom: fit page / fit width / actual size (inherit keeps it).
+                match t {
+                    LinkTarget::Zoomed {
+                        zoom: Zoom::FitWidth, ..
+                    } => d.view.set_fit(crate::canvas::Fit::Width),
+                    LinkTarget::Zoomed {
+                        zoom: Zoom::FitPage, ..
+                    } => d.view.set_fit(crate::canvas::Fit::Page),
+                    _ => {}
+                }
+            }
+            if matches!(t, LinkTarget::Zoomed { zoom: Zoom::Actual, .. }) {
+                app.set_zoom(1.0, ctx);
             }
         }
         LinkTarget::View { page, rect } => show_view(app, *page, *rect, ctx),

@@ -265,6 +265,30 @@ pub fn track_session(app: &mut AppState) {
         }
         app.shell.recent.last_session = open;
         persist(app);
+        return;
+    }
+    // A page or layout change in an open file is remembered too, so exiting the app (which
+    // closes no tab one by one) reopens each file where it was. Zoom alone does not write.
+    let stale: Vec<u64> = app
+        .docs
+        .iter()
+        .filter(|d| {
+            d.path.as_ref().is_some_and(|p| {
+                app.shell
+                    .recent
+                    .files
+                    .iter()
+                    .find(|f| &f.path == p)
+                    .is_some_and(|f| f.page != d.view.current || f.mode != mode_name(d.view.mode))
+            })
+        })
+        .map(|d| d.uid)
+        .collect();
+    if !stale.is_empty() {
+        for u in stale {
+            closing_view_only(app, u);
+        }
+        persist(app);
     }
 }
 

@@ -4231,6 +4231,8 @@ source = "docs/revu_features/03_documents.md:89"
 status = "have"
 cpp = "have"
 evidence = ["document_tabs_cycle_close_others_close_all_and_save_all", "recent_files_reopen_at_the_last_page_and_pin", "cli: list"]
+accepted = ["open_several_pdfs_into_tabs_cycle_and_close"]
+acceptance = "pass"
 notes = "File > Open takes several PDFs, each in its own tab; a file already open is brought forward."
 
 [[feature]]
@@ -4244,6 +4246,8 @@ source = "docs/revu_features/03_documents.md:90"
 status = "have"
 cpp = "missing"
 evidence = ["gif_and_multi_page_tiff_open_and_export", "gif_multi_page_tiff_office_dxf_and_one_pdf_per_source", "gif_round_trip_and_multi_page_tiff"]
+accepted = ["images_open_as_pdf_pages"]
+acceptance = "pass"
 notes = "File > Open (and drops) convert PNG, JPEG, BMP, GIF (first frame) and TIFF (every page of a multi-page TIFF) to PDF pages at the declared resolution (engine docfile + finish::imaging, tool doc_from_image)."
 
 [[feature]]
@@ -4257,6 +4261,8 @@ source = "docs/revu_features/03_documents.md:91"
 status = "have"
 cpp = "have"
 evidence = ["dropped_files_open_in_tabs_pan_tool_and_fit_width_lock"]
+accepted = ["dropping_files_on_the_workspace_opens_them", "files_dropped_on_thumbnails_are_inserted"]
+acceptance = "pass"
 notes = "Dropping PDFs on the window opens each in its own tab (an open one comes forward); dropping on Thumbnails is not built."
 
 [[feature]]
@@ -4270,6 +4276,8 @@ source = "docs/revu_features/03_documents.md:92"
 status = "have"
 cpp = "have"
 evidence = ["document_tabs_cycle_close_others_close_all_and_save_all"]
+accepted = ["open_several_pdfs_into_tabs_cycle_and_close"]
+acceptance = "pass"
 notes = "One tab per open file over the workspace; drag a tab to reorder; right-click for Close, Close Others, Close All, Save, Open in Split View, Copy Path."
 
 [[feature]]
@@ -4283,6 +4291,8 @@ source = "docs/revu_features/03_documents.md:93"
 status = "have"
 cpp = "have"
 evidence = ["document_tabs_cycle_close_others_close_all_and_save_all"]
+accepted = ["open_several_pdfs_into_tabs_cycle_and_close"]
+acceptance = "pass"
 notes = "Ctrl+Tab / Ctrl+Shift+Tab."
 
 [[feature]]
@@ -4296,6 +4306,8 @@ source = "docs/revu_features/03_documents.md:94"
 status = "have"
 cpp = "have"
 evidence = ["document_tabs_cycle_close_others_close_all_and_save_all"]
+accepted = ["open_several_pdfs_into_tabs_cycle_and_close"]
+acceptance = "pass"
 notes = "File > Close (Ctrl+F4), Close Others, Close All (Ctrl+Shift+W); unsaved documents ask first."
 
 [[feature]]
@@ -4309,6 +4321,8 @@ source = "docs/revu_features/03_documents.md:95"
 status = "have"
 cpp = "have"
 evidence = ["document_tabs_cycle_close_others_close_all_and_save_all", "saves_and_reopens_an_edit", "cli: resave"]
+accepted = ["save_save_as_and_save_all_write_the_files"]
+acceptance = "pass"
 notes = "Save (Ctrl+S) and Save As (Ctrl+Shift+S)."
 
 [[feature]]
@@ -4322,6 +4336,8 @@ source = "docs/revu_features/03_documents.md:96"
 status = "have"
 cpp = "have"
 evidence = ["document_tabs_cycle_close_others_close_all_and_save_all"]
+accepted = ["save_save_as_and_save_all_write_the_files"]
+acceptance = "pass"
 notes = "File > Save All (Shift+F2): every edited file; Save As for untitled ones."
 
 [[feature]]
@@ -4335,6 +4351,8 @@ source = "docs/revu_features/03_documents.md:97"
 status = "have"
 cpp = "missing"
 evidence = ["tab_names_truncate_at_either_end", "preferences_dialog_applies_and_persists"]
+accepted = ["long_tab_names_are_truncated_from_start_or_end"]
+acceptance = "pass"
 notes = "Preferences > General: longest tab name and cut at the end or the start; full path on hover."
 
 [[feature]]
@@ -4348,6 +4366,8 @@ source = "docs/revu_features/03_documents.md:98"
 status = "have"
 cpp = "have"
 evidence = ["recent_files_reopen_at_the_last_page_and_pin"]
+accepted = ["last_session_reopens_and_files_reopen_at_their_last_page"]
+acceptance = "pass"
 notes = "Preferences > General: reopen the files that were open last time (on by default)."
 
 [[feature]]
@@ -4361,6 +4381,8 @@ source = "docs/revu_features/03_documents.md:99"
 status = "have"
 cpp = "missing"
 evidence = ["scrollbars_snap_targets_and_startup_preferences", "recent_files_reopen_at_the_last_page_and_pin"]
+accepted = ["startup_file_and_startup_mode_apply_at_launch"]
+acceptance = "pass"
 notes = "Preferences > General: start in last used / markup / view mode, a PDF to open on start, full screen, reopen last session, recent files on the start page."
 
 [[feature]]
@@ -4374,6 +4396,8 @@ source = "docs/revu_features/03_documents.md:100"
 status = "have"
 cpp = "have"
 evidence = ["recent_files_reopen_at_the_last_page_and_pin"]
+accepted = ["last_session_reopens_and_files_reopen_at_their_last_page"]
+acceptance = "fixed"
 notes = "Each file reopens at its page, zoom and page layout (preference)."
 
 [[feature]]
@@ -4387,6 +4411,8 @@ source = "docs/revu_features/03_documents.md:101"
 status = "have"
 cpp = "have"
 evidence = ["document_recovery_writes_copies_and_offers_them_back"]
+accepted = ["unsaved_edits_are_recovered_after_a_crash"]
+acceptance = "pass"
 notes = "Unsaved documents are copied to <config>/recovery every N minutes (Preferences > Document); after a crash the next start offers Recover / Discard; a recovered file saves to its original path."
 
 [[feature]]
@@ -4400,6 +4426,8 @@ source = "docs/revu_features/03_documents.md:102"
 status = "have"
 cpp = "missing"
 evidence = ["locked_files_offer_a_read_only_copy"]
+accepted = ["a_locked_file_offers_a_read_only_copy"]
+acceptance = "pass"
 notes = "A file in use or read-only offers a read-only copy (it saves elsewhere); Preferences > Document turns the prompt off."
 
 [[feature]]
@@ -4413,6 +4441,8 @@ source = "docs/revu_features/03_documents.md:103"
 status = "have"
 cpp = "have"
 evidence = ["recent_files_reopen_at_the_last_page_and_pin"]
+accepted = ["open_recent_lists_and_reopens_files"]
+acceptance = "pass"
 notes = "File > Open Recent (and the start page) list recent files; Clear Recent Files."
 
 [[feature]]
@@ -4426,6 +4456,8 @@ source = "docs/revu_features/03_documents.md:104"
 status = "have"
 cpp = "missing"
 evidence = ["page_templates_and_email_templates", "page_and_email_templates"]
+accepted = ["new_blank_pdf_and_new_from_template"]
+acceptance = "pass"
 notes = "File > New Blank PDF (Ctrl+N), and File > New PDF from Template: page templates kept as PDFs in the settings folder (save the current document as a template, remove, open a new untitled document from one; tool page_template)."
 
 [[feature]]
@@ -4439,6 +4471,8 @@ source = "docs/revu_features/03_documents.md:105"
 status = "have"
 cpp = "missing"
 evidence = ["packages_insert_options_layered_pages_stitching_and_source_bookmarks", "packages_source_bookmarks_insert_options_layers_and_stitching", "a_package_embeds_its_files_and_says_it_is_one"]
+accepted = ["an_empty_pdf_package_is_created"]
+acceptance = "pass"
 notes = "File > Create PDF Package: a cover page plus the member files embedded, catalog /Collection (ISO 32000-1 12.3.5) so viewers list them; an empty package when no files are given; pdf_package tool."
 
 [[feature]]
@@ -4452,6 +4486,8 @@ source = "docs/revu_features/03_documents.md:106"
 status = "have"
 cpp = "missing"
 evidence = ["page_templates_and_email_templates", "page_and_email_templates", "email_attaches_the_document_to_a_draft"]
+accepted = ["email_attaches_the_pdf_and_templates_prefill"]
+acceptance = "pass"
 notes = "File > Email (Ctrl+E): an unsent message with the document attached opens in the mail program. File > Email Templates: saved To, Cc, subject and message ({file} = the document's name) prefill it (tool email_template)."
 
 [[feature]]
@@ -4465,6 +4501,8 @@ source = "docs/revu_features/03_documents.md:107"
 status = "have"
 cpp = "missing"
 evidence = ["security_icon_pdfa_badge_verify_page_tags_ids_numbering_and_compressed_saves", "save_modes_publish_and_revert_as"]
+accepted = ["revisions_are_kept_and_an_earlier_one_reverts_as_a_new_file"]
+acceptance = "pass"
 notes = "Preferences > Document > Save mode: keep revisions (incremental), publish (full rewrite) or publish compressed (every save rewritten with compressed object streams); File > Publish As Compressed does it once."
 
 [[feature]]
@@ -4478,6 +4516,8 @@ source = "docs/revu_features/03_documents.md:108"
 status = "have"
 cpp = "missing"
 evidence = ["save_modes_publish_and_revert_as", "revisions_revert_publish_deskew_and_standards"]
+accepted = ["revisions_are_kept_and_an_earlier_one_reverts_as_a_new_file"]
+acceptance = "pass"
 notes = "File > Revert As: pick a stored revision (each incremental save keeps one) and save it as a new file; tool doc_revisions."
 
 [[feature]]
@@ -4491,6 +4531,8 @@ source = "docs/revu_features/03_documents.md:109"
 status = "have"
 cpp = "missing"
 evidence = ["save_modes_publish_and_revert_as", "revisions_revert_publish_deskew_and_standards"]
+accepted = ["publish_as_flattened_compressed_and_uncompressed"]
+acceptance = "pass"
 notes = "File > Publish As Compressed (Ctrl+Shift+P), Flattened (Ctrl+Alt+F), Uncompressed: a copy without revision history; tool doc_publish."
 
 [[feature]]
@@ -4504,6 +4546,8 @@ source = "docs/revu_features/03_documents.md:110"
 status = "have"
 cpp = "missing"
 evidence = ["new_blank_pdf_and_refresh_from_disk"]
+accepted = ["refresh_reloads_the_document_from_disk"]
+acceptance = "pass"
 notes = "View > Refresh (F5) redraws; File > Refresh Document (Shift+F5) reloads the file from disk."
 
 [[feature]]
@@ -4517,7 +4561,9 @@ source = "docs/revu_features/03_documents.md:111"
 status = "partial"
 cpp = "missing"
 evidence = ["web_tab_favorites_browser_and_capture", "web_tab_link_pages_and_page_capture", "capture_runs_a_browser_and_checks_its_output"]
-notes = "No embedded browser: View > Web Tab (Ctrl+T) opens a Web Tab document listing the favourites as links, with an address bar; pages open in the system browser, or are captured to PDF by Edge, Chrome or Chromium run headless (when installed) and opened to mark up. Links to web pages follow Preferences > WebTab."
+accepted = ["web_tab_link_page_opens_web_addresses"]
+acceptance = "gap"
+notes = "No embedded browser: View > Web Tab (Ctrl+T) opens a Web Tab document listing the favourites as links, with an address bar; pages open in the system browser, or are captured to PDF by Edge, Chrome or Chromium run headless (when installed) and opened to mark up. Links to web pages follow Preferences > WebTab. Acceptance: no web page shows inside a document tab; Ctrl+T gives a link page and links open in the system browser (or a headless capture to PDF)."
 
 [[feature]]
 id = "doc-024"
@@ -4530,6 +4576,8 @@ source = "docs/revu_features/03_documents.md:112"
 status = "have"
 cpp = "missing"
 evidence = ["security_icon_pdfa_badge_verify_page_tags_ids_numbering_and_compressed_saves", "certified_pdfa_and_signed_documents_guard_page_edits"]
+accepted = ["pdfa_files_are_marked_and_locked_until_unlocked"]
+acceptance = "pass"
 notes = "PDF/A conformance read from the XMP metadata; the document tab shows a [PDF/A-2B] badge; page edits locked (Preferences > Advanced unlocks; Document Properties > Unlock removes the claim); Document Properties > Verify checks compliance (pdfcraft-preflight) and lists the problems."
 
 [[feature]]
@@ -4543,6 +4591,8 @@ source = "docs/revu_features/03_documents.md:118"
 status = "have"
 cpp = "have"
 evidence = ["fit_zoom_and_page_navigation_keys"]
+accepted = ["page_navigation_keys_page_box_and_view_history"]
+acceptance = "pass"
 notes = "Ctrl+Right / Ctrl+Left, PgDn / PgUp, navigation bar buttons."
 
 [[feature]]
@@ -4556,6 +4606,8 @@ source = "docs/revu_features/03_documents.md:119"
 status = "have"
 cpp = "have"
 evidence = ["fit_zoom_and_page_navigation_keys"]
+accepted = ["page_navigation_keys_page_box_and_view_history"]
+acceptance = "pass"
 notes = "Home / End and navigation bar buttons."
 
 [[feature]]
@@ -4569,6 +4621,8 @@ source = "docs/revu_features/03_documents.md:120"
 status = "have"
 cpp = "have"
 evidence = ["page_labels_from_a_title_block_region"]
+accepted = ["page_navigation_keys_page_box_and_view_history"]
+acceptance = "pass"
 notes = "The navigation bar page box takes a page number or a page label (exact, then any case)."
 
 [[feature]]
@@ -4582,6 +4636,8 @@ source = "docs/revu_features/03_documents.md:121"
 status = "have"
 cpp = "have"
 evidence = ["previous_and_next_view_walk_the_history"]
+accepted = ["page_navigation_keys_page_box_and_view_history"]
+acceptance = "pass"
 notes = "Alt+Left / Alt+Right and navigation bar buttons: page, zoom, layout, rotation and position per document."
 
 [[feature]]
@@ -4595,6 +4651,8 @@ source = "docs/revu_features/03_documents.md:122"
 status = "have"
 cpp = "have"
 evidence = ["fit_zoom_and_page_navigation_keys"]
+accepted = ["zoom_presets_steps_and_maximum"]
+acceptance = "pass"
 notes = "Ctrl+9 / Ctrl+0 / Ctrl+8 and the zoom menu."
 
 [[feature]]
@@ -4608,6 +4666,8 @@ source = "docs/revu_features/03_documents.md:123"
 status = "have"
 cpp = "have"
 evidence = ["fit_zoom_and_page_navigation_keys"]
+accepted = ["zoom_presets_steps_and_maximum"]
+acceptance = "pass"
 notes = "Plus / Minus (and =)."
 
 [[feature]]
@@ -4621,6 +4681,8 @@ source = "docs/revu_features/03_documents.md:124"
 status = "have"
 cpp = "have"
 evidence = ["zoom_tool_clicks_and_boxes"]
+accepted = ["zoom_tool_box_click_out_and_toggle"]
+acceptance = "pass"
 notes = "Zoom tool (Z): click in, Ctrl+click or right-click out, drag a box; Shift+Z toggles it."
 
 [[feature]]
@@ -4634,6 +4696,8 @@ source = "docs/revu_features/03_documents.md:125"
 status = "have"
 cpp = "partial"
 evidence = ["wheel_zooms_or_scrolls_by_preference_and_ctrl_swaps"]
+accepted = ["mouse_wheel_zooms_or_scrolls_and_ctrl_swaps"]
+acceptance = "pass"
 notes = "Preferences > Navigation: wheel zooms or scrolls per mode, Ctrl swaps, reverse direction, sensitivity; Shift+wheel scrolls sideways."
 
 [[feature]]
@@ -4647,6 +4711,8 @@ source = "docs/revu_features/03_documents.md:126"
 status = "have"
 cpp = "partial"
 evidence = ["middle_drag_pans_and_double_click_recentres"]
+accepted = ["panning_middle_button_space_pan_tool_and_fit_width_lock"]
+acceptance = "pass"
 notes = "Middle drag pans, middle double-click re-centres, Space held pans with any tool."
 
 [[feature]]
@@ -4660,6 +4726,8 @@ source = "docs/revu_features/03_documents.md:127"
 status = "have"
 cpp = "have"
 evidence = ["dropped_files_open_in_tabs_pan_tool_and_fit_width_lock"]
+accepted = ["panning_middle_button_space_pan_tool_and_fit_width_lock"]
+acceptance = "pass"
 notes = "Pan tool (Shift+V) on the toolbar and the navigation bar."
 
 [[feature]]
@@ -4673,6 +4741,8 @@ source = "docs/revu_features/03_documents.md:128"
 status = "have"
 cpp = "missing"
 evidence = ["fit_zoom_and_page_navigation_keys"]
+accepted = ["zoom_presets_steps_and_maximum"]
+acceptance = "pass"
 notes = "Preferences > Document: maximum zoom."
 
 [[feature]]
@@ -4686,6 +4756,8 @@ source = "docs/revu_features/03_documents.md:129"
 status = "have"
 cpp = "missing"
 evidence = ["scrollbars_snap_targets_and_startup_preferences"]
+accepted = ["panning_middle_button_space_pan_tool_and_fit_width_lock"]
+acceptance = "pass"
 notes = "A horizontal (tilt) wheel pans; Preferences > Navigation shows scrollbars, the vertical one optionally on the left."
 
 [[feature]]
@@ -4699,6 +4771,8 @@ source = "docs/revu_features/03_documents.md:130"
 status = "have"
 cpp = "missing"
 evidence = ["dropped_files_open_in_tabs_pan_tool_and_fit_width_lock"]
+accepted = ["panning_middle_button_space_pan_tool_and_fit_width_lock"]
+acceptance = "pass"
 notes = "Preferences > Navigation: lock panning to up and down in Fit Width."
 
 [[feature]]
@@ -4712,6 +4786,8 @@ source = "docs/revu_features/03_documents.md:131"
 status = "have"
 cpp = "partial"
 evidence = ["page_layout_modes_side_by_side_and_cover"]
+accepted = ["page_layout_modes_cover_page_and_default_layout"]
+acceptance = "pass"
 notes = "Single Page (Ctrl+4), Continuous (Ctrl+5), Side by Side (Ctrl+6), Continuous Side by Side (Ctrl+7), Show Cover Page Alone."
 
 [[feature]]
@@ -4725,6 +4801,8 @@ source = "docs/revu_features/03_documents.md:132"
 status = "have"
 cpp = "missing"
 evidence = ["default_layout_rule_by_page_size", "recent_files_reopen_at_the_last_page_and_pin"]
+accepted = ["page_layout_modes_cover_page_and_default_layout"]
+acceptance = "pass"
 notes = "Preferences > Document: default layout (any mode, or by page size: drawings one page at a time) and default fit."
 
 [[feature]]
@@ -4738,6 +4816,8 @@ source = "docs/revu_features/03_documents.md:133"
 status = "have"
 cpp = "have"
 evidence = ["rotate_view_turns_the_display_not_the_file"]
+accepted = ["rotate_view_turns_the_display_not_the_file"]
+acceptance = "pass"
 notes = "View > Rotate View (Ctrl+Shift+Plus / Minus): the display turns, the file does not."
 
 [[feature]]
@@ -4751,6 +4831,8 @@ source = "docs/revu_features/03_documents.md:134"
 status = "have"
 cpp = "missing"
 evidence = ["full_screen_presentation_always_on_top_and_bars"]
+accepted = ["window_full_screen_presentation_on_top_and_hiding_bars"]
+acceptance = "pass"
 notes = "Window > Full Screen (F11, Esc leaves); Presentation (Ctrl+Enter): one page full screen, arrows advance, loop and timed advance."
 
 [[feature]]
@@ -4764,6 +4846,8 @@ source = "docs/revu_features/03_documents.md:135"
 status = "have"
 cpp = "missing"
 evidence = ["full_screen_presentation_always_on_top_and_bars"]
+accepted = ["window_full_screen_presentation_on_top_and_hiding_bars"]
+acceptance = "pass"
 notes = "Window > Always on Top (Ctrl+F12)."
 
 [[feature]]
@@ -4777,6 +4861,8 @@ source = "docs/revu_features/03_documents.md:136"
 status = "have"
 cpp = "partial"
 evidence = ["full_screen_presentation_always_on_top_and_bars"]
+accepted = ["window_full_screen_presentation_on_top_and_hiding_bars"]
+acceptance = "pass"
 notes = "Hide Panels (Shift+F4) restores the same layout; Menu Bar (F9), Navigation Bar (F4), Status Bar (F8); toolbars from Window > Toolbars."
 
 [[feature]]
@@ -4790,6 +4876,8 @@ source = "docs/revu_features/03_documents.md:137"
 status = "have"
 cpp = "partial"
 evidence = ["rulers_crosshair_and_dimmer"]
+accepted = ["navigation_bar_shows_page_size_and_scale"]
+acceptance = "pass"
 notes = "Navigation bar shows the page scale (click to calibrate); the status bar shows the page size."
 
 [[feature]]
@@ -4803,6 +4891,8 @@ source = "docs/revu_features/03_documents.md:138"
 status = "have"
 cpp = "missing"
 evidence = ["rulers_crosshair_and_dimmer", "ruler_ticks_stay_readable"]
+accepted = ["rulers_crosshair_dimmer_line_weights_and_dark_mode"]
+acceptance = "pass"
 notes = "View > Rulers (Ctrl+R): zero at the page corner, inches / cm / mm / points / picas (right-click), page and selection extent, pointer mark."
 
 [[feature]]
@@ -4816,6 +4906,8 @@ source = "docs/revu_features/03_documents.md:139"
 status = "have"
 cpp = "missing"
 evidence = ["rulers_crosshair_and_dimmer"]
+accepted = ["rulers_crosshair_dimmer_line_weights_and_dark_mode"]
+acceptance = "pass"
 notes = "View > Full-Screen Crosshair (also in Preferences > Advanced)."
 
 [[feature]]
@@ -4829,6 +4921,8 @@ source = "docs/revu_features/03_documents.md:140"
 status = "have"
 cpp = "missing"
 evidence = ["rulers_crosshair_and_dimmer"]
+accepted = ["rulers_crosshair_dimmer_line_weights_and_dark_mode"]
+acceptance = "pass"
 notes = "View > Dimmer (Ctrl+F5) and a navigation bar button; amount 5-95 % in Preferences > Advanced."
 
 [[feature]]
@@ -4842,6 +4936,8 @@ source = "docs/revu_features/03_documents.md:141"
 status = "have"
 cpp = "missing"
 evidence = ["dark_mode_line_weights_and_reply_indicators", "line_widths_become_zero"]
+accepted = ["rulers_crosshair_dimmer_line_weights_and_dark_mode"]
+acceptance = "pass"
 notes = "View > Disable Line Weights: the renderer reads a copy whose linework draws one device pixel wide; the file is not changed."
 
 [[feature]]
@@ -4855,6 +4951,8 @@ source = "docs/revu_features/03_documents.md:142"
 status = "have"
 cpp = "missing"
 evidence = ["dark_mode_line_weights_and_reply_indicators", "dark_theme_and_menus_render"]
+accepted = ["rulers_crosshair_dimmer_line_weights_and_dark_mode"]
+acceptance = "pass"
 notes = "View > Dark Mode draws the pages light on dark; Preferences > General: light, dark or system application theme."
 
 [[feature]]
@@ -4868,7 +4966,9 @@ source = "docs/revu_features/03_documents.md:148"
 status = "have"
 cpp = "missing"
 evidence = ["split_views_sync_switch_balance_unsplit"]
-notes = "View > Split Vertical (Ctrl+2) / Split Horizontal (Ctrl+H): two panes, any open document in each (the same one included), a draggable divider; one split level."
+accepted = ["split_toggle_switch_balance_and_unsplit"]
+acceptance = "gap"
+notes = "View > Split Vertical (Ctrl+2) / Split Horizontal (Ctrl+H): two panes, any open document in each (the same one included), a draggable divider; one split level. Acceptance: two panes at most (Revu: up to 16), and the second pane has no tab bar of its own (it shows one document, picked by dropping a tab on it)."
 
 [[feature]]
 id = "doc-051"
@@ -4881,6 +4981,8 @@ source = "docs/revu_features/03_documents.md:149"
 status = "have"
 cpp = "missing"
 evidence = ["split_views_sync_switch_balance_unsplit"]
+accepted = ["split_toggle_switch_balance_and_unsplit"]
+acceptance = "pass"
 notes = "View > Unsplit (Ctrl+Shift+2) and the pane's close button."
 
 [[feature]]
@@ -4894,6 +4996,8 @@ source = "docs/revu_features/03_documents.md:150"
 status = "have"
 cpp = "missing"
 evidence = ["split_views_sync_switch_balance_unsplit"]
+accepted = ["split_toggle_switch_balance_and_unsplit"]
+acceptance = "pass"
 notes = "Toggle Split (Ctrl+I), Switch (Ctrl+1), Balance (Shift+F12)."
 
 [[feature]]
@@ -4907,6 +5011,8 @@ source = "docs/revu_features/03_documents.md:151"
 status = "have"
 cpp = "missing"
 evidence = ["split_views_sync_switch_balance_unsplit"]
+accepted = ["synchronized_splits_follow_by_document_or_by_page"]
+acceptance = "pass"
 notes = "View > Synchronize: Document, and the status bar Sync button."
 
 [[feature]]
@@ -4920,6 +5026,8 @@ source = "docs/revu_features/03_documents.md:152"
 status = "have"
 cpp = "missing"
 evidence = ["split_views_sync_switch_balance_unsplit"]
+accepted = ["synchronized_splits_follow_by_document_or_by_page"]
+acceptance = "pass"
 notes = "View > Synchronize: Page: pan and zoom move the other pane by as much."
 
 [[feature]]
@@ -4933,6 +5041,8 @@ source = "docs/revu_features/03_documents.md:153"
 status = "have"
 cpp = "missing"
 evidence = ["detach_a_tab_to_a_window_and_drop_a_tab_on_the_split_pane"]
+accepted = ["a_document_tab_dragged_onto_the_second_pane_shows_there"]
+acceptance = "pass"
 notes = "Drag a document tab onto the split view's second pane (it is marked while dragging) to show it there; the pane's picker and a tab's Open in Split View too."
 
 [[feature]]
@@ -4946,7 +5056,9 @@ source = "docs/revu_features/03_documents.md:154"
 status = "have"
 cpp = "partial"
 evidence = ["detached_window_splits_and_syncs", "detach_a_tab_to_a_window_and_drop_a_tab_on_the_split_pane"]
-notes = "Window > Detach Tab to New Window, a tab's right-click Detach, or dragging a tab out of the window: the document in its own window with its own view; clicking in it makes it active; inside it Split shows a second view, synchronized (Document or Page) or not, and Follow the main window keeps it on the main window's page; Reattach. The main window keeps its tab, so a detached window is always also a copy."
+accepted = ["detach_a_tab_into_its_own_window_and_reattach"]
+acceptance = "gap"
+notes = "Window > Detach Tab to New Window, a tab's right-click Detach, or dragging a tab out of the window: the document in its own window with its own view; clicking in it makes it active; inside it Split shows a second view, synchronized (Document or Page) or not, and Follow the main window keeps it on the main window's page; Reattach. The main window keeps its tab, so a detached window is always also a copy. Acceptance: a floating window holds one document, not a tab bar, and the main window always keeps the tab (Revu moves it; only Ctrl-drag leaves a copy)."
 
 [[feature]]
 id = "doc-057"
@@ -4959,6 +5071,8 @@ source = "docs/revu_features/03_documents.md:160"
 status = "have"
 cpp = "have"
 evidence = ["thumbnails_select_reorder_and_page_commands"]
+accepted = ["thumbnails_go_to_pages_resize_and_show_labels_and_scales"]
+acceptance = "fixed"
 notes = "Thumbnails panel (Alt+T): click to go, Up / Down arrows move between pages."
 
 [[feature]]
@@ -4972,6 +5086,8 @@ source = "docs/revu_features/03_documents.md:161"
 status = "have"
 cpp = "missing"
 evidence = ["thumbnails_select_reorder_and_page_commands"]
+accepted = ["thumbnails_go_to_pages_resize_and_show_labels_and_scales"]
+acceptance = "pass"
 notes = "Size slider at the top of the panel."
 
 [[feature]]
@@ -4985,6 +5101,8 @@ source = "docs/revu_features/03_documents.md:162"
 status = "have"
 cpp = "partial"
 evidence = ["thumbnails_select_reorder_and_page_commands"]
+accepted = ["thumbnails_go_to_pages_resize_and_show_labels_and_scales"]
+acceptance = "fixed"
 notes = "Labels menu: page label and page scale under each thumbnail."
 
 [[feature]]
@@ -4998,6 +5116,8 @@ source = "docs/revu_features/03_documents.md:163"
 status = "have"
 cpp = "have"
 evidence = ["thumbnails_select_reorder_and_page_commands", "thumbnail_clicks_select_like_a_file_list"]
+accepted = ["thumbnail_selection_and_page_commands"]
+acceptance = "pass"
 notes = "Ctrl+click and Shift+click select pages; page commands apply to all of them."
 
 [[feature]]
@@ -5011,6 +5131,8 @@ source = "docs/revu_features/03_documents.md:164"
 status = "have"
 cpp = "have"
 evidence = ["thumbnails_select_reorder_and_page_commands"]
+accepted = ["thumbnails_reorder_by_drag_and_cut_copy_paste_pages"]
+acceptance = "pass"
 notes = "Drag thumbnails to move the pages (one undo step)."
 
 [[feature]]
@@ -5024,6 +5146,8 @@ source = "docs/revu_features/03_documents.md:165"
 status = "have"
 cpp = "missing"
 evidence = ["thumbnails_select_reorder_and_page_commands"]
+accepted = ["thumbnails_reorder_by_drag_and_cut_copy_paste_pages"]
+acceptance = "pass"
 notes = "Cut / Copy / Paste Pages in the thumbnail menu, within or between documents."
 
 [[feature]]
@@ -5037,6 +5161,8 @@ source = "docs/revu_features/03_documents.md:166"
 status = "have"
 cpp = "missing"
 evidence = ["copy_page_to_snapshot_select_all_text_and_format_painter_keys", "thumbnails_rename_set_scale_snapshot_and_dropped_files"]
+accepted = ["copy_page_to_snapshot_and_paste"]
+acceptance = "pass"
 notes = "Edit > Copy Page to Snapshot (Ctrl+Alt+C) and the Thumbnails menu: the page as a snapshot on the clipboard; Ctrl+V pastes it."
 
 [[feature]]
@@ -5050,6 +5176,8 @@ source = "docs/revu_features/03_documents.md:167"
 status = "have"
 cpp = "partial"
 evidence = ["thumbnails_rename_set_scale_snapshot_and_dropped_files"]
+accepted = ["set_scale_from_thumbnails_for_several_pages"]
+acceptance = "pass"
 notes = "Thumbnails right-click > Set Scale on one or many pages (paper length = real length)."
 
 [[feature]]
@@ -5063,6 +5191,8 @@ source = "docs/revu_features/03_documents.md:168"
 status = "have"
 cpp = "partial"
 evidence = ["security_icon_pdfa_badge_verify_page_tags_ids_numbering_and_compressed_saves", "thumbnails_rename_set_scale_snapshot_and_dropped_files"]
+accepted = ["thumbnail_selection_and_page_commands"]
+acceptance = "pass"
 notes = "Thumbnail menu: rotate, Rotate Pages, insert blank, Insert Pages, Extract, Replace, Crop, Page Setup, move, cut / copy / paste, delete, Copy to Snapshot, Set Scale, Rename Label, Number Pages, Stamp, Export Pages as Images (the chosen pages), Email, Print, Repair, Markup Summary, Flatten."
 
 [[feature]]
@@ -5076,6 +5206,8 @@ source = "docs/revu_features/03_documents.md:169"
 status = "have"
 cpp = "have"
 evidence = ["thumbnails_rename_set_scale_snapshot_and_dropped_files"]
+accepted = ["files_dropped_on_thumbnails_are_inserted"]
+acceptance = "pass"
 notes = "PDFs (and images) dropped on Thumbnails are inserted before the page they land on (no Insert Pages dialog in between)."
 
 [[feature]]
@@ -5089,6 +5221,8 @@ source = "docs/revu_features/03_documents.md:175"
 status = "have"
 cpp = "have"
 evidence = ["extras_page_labels_read_and_write"]
+accepted = ["page_labels_number_pages_text_labels_and_clearing"]
+acceptance = "pass"
 notes = "/PageLabels number tree (D, R, r, A, a, prefix, start) shown in the Page Label column."
 
 [[feature]]
@@ -5102,6 +5236,8 @@ source = "docs/revu_features/03_documents.md:176"
 status = "have"
 cpp = "have"
 evidence = ["thumbnails_rename_set_scale_snapshot_and_dropped_files"]
+accepted = ["rename_page_labels_inline_with_tab_to_move_on"]
+acceptance = "pass"
 notes = "Double-click a thumbnail label (or F2, or the menu) to rename it in place; Tab / Shift+Tab save and move to the next / previous label; Esc cancels."
 
 [[feature]]
@@ -5115,6 +5251,8 @@ source = "docs/revu_features/03_documents.md:177"
 status = "have"
 cpp = "missing"
 evidence = ["page_labels_number_set_clear_and_from_bookmarks"]
+accepted = ["page_labels_number_pages_text_labels_and_clearing"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. page_label_number: range, style (D, R, r, A, a, none), prefix, start; runs merged in /PageLabels."
 
 [[feature]]
@@ -5128,6 +5266,8 @@ source = "docs/revu_features/03_documents.md:178"
 status = "have"
 cpp = "missing"
 evidence = ["page_labels_number_set_clear_and_from_bookmarks"]
+accepted = ["page_labels_number_pages_text_labels_and_clearing"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. page_label_set types a text-only label (style none + prefix); page_label_clear removes /PageLabels."
 
 [[feature]]
@@ -5141,6 +5281,8 @@ source = "docs/revu_features/03_documents.md:179"
 status = "have"
 cpp = "have"
 evidence = ["page_labels_number_set_clear_and_from_bookmarks"]
+accepted = ["labels_from_bookmarks_and_from_page_regions"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. page_label_from_bookmarks: each page takes the title of the first bookmark going to it."
 
 [[feature]]
@@ -5154,6 +5296,8 @@ source = "docs/revu_features/03_documents.md:180"
 status = "have"
 cpp = "missing"
 evidence = ["page_labels_from_a_title_block_region", "labels_come_from_the_title_block_region"]
+accepted = ["labels_from_bookmarks_and_from_page_regions"]
+acceptance = "pass"
 notes = "Document > Page Labels from Region: drag boxes over the title block; text before, between and after; live preview; Apply. Tool page_labels_from_region."
 
 [[feature]]
@@ -5167,6 +5311,8 @@ source = "docs/revu_features/03_documents.md:186"
 status = "have"
 cpp = "have"
 evidence = ["bookmarks_add_rename_move_delete_and_create_from_labels", "bookmarks_panel_adds_renames_nests_and_deletes"]
+accepted = ["bookmarks_panel_add_rename_and_delete", "bookmark_actions_target_pages_views_urls_and_files"]
+acceptance = "fixed"
 notes = "Bookmarks panel: go to, add (Ctrl+B), rename, set page, delete, up/down, indent/outdent, expand/collapse, from page labels, clear."
 
 [[feature]]
@@ -5180,6 +5326,8 @@ source = "docs/revu_features/03_documents.md:187"
 status = "have"
 cpp = "partial"
 evidence = ["bookmarks_add_rename_move_delete_and_create_from_labels"]
+accepted = ["bookmarks_panel_add_rename_and_delete"]
+acceptance = "fixed"
 notes = "Headless (engine + automation tool); no UI yet. bookmark_add: page, title (default the page label), parent and position."
 
 [[feature]]
@@ -5193,6 +5341,8 @@ source = "docs/revu_features/03_documents.md:188"
 status = "have"
 cpp = "have"
 evidence = ["bookmarks_add_rename_move_delete_and_create_from_labels"]
+accepted = ["bookmarks_panel_add_rename_and_delete"]
+acceptance = "fixed"
 notes = "Headless (engine + automation tool); no UI yet. bookmark_edit (title, page, expand) and bookmark_delete (one with its children, or all); undoable."
 
 [[feature]]
@@ -5206,6 +5356,8 @@ source = "docs/revu_features/03_documents.md:189"
 status = "have"
 cpp = "partial"
 evidence = ["automark_structure_style_action_copy_and_audit", "bookmarks_automark_properties_copy_action_and_audit", "bookmarks_panel_adds_renames_nests_and_deletes"]
+accepted = ["bookmarks_reorder_nest_copy_style_and_collapse_state"]
+acceptance = "pass"
 notes = "Up/Down/Indent/Outdent reorder and nest (with children); Copy duplicates a bookmark with its children, look and action (bookmark_copy)."
 
 [[feature]]
@@ -5219,6 +5371,8 @@ source = "docs/revu_features/03_documents.md:190"
 status = "have"
 cpp = "missing"
 evidence = ["automark_structure_style_action_copy_and_audit", "bookmarks_automark_properties_copy_action_and_audit", "bookmark_properties_actions_copy_automark_structures_audit_and_export"]
+accepted = ["bookmarks_reorder_nest_copy_style_and_collapse_state"]
+acceptance = "pass"
 notes = "Title, text colour, bold and italic for one or many (Ctrl+click), shown in the panel."
 
 [[feature]]
@@ -5232,6 +5386,8 @@ source = "docs/revu_features/03_documents.md:191"
 status = "have"
 cpp = "missing"
 evidence = ["automark_structure_style_action_copy_and_audit", "bookmark_properties_actions_copy_automark_structures_audit_and_export", "bookmarks_automark_properties_copy_action_and_audit"]
+accepted = ["bookmark_actions_target_pages_views_urls_and_files"]
+acceptance = "fixed"
 notes = "Page with zoom (fit page/width/actual/inherit), Place, Space, snapshot view rectangle (also of another PDF), URL, file (relative or full); Set to Current View."
 
 [[feature]]
@@ -5245,6 +5401,8 @@ source = "docs/revu_features/03_documents.md:192"
 status = "have"
 cpp = "partial"
 evidence = ["automark_structure_style_action_copy_and_audit", "bookmarks_automark_properties_copy_action_and_audit", "bookmark_properties_actions_copy_automark_structures_audit_and_export"]
+accepted = ["bookmarks_created_automatically_structured_and_audited"]
+acceptance = "pass"
 notes = "From page labels or page numbers, or AutoMark from the text in a title-block region you drag, for a page range."
 
 [[feature]]
@@ -5258,6 +5416,8 @@ source = "docs/revu_features/03_documents.md:193"
 status = "have"
 cpp = "missing"
 evidence = ["automark_structure_style_action_copy_and_audit", "bookmark_properties_actions_copy_automark_structures_audit_and_export"]
+accepted = ["bookmarks_created_automatically_structured_and_audited"]
+acceptance = "pass"
 notes = "Structures as JSON: folder trees with title prefixes; save the current tree, apply one to make the folders and file matching bookmarks into them."
 
 [[feature]]
@@ -5271,6 +5431,8 @@ source = "docs/revu_features/03_documents.md:194"
 status = "have"
 cpp = "missing"
 evidence = ["automark_structure_style_action_copy_and_audit", "bookmarks_automark_properties_copy_action_and_audit", "bookmark_properties_actions_copy_automark_structures_audit_and_export"]
+accepted = ["bookmarks_created_automatically_structured_and_audited"]
+acceptance = "pass"
 notes = "Audit marks bookmarks whose page is gone, whose Place is missing, or that go nowhere (a ! in the panel)."
 
 [[feature]]
@@ -5284,6 +5446,8 @@ source = "docs/revu_features/03_documents.md:195"
 status = "have"
 cpp = "missing"
 evidence = ["export_bookmarks_csv_and_pdf", "bookmark_properties_actions_copy_automark_structures_audit_and_export"]
+accepted = ["bookmarks_export_to_csv_and_pdf"]
+acceptance = "pass"
 notes = "CSV or PDF report for one or many PDFs: tree or flat, top level only, links to each page, date stamp, page size."
 
 [[feature]]
@@ -5297,6 +5461,8 @@ source = "docs/revu_features/03_documents.md:196"
 status = "have"
 cpp = "missing"
 evidence = ["bookmarks_panel_adds_renames_nests_and_deletes"]
+accepted = ["bookmarks_reorder_nest_copy_style_and_collapse_state"]
+acceptance = "pass"
 notes = "Expanding or collapsing in the Bookmarks panel is written to the outline and saved with the file."
 
 [[feature]]
@@ -5310,6 +5476,8 @@ source = "docs/revu_features/03_documents.md:197"
 status = "have"
 cpp = "missing"
 evidence = ["packages_insert_options_layered_pages_stitching_and_source_bookmarks", "packages_source_bookmarks_insert_options_layers_and_stitching", "headings_from_text_sizes_nest_by_size", "a_tagged_pdf_gives_its_heading_elements"]
+accepted = ["bookmarks_from_document_headings"]
+acceptance = "pass"
 notes = "Document > Bookmarks from Structure: there are no Office/CAD plugins, so the PDF itself is read - a tagged PDF's heading elements (H, H1-H6, Title), else text set larger than the body text (three levels; a slide or sheet title is its largest line)."
 
 [[feature]]
@@ -5323,6 +5491,8 @@ source = "docs/revu_features/03_documents.md:203"
 status = "have"
 cpp = "partial"
 evidence = ["page_dialogs_insert_several_files_grid_extract_each_and_place_content", "insert_from_several_pdfs_grid_template_extract_each_and_page_setup"]
+accepted = ["insert_pages_from_files_and_insert_options"]
+acceptance = "pass"
 notes = "Document > Insert Pages: one or more PDFs in a list (reorder, remove, each with its own page range), before or after a page, first or last; one undo step (tool page_insert_files). Dropping PDFs on Thumbnails inserts them too."
 
 [[feature]]
@@ -5336,6 +5506,8 @@ source = "docs/revu_features/03_documents.md:204"
 status = "have"
 cpp = "missing"
 evidence = ["packages_insert_options_layered_pages_stitching_and_source_bookmarks", "packages_source_bookmarks_insert_options_layers_and_stitching", "insert_options_interleave_bookmarks_labels_and_layers"]
+accepted = ["insert_pages_from_files_and_insert_options"]
+acceptance = "pass"
 notes = "Document > Insert Pages with Options: carry over bookmarks and attachments, merge document properties, keep layers, label pages from the file name, interleave odd/even scans (optionally reversed); one undo step."
 
 [[feature]]
@@ -5349,6 +5521,8 @@ source = "docs/revu_features/03_documents.md:205"
 status = "have"
 cpp = "partial"
 evidence = ["page_dialogs_insert_several_files_grid_extract_each_and_place_content", "insert_from_several_pdfs_grid_template_extract_each_and_page_setup"]
+accepted = ["insert_blank_pages_sized_ruled_or_from_a_template"]
+acceptance = "pass"
 notes = "Document > Insert Blank Pages: count, standard or custom size, orientation, a ruled or dotted grid at a chosen spacing, or copies of a template PDF's first page, before / after a page (tool page_insert_blank_styled)."
 
 [[feature]]
@@ -5362,6 +5536,8 @@ source = "docs/revu_features/03_documents.md:206"
 status = "have"
 cpp = "missing"
 evidence = ["packages_insert_options_layered_pages_stitching_and_source_bookmarks", "packages_source_bookmarks_insert_options_layers_and_stitching"]
+accepted = ["layered_pages_and_layered_pdfs"]
+acceptance = "pass"
 notes = "Document > Insert Layered Pages: each page of another PDF is drawn on a page here as a new layer (named after the file or as typed); one undo step."
 
 [[feature]]
@@ -5375,6 +5551,8 @@ source = "docs/revu_features/03_documents.md:207"
 status = "have"
 cpp = "missing"
 evidence = ["scanner_and_camera_into_markups_pages_and_new_pdfs", "scanner_and_camera_pages_markups_and_new_pdfs"]
+accepted = ["pages_from_the_camera_or_a_scanner"]
+acceptance = "pass"
 notes = "Document > Insert from Scanner or Camera: acquired pages go in after the current page (eSCL scanners; the camera with the app's camera feature). OCR is Tools > OCR afterwards."
 
 [[feature]]
@@ -5388,6 +5566,8 @@ source = "docs/revu_features/03_documents.md:208"
 status = "have"
 cpp = "partial"
 evidence = ["summary_pdf_extras_and_extract_with_links", "links_between_extracted_pages_point_to_the_new_files", "page_dialogs_insert_several_files_grid_extract_each_and_place_content"]
+accepted = ["extract_pages_to_one_file_or_one_per_page"]
+acceptance = "pass"
 notes = "Document > Extract Pages: page range to one file, or one file per page (named by number or page label, overwrite or not), links between the extracted pages updated to point to their new files (relative paths), delete after extracting, open the new file."
 
 [[feature]]
@@ -5401,6 +5581,8 @@ source = "docs/revu_features/03_documents.md:209"
 status = "have"
 cpp = "have"
 evidence = ["replace_pages_keeps_markups"]
+accepted = ["replace_pages_keeps_markups_and_delete_pages"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. page_replace swaps content, resources and boxes (pdfcraft-organize) and keeps the page's markups, links and bookmarks."
 
 [[feature]]
@@ -5414,6 +5596,8 @@ source = "docs/revu_features/03_documents.md:210"
 status = "have"
 cpp = "have"
 evidence = ["page_dialogs_insert_rotate_crop_setup_delete", "thumbnails_select_reorder_and_page_commands"]
+accepted = ["replace_pages_keeps_markups_and_delete_pages"]
+acceptance = "pass"
 notes = "Document > Delete Pages with the page range picker, or the thumbnail menu; a document keeps one page."
 
 [[feature]]
@@ -5427,6 +5611,8 @@ source = "docs/revu_features/03_documents.md:211"
 status = "have"
 cpp = "partial"
 evidence = ["page_dialogs_insert_rotate_crop_setup_delete"]
+accepted = ["rotate_pages_dialog_and_the_page_range_picker"]
+acceptance = "pass"
 notes = "Document > Rotate Pages (Ctrl+Shift+R): 90 / 180 / 270 on all, current, selected, even, odd, landscape, portrait, first, last or a list."
 
 [[feature]]
@@ -5440,6 +5626,8 @@ source = "docs/revu_features/03_documents.md:212"
 status = "have"
 cpp = "have"
 evidence = ["thumbnails_select_reorder_and_page_commands", "engine_commands_and_page_operations"]
+accepted = ["thumbnail_selection_and_page_commands"]
+acceptance = "fixed"
 notes = "Rotate Page Clockwise / Counterclockwise (Shift+Alt+Plus / Minus) on the current page; the thumbnail menu rotates the selected pages."
 
 [[feature]]
@@ -5453,7 +5641,9 @@ source = "docs/revu_features/03_documents.md:213"
 status = "have"
 cpp = "missing"
 evidence = ["split_and_combine_documents"]
-notes = "Headless (engine + automation tool); no UI yet. doc_split: every N pages, at top-level bookmarks, or explicit ranges; markups and labels go with their pages."
+accepted = ["split_document_by_page_count_and_bookmarks"]
+acceptance = "gap"
+notes = "Headless (engine + automation tool); no UI yet. doc_split: every N pages, at top-level bookmarks, or explicit ranges; markups and labels go with their pages. Acceptance: no split by file size (MB); parts are always named <name>-<part> (no prefix/suffix with a # placeholder, no bookmark-name naming), and no subfolder, link-update or drop-empty-layers options."
 
 [[feature]]
 id = "doc-096"
@@ -5466,6 +5656,8 @@ source = "docs/revu_features/03_documents.md:214"
 status = "have"
 cpp = "missing"
 evidence = ["crop_boxes_and_page_resize"]
+accepted = ["crop_page_setup_and_deskew"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. page_crop: crop (or bleed/trim/art) box by rectangle, margins or remove; page_boxes reads all five."
 
 [[feature]]
@@ -5479,6 +5671,8 @@ source = "docs/revu_features/03_documents.md:215"
 status = "have"
 cpp = "missing"
 evidence = ["page_dialogs_insert_several_files_grid_extract_each_and_place_content", "insert_from_several_pdfs_grid_template_extract_each_and_page_setup", "insert_several_files_grid_template_extract_each_and_setup"]
+accepted = ["crop_page_setup_and_deskew"]
+acceptance = "pass"
 notes = "Document > Page Setup: standard or custom size and orientation, keep the drawing at an anchor, or place the content: fit or scale, X/Y offset, rotation (or level a drawn line, tool page_setup level_line), centre, binding margins and a border; markups move with the content."
 
 [[feature]]
@@ -5492,6 +5686,8 @@ source = "docs/revu_features/03_documents.md:216"
 status = "have"
 cpp = "missing"
 evidence = ["deskew_from_a_line_and_by_angle", "revisions_revert_publish_deskew_and_standards"]
+accepted = ["crop_page_setup_and_deskew"]
+acceptance = "pass"
 notes = "Document > Deskew (Ctrl+Alt+D): an angle, or Get Line (two points that should be level); current or all pages; undoable. Tool page_deskew."
 
 [[feature]]
@@ -5505,6 +5701,8 @@ source = "docs/revu_features/03_documents.md:217"
 status = "have"
 cpp = "have"
 evidence = ["page_dialogs_insert_rotate_crop_setup_delete"]
+accepted = ["rotate_pages_dialog_and_the_page_range_picker"]
+acceptance = "pass"
 notes = "Shared picker in the page dialogs: all, current, selected thumbnails, even, odd, landscape, portrait, first, last, or a list like 1-3, 7."
 
 [[feature]]
@@ -5518,6 +5716,8 @@ source = "docs/revu_features/03_documents.md:218"
 status = "have"
 cpp = "missing"
 evidence = ["batch_list_sources_save_load_split_script_and_one_pdf_per_file", "batch_create_layered_merge_combine_options_and_link_terms"]
+accepted = ["batch_file_list_adds_reorders_and_saves"]
+acceptance = "pass"
 notes = "Every batch dialog shares one file list: Add Files, Add Open Files, Add Current Set, Add Folder (with or without subfolders), drag rows (or Up / Down) to reorder, remove, clear, Save List / Load List (JSON); batches work on closed files and save them in place."
 
 [[feature]]
@@ -5531,6 +5731,8 @@ source = "docs/revu_features/03_documents.md:219"
 status = "have"
 cpp = "missing"
 evidence = ["certified_pdfa_and_signed_documents_guard_page_edits"]
+accepted = ["signed_and_certified_documents_guard_page_edits", "pdfa_files_are_marked_and_locked_until_unlocked"]
+acceptance = "pass"
 notes = "Page edits are refused on certified and PDF/A documents; on signed ones the user is warned that the signatures stop being valid. Tool doc_standards."
 
 [[feature]]
@@ -5544,7 +5746,9 @@ source = "docs/revu_features/03_documents.md:225"
 status = "have"
 cpp = "missing"
 evidence = ["split_and_combine_documents"]
-notes = "Headless (engine + automation tool); no UI yet. doc_combine joins PDFs in order with their markups and page labels."
+accepted = ["combine_pdfs_with_ranges_and_options"]
+acceptance = "gap"
+notes = "Headless (engine + automation tool); no UI yet. doc_combine joins PDFs in order with their markups and page labels. Acceptance: each file is combined whole; Revu gives every file in the list its own page range."
 
 [[feature]]
 id = "doc-103"
@@ -5557,6 +5761,8 @@ source = "docs/revu_features/03_documents.md:226"
 status = "have"
 cpp = "missing"
 evidence = ["create_combine_and_layered", "combine_create_and_layered", "batch_create_layered_merge_combine_options_and_link_terms"]
+accepted = ["combine_pdfs_with_ranges_and_options"]
+acceptance = "pass"
 notes = "Bookmark per file, every file's attachments, merged document properties, every file's layers, page labels from file names (doc_combine_files; the Combine dialog). Signatures do not survive (warned)."
 
 [[feature]]
@@ -5570,7 +5776,9 @@ source = "docs/revu_features/03_documents.md:227"
 status = "partial"
 cpp = "missing"
 evidence = ["create_combine_and_layered", "combine_create_and_layered", "batch_create_layered_merge_combine_options_and_link_terms"]
-notes = "File > Create PDF from Files converts images (PNG, JPEG, TIFF, BMP, GIF), text, Word (.docx text, headings, lists, tables), Excel (.xlsx sheets as tables), PowerPoint (.pptx slide text) and DXF drawings (vector linework and text) without plugins (doc_create_from_files). Binary DWG files are not read: their format has no public specification (save as DXF); Office layout beyond text and tables is not reproduced."
+accepted = ["create_pdfs_from_files_one_or_many"]
+acceptance = "gap"
+notes = "File > Create PDF from Files converts images (PNG, JPEG, TIFF, BMP, GIF), text, Word (.docx text, headings, lists, tables), Excel (.xlsx sheets as tables), PowerPoint (.pptx slide text) and DXF drawings (vector linework and text) without plugins (doc_create_from_files). Binary DWG files are not read: their format has no public specification (save as DXF); Office layout beyond text and tables is not reproduced. Acceptance: as the notes say, no DWG and no Office layout beyond text and tables."
 
 [[feature]]
 id = "doc-105"
@@ -5583,7 +5791,9 @@ source = "docs/revu_features/03_documents.md:228"
 status = "partial"
 cpp = "missing"
 evidence = ["create_combine_and_layered", "combine_create_and_layered", "batch_create_layered_merge_combine_options_and_link_terms"]
-notes = "Stapler (Create PDF from Files): images, text, Word, Excel, PowerPoint, DXF and PDFs in one PDF in list order, or one PDF per file beside each source or in a chosen folder (doc_create_each). DWG is not read (no public specification); jobs run one after another from the dialog, not from a background queue."
+accepted = ["create_pdfs_from_files_one_or_many"]
+acceptance = "gap"
+notes = "Stapler (Create PDF from Files): images, text, Word, Excel, PowerPoint, DXF and PDFs in one PDF in list order, or one PDF per file beside each source or in a chosen folder (doc_create_each). DWG is not read (no public specification); jobs run one after another from the dialog, not from a background queue. Acceptance: as the notes say, no DWG and no background job queue."
 
 [[feature]]
 id = "doc-106"
@@ -5596,6 +5806,8 @@ source = "docs/revu_features/03_documents.md:229"
 status = "have"
 cpp = "missing"
 evidence = ["batch_sign_and_seal_smart_overlay_and_shell_integration", "batch_sign_and_seal_shell_integration_and_smart_overlay", "integration_files_for_each_system_name_the_cli", "combine_and_convert_write_beside_the_files"]
+accepted = ["file_manager_entries_to_combine_and_convert"]
+acceptance = "pass"
 notes = "File > File Manager Integration writes the files a user installs (current-user .reg and Send To commands on Windows, Quick Actions on macOS, a KDE service menu and Nautilus scripts on Linux, each with a README); MarkupCraft never changes the system. They run `markupcraft-cli shell combine|convert`."
 
 [[feature]]
@@ -5609,6 +5821,8 @@ source = "docs/revu_features/03_documents.md:230"
 status = "have"
 cpp = "missing"
 evidence = ["scanner_and_camera_into_markups_pages_and_new_pdfs", "scanner_and_camera_pages_markups_and_new_pdfs"]
+accepted = ["pages_from_the_camera_or_a_scanner"]
+acceptance = "pass"
 notes = "File > Create from Scanner or Camera: Scan / Scan Next or Take Picture, then Finish writes a new PDF; Run OCR opens the OCR dialog (deskew, orientation, vertical text) on it. eSCL scanners only; the camera needs the app's camera feature."
 
 [[feature]]
@@ -5622,6 +5836,8 @@ source = "docs/revu_features/03_documents.md:231"
 status = "have"
 cpp = "missing"
 evidence = ["create_combine_and_layered", "combine_create_and_layered", "batch_create_layered_merge_combine_options_and_link_terms"]
+accepted = ["layered_pages_and_layered_pdfs"]
+acceptance = "pass"
 notes = "Create Layered PDF: each file's first page drawn on one page in its own layer named after the file (doc_layered; File menu)."
 
 [[feature]]

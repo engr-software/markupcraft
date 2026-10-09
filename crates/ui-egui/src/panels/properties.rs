@@ -976,7 +976,7 @@ fn measurement(ui: &mut egui::Ui, sel: &Sel<'_>, edits: &mut Edits, changes: &mu
     section(ui, "Measurement", "props-measure", |ui| {
         ui.label("Value");
         let q = m.quantity_text();
-        ui.label(RichText::new(if q.is_empty() { "No scale".into() } else { q }).strong());
+        ui.label(RichText::new(if q.is_empty() { "Scale Not Set".into() } else { q }).strong());
         ui.end_row();
         if let Some(extra) = derived_values(m) {
             for (k, v) in extra {

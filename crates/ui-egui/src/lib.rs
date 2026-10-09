@@ -649,7 +649,7 @@ impl AppState {
         match scale {
             Some(s) if !s.ratio.is_empty() => format!("Scale {}", s.ratio),
             Some(_) => "Scale set".into(),
-            None => "No scale".into(),
+            None => "Scale Not Set".into(),
         }
     }
 
@@ -951,11 +951,18 @@ impl AppState {
             "view.hide_markups" => self.hide_markups = !self.hide_markups,
             "document.properties" => self.show_properties = true,
             "document.rotate_cw" | "document.rotate_ccw" | "document.delete_page" | "document.insert_blank" => {
+                // Preferences > "Rotate all Pages by Default": the quick buttons turn every page.
+                let all = self.shell.ui.extra.rotate_all_pages;
                 if let Some(d) = self.doc_mut() {
                     let page = d.view.current;
+                    let turn: Vec<usize> = if all {
+                        (0..d.session.page_count()).collect()
+                    } else {
+                        vec![page]
+                    };
                     let r = match id {
-                        "document.rotate_cw" => d.session.rotate_pages(&[page], 90),
-                        "document.rotate_ccw" => d.session.rotate_pages(&[page], -90),
+                        "document.rotate_cw" => d.session.rotate_pages(&turn, 90),
+                        "document.rotate_ccw" => d.session.rotate_pages(&turn, -90),
                         "document.delete_page" => d.session.delete_pages(&[page]),
                         _ => d.session.insert_blank_pages(page + 1, 1, None),
                     };
@@ -1159,6 +1166,14 @@ impl MarkupCraftApp {
         }
         for (k, id) in self.state.keys.bindings() {
             if !features::more6::prefs::key_allowed(&self.state, &k, &id) {
+                continue;
+            }
+            // Arrow keys nudge only a selection; with none they stay free for the panels
+            // (Thumbnails: Up / Down move between pages).
+            // Delete likewise (Bookmarks: Delete removes the selected bookmark).
+            if (id.starts_with("edit.nudge_") || id == "edit.delete")
+                && self.state.doc().is_none_or(|d| d.selection().is_empty())
+            {
                 continue;
             }
             if ctx.input_mut(|i| i.consume_shortcut(&k.shortcut())) {

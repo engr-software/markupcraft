@@ -36,10 +36,13 @@ pub struct Fields {
     /// Bookmarks Audit found broken: (path, reason).
     pub broken: Vec<(Vec<usize>, String)>,
     pub audited: bool,
+    /// A bookmark was just added: put the cursor in its title (Revu: immediately editable).
+    pub edit_now: bool,
 }
 
 enum Act {
-    Go(usize),
+    /// Run the bookmark's action (its page and zoom, view, Place, file or web address).
+    Follow(Vec<usize>, Option<usize>),
     Toggle(Vec<usize>, bool),
     Add,
     Rename(Vec<usize>, String),
@@ -209,6 +212,9 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
         });
         ui.horizontal(|ui| {
             let r = ui.add(egui::TextEdit::singleline(&mut f.rename).desired_width(150.0));
+            if std::mem::take(&mut f.edit_now) {
+                r.request_focus();
+            }
             let enter = r.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
             if (ui.small_button("Rename").clicked() || enter) && !f.rename.trim().is_empty() {
                 act = Some(Act::Rename(sel.clone(), f.rename.trim().to_string()));
@@ -266,6 +272,9 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                         .on_hover_text(why);
                 }
                 let r = ui.selectable_label(sel, text);
+                if r.double_clicked() {
+                    f.edit_now = true;
+                }
                 if r.clicked() {
                     if ui.input(|i| i.modifiers.command) {
                         if let Some(k) = f.also.iter().position(|p| p == &e.path) {
@@ -280,9 +289,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                         f.bold = style.bold;
                         f.italic = style.italic;
                         f.color = style.color;
-                        if let Some(p) = e.page {
-                            act = Some(Act::Go(p));
-                        }
+                        act = Some(Act::Follow(e.path.clone(), e.page));
                     }
                 }
                 if let Some(p) = e.page {
@@ -294,12 +301,48 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
             }
         }
     });
+    // Keys while the panel has the pointer: F2 renames the selected bookmark, Delete deletes it.
+    if act.is_none()
+        && let Some(sel) = f.selected.clone()
+        && ui.rect_contains_pointer(ui.max_rect())
+        && !ui.ctx().egui_wants_keyboard_input()
+    {
+        let (f2, del) = ui.input_mut(|i| {
+            (
+                i.consume_key(egui::Modifiers::NONE, egui::Key::F2),
+                i.consume_key(egui::Modifiers::NONE, egui::Key::Delete),
+            )
+        });
+        if f2 {
+            f.edit_now = true;
+        } else if del {
+            act = Some(Act::Delete(sel));
+        }
+    }
     let Some(act) = act else {
         app.features.bookmarks = f;
         return;
     };
     // Acts handled by the features (dialogs and picks).
     match act {
+        Act::Follow(path, page) => {
+            app.features.bookmarks = f;
+            let target = app
+                .doc()
+                .and_then(|d| d.session.bookmark_details(&path).ok())
+                .and_then(|b| b.target);
+            match (target, page) {
+                (Some(t), _) => crate::features::links::follow_target(app, &t, ui.ctx()),
+                (None, Some(p)) => {
+                    if let Some(d) = app.doc_mut() {
+                        let n = d.session.page_count();
+                        d.view.go_to_page(p, n);
+                    }
+                }
+                (None, None) => {}
+            }
+            return;
+        }
         Act::Action(p) => {
             app.features.bookmarks = f;
             crate::features::links::edit_bookmark_action(app, p);
@@ -350,10 +393,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     let count = d.session.page_count();
     let s = &mut d.session;
     let status = match act {
-        Act::Go(p) => {
-            d.view.go_to_page(p, count);
-            None
-        }
+        Act::Follow(..) => None,
         Act::Toggle(p, open) => Some(actions::report(s.set_bookmark_open(&p, open), |_| String::new())),
         Act::Add => {
             let label = s.page_labels().get(current).cloned().unwrap_or_default();
@@ -370,6 +410,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
             Some(actions::report(s.add_bookmark(&parent, index, &title, current), |p| {
                 f.selected = Some(p);
                 f.rename = title.clone();
+                f.edit_now = true;
                 format!("Bookmark added: {title}")
             }))
         }

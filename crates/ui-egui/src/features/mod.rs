@@ -294,7 +294,15 @@ fn add_bookmark(app: &mut AppState) {
         label
     };
     let r = d.session.add_bookmark(&[], None, &title, page);
-    app.status = crate::actions::report(r, |_| format!("Bookmark added: {title}"));
+    let f = &mut app.features.bookmarks;
+    app.status = crate::actions::report(r, |p| {
+        // Selected with its title ready to type over, as the panel's Add does.
+        f.also.clear();
+        f.selected = Some(p);
+        f.rename = title.clone();
+        f.edit_now = true;
+        format!("Bookmark added: {title}")
+    });
     app.show_panel("bookmarks");
 }
 

@@ -282,10 +282,14 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                 .pages
                 .iter()
                 .map(|p| {
+                    // A page scale is stored as a page-wide viewport (as Revu does), so fall
+                    // back to the first viewport like the navigation bar's readout.
                     p.scale
                         .as_ref()
                         .filter(|s| s.valid())
-                        .map_or_else(|| "No scale".to_string(), |s| s.ratio.clone())
+                        .or(p.viewports.first().map(|v| &v.scale))
+                        .filter(|s| !s.ratio.is_empty())
+                        .map_or_else(|| "Scale Not Set".to_string(), |s| s.ratio.clone())
                 })
                 .collect(),
         ),
