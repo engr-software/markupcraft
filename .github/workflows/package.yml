@@ -63,7 +63,10 @@ jobs:
           mnt=$(mktemp -d)
           hdiutil attach "$dmg" -nobrowse -readonly -mountpoint "$mnt"
           app="$mnt/MarkupCraft.app"
-          codesign --verify --deep --strict "$app"
+          # HFS images carry Finder metadata; verify the signature on a clean copy.
+          copy=$(mktemp -d)
+          ditto --norsrc --noextattr --noacl "$app" "$copy/MarkupCraft.app"
+          codesign --verify --deep --strict "$copy/MarkupCraft.app"
           plutil -p "$app/Contents/Info.plist" | grep -E "CFBundleIdentifier|CFBundleIconFile|CFBundleShortVersionString"
           test -s "$app/Contents/Resources/MarkupCraft.icns"
           test -x "$app/Contents/MacOS/MarkupCraft"

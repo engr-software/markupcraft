@@ -76,6 +76,7 @@ done
 iconutil -c icns -o "$APP/Contents/Resources/MarkupCraft.icns" "$ICONSET"
 
 # Sign inside-out: the nested executables first, then the bundle (which seals Info.plist).
+xattr -cr "$APP"   # no Finder metadata or resource forks inside the bundle
 sign --options runtime "$APP/Contents/MacOS/markupcraft-cli"
 sign --options runtime "$APP/Contents/MacOS/MarkupCraft"
 sign --options runtime "$APP"
