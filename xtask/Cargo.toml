@@ -12,3 +12,4 @@ workspace = true
 anyhow = "1"
 serde = { workspace = true }
 toml = "1"
+sha2 = "0.11"

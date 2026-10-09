@@ -6,19 +6,26 @@
 
 mod attachments;
 mod bookmarks;
+mod compare;
 mod doc;
 mod docprops;
 mod edit;
 mod export;
 mod files;
 mod flatten;
+mod forms;
 mod links;
 mod marks;
 mod markups;
+mod ocr;
 mod pages;
+mod redact;
 mod scale;
 mod search;
 mod security;
+mod sign;
+mod spell;
+mod visual;
 mod xfdf;
 
 use markupcraft_engine::{Markup, Session};
@@ -117,6 +124,22 @@ pub static TOOLS: &[&Tool] = &[
     &files::BOXES,
     &files::CROP,
     &files::RESIZE,
+    &compare::COMPARE,
+    &compare::OVERLAY,
+    &visual::SEARCH,
+    &ocr::OCR,
+    &redact::MARK,
+    &redact::LIST,
+    &redact::APPLY,
+    &forms::LIST,
+    &forms::FILL,
+    &forms::ADD,
+    &forms::RESET,
+    &forms::FLATTEN,
+    &sign::ID_CREATE,
+    &sign::SIGN,
+    &sign::LIST,
+    &spell::CHECK,
 ];
 
 pub fn find(name: &str) -> Option<&'static Tool> {

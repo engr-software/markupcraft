@@ -3,6 +3,7 @@
 use std::process::ExitCode;
 
 mod gates;
+mod models;
 mod package;
 mod parity;
 mod scorecard;
@@ -37,6 +38,11 @@ const COMMANDS: &[(&str, &str, Command)] = &[
         package::run,
     ),
     ("version", "Print the workspace version", gates::version),
+    (
+        "models",
+        "Fetch the OCR models into assets/models/ (SHA-256 checked, never committed)",
+        models::run,
+    ),
 ];
 
 fn main() -> ExitCode {

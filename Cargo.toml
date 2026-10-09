@@ -29,6 +29,14 @@ pdfcraft-edit = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a4
 pdfcraft-print = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
 pdfcraft-xfdf = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
 pdfcraft-optimize = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
+# Compare, OCR, redaction, forms, signatures and content edits from PdfCraft, same pin.
+pdfcraft-annot = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
+pdfcraft-compare = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
+pdfcraft-fonts = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
+pdfcraft-forms = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
+pdfcraft-ocr = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
+pdfcraft-redact = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
+pdfcraft-sign = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
 
 # foundation
 thiserror = "2"

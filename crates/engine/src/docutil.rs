@@ -57,7 +57,7 @@ impl Session {
     }
 
     /// [`Self::current_copy`] as PDF bytes (the file's own bytes when nothing changed).
-    pub(crate) fn current_bytes(&self) -> Result<Arc<Vec<u8>>> {
+    pub fn current_bytes(&self) -> Result<Arc<Vec<u8>>> {
         let untouched = !self.file.cos.is_modified()
             && self.file.cos.security().is_none()
             && !self.doc.markups.iter().any(|m| m.dirty)

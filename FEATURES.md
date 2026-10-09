@@ -9,21 +9,21 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | Area | Rows | Proven | Have | Partial | Missing | Excluded | C++ have | C++ partial |
 |---|---|---|---|---|---|---|---|---|
-| Measurement and takeoff | 134 | 2 | 8 | 24 | 100 | 0 | 47 | 17 |
-| Markup tools, Properties, Tool Chest, layers, Markups List | 192 | 0 | 13 | 33 | 146 | 0 | 86 | 23 |
-| Documents, pages, batch, print, search, security | 217 | 0 | 24 | 21 | 166 | 6 | 38 | 23 |
-| Compare/overlay, interface, preferences, mouse, Studio | 226 | 0 | 0 | 0 | 195 | 31 | 24 | 22 |
+| Measurement and takeoff | 134 | 2 | 10 | 24 | 98 | 0 | 47 | 17 |
+| Markup tools, Properties, Tool Chest, layers, Markups List | 192 | 0 | 14 | 33 | 145 | 0 | 86 | 23 |
+| Documents, pages, batch, print, search, security | 217 | 0 | 28 | 29 | 154 | 6 | 38 | 23 |
+| Compare/overlay, interface, preferences, mouse, Studio | 226 | 0 | 20 | 10 | 165 | 31 | 24 | 22 |
 | Default keyboard shortcuts | 177 | 0 | 0 | 0 | 177 | 0 | 11 | 18 |
-| **All** | 946 | 2 | 45 | 78 | 784 | 37 | 206 | 103 |
+| **All** | 946 | 2 | 72 | 96 | 739 | 37 | 206 | 103 |
 
 ### By priority (rows in scope)
 
 | Priority | Proven | Have | Partial | Missing |
 |---|---|---|---|---|
-| P0 | 2 | 10 | 30 | 99 |
-| P1 | 0 | 16 | 34 | 167 |
-| P2 | 0 | 12 | 8 | 189 |
-| P3 | 0 | 7 | 6 | 152 |
+| P0 | 2 | 11 | 31 | 97 |
+| P1 | 0 | 27 | 39 | 151 |
+| P2 | 0 | 20 | 11 | 178 |
+| P3 | 0 | 14 | 15 | 136 |
 
 ## Measurement and takeoff
 
@@ -123,8 +123,8 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | meas-060 | Clear fill / boundaries | P1 | missing | missing |  |
 | meas-061 | Drag-to-encircle fill | P2 | missing | missing |  |
 | meas-062 | Dynamic Fill settings | P2 | missing | missing |  |
-| meas-063 | Visual Search | P1 | missing | missing |  |
-| meas-064 | Apply Count to Visual Search results | P0 | missing | missing |  |
+| meas-063 | Visual Search | P1 | have | missing | `visual_search_finds_symbols_and_counts_them` Tool visual_search. |
+| meas-064 | Apply Count to Visual Search results | P0 | have | missing | `visual_search_finds_symbols_and_counts_them` action count: one Count measurement per page with a point on each hit. |
 | meas-065 | Count from text search | P1 | missing | have |  |
 | meas-066 | AI auto-count | P3 | missing | missing |  |
 
@@ -248,7 +248,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-004 | Note | P1 | missing | have |  |
 | mark-005 | Callout | P0 | partial | have | `cli: markupcheck` Revu callouts are read and rewritten (markupcheck); no tool. |
 | mark-006 | Rich text editing in text markups | P1 | missing | partial |  |
-| mark-007 | Spell check | P2 | missing | have |  |
+| mark-007 | Spell check | P2 | have | have | `spell_check_flags_markup_text_with_suggestions` `the_bundled_dictionary_checks_english` `affix_expansion_and_checks` Tool spell_check: markup comment text (or given text) against assets/dictionaries/en_US, read by a pure-Rust Hunspell affix expander; REP / one-edit / two-edit suggestions; words with digits, one letter or ALL CAPS skipped; accept list. No underline-as-you-type UI yet. |
 | mark-008 | Review Text (text-edit view) | P3 | missing | missing |  |
 | mark-009 | Text Highlight | P2 | missing | have |  |
 | mark-010 | Underline text | P2 | missing | have |  |
@@ -700,22 +700,22 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| doc-155 | OCR | P2 | missing | have |  |
-| doc-156 | OCR options | P3 | missing | partial |  |
+| doc-155 | OCR | P2 | have | have | `ocr_pages_adds_a_searchable_text_layer` `ocr_adds_a_searchable_layer_over_the_ink` Session::ocr + tool ocr_pages: pdfcraft-ocr (ocrs) words placed as an invisible text layer over the page image, one undo step, any page list. Models fetched by `cargo xtask models` (never committed). No batch across files yet. |
+| doc-156 | OCR options | P3 | partial | partial | `ocr_pages_adds_a_searchable_text_layer` dpi and skip pages that already have text; English (Latin) models only; no skew, orientation or vertical-text options. |
 | doc-157 | Text search | P0 | have | have | `text_search_finds_hits_with_rectangles` Headless (engine + automation tool); no UI yet. text_search over the page text layer (pdfcraft-render): hits with page, text, context and per-line rectangles in user space. |
 | doc-158 | Search scope | P1 | partial | partial | `text_search_finds_hits_with_rectangles` Current document, all or chosen pages; no other files, Sets or folders. |
 | doc-159 | Search options | P1 | partial | partial | `text_search_finds_hits_with_rectangles` Page text, case sensitive, whole words, hit limit; not file names, properties, fields or markup text. |
 | doc-160 | Search selected text | P2 | missing | missing |  |
 | doc-161 | Act on search results | P1 | missing | partial |  |
 | doc-162 | Search and replace | P3 | missing | missing |  |
-| doc-163 | Visual Search | P0 | missing | missing |  |
+| doc-163 | Visual Search | P0 | partial | missing | `visual_search_finds_symbols_and_counts_them` Sensitivity, quarter-turn rotations and Count results; no 45-degree steps, colour filter or limit-to-selection yet. |
 
 ### Forms
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| doc-164 | Fill forms | P2 | missing | missing |  |
-| doc-165 | Create form fields | P3 | missing | missing |  |
+| doc-164 | Fill forms | P2 | partial | missing | `forms_create_fill_and_flatten` `create_fill_reset_and_flatten_fields` Tools form_list, form_fill (text, check box, radio, combo, list; appearances regenerated by pdfcraft-forms) and form_reset. No XFA or field highlight yet. |
+| doc-165 | Create form fields | P3 | partial | missing | `forms_create_fill_and_flatten` `create_fill_reset_and_flatten_fields` Tool form_add_field: text (multiline), check box, radio groups, dropdown, list box, button and signature fields with Acrobat-style names and looks; no properties or actions editing yet. Fields flatten into page content with form_flatten. |
 | doc-166 | Auto-create fields | P3 | missing | missing |  |
 | doc-167 | Form data | P3 | missing | missing |  |
 
@@ -723,10 +723,10 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| doc-168 | Signatures panel | P2 | missing | missing |  |
-| doc-169 | Sign document | P3 | missing | missing |  |
-| doc-170 | Certify document | P3 | missing | missing |  |
-| doc-171 | Digital ID manager | P3 | missing | missing |  |
+| doc-168 | Signatures panel | P2 | have | missing | `signatures_sign_validate_and_track_changes` `create_an_id_sign_validate_and_detect_tampering` Tool signature_list (pdfcraft-sign): every signature and certification, visible or not, with status valid / unknown / invalid, details and changes made after signing, against trusted certificates. No panel UI yet. |
+| doc-169 | Sign document | P3 | have | missing | `signatures_sign_validate_and_track_changes` `create_an_id_sign_validate_and_detect_tampering` Tool signature_sign: PAdES B-B with a .p12 digital ID, an existing field or a new visible / invisible one, reason, location, contact, optional PNG image in the appearance; written as a new file (incremental update). |
+| doc-170 | Certify document | P3 | partial | missing | `signatures_sign_validate_and_track_changes` certify 1/2/3 (DocMDP) as first signer, and later changes are judged against it; no clearing a certification. |
+| doc-171 | Digital ID manager | P3 | partial | missing | `signatures_sign_validate_and_track_changes` Tool digital_id_create: self-signed P-256 ID in a password-protected .p12 plus its public certificate (PEM); no store, import, change-password or delete management. |
 
 ### Security and redaction
 
@@ -736,9 +736,9 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-173 | Security status icon | P2 | missing | missing |  |
 | doc-174 | Set passwords and permissions | P3 | have | missing | `security_passwords_encrypt_open_and_remove` Headless (engine + automation tool); no UI yet. security_set: open and/or permissions password, eight permissions, AES-256/AES-128/RC4; security_remove with the permissions password; applied by a full save. |
 | doc-175 | Security presets | P3 | missing | missing |  |
-| doc-176 | Mark for redaction | P3 | missing | missing |  |
-| doc-177 | Apply redactions | P3 | missing | missing |  |
-| doc-178 | Redaction appearance | P3 | missing | missing |  |
+| doc-176 | Mark for redaction | P3 | have | missing | `redaction_marks_applies_and_verifies` `marks_search_hits_and_areas_then_applies_and_verifies` Tool redact_mark: areas (page + rects) or every occurrence of a text (case / whole words), as Redact annotations (pdfcraft-annot); redact_list lists them. |
+| doc-177 | Apply redactions | P3 | partial | missing | `redaction_marks_applies_and_verifies` `marks_search_hits_and_areas_then_applies_and_verifies` Tool redact_apply (pdfcraft-redact): text, images and paths under the marks removed on all or chosen pages, verified afterwards (residue), next save is a full rewrite. No metadata scrub or text-only / images-only choice yet. |
+| doc-178 | Redaction appearance | P3 | partial | missing | `redaction_marks_applies_and_verifies` Fill colour (or none) and overlay text; no outline colour, font, autosize or repeat options in the tool yet. |
 
 ### Flatten, file size and archive
 
@@ -820,21 +820,21 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| ui-001 | Compare Documents | P1 | missing | missing |  |
-| ui-002 | Document A / Document B pickers | P1 | missing | missing |  |
-| ui-003 | Page range per side | P1 | missing | missing |  |
-| ui-004 | Alignment method | P1 | missing | missing |  |
-| ui-005 | Compare a selected window | P2 | missing | missing |  |
-| ui-006 | Change clouds output | P1 | missing | missing |  |
-| ui-007 | Difference markup appearance | P2 | missing | missing |  |
+| ui-001 | Compare Documents | P1 | have | missing | `compare_documents_clouds_changes_on_the_newer_revision` `compare_documents_clouds_text_and_graphic_changes` Engine Session::compare_with + tool compare_documents: raster diff of rendered pages clustered into regions, plus a word diff (pdfcraft-compare); clouds on the newer document. No dialog yet. |
+| ui-002 | Document A / Document B pickers | P1 | partial | missing | `compare_documents_clouds_changes_on_the_newer_revision` The older revision is a file path or an open document (old / old_doc); no picker UI yet. |
+| ui-003 | Page range per side | P1 | have | missing | `compare_documents_clouds_changes_on_the_newer_revision` pairs: [[old page, new page], ...]; default pairs every page in order. |
+| ui-004 | Alignment method | P1 | partial | missing | `compare_documents_clouds_text_and_graphic_changes` Page Align only for Compare (1-pixel shift tolerance); two-point alignment exists for Overlay. |
+| ui-005 | Compare a selected window | P2 | have | missing | `compare_documents_clouds_text_and_graphic_changes` window: a rectangle of the new page. |
+| ui-006 | Change clouds output | P1 | have | missing | `compare_documents_clouds_changes_on_the_newer_revision` Clouds (orange by default) on the open newer document as one undo step; save-as keeps the original untouched. |
+| ui-007 | Difference markup appearance | P2 | partial | missing | `compare_documents_clouds_changes_on_the_newer_revision` subject, colour, width, cloud on/off; no fill, opacity or lock options yet. |
 | ui-008 | Comparison presets | P3 | missing | missing |  |
-| ui-009 | Grid size / pixel density | P3 | missing | missing |  |
-| ui-010 | Color sensitivity | P3 | missing | missing |  |
-| ui-011 | Rasterization DPI | P3 | missing | missing |  |
-| ui-012 | Ignore margin | P2 | missing | missing |  |
-| ui-013 | Include markups / flattened markups | P3 | missing | missing |  |
+| ui-009 | Grid size / pixel density | P3 | have | missing | `compare_documents_clouds_text_and_graphic_changes` `nearby_changes_merge_and_margins_are_ignored` cell (grid size) and density (changed pixels per cell). |
+| ui-010 | Color sensitivity | P3 | have | missing | `compare_documents_clouds_text_and_graphic_changes` sensitivity 0 to 1 sets the ink-difference threshold. |
+| ui-011 | Rasterization DPI | P3 | have | missing | `compare_documents_clouds_text_and_graphic_changes` dpi (default 100, 18 to 600). |
+| ui-012 | Ignore margin | P2 | have | missing | `nearby_changes_merge_and_margins_are_ignored` margin in points. |
+| ui-013 | Include markups / flattened markups | P3 | partial | missing | `compare_documents_clouds_changes_on_the_newer_revision` include_markups toggles existing annotations; no flattened-markup recovery. |
 | ui-014 | Auto-alignment / manual offset | P2 | missing | missing |  |
-| ui-015 | Results in Markups List | P1 | missing | partial |  |
+| ui-015 | Results in Markups List | P1 | have | partial | `compare_documents_clouds_changes_on_the_newer_revision` Every change is a Cloud markup with subject Compare and the change in its comment. |
 | ui-016 | Review with split view + dimmer | P1 | missing | missing |  |
 | ui-017 | Batch Compare Documents | P2 | missing | missing |  |
 | ui-018 | Batch: add sources | P2 | missing | missing |  |
@@ -848,22 +848,22 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| ui-024 | Overlay Pages | P1 | missing | missing |  |
-| ui-025 | Add overlay sources | P1 | missing | missing |  |
-| ui-026 | Per-layer color | P1 | missing | missing |  |
+| ui-024 | Overlay Pages | P1 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` `overlay_recolours_layers_and_keeps_them_toggleable` overlay::overlay_pages + tool overlay_pages: vector layers recoloured with Lighten in isolated groups, stacked with Multiply. |
+| ui-025 | Add overlay sources | P1 | partial | missing | `overlay_pages_writes_coloured_toggleable_layers` Layers are files (any number up to 16); no add-open-tabs UI. |
+| ui-026 | Per-layer color | P1 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` `overlay_recolours_layers_and_keeps_them_toggleable` Default red, blue, green, magenta, orange, cyan; colour per layer. |
 | ui-027 | Per-layer background color | P3 | missing | missing |  |
-| ui-028 | Per-layer opacity | P2 | missing | missing |  |
-| ui-029 | Blend mode | P2 | missing | missing |  |
+| ui-028 | Per-layer opacity | P2 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` opacity per layer. |
+| ui-029 | Blend mode | P2 | partial | missing | `overlay_recolours_layers_and_keeps_them_toggleable` Multiply (darkens where layers share ink); not selectable yet. |
 | ui-030 | Advanced color shading | P3 | missing | missing |  |
-| ui-031 | Page Align | P1 | missing | missing |  |
+| ui-031 | Page Align | P1 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` align page (as positioned) and bounds (stretched to the first page). |
 | ui-032 | Auto Align | P2 | missing | missing |  |
-| ui-033 | Manual Align (3 points) | P1 | missing | missing |  |
+| ui-033 | Manual Align (3 points) | P1 | partial | missing | `overlay_pages_writes_coloured_toggleable_layers` `two_points_give_scale_rotation_and_offset` Two matching points (scale, rotation, offset), not three. |
 | ui-034 | Select region per layer | P2 | missing | missing |  |
-| ui-035 | Page range per layer | P2 | missing | missing |  |
-| ui-036 | Layer name | P3 | missing | missing |  |
+| ui-035 | Page range per layer | P2 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` pages per layer. |
+| ui-036 | Layer name | P3 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` name per layer (default Layer n). |
 | ui-037 | Layer position defaults | P3 | missing | missing |  |
 | ui-038 | Include flattened markups | P3 | missing | missing |  |
-| ui-039 | Layer visibility in result | P2 | missing | missing |  |
+| ui-039 | Layer visibility in result | P2 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` Each layer is an optional content group listed in /OCProperties, all on. |
 | ui-040 | Batch Overlay | P2 | missing | missing |  |
 | ui-041 | Smart Overlay (Max plan) | P3 | missing | missing |  |
 
@@ -884,13 +884,13 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-052 | Apply Count to checked | P1 | missing | missing |  |
 | ui-053 | Replace checked | P3 | missing | missing |  |
 | ui-054 | Clear results | P2 | missing | missing |  |
-| ui-055 | Visual Search | P1 | missing | missing |  |
-| ui-056 | Visual: sensitivity | P1 | missing | missing |  |
-| ui-057 | Visual: multiple rotations | P1 | missing | missing |  |
+| ui-055 | Visual Search | P1 | have | missing | `visual_search_finds_symbols_and_counts_them` `finds_the_symbol_turned_and_on_other_pages` Session::visual_search + tool visual_search: NCC template matching on downsampled grayscale, refined at full resolution, over the chosen pages. |
+| ui-056 | Visual: sensitivity | P1 | have | missing | `visual_search_finds_symbols_and_counts_them` sensitivity 0 to 1 sets the correlation threshold. |
+| ui-057 | Visual: multiple rotations | P1 | partial | missing | `finds_the_symbol_turned_and_on_other_pages` 0/90/180/270 degrees; not 45-degree steps. |
 | ui-058 | Visual: filter by color | P2 | missing | missing |  |
 | ui-059 | Visual: limit by selection | P2 | missing | missing |  |
 | ui-060 | Visual results thumbnails | P1 | missing | missing |  |
-| ui-061 | Visual: count / markup checked results | P1 | missing | missing |  |
+| ui-061 | Visual: count / markup checked results | P1 | have | missing | `visual_search_finds_symbols_and_counts_them` action count (one Count per page) or highlight (a rectangle per hit), one undo step; no hyperlink or bookmark actions. |
 
 ### 4. Spaces, Links, Signatures panels
 
@@ -905,8 +905,8 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-068 | Links panel: Places | P2 | missing | missing |  |
 | ui-069 | Links panel: Hyperlinks list | P2 | missing | missing |  |
 | ui-070 | Hyperlink tool / Edit Action | P2 | missing | missing |  |
-| ui-071 | Signatures panel | P3 | missing | missing |  |
-| ui-072 | Sign / add field / certify / validate | P3 | missing | missing |  |
+| ui-071 | Signatures panel | P3 | partial | missing | `signatures_sign_validate_and_track_changes` The data (signature_list) is there; no panel yet. |
+| ui-072 | Sign / add field / certify / validate | P3 | have | missing | `signatures_sign_validate_and_track_changes` `forms_create_fill_and_flatten` Tools signature_sign (sign, certify), form_add_field type signature (add field), signature_list (validate). |
 
 ### 5. Application layout: menus, toolbars, panels, tabs
 
@@ -1010,7 +1010,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-148 | General > Navigation: scrollbars | P3 | missing | missing |  |
 | ui-149 | General > Navigation: sync, 3D mouse, accelerators | P3 | missing | missing |  |
 | ui-150 | General > Grid & Snap | P1 | missing | missing |  |
-| ui-151 | General > Spelling | P3 | missing | missing |  |
+| ui-151 | General > Spelling | P3 | partial | missing | `spell_check_flags_markup_text_with_suggestions` Language (dictionary name), ignore ALL-CAPS and accepted words are tool options; no preferences page or user dictionary file yet. |
 | ui-152 | Interface > File Access | P3 | missing | missing |  |
 | ui-153 | Interface > Markups List | P1 | missing | missing |  |
 | ui-154 | Interface > Layers | P3 | missing | missing |  |
