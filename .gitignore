@@ -2,5 +2,4 @@
 /dist
 /fuzz-out
 *.markupcraft-tmp
-/.claude
 /assets/models
