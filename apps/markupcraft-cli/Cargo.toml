@@ -1,0 +1,19 @@
+[package]
+name = "markupcraft-cli"
+description = "MarkupCraft from the command line: scorecard, lists, scripted edits, MCP"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "markupcraft-cli"
+path = "src/main.rs"
+
+[dependencies]
+markupcraft-model = { workspace = true }
+markupcraft-measure = { workspace = true }
+markupcraft-revu = { workspace = true }
+serde_json = { workspace = true }

@@ -1,0 +1,1 @@
+//! markupcraft-ui-egui (scaffold).

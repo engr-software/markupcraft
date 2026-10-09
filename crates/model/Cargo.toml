@@ -1,0 +1,14 @@
+[package]
+name = "markupcraft-model"
+description = "The markup model: markups, pages, viewports, custom columns"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+markupcraft-geom = { workspace = true }
+markupcraft-measure = { workspace = true }
+serde = { workspace = true }

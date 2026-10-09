@@ -1,0 +1,13 @@
+[package]
+name = "markupcraft-measure"
+description = "Scales, number formats and quantities stored as PDF /Measure dictionaries"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+markupcraft-geom = { workspace = true }
+serde = { workspace = true }

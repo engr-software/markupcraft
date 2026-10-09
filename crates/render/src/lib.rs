@@ -1,0 +1,1 @@
+//! markupcraft-render (scaffold).

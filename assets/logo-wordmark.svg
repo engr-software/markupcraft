@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 256" width="900" height="256">
+  <title>MarkupCraft</title>
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="#1F2A30"/>
+  <path d="M64 52 H162 L196 86 V204 H64 Z" fill="#F4F1EA"/>
+  <path d="M162 52 V86 H196 Z" fill="#C9C3B6"/>
+  <path d="M82 104 H150 V134 H178 V184 H82 Z" fill="#2BB5A0" fill-opacity="0.35" stroke="#1E8F7E" stroke-width="5" stroke-linejoin="round"/>
+  <g stroke="#F2A541" stroke-width="7" stroke-linecap="round">
+    <line x1="82" y1="80" x2="150" y2="80"/>
+    <line x1="82" y1="68" x2="82" y2="92"/>
+    <line x1="150" y1="68" x2="150" y2="92"/>
+  </g>
+  <text x="290" y="160" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="104" font-weight="700" fill="#1F2A30">Markup<tspan fill="#1E8F7E">Craft</tspan></text>
+</svg>
