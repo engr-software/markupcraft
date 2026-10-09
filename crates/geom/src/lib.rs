@@ -9,6 +9,8 @@
     clippy::unreachable
 )]
 
+pub mod snap;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]

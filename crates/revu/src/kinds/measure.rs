@@ -4,7 +4,7 @@ use markupcraft_geom::Point;
 use markupcraft_model::{CountSymbol, Kind, Markup, caption, code};
 use pdfcraft_cos::{Dict, Document as CosDoc, Object};
 
-use super::AnnotKind;
+use super::{AnnotKind, measure_more};
 use crate::ap::Ap;
 use crate::pdf::{self, n, points_arr, real, s};
 
@@ -23,7 +23,7 @@ pub fn measurement_keys(a: &mut Dict, _m: &Markup) {
     pdf::set(a, "DepthUnit", Object::Array(vec![Object::Dict(depth)]));
 }
 
-fn polygon_keys(a: &mut Dict, m: &Markup) {
+pub(super) fn polygon_keys(a: &mut Dict, m: &Markup) {
     measurement_keys(a, m);
     pdf::set(a, "AlignOnSegment", Object::Bool(true));
 }
@@ -55,7 +55,7 @@ pub fn geometry_by_subtype(a: &mut Dict, m: &Markup) {
 /// Written only when used, so markups without them keep exactly the keys they had:
 /// `/PCSegmentValues`, `/PCRiseDrop`, `/CO` (Area, Perimeter, Length), `/PCCaptionOffset`
 /// (Polylength, Count), `/PCArcs`.
-fn polish_keys(a: &mut Dict, m: &Markup) {
+pub(super) fn polish_keys(a: &mut Dict, m: &Markup) {
     set_or_remove(a, "PCSegmentValues", m.segment_values, Object::Bool(true));
     set_or_remove(
         a,
@@ -89,7 +89,7 @@ fn line_geometry(a: &mut Dict, m: &Markup) {
     polish_keys(a, m);
 }
 
-fn area_geometry(a: &mut Dict, m: &Markup) {
+pub(super) fn area_geometry(a: &mut Dict, m: &Markup) {
     geometry_by_subtype(a, m);
     polish_keys(a, m);
     let holes = Object::Array(m.holes.iter().map(|h| points_arr(h)).collect());
@@ -117,24 +117,29 @@ fn count_geometry(a: &mut Dict, m: &Markup) {
     set_or_remove(a, "PCSymbolScale", m.symbol_scale != 1.0, real(m.symbol_scale));
 }
 
-fn draw_open(ap: &mut Ap, m: &Markup, _extent: &mut Vec<Point>) {
+fn draw_open(ap: &mut Ap, m: &Markup, extent: &mut Vec<Point>) {
     if !m.pts.is_empty() {
-        ap.path(&m.pts, false).op("S\n");
+        measure_more::trace(ap, m, false);
+        ap.op("S\n");
     }
+    measure_more::draw_segment_values(ap, m, extent);
 }
 
-fn draw_closed(ap: &mut Ap, m: &Markup, _extent: &mut Vec<Point>) {
+fn draw_closed(ap: &mut Ap, m: &Markup, extent: &mut Vec<Point>) {
     if !m.pts.is_empty() {
-        ap.path(&m.pts, true).op(if m.fill.is_some() { "B\n" } else { "S\n" });
+        measure_more::trace(ap, m, true);
+        ap.op(if m.fill.is_some() { "B\n" } else { "S\n" });
     }
+    measure_more::draw_segment_values(ap, m, extent);
 }
 
 /// The outline and, with cutouts, every hole as its own subpath filled even-odd.
-fn draw_area(ap: &mut Ap, m: &Markup, _extent: &mut Vec<Point>) {
+fn draw_area(ap: &mut Ap, m: &Markup, extent: &mut Vec<Point>) {
     if m.pts.is_empty() {
         return;
     }
-    ap.path(&m.pts, false);
+    measure_more::draw_segment_values(ap, m, extent);
+    measure_more::trace(ap, m, false);
     if m.holes.is_empty() {
         ap.op(if m.fill.is_some() { "h B\n" } else { "h S\n" });
         return;
@@ -253,6 +258,7 @@ pub fn read_takeoff_keys(_doc: &CosDoc, a: &Dict, m: &mut Markup) {
             }
         }
     }
+    markupcraft_model::measure_extras::validate_arcs(m);
     if m.count_symbol == CountSymbol::Custom && m.symbol_paths.is_empty() {
         m.count_symbol = CountSymbol::Circle;
     }
