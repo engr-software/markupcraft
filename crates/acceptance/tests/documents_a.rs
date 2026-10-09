@@ -2205,11 +2205,11 @@ fn extract_pages_to_one_file_or_one_per_page() {
         ["A-101", "A-102", "A-103"],
         "deleted after extracting"
     );
-    assert_eq!(shortcut("document.extract_page").as_deref(), Some("Ctrl+Shift+X"));
+    assert_eq!(shortcut("document.extract_pages").as_deref(), Some("Ctrl+Shift+X"));
 }
 
 /// D-091 replace pages; "content only" keeps the old page's markups and links (slip sheet).
-/// D-092 delete a range (Ctrl+Shift+D deletes the current page).
+/// D-092 delete a range (Ctrl+Shift+D opens Delete Pages, as in Revu).
 #[test]
 fn replace_pages_keeps_markups_and_delete_pages() {
     let dir = temp_dir("doca-replace");
@@ -2247,7 +2247,8 @@ fn replace_pages_keeps_markups_and_delete_pages() {
     let mut h = app();
     let n = geoms(&h).len();
     key(&mut h, CTRL_SHIFT, Key::D);
-    assert_eq!(geoms(&h).len(), n - 1, "Ctrl+Shift+D");
+    assert_eq!(geoms(&h).len(), n, "Ctrl+Shift+D asks first, it never deletes at once");
+    assert!(shows(&h, "Delete Pages"), "Ctrl+Shift+D opens the Delete Pages dialog");
 }
 
 /// D-093 Rotate Pages dialog: 90 / 180 on all, current, even, odd, landscape, portrait.

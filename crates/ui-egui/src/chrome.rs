@@ -27,7 +27,13 @@ pub fn menu_bar(app: &mut AppState, ui: &mut egui::Ui) {
                 for menu in MENUS {
                     let r = ui.menu_button(*menu, |ui| {
                         ui.set_min_width(220.0);
-                        menu_items(app, ui, menu);
+                        // Long menus (View, Markup, Document) scroll instead of running off
+                        // the bottom of the window, where their last items could not be reached.
+                        let max = (ui.ctx().content_rect().height() - 60.0).max(160.0);
+                        egui::ScrollArea::vertical()
+                            .id_salt(("menu-scroll", *menu))
+                            .max_height(max)
+                            .show(ui, |ui| menu_items(app, ui, menu));
                     });
                     crate::shell::extra::menu_drawn(app, menu, &r.response);
                 }

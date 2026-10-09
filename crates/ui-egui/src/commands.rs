@@ -54,6 +54,9 @@ impl Keys {
             Key::ArrowRight => "Right",
             Key::Delete => "Del",
             Key::Escape => "Esc",
+            // Menus show the key, as Revu does (`Ctrl+]`, not the key's name).
+            Key::OpenBracket => "[",
+            Key::CloseBracket => "]",
             k => k.name(),
         });
         s
@@ -268,13 +271,13 @@ pub static COMMANDS: &[Command] = &[
     cmd("document.rotate_ccw", "Rotate Page Counterclockwise", "Document", 2, shift_alt(Key::Minus), "rotate-ccw"),
     cmd("document.insert_blank", "Insert Blank Page", "Document", 2, ctrl_shift(Key::N), "file-plus"),
     cmd("document.insert_pages", "Insert Pages...", "Document", 2, ctrl_shift(Key::I), ""),
-    cmd("document.extract_page", "Extract Page...", "Document", 2, ctrl_shift(Key::X), "file-output"),
-    cmd("document.delete_page", "Delete Page", "Document", 2, ctrl_shift(Key::D), "file-minus"),
+    cmd("document.extract_page", "Extract Page...", "Document", 2, None, "file-output"),
+    cmd("document.delete_page", "Delete Page", "Document", 2, None, "file-minus"),
     cmd("document.insert_blank_pages", "Insert Blank Pages...", "Document", 4, None, ""),
     cmd("pages.insert", "Insert Pages At...", "Document", 4, None, ""),
-    cmd("document.extract_pages", "Extract Pages...", "Document", 4, None, ""),
+    cmd("document.extract_pages", "Extract Pages...", "Document", 4, ctrl_shift(Key::X), ""),
     cmd("document.replace_pages", "Replace Pages...", "Document", 4, ctrl_shift(Key::Y), ""),
-    cmd("document.delete_pages", "Delete Pages...", "Document", 4, None, ""),
+    cmd("document.delete_pages", "Delete Pages...", "Document", 4, ctrl_shift(Key::D), ""),
     cmd("document.rotate_pages", "Rotate Pages...", "Document", 4, ctrl_shift(Key::R), ""),
     cmd("document.crop_pages", "Crop Pages...", "Document", 4, shift_alt(Key::O), ""),
     cmd("document.page_setup", "Page Setup...", "Document", 4, None, ""),
@@ -453,8 +456,8 @@ mod tests {
             (k(c, s, n, Key::F7), "snap.markup"),
             (k(n, n, n, Key::Plus), "view.zoom_in"), (k(n, n, n, Key::Minus), "view.zoom_out"),
             // Document
-            (k(c, s, n, Key::D), "document.delete_page"), (k(c, n, n, Key::D), "document.properties"),
-            (k(c, s, n, Key::X), "document.extract_page"), (k(c, s, n, Key::N), "document.insert_blank"),
+            (k(c, s, n, Key::D), "document.delete_pages"), (k(c, n, n, Key::D), "document.properties"),
+            (k(c, s, n, Key::X), "document.extract_pages"), (k(c, s, n, Key::N), "document.insert_blank"),
             (k(c, s, n, Key::I), "document.insert_pages"),
             (k(n, s, a, Key::Plus), "document.rotate_cw"), (k(n, s, a, Key::Minus), "document.rotate_ccw"),
             // File

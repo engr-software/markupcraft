@@ -8943,6 +8943,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:160"
 status = "have"
 cpp = "partial"
 evidence = ["full_screen_presentation_always_on_top_and_bars", "dark_theme_and_menus_render"]
+accepted = ["ui_menu_bar_and_application_menu"]
+acceptance = "pass"
 notes = "Classic menu bar (File, Edit, View, Markup, Measure, Tools, Document, Batch, Window, Help); F9 shows / hides it."
 
 [[feature]]
@@ -8956,6 +8958,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:161"
 status = "have"
 cpp = "partial"
 evidence = ["alt_menus_shift_f10_and_the_markupcraft_menu"]
+accepted = ["ui_alt_menu_accelerators"]
+acceptance = "pass"
 notes = "Preferences > Navigation: Alt + a menu's first letter opens it."
 
 [[feature]]
@@ -8969,7 +8973,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:162"
 status = "have"
 cpp = "partial"
 evidence = ["toolbars_dock_on_the_sides_and_new_toolbars"]
-notes = "Main, Markup, Measure and the user's own toolbars, each a strip with a grip: drag the grip to an edge (or use its menu) to dock the toolbar at the top, in a second row, or down the left or right side; Window > Toolbars shows or hides them."
+accepted = ["ui_toolbars_show_hide_customize_lock"]
+acceptance = "gap"
+notes = "Main, Markup, Measure and the user's own toolbars, each a strip with a grip: drag the grip to an edge (or use its menu) to dock the toolbar at the top, in a second row, or down the left or right side; Window > Toolbars shows or hides them. Acceptance: Three built-in toolbars (Main, Markup Tools, Measure Tools) plus custom ones, not Revu's dozen named toolbars (File, Edit, Shapes, Text, Order, Alignment, Rotation...)."
 
 [[feature]]
 id = "ui-076"
@@ -8982,6 +8988,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:163"
 status = "have"
 cpp = "missing"
 evidence = ["toolbars_show_hide_customize_and_lock"]
+accepted = ["ui_toolbars_show_hide_customize_lock"]
+acceptance = "pass"
 notes = "Window > Toolbars: check each toolbar."
 
 [[feature]]
@@ -8995,6 +9003,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:164"
 status = "have"
 cpp = "missing"
 evidence = ["toolbars_dock_on_the_sides_and_new_toolbars"]
+accepted = ["ui_toolbars_show_hide_customize_lock"]
+acceptance = "pass"
 notes = "Window > Toolbars > Customize: choose a toolbar, add, remove and reorder its commands and separators, make new toolbars (named, shown or hidden, deleted), reset."
 
 [[feature]]
@@ -9008,6 +9018,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:165"
 status = "have"
 cpp = "missing"
 evidence = ["toolbars_show_hide_customize_and_lock"]
+accepted = ["ui_toolbars_show_hide_customize_lock"]
+acceptance = "pass"
 notes = "Window > Toolbars > Lock Toolbars."
 
 [[feature]]
@@ -9021,6 +9033,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:166"
 status = "have"
 cpp = "missing"
 evidence = ["sketch_ellipse_by_radius_and_properties_toolbar_style_and_scale", "properties_toolbar_edits_the_selection_and_the_tool"]
+accepted = ["ui_properties_toolbar"]
+acceptance = "pass"
 notes = "Window > Properties Toolbar: colour, fill, line width, line style (solid, dashed, dotted, dash-dot and the user's line styles), opacity, font size and a measurement's scale, of the selection or of the active tool's next markup."
 
 [[feature]]
@@ -9034,6 +9048,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:167"
 status = "have"
 cpp = "partial"
 evidence = ["full_screen_presentation_always_on_top_and_bars", "rulers_crosshair_and_dimmer"]
+accepted = ["ui_navigation_bar"]
+acceptance = "pass"
 notes = "Navigation bar under the workspace (F4): page navigation, previous / next view, layout modes, rotate view, split, dimmer, scale, zoom."
 
 [[feature]]
@@ -9047,6 +9063,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:168"
 status = "have"
 cpp = "partial"
 evidence = ["full_screen_presentation_always_on_top_and_bars", "rulers_crosshair_and_dimmer"]
+accepted = ["ui_status_bar"]
+acceptance = "pass"
 notes = "Status bar (F8): grid / content / markup snap, Reuse tool, view Sync, pointer position, page size, messages."
 
 [[feature]]
@@ -9060,6 +9078,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:169"
 status = "have"
 cpp = "partial"
 evidence = ["rulers_crosshair_and_dimmer"]
+accepted = ["ui_page_scale_on_bar"]
+acceptance = "pass"
 notes = "The navigation bar shows the scale at the pointer or the page's, and clicking it starts Calibrate."
 
 [[feature]]
@@ -9073,6 +9093,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:170"
 status = "have"
 cpp = "partial"
 evidence = ["full_screen_presentation_always_on_top_and_bars", "default_layout_has_every_panel_and_toggles"]
+accepted = ["ui_panels_and_access_bars"]
+acceptance = "pass"
 notes = "Docking panels left, right and bottom; Window menu toggles; Hide Panels (Shift+F4)."
 
 [[feature]]
@@ -9086,6 +9108,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:171"
 status = "have"
 cpp = "missing"
 evidence = ["panel_access_bars_tab_menu_bottom_layout_and_auto_hide_tabs"]
+accepted = ["ui_panels_and_access_bars"]
+acceptance = "pass"
 notes = "Window > Panel Access Bars: icon strips at the left and right edges open and close panels; no auto-hide of the bars."
 
 [[feature]]
@@ -9099,6 +9123,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:172"
 status = "have"
 cpp = "partial"
 evidence = ["panel_access_bars_tab_menu_bottom_layout_and_auto_hide_tabs"]
+accepted = ["ui_panel_tab_context_menu_and_split"]
+acceptance = "pass"
 notes = "Right-click a panel tab: Show Tab, Hide, Attach Left / Right / Bottom, Split Below, Float."
 
 [[feature]]
@@ -9112,6 +9138,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:173"
 status = "have"
 cpp = "partial"
 evidence = ["panel_access_bars_tab_menu_bottom_layout_and_auto_hide_tabs", "bottom_panel_across_or_between_and_attach"]
+accepted = ["ui_panel_tab_context_menu_and_split"]
+acceptance = "pass"
 notes = "Drag a panel tab onto another panel's edge (the dock shows the drop spots) or use Split Below: both panels show at once."
 
 [[feature]]
@@ -9125,6 +9153,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:174"
 status = "have"
 cpp = "missing"
 evidence = ["panel_access_bars_tab_menu_bottom_layout_and_auto_hide_tabs", "bottom_panel_across_or_between_and_attach"]
+accepted = ["ui_bottom_overlap_and_edge_collapse"]
+acceptance = "pass"
 notes = "Window > Bottom Panel Across the Window: the bottom panel spans the window or sits between the side panels."
 
 [[feature]]
@@ -9138,6 +9168,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:175"
 status = "have"
 cpp = "missing"
 evidence = ["edge_click_collapses_panels_bookmarks_follow_pages_and_urls_in_text"]
+accepted = ["ui_bottom_overlap_and_edge_collapse"]
+acceptance = "pass"
 notes = "A thin strip on each side of the window, beside the panels: click it to slide that side's panels shut, click again to open them; each panel group also has a collapse button on its tab bar."
 
 [[feature]]
@@ -9151,6 +9183,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:176"
 status = "have"
 cpp = "have"
 evidence = ["layout_persists_and_a_new_session_restores_it", "layout_round_trips_and_rejects_junk"]
+accepted = ["ui_layout_persistence"]
+acceptance = "pass"
 notes = "The panel layout is saved with the profile and restored at the next start."
 
 [[feature]]
@@ -9164,7 +9198,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:177"
 status = "have"
 cpp = "missing"
 evidence = ["document_tabs_cycle_close_others_close_all_and_save_all"]
-notes = "Document tabs; Ctrl+Tab cycles."
+accepted = ["ui_document_tabs"]
+acceptance = "fixed"
+notes = "Document tabs; Ctrl+Tab cycles. Acceptance: A document tab's right-click menu never opened: a drag area laid over the tab took the pointer. The drag area now takes clicks too and carries the menu."
 
 [[feature]]
 id = "ui-091"
@@ -9177,6 +9213,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:178"
 status = "have"
 cpp = "missing"
 evidence = ["tab_names_truncate_at_either_end"]
+accepted = ["ui_tab_truncation"]
+acceptance = "pass"
 notes = "Preference: tab length and which end is cut."
 
 [[feature]]
@@ -9190,6 +9228,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:179"
 status = "have"
 cpp = "missing"
 evidence = ["panel_access_bars_tab_menu_bottom_layout_and_auto_hide_tabs"]
+accepted = ["ui_auto_hide_tabs"]
+acceptance = "pass"
 notes = "Window > Auto-Hide Tabs: document tabs show while the pointer is at the top of the document area."
 
 [[feature]]
@@ -9203,7 +9243,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:180"
 status = "have"
 cpp = "partial"
 evidence = ["detached_window_splits_and_syncs", "detach_a_tab_to_a_window_and_drop_a_tab_on_the_split_pane"]
-notes = "Drag a tab out of the window, tab right-click or Window > Detach Tab to New Window (its own window, another view of the file); detached windows split and sync; Reattach."
+accepted = ["ui_detach_tab", "ui_document_tabs"]
+acceptance = "fixed"
+notes = "Drag a tab out of the window, tab right-click or Window > Detach Tab to New Window (its own window, another view of the file); detached windows split and sync; Reattach. Acceptance: Right-click > Detach was unreachable (the tab menu never opened); fixed with ui-090."
 
 [[feature]]
 id = "ui-094"
@@ -9216,6 +9258,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:181"
 status = "have"
 cpp = "partial"
 evidence = ["document_tabs_cycle_close_others_close_all_and_save_all"]
+accepted = ["ui_document_tabs"]
+acceptance = "pass"
 notes = "Close (Ctrl+F4), Close Others, Close All (Ctrl+Shift+W)."
 
 [[feature]]
@@ -9229,6 +9273,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:182"
 status = "have"
 cpp = "missing"
 evidence = ["alt_menus_shift_f10_and_the_markupcraft_menu"]
+accepted = ["ui_context_menu_key"]
+acceptance = "pass"
 notes = "Shift+F10 opens the selection's (or the page's) context menu; Esc closes it."
 
 [[feature]]
@@ -9242,6 +9288,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:183"
 status = "have"
 cpp = "missing"
 evidence = ["full_screen_presentation_always_on_top_and_bars"]
+accepted = ["ui_always_on_top"]
+acceptance = "pass"
 notes = "Window > Always on Top (Ctrl+F12)."
 
 [[feature]]
@@ -9255,7 +9303,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:184"
 status = "partial"
 cpp = "missing"
 evidence = ["web_tab_favorites_browser_and_capture", "web_tab_link_pages_and_page_capture"]
-notes = "See doc-023: a Web Tab document of favourites plus an address bar; pages open in the system browser or are captured to PDF (no browser embedded, no GPU option)."
+accepted = ["ui_web_tab"]
+acceptance = "gap"
+notes = "See doc-023: a Web Tab document of favourites plus an address bar; pages open in the system browser or are captured to PDF (no browser embedded, no GPU option). Acceptance: The Web Tab is a page of favourite links (opened in the system browser or captured as PDF), not an embedded browser."
 
 [[feature]]
 id = "ui-098"
@@ -9268,6 +9318,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:185"
 status = "have"
 cpp = "partial"
 evidence = ["recent_files_reopen_at_the_last_page_and_pin", "file_access_history_by_day_and_categories"]
+accepted = ["ui_file_access_recent_files"]
+acceptance = "pass"
 notes = "File Access panel (Alt+A): recents, pinned categories, history, Explorer. DMS integration is out of scope."
 
 [[feature]]
@@ -9281,7 +9333,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:186"
 status = "have"
 cpp = "missing"
 evidence = ["alt_menus_shift_f10_and_the_markupcraft_menu"]
-notes = "The MarkupCraft menu: About, Preferences, Customize Keyboard, Keyboard Shortcuts, Profiles, Exit (Admin is a Preferences page)."
+accepted = ["ui_menu_bar_and_application_menu"]
+acceptance = "gap"
+notes = "The MarkupCraft menu: About, Preferences, Customize Keyboard, Keyboard Shortcuts, Profiles, Exit (Admin is a Preferences page). Acceptance: The application menu has About, Preferences, Customize Keyboard, Keyboard Shortcuts, Profiles and Exit; there is no Administrator item (admin settings are Preferences > Admin)."
 
 [[feature]]
 id = "ui-100"
@@ -9294,7 +9348,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:192"
 status = "have"
 cpp = "missing"
 evidence = ["preferences_profiles_set_switch_export_import", "profiles_save_switch_export_import"]
-notes = "Profiles: one JSON file per profile in the user's config folder (prefs_*, profile_* tools). Holds preferences, not window layouts yet."
+accepted = ["ui_profiles"]
+acceptance = "gap"
+notes = "Profiles: one JSON file per profile in the user's config folder (prefs_*, profile_* tools). Holds preferences, not window layouts yet. Acceptance: No profiles ship (Revu ships Takeoff, Construction, Design Review, Simple...); Window > Takeoff Workspace makes one."
 
 [[feature]]
 id = "ui-101"
@@ -9307,7 +9363,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:193"
 status = "have"
 cpp = "missing"
 evidence = ["preferences_profiles_set_switch_export_import"]
-notes = "profile_switch (a new profile copies the current preferences or starts from defaults)."
+accepted = ["ui_profiles"]
+acceptance = "fixed"
+notes = "profile_switch (a new profile copies the current preferences or starts from defaults). Acceptance: Switching away from a never-saved profile (the default) dropped it from the list, so there was no way back; the profile left is now saved first."
 
 [[feature]]
 id = "ui-102"
@@ -9320,6 +9378,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:194"
 status = "have"
 cpp = "missing"
 evidence = ["preferences_profiles_set_switch_export_import"]
+accepted = ["ui_profiles"]
+acceptance = "pass"
 notes = "prefs_set saves into the active (or named) profile at once."
 
 [[feature]]
@@ -9333,7 +9393,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:195"
 status = "have"
 cpp = "missing"
 evidence = ["preferences_profiles_set_switch_export_import"]
-notes = "profile_list, profile_delete (not the active profile)."
+accepted = ["ui_profiles"]
+acceptance = "gap"
+notes = "profile_list, profile_delete (not the active profile). Acceptance: Create and delete, no rename."
 
 [[feature]]
 id = "ui-104"
@@ -9346,7 +9408,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:196"
 status = "have"
 cpp = "missing"
 evidence = ["preferences_profiles_set_switch_export_import"]
-notes = "prefs_export / prefs_import (JSON, validated on import)."
+accepted = ["ui_profiles"]
+acceptance = "gap"
+notes = "prefs_export / prefs_import (JSON, validated on import). Acceptance: Export / import is Preferences > Admin > Back Up / Restore Settings of the active profile (JSON); no .bpx and no include-dependencies bundle."
 
 [[feature]]
 id = "ui-105"
@@ -9359,7 +9423,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:197"
 status = "have"
 cpp = "missing"
 evidence = ["keyboard_shortcuts_can_be_changed", "shortcuts_follow_the_profile_and_print_as_a_reference"]
-notes = "Tools > Customize Keyboard lists every command with its keys; press new keys (another command's same keys move), clear, reset; kept per profile in <config>/keys/<profile>.json."
+accepted = ["ui_keyboard_shortcuts_dialog"]
+acceptance = "fixed"
+notes = "Tools > Customize Keyboard lists every command with its keys; press new keys (another command's same keys move), clear, reset; kept per profile in <config>/keys/<profile>.json. Acceptance: Menus and the dialog spelled bracket keys by name (\"Ctrl+CloseBracket\"); they now show \"Ctrl+]\"."
 
 [[feature]]
 id = "ui-106"
@@ -9372,6 +9438,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:198"
 status = "have"
 cpp = "partial"
 evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound"]
+accepted = ["ui_single_key_tool_shortcuts"]
+acceptance = "pass"
 notes = "Select V, Pan Shift+V, Zoom Z, Lasso Shift+O, markup tools by letter, measurements by Shift+Alt+letter, Underline U, Strikethrough D."
 
 [[feature]]
@@ -9385,6 +9453,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:199"
 status = "have"
 cpp = "missing"
 evidence = ["shortcuts_follow_the_profile_and_print_as_a_reference"]
+accepted = ["ui_printable_shortcut_reference"]
+acceptance = "pass"
 notes = "Help > Shortcut Reference writes a printable PDF of the shortcuts in use, the mouse and the modifier keys."
 
 [[feature]]
@@ -9398,6 +9468,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:205"
 status = "have"
 cpp = "have"
 evidence = ["fit_zoom_and_page_navigation_keys"]
+accepted = ["shortcut_zoom_and_page_modes"]
+acceptance = "pass"
 notes = "Ctrl+9 / Ctrl+0 / Ctrl+8."
 
 [[feature]]
@@ -9411,6 +9483,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:206"
 status = "have"
 cpp = "have"
 evidence = ["fit_zoom_and_page_navigation_keys"]
+accepted = ["shortcut_zoom_and_page_modes"]
+acceptance = "pass"
 notes = "Plus / Minus."
 
 [[feature]]
@@ -9424,6 +9498,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:207"
 status = "have"
 cpp = "have"
 evidence = ["zoom_tool_clicks_and_boxes"]
+accepted = ["ui_zoom_tool", "shortcut_select_and_toggle_zoom"]
+acceptance = "pass"
 notes = "Zoom tool (Z), Shift+Z toggles."
 
 [[feature]]
@@ -9437,6 +9513,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:208"
 status = "have"
 cpp = "partial"
 evidence = ["page_layout_modes_side_by_side_and_cover"]
+accepted = ["shortcut_zoom_and_page_modes", "ui_page_layout_cover_page"]
+acceptance = "pass"
 notes = "Single, Continuous, Side by Side, Continuous Side by Side, cover page alone."
 
 [[feature]]
@@ -9450,6 +9528,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:209"
 status = "have"
 cpp = "have"
 evidence = ["fit_zoom_and_page_navigation_keys"]
+accepted = ["shortcut_page_and_view_navigation", "ui_navigation_bar", "ui_page_number_box"]
+acceptance = "pass"
 notes = "Home / Ctrl+Left / Ctrl+Right / End, page number box."
 
 [[feature]]
@@ -9463,6 +9543,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:210"
 status = "have"
 cpp = "missing"
 evidence = ["previous_and_next_view_walk_the_history"]
+accepted = ["shortcut_page_and_view_navigation"]
+acceptance = "pass"
 notes = "Alt+Left / Alt+Right."
 
 [[feature]]
@@ -9476,6 +9558,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:211"
 status = "have"
 cpp = "missing"
 evidence = ["rotate_view_turns_the_display_not_the_file"]
+accepted = ["shortcut_rotate_view_and_refresh"]
+acceptance = "pass"
 notes = "Ctrl+Shift+Plus / Minus."
 
 [[feature]]
@@ -9489,6 +9573,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:212"
 status = "have"
 cpp = "missing"
 evidence = ["new_blank_pdf_and_refresh_from_disk"]
+accepted = ["shortcut_rotate_view_and_refresh"]
+acceptance = "pass"
 notes = "F5 redraws; Shift+F5 reloads from disk."
 
 [[feature]]
@@ -9502,7 +9588,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:213"
 status = "have"
 cpp = "missing"
 evidence = ["split_views_sync_switch_balance_unsplit"]
-notes = "Ctrl+2 / Ctrl+H; one split level (two panes)."
+accepted = ["shortcut_multiview", "ui_split_repeatedly"]
+acceptance = "gap"
+notes = "Ctrl+2 / Ctrl+H; one split level (two panes). Acceptance: One extra pane (two in all); Revu splits again and again, up to 16 panes."
 
 [[feature]]
 id = "ui-117"
@@ -9515,6 +9603,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:214"
 status = "have"
 cpp = "missing"
 evidence = ["split_views_sync_switch_balance_unsplit"]
+accepted = ["shortcut_multiview"]
+acceptance = "pass"
 notes = "Ctrl+I / Ctrl+1 / Shift+F12 / Ctrl+Shift+2."
 
 [[feature]]
@@ -9528,6 +9618,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:215"
 status = "have"
 cpp = "missing"
 evidence = ["split_views_sync_switch_balance_unsplit"]
+accepted = ["ui_synchronize_views"]
+acceptance = "pass"
 notes = "Synchronize Off / Document / Page (View menu and status bar)."
 
 [[feature]]
@@ -9541,6 +9633,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:216"
 status = "have"
 cpp = "missing"
 evidence = ["full_screen_presentation_always_on_top_and_bars"]
+accepted = ["shortcut_full_screen_and_presentation", "ui_full_screen_and_presentation_options"]
+acceptance = "pass"
 notes = "F11; Esc leaves."
 
 [[feature]]
@@ -9554,6 +9648,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:217"
 status = "have"
 cpp = "missing"
 evidence = ["full_screen_presentation_always_on_top_and_bars"]
+accepted = ["shortcut_full_screen_and_presentation", "ui_presentation_loop"]
+acceptance = "pass"
 notes = "Ctrl+Enter: one page full screen, arrows and Space advance, loop and timed advance (Preferences > Window), Esc leaves."
 
 [[feature]]
@@ -9567,6 +9663,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:218"
 status = "have"
 cpp = "have"
 evidence = ["rulers_crosshair_and_dimmer"]
+accepted = ["shortcut_view_toggles", "ui_view_toggles"]
+acceptance = "pass"
 notes = "Ctrl+F5; amount in Preferences > Advanced."
 
 [[feature]]
@@ -9580,7 +9678,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:219"
 status = "have"
 cpp = "missing"
 evidence = ["dark_mode_line_weights_and_reply_indicators"]
-notes = "View > Dark Mode: pages drawn light on dark, separate from the application theme."
+accepted = ["ui_view_toggles"]
+acceptance = "fixed"
+notes = "View > Dark Mode: pages drawn light on dark, separate from the application theme. Acceptance: View > Dark Mode could not be clicked: the View, Markup and Document menus ran past the bottom of the window (950 px tall here) and their last items were unreachable. Menus now scroll."
 
 [[feature]]
 id = "ui-123"
@@ -9593,6 +9693,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:220"
 status = "have"
 cpp = "missing"
 evidence = ["preferences_dialog_applies_and_persists", "dark_theme_and_menus_render"]
+accepted = ["ui_theme"]
+acceptance = "pass"
 notes = "Preferences > General > Theme: light, dark or system."
 
 [[feature]]
@@ -9606,7 +9708,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:221"
 status = "have"
 cpp = "missing"
 evidence = ["dark_mode_line_weights_and_reply_indicators"]
-notes = "View > Always Show Reply Indicators: a bubble with the count on markups that have replies; hover lists them."
+accepted = ["ui_view_toggles"]
+acceptance = "fixed"
+notes = "View > Always Show Reply Indicators: a bubble with the count on markups that have replies; hover lists them. Acceptance: View > Always Show Reply Indicators was below the bottom of the window (the View menu did not scroll); menus now scroll."
 
 [[feature]]
 id = "ui-125"
@@ -9619,6 +9723,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:227"
 status = "have"
 cpp = "missing"
 evidence = ["rulers_crosshair_and_dimmer", "ruler_ticks_stay_readable"]
+accepted = ["shortcut_view_toggles", "ui_rulers_and_units"]
+acceptance = "pass"
 notes = "View > Rulers (Ctrl+R): page bounds, selection extent, pointer."
 
 [[feature]]
@@ -9632,6 +9738,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:228"
 status = "have"
 cpp = "missing"
 evidence = ["rulers_crosshair_and_dimmer"]
+accepted = ["ui_rulers_and_units"]
+acceptance = "pass"
 notes = "Right-click a ruler: inches, centimetres, millimetres, points, picas."
 
 [[feature]]
@@ -9645,6 +9753,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:229"
 status = "have"
 cpp = "missing"
 evidence = ["rulers_crosshair_and_dimmer"]
+accepted = ["shortcut_view_toggles", "ui_grid_snap_and_spacing"]
+acceptance = "pass"
 notes = "View > Show Grid (Shift+F9)."
 
 [[feature]]
@@ -9658,6 +9768,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:230"
 status = "have"
 cpp = "missing"
 evidence = ["snap_to_markup_and_grid"]
+accepted = ["shortcut_view_toggles", "ui_grid_snap_and_spacing"]
+acceptance = "pass"
 notes = "Snap to Grid (Ctrl+Shift+F9) works with the grid hidden."
 
 [[feature]]
@@ -9671,6 +9783,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:231"
 status = "have"
 cpp = "missing"
 evidence = ["preferences_dialog_applies_and_persists"]
+accepted = ["ui_grid_snap_and_spacing"]
+acceptance = "pass"
 notes = "Preferences > Grid & Snap: grid spacing (points, shown in inches) and ruler units."
 
 [[feature]]
@@ -9684,6 +9798,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:232"
 status = "have"
 cpp = "have"
 evidence = ["snap_to_content_lands_on_a_wall_corner"]
+accepted = ["shortcut_view_toggles", "ui_snap_to_content_and_ctrl_override"]
+acceptance = "pass"
 notes = "Snap to Content (Ctrl+Shift+F8)."
 
 [[feature]]
@@ -9697,6 +9813,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:233"
 status = "have"
 cpp = "have"
 evidence = ["alignment_guides_ctrl_click_links_and_the_text_menu", "lines_up_with_vertices"]
+accepted = ["ui_snap_to_markup"]
+acceptance = "pass"
 notes = "Snap to Markup (Ctrl+Shift+F7, status bar): points snap to other markups' vertices, midpoints and centres, and alignment guides: when the pointer lines up horizontally or vertically with another markup's vertex a dashed guide joins them and the point takes the aligned coordinate."
 
 [[feature]]
@@ -9710,6 +9828,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:234"
 status = "have"
 cpp = "missing"
 evidence = ["scrollbars_snap_targets_and_startup_preferences"]
+accepted = ["ui_snap_filters_and_sensitivity"]
+acceptance = "pass"
 notes = "Preferences > Grid & Snap > Snap to: endpoints, midpoints, intersections, nearest point, centers."
 
 [[feature]]
@@ -9723,6 +9843,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:235"
 status = "have"
 cpp = "missing"
 evidence = ["preferences_dialog_applies_and_persists"]
+accepted = ["ui_snap_filters_and_sensitivity"]
+acceptance = "pass"
 notes = "Preferences > Grid & Snap: snap sensitivity in pixels."
 
 [[feature]]
@@ -9736,6 +9858,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:236"
 status = "have"
 cpp = "missing"
 evidence = ["scrollbars_snap_targets_and_startup_preferences"]
+accepted = ["ui_snap_indicator_color"]
+acceptance = "pass"
 notes = "Preferences > Grid & Snap: the snap indicator colour, also the crosshair colour."
 
 [[feature]]
@@ -9749,6 +9873,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:237"
 status = "have"
 cpp = "missing"
 evidence = ["ctrl_places_a_point_without_snapping"]
+accepted = ["ui_snap_to_content_and_ctrl_override"]
+acceptance = "pass"
 notes = "Hold Ctrl while placing a point to ignore every snap."
 
 [[feature]]
@@ -9762,6 +9888,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:238"
 status = "have"
 cpp = "missing"
 evidence = ["rulers_crosshair_and_dimmer"]
+accepted = ["ui_view_toggles"]
+acceptance = "pass"
 notes = "View > Full-Screen Crosshair."
 
 [[feature]]
@@ -9775,7 +9903,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:239"
 status = "have"
 cpp = "missing"
 evidence = ["dark_mode_line_weights_and_reply_indicators", "line_widths_become_zero"]
-notes = "View > Disable Line Weights and Preferences > Advanced."
+accepted = ["ui_view_toggles"]
+acceptance = "fixed"
+notes = "View > Disable Line Weights and Preferences > Advanced. Acceptance: View > Disable Line Weights was below the bottom of the window (the View menu did not scroll); menus now scroll."
 
 [[feature]]
 id = "ui-138"
@@ -9788,7 +9918,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:240"
 status = "partial"
 cpp = "missing"
 evidence = []
-notes = "The renderer (pdfcraft-render / hayro) always keeps hairlines at least one device pixel wide and anti-aliases fills; it offers no switch to turn either off, so there are no toggles. View > Disable Line Weights draws all linework thin."
+accepted = ["ui_preference_pages"]
+acceptance = "gap"
+notes = "The renderer (pdfcraft-render / hayro) always keeps hairlines at least one device pixel wide and anti-aliases fills; it offers no switch to turn either off, so there are no toggles. View > Disable Line Weights draws all linework thin. Acceptance: Advanced has no Enhance Thin Lines or fill anti-aliasing options."
 
 [[feature]]
 id = "ui-139"
@@ -9801,6 +9933,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:251"
 status = "have"
 cpp = "missing"
 evidence = ["preferences_dialog_applies_and_persists", "preferences_profiles_set_switch_export_import"]
+accepted = ["ui_preferences_dialog_and_user_name"]
+acceptance = "pass"
 notes = "Window > Preferences (Ctrl+K): General, Document, Navigation, Grid & Snap, Interface, Tools, Window, Advanced, Admin; changes apply at once and persist to the active profile."
 
 [[feature]]
@@ -9814,6 +9948,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:252"
 status = "have"
 cpp = "missing"
 evidence = ["preferences_dialog_applies_and_persists", "preferences_profiles_set_switch_export_import"]
+accepted = ["ui_preferences_dialog_and_user_name"]
+acceptance = "pass"
 notes = "General: user name, the author of new markups in every open document."
 
 [[feature]]
@@ -9827,7 +9963,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:253"
 status = "partial"
 cpp = "missing"
 evidence = ["preferences_dialog_applies_and_persists", "dark_theme_and_menus_render"]
-notes = "General: theme (light, dark, system). The interface is in English only: no translations exist yet, so there is no language choice."
+accepted = ["ui_language_and_theme"]
+acceptance = "gap"
+notes = "General: theme (light, dark, system). The interface is in English only: no translations exist yet, so there is no language choice. Acceptance: Theme only; no UI language choice (English)."
 
 [[feature]]
 id = "ui-142"
@@ -9840,7 +9978,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:254"
 status = "have"
 cpp = "missing"
 evidence = ["scrollbars_snap_targets_and_startup_preferences"]
-notes = "General: start in last used / markup / view mode, open a PDF on start, full screen, reopen last session, recent files on the start page; no home WebTab or usage data."
+accepted = ["ui_startup_options"]
+acceptance = "gap"
+notes = "General: start in last used / markup / view mode, open a PDF on start, full screen, reopen last session, recent files on the start page; no home WebTab or usage data. Acceptance: No home Web Tab, usage-data or reset-hidden-messages options."
 
 [[feature]]
 id = "ui-143"
@@ -9853,6 +9993,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:255"
 status = "have"
 cpp = "partial"
 evidence = ["document_recovery_writes_copies_and_offers_them_back", "save_modes_publish_and_revert_as"]
+accepted = ["ui_save_mode_and_recovery"]
+acceptance = "pass"
 notes = "Document: recovery copies every N minutes (0 = off), offered back after a crash; save mode keep revisions or publish."
 
 [[feature]]
@@ -9866,6 +10008,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:256"
 status = "have"
 cpp = "missing"
 evidence = ["default_layout_rule_by_page_size", "fit_zoom_and_page_navigation_keys"]
+accepted = ["ui_default_layout_fit_and_max_zoom"]
+acceptance = "pass"
 notes = "Document: default layout (four modes or by page size), default fit, maximum zoom."
 
 [[feature]]
@@ -9879,7 +10023,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:257"
 status = "have"
 cpp = "missing"
 evidence = ["edge_click_collapses_panels_bookmarks_follow_pages_and_urls_in_text", "bookmarks_follow_their_pages"]
-notes = "Document: remember last page, locked-file prompt, Rotate Pages on every page by default, reorder bookmarks when pages move, detect web addresses in page text (Ctrl+click opens them). Slip Sheet replaces a sheet's content in place, so links to a slip-sheeted page keep pointing at it without a redirect option."
+accepted = ["ui_document_misc_options"]
+acceptance = "gap"
+notes = "Document: remember last page, locked-file prompt, Rotate Pages on every page by default, reorder bookmarks when pages move, detect web addresses in page text (Ctrl+click opens them). Slip Sheet replaces a sheet's content in place, so links to a slip-sheeted page keep pointing at it without a redirect option. Acceptance: No redirect-links-on-slip-sheet option."
 
 [[feature]]
 id = "ui-146"
@@ -9892,6 +10038,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:258"
 status = "have"
 cpp = "partial"
 evidence = ["wheel_zooms_or_scrolls_by_preference_and_ctrl_swaps"]
+accepted = ["ui_wheel_zoom_or_scroll"]
+acceptance = "pass"
 notes = "Navigation: wheel zooms or scrolls, separately for single and continuous modes."
 
 [[feature]]
@@ -9905,7 +10053,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:259"
 status = "have"
 cpp = "missing"
 evidence = ["wheel_zooms_or_scrolls_by_preference_and_ctrl_swaps"]
-notes = "Navigation: reverse zoom, zoom sensitivity; horizontal wheel pans sideways."
+accepted = ["ui_wheel_zoom_or_scroll"]
+acceptance = "gap"
+notes = "Navigation: reverse zoom, zoom sensitivity; horizontal wheel pans sideways. Acceptance: Reverse direction and sensitivity; no tilt-wheel horizontal panning option."
 
 [[feature]]
 id = "ui-148"
@@ -9918,6 +10068,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:260"
 status = "have"
 cpp = "missing"
 evidence = ["scrollbars_snap_targets_and_startup_preferences"]
+accepted = ["ui_navigation_scrollbars_sync_accelerators"]
+acceptance = "pass"
 notes = "Navigation: scrollbars on / off, the vertical one on the left, lock panning in Fit Width."
 
 [[feature]]
@@ -9931,7 +10083,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:261"
 status = "have"
 cpp = "missing"
 evidence = ["scrollbars_snap_targets_and_startup_preferences", "alt_menus_shift_f10_and_the_markupcraft_menu"]
-notes = "Navigation: default synchronization of new split views, Alt menu accelerators; 3D mouse is out of scope."
+accepted = ["ui_navigation_scrollbars_sync_accelerators"]
+acceptance = "gap"
+notes = "Navigation: default synchronization of new split views, Alt menu accelerators; 3D mouse is out of scope. Acceptance: No 3D mouse support."
 
 [[feature]]
 id = "ui-150"
@@ -9944,6 +10098,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:262"
 status = "have"
 cpp = "missing"
 evidence = ["preferences_dialog_applies_and_persists", "preferences_profiles_set_switch_export_import"]
+accepted = ["ui_grid_and_snap_page"]
+acceptance = "pass"
 notes = "Grid & Snap: units, grid spacing, snap to grid / content / markup, sensitivity; no snap-target filters or colour."
 
 [[feature]]
@@ -9957,7 +10113,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:263"
 status = "have"
 cpp = "missing"
 evidence = ["spelling_preferences_user_dictionary_and_auto_complete", "completions_and_the_word_being_typed"]
-notes = "General > Spelling: check spelling as you type on or off, ignore words in capitals, the underline colour, the dictionary (English, United States), a user dictionary (Check Spelling > Add to Dictionary adds to it), and auto-complete from a managed list of phrases offered while typing."
+accepted = ["ui_spelling_preferences"]
+acceptance = "gap"
+notes = "General > Spelling: check spelling as you type on or off, ignore words in capitals, the underline colour, the dictionary (English, United States), a user dictionary (Check Spelling > Add to Dictionary adds to it), and auto-complete from a managed list of phrases offered while typing. Acceptance: One built-in dictionary (no dictionary choice)."
 
 [[feature]]
 id = "ui-152"
@@ -9970,7 +10128,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:264"
 status = "partial"
 cpp = "missing"
 evidence = ["preferences_dialog_applies_and_persists"]
-notes = "Interface: recent files count (0-200), days kept, preview on hover, clear. Document management systems (SharePoint and other DMS) are not integrated, so there are no DMS settings."
+accepted = ["ui_preference_pages"]
+acceptance = "gap"
+notes = "Interface: recent files count (0-200), days kept, preview on hover, clear. Document management systems (SharePoint and other DMS) are not integrated, so there are no DMS settings. Acceptance: No DMS / SharePoint settings."
 
 [[feature]]
 id = "ui-153"
@@ -9983,7 +10143,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:265"
 status = "partial"
 cpp = "missing"
 evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
-notes = "Preferences > Markups List: selecting a row goes to the markup (or only selects it). Group values on the dominant markup, rich-text and wrapped comments, export filtering and dimming are not offered."
+accepted = ["ui_preference_pages"]
+acceptance = "gap"
+notes = "Preferences > Markups List: selecting a row goes to the markup (or only selects it). Group values on the dominant markup, rich-text and wrapped comments, export filtering and dimming are not offered. Acceptance: Only \"go to the markup when selected\"; no dominant-markup measurement, rich-text or wrapped comments, exclude-filtered export or dim percent."
 
 [[feature]]
 id = "ui-154"
@@ -9996,6 +10158,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:266"
 status = "have"
 cpp = "missing"
 evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
+accepted = ["ui_preference_pages"]
+acceptance = "pass"
 notes = "Preferences > Layers: hiding or showing a layer does the same to its child layers; list only the current page's layers. (No Surface Dial.)"
 
 [[feature]]
@@ -10009,7 +10173,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:267"
 status = "partial"
 cpp = "missing"
 evidence = ["preferences_dialog_applies_and_persists", "reuse_tool_keeps_drawing"]
-notes = "Tools: reuse markup tools, measurement units and precision, colours of new markups (stored in the profile)."
+accepted = ["ui_preference_pages"]
+acceptance = "gap"
+notes = "Tools: reuse markup tools, measurement units and precision, colours of new markups (stored in the profile). Acceptance: Only Reuse markup tools; no remember-last-properties, autosize, scale grouped appearance, embed fonts, pop-up, image encoding or snapshot options."
 
 [[feature]]
 id = "ui-156"
@@ -10022,7 +10188,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:268"
 status = "partial"
 cpp = "missing"
 evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
-notes = "Preferences > Measure: Dynamic Fill gap closing (edge sensitivity) and cutouts for islands. Split counts by space, fill DPI, cursor sizes, speed and colours are not offered."
+accepted = ["ui_preference_pages"]
+acceptance = "gap"
+notes = "Preferences > Measure: Dynamic Fill gap closing (edge sensitivity) and cutouts for islands. Split counts by space, fill DPI, cursor sizes, speed and colours are not offered. Acceptance: Only \"islands become cutouts\"; no split counts by space or dynamic fill tuning."
 
 [[feature]]
 id = "ui-157"
@@ -10035,6 +10203,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:269"
 status = "have"
 cpp = "missing"
 evidence = ["sketch_ellipse_by_radius_and_properties_toolbar_style_and_scale"]
+accepted = ["ui_preference_pages"]
+acceptance = "pass"
 notes = "Tools > Sketch to Scale: angles absolute or relative, and ellipses typed as width x height or as a radius from the centre."
 
 [[feature]]
@@ -10048,6 +10218,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:270"
 status = "have"
 cpp = "missing"
 evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
+accepted = ["ui_preference_pages", "ui_forms_single_key_shortcuts"]
+acceptance = "pass"
 notes = "Preferences > Forms: field highlight on/off, colour and opacity (drawn over the pages); single-key form tool shortcuts on/off."
 
 [[feature]]
@@ -10061,7 +10233,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:271"
 status = "partial"
 cpp = "missing"
 evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
-notes = "Preferences > Signature: digital ID folder (its first ID is offered when signing) and trusted certificates folder (trusted when validating). No password timeout or blocking of changes that break signatures."
+accepted = ["ui_preference_pages"]
+acceptance = "gap"
+notes = "Preferences > Signature: digital ID folder (its first ID is offered when signing) and trusted certificates folder (trusted when validating). No password timeout or blocking of changes that break signatures. Acceptance: The Signature page has no options."
 
 [[feature]]
 id = "ui-160"
@@ -10074,7 +10248,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:272"
 status = "partial"
 cpp = "missing"
 evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
-notes = "Preferences > Tablet: eraser size and whether it follows the zoom. Pen pressure, commit delay, lasso, handwriting and touch modes are not offered."
+accepted = ["ui_preference_pages"]
+acceptance = "gap"
+notes = "Preferences > Tablet: eraser size and whether it follows the zoom. Pen pressure, commit delay, lasso, handwriting and touch modes are not offered. Acceptance: Only \"eraser size follows the zoom\"."
 
 [[feature]]
 id = "ui-161"
@@ -10087,7 +10263,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:273"
 status = "have"
 cpp = "missing"
 evidence = ["full_screen_presentation_always_on_top_and_bars"]
-notes = "Window: presentation loop and auto-advance interval."
+accepted = ["ui_preference_pages", "ui_presentation_loop"]
+acceptance = "gap"
+notes = "Window: presentation loop and auto-advance interval. Acceptance: Loop and auto-advance; no transition, background colour or cursor options."
 
 [[feature]]
 id = "ui-162"
@@ -10100,7 +10278,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:274"
 status = "have"
 cpp = "missing"
 evidence = ["web_tab_favorites_browser_and_capture", "preferences_pages_are_shown_and_read_by_the_features"]
-notes = "Preferences > WebTab: switch to new Web Tabs, links to web pages open in the browser or are captured, the capture browser and time limit, favourites. GPU and script-error options do not apply (no embedded browser)."
+accepted = ["ui_preference_pages"]
+acceptance = "gap"
+notes = "Preferences > WebTab: switch to new Web Tabs, links to web pages open in the browser or are captured, the capture browser and time limit, favourites. GPU and script-error options do not apply (no embedded browser). Acceptance: Switch to new Web Tabs, open in browser or capture as PDF; no GPU, split-view or script-error options."
 
 [[feature]]
 id = "ui-163"
@@ -10113,7 +10293,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:275"
 status = "partial"
 cpp = "missing"
 evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
-notes = "Preferences > Sets: open a sheet in place of the Set sheet in the current tab; latest revision only. Paths, display, categories, sort rules and revision stamping options are not offered here."
+accepted = ["ui_preference_pages"]
+acceptance = "gap"
+notes = "Preferences > Sets: open a sheet in place of the Set sheet in the current tab; latest revision only. Paths, display, categories, sort rules and revision stamping options are not offered here. Acceptance: Two options (open in place, latest revision only)."
 
 [[feature]]
 id = "ui-164"
@@ -10140,7 +10322,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:277"
 status = "partial"
 cpp = "missing"
 evidence = ["preferences_pages_are_shown_and_read_by_the_features", "scanner_and_camera_into_markups_pages_and_new_pdfs"]
-notes = "Preferences > Import/Export: image export DPI, scan DPI, the scanner address, and the largest camera/scanner picture size. Office reconstruction, colour space and TIFF options are not offered."
+accepted = ["ui_preference_pages"]
+acceptance = "gap"
+notes = "Preferences > Import/Export: image export DPI, scan DPI, the scanner address, and the largest camera/scanner picture size. Office reconstruction, colour space and TIFF options are not offered. Acceptance: The Import/Export page has no options."
 
 [[feature]]
 id = "ui-166"
@@ -10153,7 +10337,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:278"
 status = "partial"
 cpp = "missing"
 evidence = []
-notes = "Advanced: dimmer amount, crosshair, disable line weights; no rendering engine or DPI options."
+accepted = ["ui_preference_pages"]
+acceptance = "gap"
+notes = "Advanced: dimmer amount, crosshair, disable line weights; no rendering engine or DPI options. Acceptance: Dimmer amount, crosshair and line weights; no engine, progressive mode, blend, CMYK or DPI options."
 
 [[feature]]
 id = "ui-167"
@@ -10180,7 +10366,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:280"
 status = "partial"
 cpp = "missing"
 evidence = ["certified_pdfa_and_signed_documents_guard_page_edits"]
-notes = "Advanced: PDF/A documents open locked for page edits (on by default); document JavaScript never runs; no conversion options."
+accepted = ["ui_preference_pages"]
+acceptance = "gap"
+notes = "Advanced: PDF/A documents open locked for page edits (on by default); document JavaScript never runs; no conversion options. Acceptance: PDF/A open-locked only; no document JavaScript or trusted-location options."
 
 [[feature]]
 id = "ui-169"
@@ -10193,7 +10381,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:281"
 status = "partial"
 cpp = "missing"
 evidence = ["preferences_dialog_applies_and_persists"]
-notes = "Admin: back up, restore and reset settings, profiles; no viewer, log or browser options."
+accepted = ["ui_preference_pages"]
+acceptance = "gap"
+notes = "Admin: back up, restore and reset settings, profiles; no viewer, log or browser options. Acceptance: Back up, restore, reset and MCP; no default viewer, log folder, debugging, sign-in or network folder options."
 
 [[feature]]
 id = "ui-170"
@@ -10206,6 +10396,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:282"
 status = "have"
 cpp = "missing"
 evidence = ["preferences_dialog_applies_and_persists"]
+accepted = ["ui_settings_backup_restore"]
+acceptance = "pass"
 notes = "Admin: Back Up Settings writes the active profile to a file; Restore reads one back."
 
 [[feature]]
@@ -10219,6 +10411,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:283"
 status = "have"
 cpp = "missing"
 evidence = ["scrollbars_snap_targets_and_startup_preferences"]
+accepted = ["ui_mcp_connector"]
+acceptance = "pass"
 notes = "Admin > AI assistants (MCP): Copy MCP Configuration puts the markupcraft-cli mcp server entry on the clipboard for an assistant (opt-in, stdio, --root folder only)."
 
 [[feature]]
@@ -10232,6 +10426,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:284"
 status = "have"
 cpp = "missing"
 evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
+accepted = ["ui_preference_pages"]
+acceptance = "pass"
 notes = "Preferences > Integrations: third-party services by name and region, each with a sign-in page opened in the browser."
 
 [[feature]]
@@ -10245,6 +10441,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:290"
 status = "have"
 cpp = "have"
 evidence = ["middle_drag_pans_and_double_click_recentres"]
+accepted = ["ui_middle_button_pan_and_recenter"]
+acceptance = "pass"
 notes = "Middle drag pans with any tool."
 
 [[feature]]
@@ -10258,6 +10456,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:291"
 status = "have"
 cpp = "missing"
 evidence = ["middle_drag_pans_and_double_click_recentres"]
+accepted = ["ui_middle_button_pan_and_recenter"]
+acceptance = "pass"
 notes = "Middle double-click re-centres on the point."
 
 [[feature]]
@@ -10271,6 +10471,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:292"
 status = "have"
 cpp = "partial"
 evidence = ["wheel_zooms_or_scrolls_by_preference_and_ctrl_swaps"]
+accepted = ["ui_wheel_zoom_or_scroll"]
+acceptance = "pass"
 notes = "Wheel zooms or scrolls by preference; Ctrl swaps."
 
 [[feature]]
@@ -10284,6 +10486,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:293"
 status = "have"
 cpp = "have"
 evidence = ["middle_drag_pans_and_double_click_recentres"]
+accepted = ["ui_space_temporary_pan"]
+acceptance = "pass"
 notes = "Space held pans with any tool; the tool stays."
 
 [[feature]]
@@ -10297,6 +10501,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:294"
 status = "have"
 cpp = "partial"
 evidence = ["alignment_guides_ctrl_click_links_and_the_text_menu"]
+accepted = ["ui_right_click_context_menus"]
+acceptance = "pass"
 notes = "Page and markup menus, menus on page text (Copy Text, Highlight / Underline / Strikethrough Text, Search for This Text), document tab menu, panel tab menu, thumbnail menu, ruler menu, Markups List and File Access menus, Shift+F10."
 
 [[feature]]
@@ -10310,6 +10516,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:295"
 status = "have"
 cpp = "missing"
 evidence = ["right_drag_selects_ctrl_drag_copies_and_shift_drag_moves_straight"]
+accepted = ["ui_box_and_shift_select"]
+acceptance = "pass"
 notes = "Select tool: a right-button drag draws a selection box."
 
 [[feature]]
@@ -10323,6 +10531,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:296"
 status = "have"
 cpp = "have"
 evidence = ["box_select_and_view_commands", "click_selects_drag_moves_delete_and_undo"]
+accepted = ["ui_box_and_shift_select"]
+acceptance = "pass"
 notes = "Drag a box to select several; Shift / Ctrl+click adds."
 
 [[feature]]
@@ -10336,6 +10546,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:297"
 status = "have"
 cpp = "partial"
 evidence = ["shift_constrains_a_line_and_a_drag_makes_an_arrow"]
+accepted = ["ui_shift_constrains_drawing"]
+acceptance = "pass"
 notes = "Shift constrains to 0 / 45 / 90 degrees from the last point."
 
 [[feature]]
@@ -10349,6 +10561,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:298"
 status = "have"
 cpp = "have"
 evidence = ["right_drag_selects_ctrl_drag_copies_and_shift_drag_moves_straight", "shift_constrains_a_line_and_a_drag_makes_an_arrow"]
+accepted = ["ui_shift_constrains_drawing"]
+acceptance = "pass"
 notes = "Shift makes a rectangle square and an ellipse a circle; lines keep to 45 degree steps."
 
 [[feature]]
@@ -10362,6 +10576,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:299"
 status = "have"
 cpp = "missing"
 evidence = ["modifier_keys_draw_from_centre_arcs_vertices_aspect_and_callouts", "alt_clicked_points_become_three_point_arcs", "alt_draws_from_the_centre"]
+accepted = ["ui_alt_draws_from_center", "ui_alt_click_three_point_arc"]
+acceptance = "pass"
 notes = "Alt while dragging a box tool draws from the centre; Alt+click while drawing a polyline, polygon or measurement makes a three-point arc through that point."
 
 [[feature]]
@@ -10375,6 +10591,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:300"
 status = "have"
 cpp = "have"
 evidence = ["right_drag_selects_ctrl_drag_copies_and_shift_drag_moves_straight"]
+accepted = ["ui_move_and_copy_drags"]
+acceptance = "pass"
 notes = "Shift+drag moves the selection along one axis."
 
 [[feature]]
@@ -10388,6 +10606,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:301"
 status = "have"
 cpp = "have"
 evidence = ["right_drag_selects_ctrl_drag_copies_and_shift_drag_moves_straight"]
+accepted = ["ui_move_and_copy_drags"]
+acceptance = "pass"
 notes = "Ctrl+drag drops a copy; Ctrl+Shift+drag copies along one axis."
 
 [[feature]]
@@ -10401,7 +10621,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:302"
 status = "have"
 cpp = "have"
 evidence = ["engine_commands_and_page_operations"]
-notes = "Edit > Paste in Place (Ctrl+Shift+V)."
+accepted = ["shortcut_copy_cut_paste_paste_in_place"]
+acceptance = "fixed"
+notes = "Edit > Paste in Place (Ctrl+Shift+V). Acceptance: Paste in Place pasted onto the copied markup's own page, not the page in view; Ctrl+Shift+V also never reached the app (it arrives as a Paste event)."
 
 [[feature]]
 id = "ui-186"
@@ -10414,6 +10636,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:303"
 status = "have"
 cpp = "have"
 evidence = ["modifier_keys_draw_from_centre_arcs_vertices_aspect_and_callouts"]
+accepted = ["ui_vertex_editing"]
+acceptance = "pass"
 notes = "Shift+click a vertex of the selected polyline, polygon or measurement deletes it; Shift+click a segment adds one."
 
 [[feature]]
@@ -10427,6 +10651,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:304"
 status = "have"
 cpp = "missing"
 evidence = ["modifier_keys_draw_from_centre_arcs_vertices_aspect_and_callouts"]
+accepted = ["ui_vertex_editing"]
+acceptance = "pass"
 notes = "Ctrl+click a vertex: its segment becomes an arc, or an arc goes back to straight; Ctrl+drag a segment bends it. Handles already move on their own."
 
 [[feature]]
@@ -10440,6 +10666,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:305"
 status = "have"
 cpp = "missing"
 evidence = ["right_drag_selects_ctrl_drag_copies_and_shift_drag_moves_straight", "rotation_handle_turns_a_markup"]
+accepted = ["ui_rotation_snap"]
+acceptance = "pass"
 notes = "The rotation handle turns in 15 degree steps; Shift frees it to whole degrees; boxes by quarter turns."
 
 [[feature]]
@@ -10453,6 +10681,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:306"
 status = "have"
 cpp = "have"
 evidence = ["shift_drag_moves_a_caption_alone"]
+accepted = ["ui_shift_drag_measurement_caption"]
+acceptance = "pass"
 notes = "Shift+drag a measurement's caption."
 
 [[feature]]
@@ -10466,7 +10696,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:307"
 status = "partial"
 cpp = "missing"
 evidence = ["modifier_keys_draw_from_centre_arcs_vertices_aspect_and_callouts", "corner_resizes_keep_the_aspect_ratio"]
-notes = "Stamps resized from a corner keep their aspect ratio; Shift breaks it. Polylines and polygons have no corner box (they reshape by vertex) and image stamps are not resized."
+accepted = ["ui_shift_breaks_aspect_ratio"]
+acceptance = "gap"
+notes = "Stamps resized from a corner keep their aspect ratio; Shift breaks it. Polylines and polygons have no corner box (they reshape by vertex) and image stamps are not resized. Acceptance: Holds for stamps; polylines, polygons and images have no corner resize."
 
 [[feature]]
 id = "ui-191"
@@ -10479,6 +10711,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:308"
 status = "have"
 cpp = "missing"
 evidence = ["modifier_keys_draw_from_centre_arcs_vertices_aspect_and_callouts"]
+accepted = ["ui_alt_drag_callout"]
+acceptance = "pass"
 notes = "Alt+drag a callout's handle moves the whole callout (box, leader and tip)."
 
 [[feature]]
@@ -10492,6 +10726,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:309"
 status = "have"
 cpp = "missing"
 evidence = ["alignment_guides_ctrl_click_links_and_the_text_menu"]
+accepted = ["ui_ctrl_click_opens_in_background"]
+acceptance = "pass"
 notes = "Ctrl+click a File Access entry or a link on the page to another file: it opens behind the current tab; Ctrl+click on a page or web link follows it."
 
 [[feature]]
@@ -10505,6 +10741,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:310"
 status = "have"
 cpp = "have"
 evidence = ["escape_cancels_a_drawing", "full_screen_presentation_always_on_top_and_bars"]
+accepted = ["ui_esc_enter_double_click", "shortcut_full_screen_and_presentation"]
+acceptance = "pass"
 notes = "Esc cancels the drawing, ends multi-click tools, leaves full screen and presentation."
 
 [[feature]]
@@ -10518,6 +10756,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:311"
 status = "have"
 cpp = "have"
 evidence = ["polyline_takes_clicks_backspace_and_enter", "area_shows_its_value_and_finishes_on_double_click"]
+accepted = ["ui_esc_enter_double_click"]
+acceptance = "pass"
 notes = "Enter or a double-click finishes."
 
 [[feature]]
@@ -10531,6 +10771,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:312"
 status = "have"
 cpp = "partial"
 evidence = ["reuse_tool_keeps_drawing", "preferences_dialog_applies_and_persists"]
+accepted = ["ui_reuse_markup_tool"]
+acceptance = "pass"
 notes = "Status bar Reuse toggle and Preferences > Tools: stay in the tool after placing a markup."
 
 [[feature]]
@@ -10544,6 +10786,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:313"
 status = "have"
 cpp = "missing"
 evidence = ["document_tabs_cycle_close_others_close_all_and_save_all"]
+accepted = ["ui_document_tabs", "shortcut_open_new_cycle_close"]
+acceptance = "pass"
 notes = "Ctrl+Tab cycles document tabs."
 
 [[feature]]
@@ -10963,6 +11207,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:353"
 status = "have"
 cpp = "missing"
 evidence = ["javascript_console_runs_scripts_on_the_form", "javascript_console_and_document_scripts", "the_console_reads_and_sets_fields"]
+accepted = ["ui_scripting"]
+acceptance = "pass"
 notes = "Automation scripts: `markupcraft-cli run --script steps.json` runs the tool table on files (`markupcraft-cli tools` is the reference); document JavaScript runs in PdfCraft's sandboxed interpreter (Window > JavaScript Console, Tools > Run Document JavaScript, javascript tool)."
 
 [[feature]]
@@ -10975,6 +11221,8 @@ source = "docs/revu_features/05_shortcuts.md:30"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound", "align_distribute_and_flip_from_the_keyboard"]
+accepted = ["shortcut_align"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10987,6 +11235,8 @@ source = "docs/revu_features/05_shortcuts.md:31"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound", "align_distribute_and_flip_from_the_keyboard"]
+accepted = ["shortcut_align"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10999,6 +11249,8 @@ source = "docs/revu_features/05_shortcuts.md:32"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound", "align_distribute_and_flip_from_the_keyboard"]
+accepted = ["shortcut_align"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11011,6 +11263,8 @@ source = "docs/revu_features/05_shortcuts.md:33"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound", "align_distribute_and_flip_from_the_keyboard"]
+accepted = ["shortcut_align"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11023,6 +11277,8 @@ source = "docs/revu_features/05_shortcuts.md:34"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound", "align_distribute_and_flip_from_the_keyboard"]
+accepted = ["shortcut_align"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11035,6 +11291,8 @@ source = "docs/revu_features/05_shortcuts.md:35"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound", "align_distribute_and_flip_from_the_keyboard"]
+accepted = ["shortcut_align"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11047,6 +11305,8 @@ source = "docs/revu_features/05_shortcuts.md:36"
 status = "have"
 cpp = "missing"
 evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "dimension_arc_squiggly_and_flag_tools_draw"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11059,6 +11319,8 @@ source = "docs/revu_features/05_shortcuts.md:37"
 status = "have"
 cpp = "partial"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11071,6 +11333,8 @@ source = "docs/revu_features/05_shortcuts.md:38"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_autosize_text_box"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11083,6 +11347,8 @@ source = "docs/revu_features/05_shortcuts.md:39"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_arrange"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11095,6 +11361,8 @@ source = "docs/revu_features/05_shortcuts.md:40"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_arrange"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11107,6 +11375,8 @@ source = "docs/revu_features/05_shortcuts.md:41"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11119,6 +11389,8 @@ source = "docs/revu_features/05_shortcuts.md:42"
 status = "have"
 cpp = "missing"
 evidence = ["wave6a_shortcuts_are_bound", "scanner_and_camera_into_markups_pages_and_new_pdfs"]
+accepted = ["shortcut_dialogs_show"]
+acceptance = "pass"
 notes = "Ctrl+Alt+I opens the Camera tab (the system camera needs the app's camera feature)."
 
 [[feature]]
@@ -11131,6 +11403,8 @@ source = "docs/revu_features/05_shortcuts.md:43"
 status = "have"
 cpp = "missing"
 evidence = ["feature_shortcuts_are_bound"]
+accepted = ["shortcut_dialogs_show"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11143,6 +11417,8 @@ source = "docs/revu_features/05_shortcuts.md:44"
 status = "have"
 cpp = "partial"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11155,6 +11431,8 @@ source = "docs/revu_features/05_shortcuts.md:45"
 status = "have"
 cpp = "partial"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11167,6 +11445,8 @@ source = "docs/revu_features/05_shortcuts.md:46"
 status = "have"
 cpp = "missing"
 evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "dimension_arc_squiggly_and_flag_tools_draw"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11179,6 +11459,8 @@ source = "docs/revu_features/05_shortcuts.md:47"
 status = "have"
 cpp = "missing"
 evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "drag_to_tool_chest_edit_action_and_takeoff_workspace"]
+accepted = ["shortcut_edit_action"]
+acceptance = "pass"
 notes = "Edit Action (Ctrl+Shift+E): the selected markup links to a page or web address (a link annotation over it)."
 
 [[feature]]
@@ -11191,6 +11473,8 @@ source = "docs/revu_features/05_shortcuts.md:48"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11203,6 +11487,8 @@ source = "docs/revu_features/05_shortcuts.md:49"
 status = "have"
 cpp = "missing"
 evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "eraser_lasso_and_select_text_gestures"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11215,6 +11501,8 @@ source = "docs/revu_features/05_shortcuts.md:50"
 status = "have"
 cpp = "missing"
 evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "import_and_export_markups_as_xfdf"]
+accepted = ["shortcut_export_import_markups"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11227,6 +11515,8 @@ source = "docs/revu_features/05_shortcuts.md:51"
 status = "have"
 cpp = "missing"
 evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "file_attachment_tool_icon_and_save"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11239,6 +11529,8 @@ source = "docs/revu_features/05_shortcuts.md:52"
 status = "have"
 cpp = "missing"
 evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "dimension_arc_squiggly_and_flag_tools_draw"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11251,6 +11543,8 @@ source = "docs/revu_features/05_shortcuts.md:53"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound", "align_distribute_and_flip_from_the_keyboard"]
+accepted = ["shortcut_flip"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11263,7 +11557,9 @@ source = "docs/revu_features/05_shortcuts.md:54"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound", "align_distribute_and_flip_from_the_keyboard"]
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+accepted = ["shortcut_flip"]
+acceptance = "fixed"
+notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). Acceptance: egui-winit delivers Ctrl+C / Ctrl+X / Ctrl+V (with any other modifier) as Copy / Cut / Paste events and no key event, so this shortcut never fired in the desktop app; the dispatcher now turns them back into keys, and Copy / Cut also put text on the system clipboard so Ctrl+V reaches the app. Ctrl+Alt+V still needs text on the system clipboard, because the platform layer sends Paste only then."
 
 [[feature]]
 id = "key-026"
@@ -11275,6 +11571,8 @@ source = "docs/revu_features/05_shortcuts.md:55"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_group_ungroup_remove"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11287,6 +11585,8 @@ source = "docs/revu_features/05_shortcuts.md:56"
 status = "have"
 cpp = "partial"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11299,6 +11599,8 @@ source = "docs/revu_features/05_shortcuts.md:57"
 status = "have"
 cpp = "missing"
 evidence = ["feature_shortcuts_are_bound"]
+accepted = ["shortcut_special_tools_start"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11311,6 +11613,8 @@ source = "docs/revu_features/05_shortcuts.md:58"
 status = "have"
 cpp = "missing"
 evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "stamp_library_places_a_stamp_and_an_image"]
+accepted = ["shortcut_image"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11323,6 +11627,8 @@ source = "docs/revu_features/05_shortcuts.md:59"
 status = "have"
 cpp = "missing"
 evidence = ["wave6a_shortcuts_are_bound", "scanner_and_camera_into_markups_pages_and_new_pdfs"]
+accepted = ["shortcut_dialogs_show"]
+acceptance = "pass"
 notes = "Scanning needs a scanner (TWAIN / WIA) API; not built yet (Image places a picture file)."
 
 [[feature]]
@@ -11335,6 +11641,8 @@ source = "docs/revu_features/05_shortcuts.md:60"
 status = "have"
 cpp = "missing"
 evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "import_and_export_markups_as_xfdf"]
+accepted = ["shortcut_export_import_markups"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11347,6 +11655,8 @@ source = "docs/revu_features/05_shortcuts.md:61"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound", "angle_diameter_and_radius_tools_measure"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11359,6 +11669,8 @@ source = "docs/revu_features/05_shortcuts.md:62"
 status = "have"
 cpp = "partial"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11371,6 +11683,8 @@ source = "docs/revu_features/05_shortcuts.md:63"
 status = "have"
 cpp = "partial"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11383,6 +11697,8 @@ source = "docs/revu_features/05_shortcuts.md:64"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound", "angle_diameter_and_radius_tools_measure"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11395,6 +11711,8 @@ source = "docs/revu_features/05_shortcuts.md:65"
 status = "have"
 cpp = "missing"
 evidence = ["feature_shortcuts_are_bound"]
+accepted = ["shortcut_special_tools_start"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11407,6 +11725,8 @@ source = "docs/revu_features/05_shortcuts.md:66"
 status = "have"
 cpp = "partial"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11419,6 +11739,8 @@ source = "docs/revu_features/05_shortcuts.md:67"
 status = "have"
 cpp = "missing"
 evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "measure_tool_switches_modes_and_recalculates"]
+accepted = ["shortcut_special_tools_start"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11431,6 +11753,8 @@ source = "docs/revu_features/05_shortcuts.md:68"
 status = "have"
 cpp = "partial"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11443,6 +11767,8 @@ source = "docs/revu_features/05_shortcuts.md:69"
 status = "have"
 cpp = "partial"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11455,6 +11781,8 @@ source = "docs/revu_features/05_shortcuts.md:70"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound", "angle_diameter_and_radius_tools_measure"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11467,6 +11795,8 @@ source = "docs/revu_features/05_shortcuts.md:71"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound", "volume_and_area_by_rectangle"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11479,6 +11809,8 @@ source = "docs/revu_features/05_shortcuts.md:72"
 status = "have"
 cpp = "missing"
 evidence = ["form_keys_add_a_signature_field_and_open_the_editor"]
+accepted = ["shortcut_special_tools_start"]
+acceptance = "pass"
 notes = "X: drag a signature field's box."
 
 [[feature]]
@@ -11491,6 +11823,8 @@ source = "docs/revu_features/05_shortcuts.md:73"
 status = "have"
 cpp = "missing"
 evidence = ["form_keys_add_a_signature_field_and_open_the_editor"]
+accepted = ["shortcut_review_text_and_forms"]
+acceptance = "pass"
 notes = "Ctrl+Shift+F opens the form fields editor."
 
 [[feature]]
@@ -11503,6 +11837,8 @@ source = "docs/revu_features/05_shortcuts.md:74"
 status = "have"
 cpp = "partial"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11515,7 +11851,9 @@ source = "docs/revu_features/05_shortcuts.md:75"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+accepted = ["shortcut_lock"]
+acceptance = "fixed"
+notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). Acceptance: Ctrl+Shift+L only locked; a second press on a locked markup now unlocks it (Lock is a toggle)."
 
 [[feature]]
 id = "key-047"
@@ -11527,6 +11865,8 @@ source = "docs/revu_features/05_shortcuts.md:76"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11539,6 +11879,8 @@ source = "docs/revu_features/05_shortcuts.md:77"
 status = "have"
 cpp = "partial"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11551,6 +11893,8 @@ source = "docs/revu_features/05_shortcuts.md:78"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11563,6 +11907,8 @@ source = "docs/revu_features/05_shortcuts.md:79"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11575,6 +11921,8 @@ source = "docs/revu_features/05_shortcuts.md:80"
 status = "have"
 cpp = "partial"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11587,6 +11935,8 @@ source = "docs/revu_features/05_shortcuts.md:81"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound", "apply_to_all_pages_and_remove_from_group"]
+accepted = ["shortcut_group_ungroup_remove"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11599,6 +11949,8 @@ source = "docs/revu_features/05_shortcuts.md:82"
 status = "have"
 cpp = "missing"
 evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "review_text_edits_comments_in_sequence"]
+accepted = ["shortcut_review_text_and_forms"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11611,6 +11963,8 @@ source = "docs/revu_features/05_shortcuts.md:83"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_arrange"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11623,6 +11977,8 @@ source = "docs/revu_features/05_shortcuts.md:84"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_arrange"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11635,6 +11991,8 @@ source = "docs/revu_features/05_shortcuts.md:85"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11647,6 +12005,8 @@ source = "docs/revu_features/05_shortcuts.md:86"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11659,6 +12019,8 @@ source = "docs/revu_features/05_shortcuts.md:87"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11671,6 +12033,8 @@ source = "docs/revu_features/05_shortcuts.md:88"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_group_ungroup_remove"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11683,6 +12047,8 @@ source = "docs/revu_features/05_shortcuts.md:89"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_open_new_cycle_close"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11695,6 +12061,8 @@ source = "docs/revu_features/05_shortcuts.md:90"
 status = "partial"
 cpp = "missing"
 evidence = []
+accepted = ["shortcut_open_new_cycle_close"]
+acceptance = "pass"
 notes = "Ctrl+N makes a new blank PDF; File > Create PDF from Files converts images, text, Word, Excel, PowerPoint and DXF files; DWG files are not read (no public specification)."
 
 [[feature]]
@@ -11707,6 +12075,8 @@ source = "docs/revu_features/05_shortcuts.md:91"
 status = "have"
 cpp = "have"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_open_new_cycle_close"]
+acceptance = "pass"
 
 [[feature]]
 id = "key-063"
@@ -11718,6 +12088,8 @@ source = "docs/revu_features/05_shortcuts.md:92"
 status = "have"
 cpp = "missing"
 evidence = ["feature_shortcuts_are_bound"]
+accepted = ["shortcut_dialogs_show"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11730,6 +12102,8 @@ source = "docs/revu_features/05_shortcuts.md:93"
 status = "have"
 cpp = "missing"
 evidence = ["save_modes_publish_and_revert_as"]
+accepted = ["shortcut_save_variants"]
+acceptance = "pass"
 notes = "File > Publish As Compressed (Ctrl+Shift+P)."
 
 [[feature]]
@@ -11742,6 +12116,8 @@ source = "docs/revu_features/05_shortcuts.md:94"
 status = "have"
 cpp = "have"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_save_variants"]
+acceptance = "pass"
 
 [[feature]]
 id = "key-066"
@@ -11753,6 +12129,8 @@ source = "docs/revu_features/05_shortcuts.md:95"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "document_tabs_cycle_close_others_close_all_and_save_all"]
+accepted = ["shortcut_save_variants"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11765,6 +12143,8 @@ source = "docs/revu_features/05_shortcuts.md:96"
 status = "have"
 cpp = "have"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_save_variants"]
+acceptance = "pass"
 
 [[feature]]
 id = "key-068"
@@ -11776,7 +12156,9 @@ source = "docs/revu_features/05_shortcuts.md:97"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+accepted = ["shortcut_copy_cut_paste_paste_in_place"]
+acceptance = "fixed"
+notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). Acceptance: egui-winit delivers Ctrl+C / Ctrl+X / Ctrl+V (with any other modifier) as Copy / Cut / Paste events and no key event, so this shortcut never fired in the desktop app; the dispatcher now turns them back into keys, and Copy / Cut also put text on the system clipboard so Ctrl+V reaches the app."
 
 [[feature]]
 id = "key-069"
@@ -11788,7 +12170,9 @@ source = "docs/revu_features/05_shortcuts.md:98"
 status = "have"
 cpp = "missing"
 evidence = ["copy_page_to_snapshot_select_all_text_and_format_painter_keys"]
-notes = "Edit > Copy Page to Snapshot (Ctrl+Alt+C)."
+accepted = ["shortcut_copy_page_to_snapshot"]
+acceptance = "fixed"
+notes = "Edit > Copy Page to Snapshot (Ctrl+Alt+C). Acceptance: egui-winit delivers Ctrl+C / Ctrl+X / Ctrl+V (with any other modifier) as Copy / Cut / Paste events and no key event, so this shortcut never fired in the desktop app; the dispatcher now turns them back into keys, and Copy / Cut also put text on the system clipboard so Ctrl+V reaches the app."
 
 [[feature]]
 id = "key-070"
@@ -11800,7 +12184,9 @@ source = "docs/revu_features/05_shortcuts.md:99"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+accepted = ["shortcut_copy_cut_paste_paste_in_place"]
+acceptance = "fixed"
+notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). Acceptance: egui-winit delivers Ctrl+C / Ctrl+X / Ctrl+V (with any other modifier) as Copy / Cut / Paste events and no key event, so this shortcut never fired in the desktop app; the dispatcher now turns them back into keys, and Copy / Cut also put text on the system clipboard so Ctrl+V reaches the app."
 
 [[feature]]
 id = "key-071"
@@ -11812,6 +12198,8 @@ source = "docs/revu_features/05_shortcuts.md:100"
 status = "have"
 cpp = "have"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_delete_undo_redo_select_all"]
+acceptance = "pass"
 
 [[feature]]
 id = "key-072"
@@ -11823,7 +12211,9 @@ source = "docs/revu_features/05_shortcuts.md:101"
 status = "have"
 cpp = "missing"
 evidence = ["copy_page_to_snapshot_select_all_text_and_format_painter_keys"]
-notes = "Markup > Format Painter (Ctrl+Shift+C)."
+accepted = ["shortcut_format_painter"]
+acceptance = "fixed"
+notes = "Markup > Format Painter (Ctrl+Shift+C). Acceptance: egui-winit delivers Ctrl+C / Ctrl+X / Ctrl+V (with any other modifier) as Copy / Cut / Paste events and no key event, so this shortcut never fired in the desktop app; the dispatcher now turns them back into keys, and Copy / Cut also put text on the system clipboard so Ctrl+V reaches the app."
 
 [[feature]]
 id = "key-073"
@@ -11835,7 +12225,9 @@ source = "docs/revu_features/05_shortcuts.md:102"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+accepted = ["shortcut_copy_cut_paste_paste_in_place"]
+acceptance = "fixed"
+notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). Acceptance: egui-winit delivers Ctrl+C / Ctrl+X / Ctrl+V (with any other modifier) as Copy / Cut / Paste events and no key event, so this shortcut never fired in the desktop app; the dispatcher now turns them back into keys, and Copy / Cut also put text on the system clipboard so Ctrl+V reaches the app."
 
 [[feature]]
 id = "key-074"
@@ -11847,7 +12239,9 @@ source = "docs/revu_features/05_shortcuts.md:103"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+accepted = ["shortcut_copy_cut_paste_paste_in_place"]
+acceptance = "fixed"
+notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). Acceptance: egui-winit delivers Ctrl+C / Ctrl+X / Ctrl+V (with any other modifier) as Copy / Cut / Paste events and no key event, so this shortcut never fired in the desktop app; the dispatcher now turns them back into keys, and Copy / Cut also put text on the system clipboard so Ctrl+V reaches the app. Paste in Place also pasted onto the copied markup's own page instead of the page in view; it now pastes at the same position on the current page."
 
 [[feature]]
 id = "key-075"
@@ -11859,6 +12253,8 @@ source = "docs/revu_features/05_shortcuts.md:104"
 status = "have"
 cpp = "have"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_delete_undo_redo_select_all"]
+acceptance = "pass"
 
 [[feature]]
 id = "key-076"
@@ -11870,6 +12266,8 @@ source = "docs/revu_features/05_shortcuts.md:105"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_delete_undo_redo_select_all"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11882,6 +12280,8 @@ source = "docs/revu_features/05_shortcuts.md:106"
 status = "have"
 cpp = "missing"
 evidence = ["copy_page_to_snapshot_select_all_text_and_format_painter_keys"]
+accepted = ["shortcut_select_all_text"]
+acceptance = "pass"
 notes = "Edit > Select All Text (Ctrl+Shift+A): the current page's text, copied."
 
 [[feature]]
@@ -11894,6 +12294,8 @@ source = "docs/revu_features/05_shortcuts.md:107"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11906,6 +12308,8 @@ source = "docs/revu_features/05_shortcuts.md:108"
 status = "have"
 cpp = "have"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_delete_undo_redo_select_all"]
+acceptance = "pass"
 
 [[feature]]
 id = "key-080"
@@ -11917,6 +12321,8 @@ source = "docs/revu_features/05_shortcuts.md:109"
 status = "have"
 cpp = "partial"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_zoom_and_page_modes"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11929,6 +12335,8 @@ source = "docs/revu_features/05_shortcuts.md:110"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "split_views_sync_switch_balance_unsplit"]
+accepted = ["shortcut_multiview"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11941,6 +12349,8 @@ source = "docs/revu_features/05_shortcuts.md:111"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_zoom_and_page_modes"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11953,6 +12363,8 @@ source = "docs/revu_features/05_shortcuts.md:112"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "page_layout_modes_side_by_side_and_cover"]
+accepted = ["shortcut_zoom_and_page_modes"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11965,6 +12377,8 @@ source = "docs/revu_features/05_shortcuts.md:113"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "rulers_crosshair_and_dimmer"]
+accepted = ["shortcut_view_toggles"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11977,6 +12391,8 @@ source = "docs/revu_features/05_shortcuts.md:114"
 status = "have"
 cpp = "partial"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_zoom_and_page_modes"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11989,6 +12405,8 @@ source = "docs/revu_features/05_shortcuts.md:115"
 status = "have"
 cpp = "partial"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_zoom_and_page_modes"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12001,6 +12419,8 @@ source = "docs/revu_features/05_shortcuts.md:116"
 status = "have"
 cpp = "have"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_page_and_view_navigation"]
+acceptance = "pass"
 
 [[feature]]
 id = "key-088"
@@ -12012,6 +12432,8 @@ source = "docs/revu_features/05_shortcuts.md:117"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "previous_and_next_view_walk_the_history"]
+accepted = ["shortcut_page_and_view_navigation"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12024,6 +12446,8 @@ source = "docs/revu_features/05_shortcuts.md:118"
 status = "have"
 cpp = "have"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_page_and_view_navigation"]
+acceptance = "pass"
 
 [[feature]]
 id = "key-090"
@@ -12035,6 +12459,8 @@ source = "docs/revu_features/05_shortcuts.md:119"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "previous_and_next_view_walk_the_history"]
+accepted = ["shortcut_page_and_view_navigation"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12047,6 +12473,8 @@ source = "docs/revu_features/05_shortcuts.md:120"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "new_blank_pdf_and_refresh_from_disk"]
+accepted = ["shortcut_rotate_view_and_refresh"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12072,6 +12500,8 @@ source = "docs/revu_features/05_shortcuts.md:122"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "rotate_view_turns_the_display_not_the_file"]
+accepted = ["shortcut_rotate_view_and_refresh"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12084,6 +12514,8 @@ source = "docs/revu_features/05_shortcuts.md:123"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "rotate_view_turns_the_display_not_the_file"]
+accepted = ["shortcut_rotate_view_and_refresh"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12096,6 +12528,8 @@ source = "docs/revu_features/05_shortcuts.md:124"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "rulers_crosshair_and_dimmer"]
+accepted = ["shortcut_view_toggles"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12108,6 +12542,8 @@ source = "docs/revu_features/05_shortcuts.md:125"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_view_toggles"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12120,6 +12556,8 @@ source = "docs/revu_features/05_shortcuts.md:126"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "page_layout_modes_side_by_side_and_cover"]
+accepted = ["shortcut_zoom_and_page_modes"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12132,6 +12570,8 @@ source = "docs/revu_features/05_shortcuts.md:127"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_zoom_and_page_modes"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12144,6 +12584,8 @@ source = "docs/revu_features/05_shortcuts.md:128"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_view_toggles"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12156,6 +12598,8 @@ source = "docs/revu_features/05_shortcuts.md:129"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_view_toggles"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12168,6 +12612,8 @@ source = "docs/revu_features/05_shortcuts.md:130"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_view_toggles"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12180,6 +12626,8 @@ source = "docs/revu_features/05_shortcuts.md:131"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "split_views_sync_switch_balance_unsplit"]
+accepted = ["shortcut_multiview"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12192,6 +12640,8 @@ source = "docs/revu_features/05_shortcuts.md:132"
 status = "have"
 cpp = "partial"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "split_views_sync_switch_balance_unsplit"]
+accepted = ["shortcut_multiview"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12204,6 +12654,8 @@ source = "docs/revu_features/05_shortcuts.md:133"
 status = "have"
 cpp = "partial"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "split_views_sync_switch_balance_unsplit"]
+accepted = ["shortcut_multiview"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12216,6 +12668,8 @@ source = "docs/revu_features/05_shortcuts.md:134"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "split_views_sync_switch_balance_unsplit"]
+accepted = ["shortcut_multiview"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12228,6 +12682,8 @@ source = "docs/revu_features/05_shortcuts.md:135"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "split_views_sync_switch_balance_unsplit"]
+accepted = ["shortcut_multiview"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12240,6 +12696,8 @@ source = "docs/revu_features/05_shortcuts.md:136"
 status = "have"
 cpp = "missing"
 evidence = ["wave6a_shortcuts_are_bound", "web_tab_favorites_browser_and_capture"]
+accepted = ["shortcut_dialogs_show"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12252,6 +12710,8 @@ source = "docs/revu_features/05_shortcuts.md:137"
 status = "have"
 cpp = "missing"
 evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "eraser_lasso_and_select_text_gestures"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12264,6 +12724,8 @@ source = "docs/revu_features/05_shortcuts.md:138"
 status = "have"
 cpp = "partial"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12276,6 +12738,8 @@ source = "docs/revu_features/05_shortcuts.md:139"
 status = "have"
 cpp = "have"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_select_and_toggle_zoom"]
+acceptance = "pass"
 
 [[feature]]
 id = "key-111"
@@ -12287,6 +12751,8 @@ source = "docs/revu_features/05_shortcuts.md:140"
 status = "have"
 cpp = "missing"
 evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "eraser_lasso_and_select_text_gestures"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12299,6 +12765,8 @@ source = "docs/revu_features/05_shortcuts.md:141"
 status = "have"
 cpp = "missing"
 evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "zoom_tool_clicks_and_boxes"]
+accepted = ["shortcut_select_and_toggle_zoom"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12311,6 +12779,8 @@ source = "docs/revu_features/05_shortcuts.md:142"
 status = "have"
 cpp = "have"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_zoom_and_page_modes"]
+acceptance = "pass"
 
 [[feature]]
 id = "key-114"
@@ -12322,6 +12792,8 @@ source = "docs/revu_features/05_shortcuts.md:143"
 status = "have"
 cpp = "have"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_zoom_and_page_modes"]
+acceptance = "pass"
 
 [[feature]]
 id = "key-115"
@@ -12333,6 +12805,8 @@ source = "docs/revu_features/05_shortcuts.md:144"
 status = "have"
 cpp = "missing"
 evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound", "zoom_tool_clicks_and_boxes"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12345,7 +12819,9 @@ source = "docs/revu_features/05_shortcuts.md:145"
 status = "have"
 cpp = "missing"
 evidence = ["search_scopes_targets_f3_replace_and_selected_text"]
-notes = "F3: next result."
+accepted = ["shortcut_search_results"]
+acceptance = "fixed"
+notes = "F3: next result. Acceptance: F3 did nothing while the search box had focus (all shortcuts were off in text fields); function keys now reach commands from text fields."
 
 [[feature]]
 id = "key-117"
@@ -12357,7 +12833,9 @@ source = "docs/revu_features/05_shortcuts.md:146"
 status = "have"
 cpp = "missing"
 evidence = ["search_scopes_targets_f3_replace_and_selected_text"]
-notes = "Shift+F3: previous result."
+accepted = ["shortcut_search_results"]
+acceptance = "fixed"
+notes = "Shift+F3: previous result. Acceptance: Shift+F3 did nothing while the search box had focus; function keys now reach commands from text fields."
 
 [[feature]]
 id = "key-118"
@@ -12369,6 +12847,8 @@ source = "docs/revu_features/05_shortcuts.md:147"
 status = "have"
 cpp = "missing"
 evidence = ["feature_shortcuts_are_bound"]
+accepted = ["shortcut_dialogs_show"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12394,6 +12874,8 @@ source = "docs/revu_features/05_shortcuts.md:149"
 status = "have"
 cpp = "missing"
 evidence = ["feature_shortcuts_are_bound"]
+accepted = ["shortcut_add_bookmark"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12406,6 +12888,8 @@ source = "docs/revu_features/05_shortcuts.md:150"
 status = "have"
 cpp = "missing"
 evidence = ["feature_shortcuts_are_bound"]
+accepted = ["shortcut_apply_redactions"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12418,6 +12902,8 @@ source = "docs/revu_features/05_shortcuts.md:151"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "page_dialogs_insert_rotate_crop_setup_delete"]
+accepted = ["shortcut_dialogs_show"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12430,7 +12916,9 @@ source = "docs/revu_features/05_shortcuts.md:152"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+accepted = ["shortcut_dialogs_show"]
+acceptance = "fixed"
+notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). Acceptance: Ctrl+Shift+D deleted the current page at once (Delete Page) instead of opening the Delete Pages dialog; rebound."
 
 [[feature]]
 id = "key-124"
@@ -12442,6 +12930,8 @@ source = "docs/revu_features/05_shortcuts.md:153"
 status = "have"
 cpp = "missing"
 evidence = ["deskew_from_a_line_and_by_angle"]
+accepted = ["shortcut_dialogs_show"]
+acceptance = "pass"
 notes = "Document > Deskew (Ctrl+Alt+D)."
 
 [[feature]]
@@ -12454,6 +12944,8 @@ source = "docs/revu_features/05_shortcuts.md:154"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_dialogs_show"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12466,6 +12958,8 @@ source = "docs/revu_features/05_shortcuts.md:155"
 status = "have"
 cpp = "missing"
 evidence = ["email_attaches_the_document_to_a_draft"]
+accepted = ["shortcut_email"]
+acceptance = "pass"
 notes = "File > Email (Ctrl+E)."
 
 [[feature]]
@@ -12478,7 +12972,9 @@ source = "docs/revu_features/05_shortcuts.md:156"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+accepted = ["shortcut_dialogs_show"]
+acceptance = "fixed"
+notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). Acceptance: egui-winit delivers Ctrl+C / Ctrl+X / Ctrl+V (with any other modifier) as Copy / Cut / Paste events and no key event, so this shortcut never fired in the desktop app; the dispatcher now turns them back into keys, and Copy / Cut also put text on the system clipboard so Ctrl+V reaches the app. It also ran the single-page Extract Page; it now opens Extract Pages."
 
 [[feature]]
 id = "key-128"
@@ -12490,6 +12986,8 @@ source = "docs/revu_features/05_shortcuts.md:157"
 status = "have"
 cpp = "missing"
 evidence = ["feature_shortcuts_are_bound"]
+accepted = ["shortcut_dialogs_show"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12502,6 +13000,8 @@ source = "docs/revu_features/05_shortcuts.md:158"
 status = "have"
 cpp = "missing"
 evidence = ["save_modes_publish_and_revert_as"]
+accepted = ["shortcut_publish_flattened"]
+acceptance = "pass"
 notes = "File > Publish As Flattened (Ctrl+Alt+F)."
 
 [[feature]]
@@ -12514,6 +13014,8 @@ source = "docs/revu_features/05_shortcuts.md:159"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_insert_blank_page"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12526,6 +13028,8 @@ source = "docs/revu_features/05_shortcuts.md:160"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_insert_pages"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12538,6 +13042,8 @@ source = "docs/revu_features/05_shortcuts.md:161"
 status = "have"
 cpp = "missing"
 evidence = ["feature_shortcuts_are_bound"]
+accepted = ["shortcut_special_tools_start"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12550,6 +13056,8 @@ source = "docs/revu_features/05_shortcuts.md:162"
 status = "have"
 cpp = "missing"
 evidence = ["wave6a_shortcuts_are_bound", "mark_text_for_redaction_snapshot_content_and_sketch_commands", "mark_text_for_redaction_marks_the_words_under_a_box"]
+accepted = ["shortcut_special_tools_start"]
+acceptance = "pass"
 notes = "Shift+K: drag over text; every word the box touches is marked for redaction. C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12562,6 +13070,8 @@ source = "docs/revu_features/05_shortcuts.md:163"
 status = "have"
 cpp = "missing"
 evidence = ["feature_shortcuts_are_bound"]
+accepted = ["shortcut_dialogs_show"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12574,6 +13084,8 @@ source = "docs/revu_features/05_shortcuts.md:164"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "new_blank_pdf_and_refresh_from_disk"]
+accepted = ["shortcut_save_variants"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12586,6 +13098,8 @@ source = "docs/revu_features/05_shortcuts.md:165"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "extract_and_replace_pages_through_dialogs"]
+accepted = ["shortcut_dialogs_show"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12598,6 +13112,8 @@ source = "docs/revu_features/05_shortcuts.md:166"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_rotate_pages"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12610,6 +13126,8 @@ source = "docs/revu_features/05_shortcuts.md:167"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_rotate_pages"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12622,6 +13140,8 @@ source = "docs/revu_features/05_shortcuts.md:168"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "page_dialogs_insert_rotate_crop_setup_delete"]
+accepted = ["shortcut_dialogs_show"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12634,6 +13154,8 @@ source = "docs/revu_features/05_shortcuts.md:169"
 status = "have"
 cpp = "missing"
 evidence = ["feature_shortcuts_are_bound"]
+accepted = ["shortcut_dialogs_show"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12646,6 +13168,8 @@ source = "docs/revu_features/05_shortcuts.md:170"
 status = "have"
 cpp = "missing"
 evidence = ["wave6a_shortcuts_are_bound", "mark_text_for_redaction_snapshot_content_and_sketch_commands"]
+accepted = ["shortcut_special_tools_start"]
+acceptance = "pass"
 notes = "Shift+G: drag a box; its content becomes a snapshot markup in place. C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12658,6 +13182,8 @@ source = "docs/revu_features/05_shortcuts.md:171"
 status = "have"
 cpp = "missing"
 evidence = ["wave6a_shortcuts_are_bound"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12670,6 +13196,8 @@ source = "docs/revu_features/05_shortcuts.md:172"
 status = "have"
 cpp = "missing"
 evidence = ["copy_page_to_snapshot_select_all_text_and_format_painter_keys"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "Strikethrough tool (D)."
 
 [[feature]]
@@ -12682,6 +13210,8 @@ source = "docs/revu_features/05_shortcuts.md:173"
 status = "have"
 cpp = "missing"
 evidence = ["copy_page_to_snapshot_select_all_text_and_format_painter_keys"]
+accepted = ["shortcut_keys_activate_tools"]
+acceptance = "pass"
 notes = "Underline tool (U)."
 
 [[feature]]
@@ -12694,6 +13224,8 @@ source = "docs/revu_features/05_shortcuts.md:174"
 status = "have"
 cpp = "missing"
 evidence = ["wave6a_shortcuts_are_bound"]
+accepted = ["shortcut_dialogs_show"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12719,6 +13251,8 @@ source = "docs/revu_features/05_shortcuts.md:176"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "full_screen_presentation_always_on_top_and_bars"]
+accepted = ["shortcut_view_toggles"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12731,6 +13265,8 @@ source = "docs/revu_features/05_shortcuts.md:177"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_panels"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12743,6 +13279,8 @@ source = "docs/revu_features/05_shortcuts.md:178"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "document_tabs_cycle_close_others_close_all_and_save_all"]
+accepted = ["shortcut_open_new_cycle_close"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12755,6 +13293,8 @@ source = "docs/revu_features/05_shortcuts.md:179"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "recent_files_reopen_at_the_last_page_and_pin"]
+accepted = ["shortcut_panels"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12767,6 +13307,8 @@ source = "docs/revu_features/05_shortcuts.md:180"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_and_markupcraft_keys_are_bound"]
+accepted = ["shortcut_review_text_and_forms"]
+acceptance = "pass"
 notes = "Window > Forms (Alt+Q) opens Tools > Form Fields."
 
 [[feature]]
@@ -12779,6 +13321,8 @@ source = "docs/revu_features/05_shortcuts.md:181"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "full_screen_presentation_always_on_top_and_bars"]
+accepted = ["shortcut_full_screen_and_presentation"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12791,6 +13335,8 @@ source = "docs/revu_features/05_shortcuts.md:182"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "full_screen_presentation_always_on_top_and_bars"]
+accepted = ["shortcut_view_toggles"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12803,6 +13349,8 @@ source = "docs/revu_features/05_shortcuts.md:183"
 status = "have"
 cpp = "missing"
 evidence = ["wave6a_shortcuts_are_bound", "javascript_console_runs_scripts_on_the_form"]
+accepted = ["shortcut_forms_and_console"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12815,6 +13363,8 @@ source = "docs/revu_features/05_shortcuts.md:184"
 status = "have"
 cpp = "missing"
 evidence = ["feature_shortcuts_are_bound"]
+accepted = ["shortcut_panels"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12827,6 +13377,8 @@ source = "docs/revu_features/05_shortcuts.md:185"
 status = "have"
 cpp = "missing"
 evidence = ["feature_shortcuts_are_bound"]
+accepted = ["shortcut_panels"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12839,6 +13391,8 @@ source = "docs/revu_features/05_shortcuts.md:186"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_panels"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12851,6 +13405,8 @@ source = "docs/revu_features/05_shortcuts.md:187"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_panels"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12863,6 +13419,8 @@ source = "docs/revu_features/05_shortcuts.md:188"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "full_screen_presentation_always_on_top_and_bars"]
+accepted = ["shortcut_view_toggles"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12875,6 +13433,8 @@ source = "docs/revu_features/05_shortcuts.md:189"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "full_screen_presentation_always_on_top_and_bars"]
+accepted = ["shortcut_view_toggles"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12887,6 +13447,8 @@ source = "docs/revu_features/05_shortcuts.md:190"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "preferences_dialog_applies_and_persists"]
+accepted = ["shortcut_dialogs_show"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12899,6 +13461,8 @@ source = "docs/revu_features/05_shortcuts.md:191"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "full_screen_presentation_always_on_top_and_bars"]
+accepted = ["shortcut_full_screen_and_presentation"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12911,6 +13475,8 @@ source = "docs/revu_features/05_shortcuts.md:192"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_panels"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12923,6 +13489,8 @@ source = "docs/revu_features/05_shortcuts.md:193"
 status = "have"
 cpp = "missing"
 evidence = ["feature_shortcuts_are_bound"]
+accepted = ["shortcut_panels"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12935,6 +13503,8 @@ source = "docs/revu_features/05_shortcuts.md:194"
 status = "have"
 cpp = "missing"
 evidence = ["feature_shortcuts_are_bound"]
+accepted = ["shortcut_panels"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12947,6 +13517,8 @@ source = "docs/revu_features/05_shortcuts.md:195"
 status = "have"
 cpp = "missing"
 evidence = ["alt_menus_shift_f10_and_the_markupcraft_menu"]
+accepted = ["shortcut_context_menu"]
+acceptance = "pass"
 notes = "Window > Show Context Menu (Shift+F10)."
 
 [[feature]]
@@ -12959,6 +13531,8 @@ source = "docs/revu_features/05_shortcuts.md:196"
 status = "have"
 cpp = "missing"
 evidence = ["feature_shortcuts_are_bound"]
+accepted = ["shortcut_panels"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12971,6 +13545,8 @@ source = "docs/revu_features/05_shortcuts.md:197"
 status = "have"
 cpp = "missing"
 evidence = ["feature_shortcuts_are_bound"]
+accepted = ["shortcut_panels"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -12983,6 +13559,8 @@ source = "docs/revu_features/05_shortcuts.md:198"
 status = "have"
 cpp = "missing"
 evidence = ["revu_window_view_document_file_shortcuts_are_bound", "full_screen_presentation_always_on_top_and_bars"]
+accepted = ["shortcut_view_toggles"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -13008,6 +13586,8 @@ source = "docs/revu_features/05_shortcuts.md:200"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_panels"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -13020,6 +13600,8 @@ source = "docs/revu_features/05_shortcuts.md:201"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_panels"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -13032,7 +13614,9 @@ source = "docs/revu_features/05_shortcuts.md:202"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+accepted = ["shortcut_dialogs_show"]
+acceptance = "gap"
+notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). Acceptance: F1 opens the keyboard shortcut reference; there is no bundled Help manual."
 
 [[feature]]
 id = "key-174"
@@ -13044,6 +13628,8 @@ source = "docs/revu_features/05_shortcuts.md:203"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_page_and_view_navigation"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -13056,6 +13642,8 @@ source = "docs/revu_features/05_shortcuts.md:204"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_page_and_view_navigation"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -13068,6 +13656,8 @@ source = "docs/revu_features/05_shortcuts.md:205"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_open_new_cycle_close"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -13080,4 +13670,6 @@ source = "docs/revu_features/05_shortcuts.md:206"
 status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
+accepted = ["shortcut_open_new_cycle_close"]
+acceptance = "pass"
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."

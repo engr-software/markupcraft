@@ -342,6 +342,15 @@ impl PrefStore {
     pub fn switch(&self, name: &str, copy_from_current: bool) -> Result<Preferences> {
         let name = check_profile_name(name)?;
         let path = self.profile_path(&name)?;
+        // The profile we leave stays listed (and can be switched back to) even when it was
+        // never saved, e.g. the default profile.
+        let current = self.active();
+        if current != name {
+            let cur = self.profile_path(&current)?;
+            if !cur.exists() {
+                write_file(&cur, &self.load()?)?;
+            }
+        }
         if !path.exists() {
             let p = if copy_from_current {
                 self.load()?

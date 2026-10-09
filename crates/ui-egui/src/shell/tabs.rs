@@ -120,8 +120,11 @@ pub fn tab_bar(app: &mut AppState, ui: &mut egui::Ui) {
                                 );
                             rects.push(r.rect);
                             // Dragging uses an id that follows the document, not the position.
-                            let dr = ui.interact(r.rect, egui::Id::new(("doc-tab", d.uid)), egui::Sense::drag());
-                            if r.clicked() || dr.drag_started() {
+                            // It covers the button, so it takes the clicks too (a right-click on a tab
+                            // opens its menu).
+                            let dr =
+                                ui.interact(r.rect, egui::Id::new(("doc-tab", d.uid)), egui::Sense::click_and_drag());
+                            if r.clicked() || dr.clicked() || dr.drag_started() {
                                 app.active = i;
                             }
                             if dr.dragged()
@@ -151,7 +154,7 @@ pub fn tab_bar(app: &mut AppState, ui: &mut egui::Ui) {
                                     detach_out = Some(i);
                                 }
                             }
-                            r.context_menu(|ui| {
+                            r.union(dr.clone()).context_menu(|ui| {
                                 for (id, label) in [
                                     ("close", "Close"),
                                     ("close_others", "Close Others"),

@@ -1011,6 +1011,55 @@ impl AppState {
             "snap.markup" => self.snaps.markup = !self.snaps.markup,
             _ if features::handles(id) => features::run(self, id, ctx),
             _ if editing::handles(id) => editing::run(self, id),
+            "edit.paste_in_place" => {
+                // Same position, on the page in view (Revu: e.g. onto another sheet).
+                if let Some(d) = self.doc_mut() {
+                    let page = d.view.current;
+                    let r = d.session.paste(Some(page), None);
+                    self.status =
+                        actions::report(r, |v| format!("Pasted {} in place", actions::plural(v.len(), "markup")));
+                }
+            }
+            "markup.lock" => {
+                // Lock is a toggle (Revu's menu item is checked on a locked markup): when every
+                // selected markup is locked already, Ctrl+Shift+L unlocks them.
+                if let Some(d) = self.doc_mut() {
+                    let all_locked = !d.selection().is_empty()
+                        && d.selection()
+                            .iter()
+                            .all(|id| d.session.doc().find(id).is_some_and(|m| m.locked()));
+                    let cmd = if all_locked { "markup.unlock" } else { "markup.lock" };
+                    let r = markupcraft_engine::commands::run(&mut d.session, cmd);
+                    self.status = actions::report(r, |s| s);
+                }
+            }
+            "edit.copy" | "edit.cut" => {
+                if let Some(d) = self.doc_mut() {
+                    let r = markupcraft_engine::commands::run(&mut d.session, id);
+                    d.sync_pages(threads);
+                    // The platform sends Ctrl+V on only while the system clipboard holds text,
+                    // so the copied markups go there as text too.
+                    let text: Vec<&str> = d
+                        .session
+                        .clipboard()
+                        .iter()
+                        .map(|m| {
+                            if m.contents.is_empty() {
+                                m.subject.as_str()
+                            } else {
+                                m.contents.as_str()
+                            }
+                        })
+                        .collect();
+                    let text = text.join("\n");
+                    ctx.copy_text(if text.trim().is_empty() {
+                        "markups".to_string()
+                    } else {
+                        text
+                    });
+                    self.status = actions::report(r, |s| s);
+                }
+            }
             _ if markupcraft_engine::commands::find(id).is_some() => {
                 if let Some(d) = self.doc_mut() {
                     let r = markupcraft_engine::commands::run(&mut d.session, id);
@@ -1102,6 +1151,12 @@ impl AppState {
     }
 }
 
+/// F1..F12: keys a text field never uses.
+fn is_function_key(k: egui::Key) -> bool {
+    use egui::Key::*;
+    matches!(k, F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8 | F9 | F10 | F11 | F12)
+}
+
 /// The app: state plus the dock layout.
 pub struct MarkupCraftApp {
     pub state: AppState,
@@ -1168,9 +1223,47 @@ impl MarkupCraftApp {
     }
 
     fn shortcuts(&mut self, ctx: &egui::Context) {
-        if ctx.egui_wants_keyboard_input() || self.state.keys.capturing.is_some() {
+        if self.state.keys.capturing.is_some() {
             return;
         }
+        // While a text field has focus only function keys reach commands (text editing has
+        // no use for them): F3 steps through results from the search box, as in Revu.
+        if ctx.egui_wants_keyboard_input() {
+            for (k, id) in self.state.keys.bindings() {
+                if is_function_key(k.key)
+                    && features::more6::prefs::key_allowed(&self.state, &k, &id)
+                    && ctx.input_mut(|i| i.consume_shortcut(&k.shortcut()))
+                {
+                    self.state.queue(&id);
+                }
+            }
+            return;
+        }
+        // The platform layer (egui-winit) delivers Ctrl+C / Ctrl+X / Ctrl+V, with any other
+        // modifier held, as Copy / Cut / Paste events and no key event: turn them back into
+        // keys so Copy, Format Painter (Ctrl+Shift+C), Copy Page to Snapshot (Ctrl+Alt+C),
+        // Extract Pages (Ctrl+Shift+X), Paste and Paste in Place (Ctrl+Shift+V) all fire.
+        ctx.input_mut(|i| {
+            let m = i.modifiers;
+            if !m.command {
+                return;
+            }
+            for e in &mut i.events {
+                let key = match e {
+                    egui::Event::Copy => egui::Key::C,
+                    egui::Event::Cut => egui::Key::X,
+                    egui::Event::Paste(_) => egui::Key::V,
+                    _ => continue,
+                };
+                *e = egui::Event::Key {
+                    key,
+                    physical_key: None,
+                    pressed: true,
+                    repeat: false,
+                    modifiers: m,
+                };
+            }
+        });
         for (k, id) in self.state.keys.bindings() {
             if !features::more6::prefs::key_allowed(&self.state, &k, &id) {
                 continue;
