@@ -6,3 +6,5 @@ license.workspace = true
 publish = false
 
 [dependencies]
+serde = { workspace = true }
+toml = "1"

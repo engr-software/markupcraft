@@ -432,6 +432,23 @@ pub fn ungroup_markups(doc: &mut Document, indices: &[usize]) -> usize {
     n
 }
 
+/// Take `indices` out of their groups (Remove From Group); a group left with one member ends.
+/// Returns how many markups left a group.
+pub fn remove_from_group(doc: &mut Document, indices: &[usize]) -> usize {
+    let mut n = 0;
+    for &i in indices {
+        if let Some(m) = doc.markups.get_mut(i)
+            && !m.group.is_empty()
+        {
+            m.group.clear();
+            m.dirty = true;
+            n += 1;
+        }
+    }
+    dissolve_singles(doc);
+    n
+}
+
 // ---- writing ---------------------------------------------------------------------------
 
 /// Per-annotation extras, called after the annotation's own keys were written.
@@ -983,6 +1000,22 @@ mod tests {
         assert!(again.markups.iter().all(|m| m.group.is_empty()));
         let m2 = f3.cos.get(ObjRef::new(again.markups[2].obj.0, again.markups[2].obj.1));
         assert!(!m2.as_dict().unwrap().contains(b"RT"));
+    }
+
+    #[test]
+    fn extras_remove_from_group() {
+        let mut doc = Document::default();
+        for side in [4.0, 5.0, 6.0] {
+            doc.markups.push(area(side, "Floor"));
+        }
+        let gid = group_markups(&mut doc, &[0, 1, 2]);
+        assert_eq!(group_members(&doc, 0), [0, 1, 2]);
+        assert_eq!(remove_from_group(&mut doc, &[1]), 1);
+        assert_eq!(group_members(&doc, 0), [0, 2]);
+        assert_eq!(doc.markups[2].group, gid);
+        assert_eq!(remove_from_group(&mut doc, &[2]), 1);
+        assert!(doc.markups.iter().all(|m| m.group.is_empty()), "a group of one ends");
+        assert!(group_markups(&mut doc, &[1, 99]).is_empty());
     }
 
     #[test]

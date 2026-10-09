@@ -14,7 +14,7 @@
 //! ```
 //!
 //! `[Unit Cost]` names a column whose header has spaces. Constants: `pi`, `e`. Functions:
-//! `sqrt abs sin cos tan asin acos atan log` (base 10) `ln exp floor ceil round(x)
+//! `sqrt abs sin cos tan asin acos atan log` (base 10) `ln exp floor ceil` (or `ceiling`) `round(x)
 //! round(x, digits) min(a, ...) max(a, ...) pow(a, b) if(c, a, b)`. Names are case-insensitive.
 //! Unknown names, division by zero and non-finite results are errors.
 
@@ -306,7 +306,7 @@ impl Parser {
 
     fn check_call(&self, name: &str, k: usize) -> Result<(), String> {
         const ONE: &[&str] = &[
-            "sqrt", "abs", "sin", "cos", "tan", "asin", "acos", "atan", "log", "ln", "exp", "floor", "ceil",
+            "sqrt", "abs", "sin", "cos", "tan", "asin", "acos", "atan", "log", "ln", "exp", "floor", "ceil", "ceiling",
         ];
         let ok = match name {
             n if ONE.contains(&n) => {
@@ -386,7 +386,7 @@ fn eval_node(n: &Node, vars: &mut Resolver<'_>) -> Result<f64, String> {
                 "ln" => x.ln(),
                 "exp" => x.exp(),
                 "floor" => x.floor(),
-                "ceil" => x.ceil(),
+                "ceil" | "ceiling" => x.ceil(),
                 "round" => {
                     let m = if a.len() > 1 {
                         10f64.powf(arg(&a, 1).round())
@@ -478,6 +478,7 @@ mod tests {
         near("if(Length - 12.5, 1, 2)", 2.0);
         near("log(1000) + ln(e)", 4.0);
         near("pow(2, 10) + floor(1.7) + ceil(1.2)", 1027.0);
+        near("ceiling(Length)", 13.0);
     }
 
     #[test]
