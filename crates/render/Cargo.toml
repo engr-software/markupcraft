@@ -1,5 +1,6 @@
 [package]
 name = "markupcraft-render"
+description = "Page rendering for MarkupCraft: tiles, thumbnails, page geometry, text, on pdfcraft-render"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,3 +9,7 @@ license.workspace = true
 workspace = true
 
 [dependencies]
+pdfcraft-render = { workspace = true }
+pdfcraft-cos = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }

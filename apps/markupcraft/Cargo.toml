@@ -1,5 +1,6 @@
 [package]
 name = "markupcraft"
+description = "MarkupCraft desktop app"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,3 +9,10 @@ license.workspace = true
 workspace = true
 
 [dependencies]
+markupcraft-ui-egui = { workspace = true }
+eframe = { workspace = true, features = ["default_fonts", "wgpu", "accesskit", "wayland", "x11"] }
+log = { workspace = true }
+
+[build-dependencies]
+# Icon + VERSIONINFO for markupcraft.exe; build.rs only uses it when targeting Windows.
+winresource = { workspace = true }

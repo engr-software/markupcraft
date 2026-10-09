@@ -1,5 +1,6 @@
 [package]
 name = "markupcraft-ui-egui"
+description = "The Revu-style egui interface of MarkupCraft"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,3 +9,19 @@ license.workspace = true
 workspace = true
 
 [dependencies]
+markupcraft-geom = { workspace = true }
+markupcraft-model = { workspace = true }
+markupcraft-revu = { workspace = true }
+markupcraft-render = { workspace = true }
+egui = { workspace = true }
+egui_extras = { workspace = true }
+egui_dock = { workspace = true }
+eframe = { workspace = true, features = ["default_fonts", "wgpu", "accesskit"] }
+log = { workspace = true }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+rfd = { workspace = true }
+
+[dev-dependencies]
+egui_kittest = { workspace = true, features = ["eframe", "wgpu"] }
+image = { workspace = true }
