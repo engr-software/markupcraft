@@ -63,6 +63,12 @@ struct Row {
     notes: String,
     #[serde(default)]
     excluded: bool,
+    /// Blind acceptance: tests written from the inventory text by someone who did not build it.
+    #[serde(default)]
+    accepted: Vec<String>,
+    /// Acceptance verdict: "pass", "fixed" (a bug was found and fixed) or "gap" (spec gap noted).
+    #[serde(default)]
+    acceptance: String,
 }
 
 fn workspace_root() -> PathBuf {
@@ -131,21 +137,22 @@ fn totals_text(rows: &[Row]) -> String {
     let mut o = String::new();
     let _ = writeln!(
         o,
-        "{:<20} {:>6} {:>7} {:>6} {:>8} {:>8} {:>9}",
-        "area", "rows", "proven", "have", "partial", "missing", "excluded"
+        "{:<20} {:>6} {:>7} {:>6} {:>8} {:>8} {:>9} {:>9}",
+        "area", "rows", "proven", "have", "partial", "missing", "excluded", "accepted"
     );
     let line = |o: &mut String, name: &str, sel: &[&Row]| {
         let (by, ex) = counts(sel.iter().copied());
         let g = |s: &str| by.get(s).copied().unwrap_or(0);
         let _ = writeln!(
             o,
-            "{name:<20} {:>6} {:>7} {:>6} {:>8} {:>8} {:>9}",
+            "{name:<20} {:>6} {:>7} {:>6} {:>8} {:>8} {:>9} {:>9}",
             sel.len(),
             g("proven"),
             g("have"),
             g("partial"),
             g("missing"),
-            ex
+            ex,
+            sel.iter().filter(|r| !r.accepted.is_empty()).count()
         );
     };
     for (area, _) in AREAS {
@@ -289,6 +296,17 @@ fn check(root: &Path, rows: &[Row]) -> Result<Vec<String>, String> {
                 "{}: proven needs a recording (a cli scorecard command or a note)",
                 r.id
             ));
+        }
+        if !r.accepted.is_empty() && !matches!(r.acceptance.as_str(), "pass" | "fixed" | "gap") {
+            problems.push(format!(
+                "{}: acceptance `{}` is not pass, fixed or gap",
+                r.id, r.acceptance
+            ));
+        }
+        for a in &r.accepted {
+            if !tests.contains(a.as_str()) {
+                problems.push(format!("{}: acceptance test `{a}` does not exist", r.id));
+            }
         }
         for e in &r.evidence {
             let ok = match e.strip_prefix("cli:") {

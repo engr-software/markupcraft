@@ -2925,6 +2925,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "markupcraft-acceptance"
+version = "0.3.0"
+dependencies = [
+ "egui",
+ "egui_kittest",
+ "markupcraft-automation",
+ "markupcraft-engine",
+ "markupcraft-geom",
+ "markupcraft-measure",
+ "markupcraft-model",
+ "markupcraft-render",
+ "markupcraft-revu",
+ "markupcraft-ui-egui",
+ "serde_json",
+]
+
+[[package]]
 name = "markupcraft-automation"
 version = "0.3.0"
 dependencies = [

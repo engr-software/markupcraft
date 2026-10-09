@@ -20,6 +20,7 @@ markupcraft-render = { path = "crates/render" }
 markupcraft-engine = { path = "crates/engine" }
 markupcraft-automation = { path = "crates/automation" }
 markupcraft-ui-egui = { path = "crates/ui-egui" }
+markupcraft-acceptance = { path = "crates/acceptance" }
 
 # PDF object layer and page renderer from PdfCraft (MIT OR Apache-2.0), pinned.
 pdfcraft-cos = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }

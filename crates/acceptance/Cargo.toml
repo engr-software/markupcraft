@@ -1,0 +1,23 @@
+[package]
+name = "markupcraft-acceptance"
+description = "Blind acceptance tests: each Revu feature checked from the inventory text by someone who did not build it"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+markupcraft-geom = { workspace = true }
+markupcraft-model = { workspace = true }
+markupcraft-measure = { workspace = true }
+markupcraft-revu = { workspace = true }
+markupcraft-render = { workspace = true }
+markupcraft-engine = { workspace = true }
+markupcraft-automation = { workspace = true }
+markupcraft-ui-egui = { workspace = true }
+egui = { workspace = true }
+egui_kittest = { workspace = true, features = ["eframe", "wgpu"] }
+serde_json = { workspace = true }
