@@ -14,3 +14,9 @@ markupcraft-measure = { workspace = true }
 markupcraft-model = { workspace = true }
 markupcraft-revu = { workspace = true }
 thiserror = { workspace = true }
+pdfcraft-organize = { workspace = true }
+pdfcraft-edit = { workspace = true }
+pdfcraft-print = { workspace = true }
+pdfcraft-xfdf = { workspace = true }
+pdfcraft-optimize = { workspace = true }
+pdfcraft-render = { workspace = true }

@@ -25,15 +25,30 @@
     clippy::unreachable
 )]
 
+pub mod attachments;
 pub mod blank;
+pub mod bookmarks;
+pub mod boxes;
+pub mod combine;
 pub mod commands;
+pub mod docprops;
+mod docutil;
 mod edit;
 pub mod export;
+pub mod flatten;
 pub mod geometry;
 pub mod labels;
+pub mod links;
+pub mod marks;
+mod numbering;
 pub mod pages;
+pub mod printout;
 pub mod props;
+pub mod reduce;
 mod scales;
+pub mod search;
+pub mod security;
+pub mod xfdf;
 
 use std::collections::{BTreeSet, HashSet, VecDeque};
 use std::path::{Path, PathBuf};

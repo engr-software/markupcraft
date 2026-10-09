@@ -10,20 +10,20 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | Area | Rows | Proven | Have | Partial | Missing | Excluded | C++ have | C++ partial |
 |---|---|---|---|---|---|---|---|---|
 | Measurement and takeoff | 134 | 2 | 8 | 24 | 100 | 0 | 47 | 17 |
-| Markup tools, Properties, Tool Chest, layers, Markups List | 192 | 0 | 12 | 29 | 151 | 0 | 86 | 23 |
-| Documents, pages, batch, print, search, security | 217 | 0 | 1 | 5 | 205 | 6 | 38 | 23 |
+| Markup tools, Properties, Tool Chest, layers, Markups List | 192 | 0 | 13 | 33 | 146 | 0 | 86 | 23 |
+| Documents, pages, batch, print, search, security | 217 | 0 | 24 | 21 | 166 | 6 | 38 | 23 |
 | Compare/overlay, interface, preferences, mouse, Studio | 226 | 0 | 0 | 0 | 195 | 31 | 24 | 22 |
 | Default keyboard shortcuts | 177 | 0 | 0 | 0 | 177 | 0 | 11 | 18 |
-| **All** | 946 | 2 | 21 | 58 | 828 | 37 | 206 | 103 |
+| **All** | 946 | 2 | 45 | 78 | 784 | 37 | 206 | 103 |
 
 ### By priority (rows in scope)
 
 | Priority | Proven | Have | Partial | Missing |
 |---|---|---|---|---|
-| P0 | 2 | 9 | 29 | 101 |
-| P1 | 0 | 9 | 22 | 186 |
-| P2 | 0 | 3 | 5 | 201 |
-| P3 | 0 | 0 | 2 | 163 |
+| P0 | 2 | 10 | 30 | 99 |
+| P1 | 0 | 16 | 34 | 167 |
+| P2 | 0 | 12 | 8 | 189 |
+| P3 | 0 | 7 | 6 | 152 |
 
 ## Measurement and takeoff
 
@@ -298,7 +298,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-044 | Snapshot | P1 | partial | have | `cli: markupcheck` Revu snapshots are read and kept on save; no tool. |
 | mark-045 | Copy Page to Snapshot | P3 | missing | have |  |
 | mark-046 | Snapshot Content (cut/copy region of page) | P2 | missing | partial |  |
-| mark-047 | Hyperlink | P1 | missing | missing |  |
+| mark-047 | Hyperlink | P1 | partial | missing | `links_to_pages_urls_and_files` Links made headlessly (link_add); no drawing tool. |
 | mark-048 | Edit Action | P2 | missing | missing |  |
 | mark-049 | File Attachment | P2 | missing | missing |  |
 | mark-050 | Capture (camera) | P2 | missing | missing |  |
@@ -419,7 +419,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-145 | Rename / Delete layer | P2 | missing | missing |  |
 | mark-146 | Layer Properties | P3 | missing | missing |  |
 | mark-147 | Import / Export layer to page | P3 | missing | missing |  |
-| mark-148 | Flatten/Unflatten markups on a layer | P3 | missing | missing |  |
+| mark-148 | Flatten/Unflatten markups on a layer | P3 | partial | missing | `flatten_markups_by_filter` Flatten markups of chosen layers (markup_flatten layers); no unflatten. |
 
 ### H. Markups List
 
@@ -455,9 +455,9 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-176 | Summary: XML | P2 | have | have | `csv_summary_with_groups_and_totals` `cli: summary` |
 | mark-177 | Summary: PDF report | P1 | missing | partial |  |
 | mark-178 | Summary appended with links | P2 | missing | missing |  |
-| mark-179 | Import markups | P1 | missing | have |  |
-| mark-180 | Export markups | P2 | missing | missing |  |
-| mark-181 | Flatten markups | P1 | missing | partial |  |
+| mark-179 | Import markups | P1 | partial | have | `xfdf_export_import_round_trip` XFDF / FDF import (pdfcraft-xfdf), merging by markup id; Revu-only keys (measurements) are not carried by XFDF. |
+| mark-180 | Export markups | P2 | partial | missing | `xfdf_export_import_round_trip` XFDF / FDF export of every markup (pdfcraft-xfdf); Revu-only keys are not carried. |
+| mark-181 | Flatten markups | P1 | have | partial | `flatten_markups_by_filter` Headless (engine + automation tool); no UI yet. markup_flatten by ids (the selection), pages, kinds, layers, authors. |
 | mark-182 | Unflatten | P2 | missing | missing |  |
 | mark-183 | Lock / unlock from list | P1 | partial | have | `list_set_cell_validates_input` `extras_columns_status_replies_lock_round_trip` Lock column sets /F Locked headlessly; no list UI. |
 | mark-184 | Layer from list | P2 | missing | missing |  |
@@ -573,23 +573,23 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | doc-067 | Read page labels | P0 | have | have | `extras_page_labels_read_and_write` /PageLabels number tree (D, R, r, A, a, prefix, start) shown in the Page Label column. |
-| doc-068 | Rename label inline | P1 | partial | have | `extras_page_labels_read_and_write` Labels written back as a /PageLabels tree; no UI. |
-| doc-069 | Number Pages | P2 | missing | missing |  |
-| doc-070 | Text-only label / clear labels | P2 | missing | missing |  |
-| doc-071 | Labels from bookmarks | P1 | missing | have |  |
+| doc-068 | Rename label inline | P1 | partial | have | `extras_page_labels_read_and_write` `page_labels_number_set_clear_and_from_bookmarks` Labels set per page by tool (page_label_set, undoable); no inline UI. |
+| doc-069 | Number Pages | P2 | have | missing | `page_labels_number_set_clear_and_from_bookmarks` Headless (engine + automation tool); no UI yet. page_label_number: range, style (D, R, r, A, a, none), prefix, start; runs merged in /PageLabels. |
+| doc-070 | Text-only label / clear labels | P2 | have | missing | `page_labels_number_set_clear_and_from_bookmarks` Headless (engine + automation tool); no UI yet. page_label_set types a text-only label (style none + prefix); page_label_clear removes /PageLabels. |
+| doc-071 | Labels from bookmarks | P1 | have | have | `page_labels_number_set_clear_and_from_bookmarks` Headless (engine + automation tool); no UI yet. page_label_from_bookmarks: each page takes the title of the first bookmark going to it. |
 | doc-072 | Labels from page region (AutoMark) | P1 | missing | missing |  |
 
 ### Bookmarks
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| doc-073 | Bookmarks panel | P0 | missing | have |  |
-| doc-074 | Add bookmark | P1 | missing | partial |  |
-| doc-075 | Rename / delete | P1 | missing | have |  |
-| doc-076 | Reorder, nest and copy | P1 | missing | partial |  |
+| doc-073 | Bookmarks panel | P0 | partial | have | `bookmarks_add_rename_move_delete_and_create_from_labels` bookmark_list returns the tree (path, title, page, open, children); no panel. |
+| doc-074 | Add bookmark | P1 | have | partial | `bookmarks_add_rename_move_delete_and_create_from_labels` Headless (engine + automation tool); no UI yet. bookmark_add: page, title (default the page label), parent and position. |
+| doc-075 | Rename / delete | P1 | have | have | `bookmarks_add_rename_move_delete_and_create_from_labels` Headless (engine + automation tool); no UI yet. bookmark_edit (title, page, expand) and bookmark_delete (one with its children, or all); undoable. |
+| doc-076 | Reorder, nest and copy | P1 | partial | partial | `bookmarks_add_rename_move_delete_and_create_from_labels` bookmark_move reorders and nests (with children); no copy. |
 | doc-077 | Bookmark properties | P3 | missing | missing |  |
 | doc-078 | Bookmark actions | P2 | missing | missing |  |
-| doc-079 | Create bookmarks automatically | P1 | missing | partial |  |
+| doc-079 | Create bookmarks automatically | P1 | partial | partial | `bookmarks_add_rename_move_delete_and_create_from_labels` bookmark_create: one per page from page labels or page numbers, replace or append; no AutoMark. |
 | doc-080 | Bookmark structures | P3 | missing | missing |  |
 | doc-081 | Audit bookmarks | P3 | missing | missing |  |
 | doc-082 | Export bookmarks | P2 | missing | missing |  |
@@ -606,13 +606,13 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-088 | Insert layered pages | P3 | missing | missing |  |
 | doc-089 | Insert from scanner/camera | P3 | missing | missing |  |
 | doc-090 | Extract pages | P1 | missing | partial |  |
-| doc-091 | Replace pages | P1 | missing | have |  |
+| doc-091 | Replace pages | P1 | have | have | `replace_pages_keeps_markups` Headless (engine + automation tool); no UI yet. page_replace swaps content, resources and boxes (pdfcraft-organize) and keeps the page's markups, links and bookmarks. |
 | doc-092 | Delete pages | P1 | missing | have |  |
 | doc-093 | Rotate pages (dialog) | P1 | missing | partial |  |
 | doc-094 | Rotate page quick buttons | P1 | missing | have |  |
-| doc-095 | Split document | P2 | missing | missing |  |
-| doc-096 | Crop pages | P2 | missing | missing |  |
-| doc-097 | Page setup / resize | P3 | missing | missing |  |
+| doc-095 | Split document | P2 | have | missing | `split_and_combine_documents` Headless (engine + automation tool); no UI yet. doc_split: every N pages, at top-level bookmarks, or explicit ranges; markups and labels go with their pages. |
+| doc-096 | Crop pages | P2 | have | missing | `crop_boxes_and_page_resize` Headless (engine + automation tool); no UI yet. page_crop: crop (or bleed/trim/art) box by rectangle, margins or remove; page_boxes reads all five. |
+| doc-097 | Page setup / resize | P3 | partial | missing | `crop_boxes_and_page_resize` page_resize changes the media size (custom or paper name, orientation) around an anchor, keeping markups and scales in place; no content scaling, rotation or offsets. |
 | doc-098 | Deskew | P3 | missing | missing |  |
 | doc-099 | Page range picker (shared) | P1 | missing | have |  |
 | doc-100 | Batch file list (shared) | P2 | missing | missing |  |
@@ -622,8 +622,8 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| doc-102 | Combine PDFs | P1 | missing | missing |  |
-| doc-103 | Combine options | P2 | missing | missing |  |
+| doc-102 | Combine PDFs | P1 | have | missing | `split_and_combine_documents` Headless (engine + automation tool); no UI yet. doc_combine joins PDFs in order with their markups and page labels. |
+| doc-103 | Combine options | P2 | partial | missing | `split_and_combine_documents` Bookmark per file (or keep the first file's); no attachments, properties or layer options. |
 | doc-104 | Create PDF from a file | P3 | missing | missing |  |
 | doc-105 | Create from multiple files (Stapler) | P3 | missing | missing |  |
 | doc-106 | Explorer right-click combine/convert | P3 | missing | missing |  |
@@ -676,25 +676,25 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-138 | Summary output options | P1 | partial | partial | `cli_list_and_summary_end_to_end` Columns, filters, grouping and totals; no page range or PDF layout options. |
 | doc-139 | Summary PDF layout | P1 | missing | missing |  |
 | doc-140 | Print dialog: printer | P1 | missing | missing |  |
-| doc-141 | Print: pages | P1 | missing | missing |  |
-| doc-142 | Print: what to print | P1 | missing | missing |  |
-| doc-143 | Print: paper and copies | P1 | missing | missing |  |
-| doc-144 | Print: scaling | P1 | missing | missing |  |
-| doc-145 | Print: pages per sheet | P2 | missing | missing |  |
+| doc-141 | Print: pages | P1 | partial | missing | `print_pdf_fit_nup_and_tile` print_pdf takes pages in print order; no current view or Get Window; writes a print-ready PDF, no printer. |
+| doc-142 | Print: what to print | P1 | partial | missing | `print_pdf_fit_nup_and_tile` print_pdf markups: true/false (document with or without markups). |
+| doc-143 | Print: paper and copies | P1 | partial | missing | `print_pdf_fit_nup_and_tile` print_pdf paper by name (ANSI, ARCH, ISO) or size, orientation auto/portrait/landscape; no copies (no printer). |
+| doc-144 | Print: scaling | P1 | partial | missing | `print_pdf_fit_nup_and_tile` print_pdf fit, actual, shrink, custom percent, centred (pdfcraft-print); no margins variants or manual position. |
+| doc-145 | Print: pages per sheet | P2 | have | missing | `print_pdf_fit_nup_and_tile` Headless (engine + automation tool); no UI yet. print_pdf layout nup: columns x rows per sheet, left to right, optional border; output is a print-ready PDF. |
 | doc-146 | Print: emphasis options | P2 | missing | missing |  |
-| doc-147 | Print tiling | P3 | missing | missing |  |
+| doc-147 | Print tiling | P3 | have | missing | `print_pdf_fit_nup_and_tile` Headless (engine + automation tool); no UI yet. print_pdf layout tile: each page enlarged over several sheets with overlap and cut marks. |
 
 ### Headers, footers, stamps and watermarks
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| doc-148 | Add header/footer | P3 | missing | missing |  |
-| doc-149 | Header/footer tokens | P3 | missing | missing |  |
+| doc-148 | Add header/footer | P3 | have | missing | `headers_footers_watermarks_and_bates` Headless (engine + automation tool); no UI yet. header_footer_add: six places, font size, colour, underline, margins (pdfcraft-edit marks). |
+| doc-149 | Header/footer tokens | P3 | have | missing | `headers_footers_watermarks_and_bates` Headless (engine + automation tool); no UI yet. Tokens: page number, page count, Page 1 of n, dates, Bates number (digits, start, prefix, suffix); bates_add builds the Bates token. No file-name tokens. |
 | doc-150 | Fit content inside margins | P3 | missing | missing |  |
 | doc-151 | Header/footer templates | P3 | missing | missing |  |
-| doc-152 | Edit / update / delete | P3 | missing | missing |  |
+| doc-152 | Edit / update / delete | P3 | partial | missing | `headers_footers_watermarks_and_bates` replace: true re-applies (updating numbers); marks_remove deletes headers/footers, watermarks; no editing of the stored settings. |
 | doc-153 | Stamps as document feature | P2 | missing | missing |  |
-| doc-154 | Watermark | P3 | missing | missing |  |
+| doc-154 | Watermark | P3 | have | missing | `headers_footers_watermarks_and_bates` Headless (engine + automation tool); no UI yet. watermark_add: text, size (or fit), colour, opacity, rotation, offset, behind or on top; marks_remove removes. |
 
 ### OCR and search
 
@@ -702,9 +702,9 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 |---|---|---|---|---|---|
 | doc-155 | OCR | P2 | missing | have |  |
 | doc-156 | OCR options | P3 | missing | partial |  |
-| doc-157 | Text search | P0 | missing | have |  |
-| doc-158 | Search scope | P1 | missing | partial |  |
-| doc-159 | Search options | P1 | missing | partial |  |
+| doc-157 | Text search | P0 | have | have | `text_search_finds_hits_with_rectangles` Headless (engine + automation tool); no UI yet. text_search over the page text layer (pdfcraft-render): hits with page, text, context and per-line rectangles in user space. |
+| doc-158 | Search scope | P1 | partial | partial | `text_search_finds_hits_with_rectangles` Current document, all or chosen pages; no other files, Sets or folders. |
+| doc-159 | Search options | P1 | partial | partial | `text_search_finds_hits_with_rectangles` Page text, case sensitive, whole words, hit limit; not file names, properties, fields or markup text. |
 | doc-160 | Search selected text | P2 | missing | missing |  |
 | doc-161 | Act on search results | P1 | missing | partial |  |
 | doc-162 | Search and replace | P3 | missing | missing |  |
@@ -732,9 +732,9 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| doc-172 | Open password-protected PDFs | P1 | missing | missing |  |
+| doc-172 | Open password-protected PDFs | P1 | have | missing | `security_passwords_encrypt_open_and_remove` Headless (engine + automation tool); no UI yet. doc_open_protected opens with the open or permissions password (RC4, AES-128, AES-256 via pdfcraft-cos); a protected document saves again. |
 | doc-173 | Security status icon | P2 | missing | missing |  |
-| doc-174 | Set passwords and permissions | P3 | missing | missing |  |
+| doc-174 | Set passwords and permissions | P3 | have | missing | `security_passwords_encrypt_open_and_remove` Headless (engine + automation tool); no UI yet. security_set: open and/or permissions password, eight permissions, AES-256/AES-128/RC4; security_remove with the permissions password; applied by a full save. |
 | doc-175 | Security presets | P3 | missing | missing |  |
 | doc-176 | Mark for redaction | P3 | missing | missing |  |
 | doc-177 | Apply redactions | P3 | missing | missing |  |
@@ -744,11 +744,11 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| doc-179 | Flatten markups | P2 | missing | missing |  |
+| doc-179 | Flatten markups | P2 | have | missing | `flatten_markups_by_filter` Headless (engine + automation tool); no UI yet. markup_flatten burns appearances into page content by ids, pages, kinds, layers or authors (pop-ups and replies go too); undoable until saved, then a full save. Not recoverable (no unflatten). |
 | doc-180 | Flatten extras | P3 | missing | missing |  |
 | doc-181 | Unflatten | P2 | missing | missing |  |
-| doc-182 | Reduce file size | P2 | missing | missing |  |
-| doc-183 | Reduce size custom settings | P3 | missing | missing |  |
+| doc-182 | Reduce file size | P2 | have | missing | `reduce_file_size_reports_sizes` Headless (engine + automation tool); no UI yet. doc_reduce_size (pdfcraft-optimize): resample/recompress images, drop thumbnails, compress streams, remove dead links; reports full-save sizes. |
+| doc-183 | Reduce size custom settings | P3 | partial | missing | `reduce_file_size_reports_sizes` Target and threshold ppi, JPEG quality or lossless, thumbnails; not the other per-class options. |
 | doc-184 | Repair PDF | P3 | missing | missing |  |
 | doc-185 | Archive as PDF/A | P3 | missing | missing |  |
 | doc-186 | Color processing | P2 | missing | missing |  |
@@ -766,10 +766,10 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| doc-191 | Document Properties | P2 | missing | missing |  |
-| doc-192 | File properties metadata | P3 | missing | missing |  |
-| doc-193 | Custom properties | P3 | missing | missing |  |
-| doc-194 | Embedded file attachments | P2 | missing | missing |  |
+| doc-191 | Document Properties | P2 | have | missing | `document_properties_and_xmp` Headless (engine + automation tool); no UI yet. doc_properties: standard entries, custom entries, PDF version, pages, encryption, XMP presence (Security in security_info). |
+| doc-192 | File properties metadata | P3 | have | missing | `document_properties_and_xmp` Headless (engine + automation tool); no UI yet. doc_properties_set edits Title, Author, Subject, Keywords, Creator, Producer; the XMP packet is rewritten to match. |
+| doc-193 | Custom properties | P3 | have | missing | `document_properties_and_xmp` Headless (engine + automation tool); no UI yet. Custom /Info entries added, changed and removed through doc_properties_set. |
+| doc-194 | Embedded file attachments | P2 | have | missing | `attachments_add_list_extract_delete` Headless (engine + automation tool); no UI yet. attachment_add / list / extract / delete on the /EmbeddedFiles name tree. |
 | doc-195 | Attachment icon markup | P3 | missing | missing |  |
 | doc-196 | Page tags / standards info | P3 | missing | missing |  |
 
@@ -778,10 +778,10 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | doc-197 | Follow PDF links | P0 | missing | have |  |
-| doc-198 | Hyperlink tool | P1 | missing | missing |  |
-| doc-199 | Link actions | P1 | missing | missing |  |
+| doc-198 | Hyperlink tool | P1 | partial | missing | `links_to_pages_urls_and_files` link_add makes a link over a rectangle; no drawing tool or link-from-text. |
+| doc-199 | Link actions | P1 | partial | missing | `links_to_pages_urls_and_files` Go to a page, open a URL, open a file (GoToR with page for PDFs, Launch otherwise); no Place, Space or snapshot views. |
 | doc-200 | Hyperlinks from URLs | P3 | missing | missing |  |
-| doc-201 | Links panel | P2 | missing | missing |  |
+| doc-201 | Links panel | P2 | partial | missing | `links_to_pages_urls_and_files` link_list lists every link with its target; link_delete; no panel. |
 | doc-202 | Places | P2 | missing | missing |  |
 
 ### Recent files and File Access panel

@@ -24,6 +24,11 @@ markupcraft-ui-egui = { path = "crates/ui-egui" }
 # PDF object layer and page renderer from PdfCraft (MIT OR Apache-2.0), pinned.
 pdfcraft-cos = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
 pdfcraft-render = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
+pdfcraft-organize = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
+pdfcraft-edit = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
+pdfcraft-print = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
+pdfcraft-xfdf = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
+pdfcraft-optimize = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
 
 # foundation
 thiserror = "2"

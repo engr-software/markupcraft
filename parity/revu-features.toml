@@ -2220,9 +2220,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Hyperlink"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:91"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["links_to_pages_urls_and_files"]
+notes = "Links made headlessly (link_add); no drawing tool."
 
 [[feature]]
 id = "mark-048"
@@ -3438,9 +3439,10 @@ section = "G. Layers (PDF optional content)"
 name = "Flatten/Unflatten markups on a layer"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:212"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["flatten_markups_by_filter"]
+notes = "Flatten markups of chosen layers (markup_flatten layers); no unflatten."
 
 [[feature]]
 id = "mark-149"
@@ -3830,9 +3832,10 @@ section = "H. Markups List"
 name = "Import markups"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:248"
-status = "missing"
+status = "partial"
 cpp = "have"
-evidence = []
+evidence = ["xfdf_export_import_round_trip"]
+notes = "XFDF / FDF import (pdfcraft-xfdf), merging by markup id; Revu-only keys (measurements) are not carried by XFDF."
 
 [[feature]]
 id = "mark-180"
@@ -3842,9 +3845,10 @@ section = "H. Markups List"
 name = "Export markups"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:249"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["xfdf_export_import_round_trip"]
+notes = "XFDF / FDF export of every markup (pdfcraft-xfdf); Revu-only keys are not carried."
 
 [[feature]]
 id = "mark-181"
@@ -3854,9 +3858,10 @@ section = "H. Markups List"
 name = "Flatten markups"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:250"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["flatten_markups_by_filter"]
+notes = "Headless (engine + automation tool); no UI yet. markup_flatten by ids (the selection), pages, kinds, layers, authors."
 
 [[feature]]
 id = "mark-182"
@@ -4808,8 +4813,8 @@ priority = "P1"
 source = "docs/revu_features/03_documents.md:176"
 status = "partial"
 cpp = "have"
-evidence = ["extras_page_labels_read_and_write"]
-notes = "Labels written back as a /PageLabels tree; no UI."
+evidence = ["extras_page_labels_read_and_write", "page_labels_number_set_clear_and_from_bookmarks"]
+notes = "Labels set per page by tool (page_label_set, undoable); no inline UI."
 
 [[feature]]
 id = "doc-069"
@@ -4819,9 +4824,10 @@ section = "Page labels"
 name = "Number Pages"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:177"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["page_labels_number_set_clear_and_from_bookmarks"]
+notes = "Headless (engine + automation tool); no UI yet. page_label_number: range, style (D, R, r, A, a, none), prefix, start; runs merged in /PageLabels."
 
 [[feature]]
 id = "doc-070"
@@ -4831,9 +4837,10 @@ section = "Page labels"
 name = "Text-only label / clear labels"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:178"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["page_labels_number_set_clear_and_from_bookmarks"]
+notes = "Headless (engine + automation tool); no UI yet. page_label_set types a text-only label (style none + prefix); page_label_clear removes /PageLabels."
 
 [[feature]]
 id = "doc-071"
@@ -4843,9 +4850,10 @@ section = "Page labels"
 name = "Labels from bookmarks"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:179"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["page_labels_number_set_clear_and_from_bookmarks"]
+notes = "Headless (engine + automation tool); no UI yet. page_label_from_bookmarks: each page takes the title of the first bookmark going to it."
 
 [[feature]]
 id = "doc-072"
@@ -4867,9 +4875,10 @@ section = "Bookmarks"
 name = "Bookmarks panel"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:186"
-status = "missing"
+status = "partial"
 cpp = "have"
-evidence = []
+evidence = ["bookmarks_add_rename_move_delete_and_create_from_labels"]
+notes = "bookmark_list returns the tree (path, title, page, open, children); no panel."
 
 [[feature]]
 id = "doc-074"
@@ -4879,9 +4888,10 @@ section = "Bookmarks"
 name = "Add bookmark"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:187"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["bookmarks_add_rename_move_delete_and_create_from_labels"]
+notes = "Headless (engine + automation tool); no UI yet. bookmark_add: page, title (default the page label), parent and position."
 
 [[feature]]
 id = "doc-075"
@@ -4891,9 +4901,10 @@ section = "Bookmarks"
 name = "Rename / delete"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:188"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["bookmarks_add_rename_move_delete_and_create_from_labels"]
+notes = "Headless (engine + automation tool); no UI yet. bookmark_edit (title, page, expand) and bookmark_delete (one with its children, or all); undoable."
 
 [[feature]]
 id = "doc-076"
@@ -4903,9 +4914,10 @@ section = "Bookmarks"
 name = "Reorder, nest and copy"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:189"
-status = "missing"
+status = "partial"
 cpp = "partial"
-evidence = []
+evidence = ["bookmarks_add_rename_move_delete_and_create_from_labels"]
+notes = "bookmark_move reorders and nests (with children); no copy."
 
 [[feature]]
 id = "doc-077"
@@ -4939,9 +4951,10 @@ section = "Bookmarks"
 name = "Create bookmarks automatically"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:192"
-status = "missing"
+status = "partial"
 cpp = "partial"
-evidence = []
+evidence = ["bookmarks_add_rename_move_delete_and_create_from_labels"]
+notes = "bookmark_create: one per page from page labels or page numbers, replace or append; no AutoMark."
 
 [[feature]]
 id = "doc-080"
@@ -5083,9 +5096,10 @@ section = "Page operations"
 name = "Replace pages"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:209"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["replace_pages_keeps_markups"]
+notes = "Headless (engine + automation tool); no UI yet. page_replace swaps content, resources and boxes (pdfcraft-organize) and keeps the page's markups, links and bookmarks."
 
 [[feature]]
 id = "doc-092"
@@ -5131,9 +5145,10 @@ section = "Page operations"
 name = "Split document"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:213"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["split_and_combine_documents"]
+notes = "Headless (engine + automation tool); no UI yet. doc_split: every N pages, at top-level bookmarks, or explicit ranges; markups and labels go with their pages."
 
 [[feature]]
 id = "doc-096"
@@ -5143,9 +5158,10 @@ section = "Page operations"
 name = "Crop pages"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:214"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["crop_boxes_and_page_resize"]
+notes = "Headless (engine + automation tool); no UI yet. page_crop: crop (or bleed/trim/art) box by rectangle, margins or remove; page_boxes reads all five."
 
 [[feature]]
 id = "doc-097"
@@ -5155,9 +5171,10 @@ section = "Page operations"
 name = "Page setup / resize"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:215"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["crop_boxes_and_page_resize"]
+notes = "page_resize changes the media size (custom or paper name, orientation) around an anchor, keeping markups and scales in place; no content scaling, rotation or offsets."
 
 [[feature]]
 id = "doc-098"
@@ -5215,9 +5232,10 @@ section = "Creating and combining PDFs"
 name = "Combine PDFs"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:225"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["split_and_combine_documents"]
+notes = "Headless (engine + automation tool); no UI yet. doc_combine joins PDFs in order with their markups and page labels."
 
 [[feature]]
 id = "doc-103"
@@ -5227,9 +5245,10 @@ section = "Creating and combining PDFs"
 name = "Combine options"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:226"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["split_and_combine_documents"]
+notes = "Bookmark per file (or keep the first file's); no attachments, properties or layer options."
 
 [[feature]]
 id = "doc-104"
@@ -5689,9 +5708,10 @@ section = "Markup summary and print"
 name = "Print: pages"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:279"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["print_pdf_fit_nup_and_tile"]
+notes = "print_pdf takes pages in print order; no current view or Get Window; writes a print-ready PDF, no printer."
 
 [[feature]]
 id = "doc-142"
@@ -5701,9 +5721,10 @@ section = "Markup summary and print"
 name = "Print: what to print"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:280"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["print_pdf_fit_nup_and_tile"]
+notes = "print_pdf markups: true/false (document with or without markups)."
 
 [[feature]]
 id = "doc-143"
@@ -5713,9 +5734,10 @@ section = "Markup summary and print"
 name = "Print: paper and copies"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:281"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["print_pdf_fit_nup_and_tile"]
+notes = "print_pdf paper by name (ANSI, ARCH, ISO) or size, orientation auto/portrait/landscape; no copies (no printer)."
 
 [[feature]]
 id = "doc-144"
@@ -5725,9 +5747,10 @@ section = "Markup summary and print"
 name = "Print: scaling"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:282"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["print_pdf_fit_nup_and_tile"]
+notes = "print_pdf fit, actual, shrink, custom percent, centred (pdfcraft-print); no margins variants or manual position."
 
 [[feature]]
 id = "doc-145"
@@ -5737,9 +5760,10 @@ section = "Markup summary and print"
 name = "Print: pages per sheet"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:283"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["print_pdf_fit_nup_and_tile"]
+notes = "Headless (engine + automation tool); no UI yet. print_pdf layout nup: columns x rows per sheet, left to right, optional border; output is a print-ready PDF."
 
 [[feature]]
 id = "doc-146"
@@ -5761,9 +5785,10 @@ section = "Markup summary and print"
 name = "Print tiling"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:285"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["print_pdf_fit_nup_and_tile"]
+notes = "Headless (engine + automation tool); no UI yet. print_pdf layout tile: each page enlarged over several sheets with overlap and cut marks."
 
 [[feature]]
 id = "doc-148"
@@ -5773,9 +5798,10 @@ section = "Headers, footers, stamps and watermarks"
 name = "Add header/footer"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:291"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["headers_footers_watermarks_and_bates"]
+notes = "Headless (engine + automation tool); no UI yet. header_footer_add: six places, font size, colour, underline, margins (pdfcraft-edit marks)."
 
 [[feature]]
 id = "doc-149"
@@ -5785,9 +5811,10 @@ section = "Headers, footers, stamps and watermarks"
 name = "Header/footer tokens"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:292"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["headers_footers_watermarks_and_bates"]
+notes = "Headless (engine + automation tool); no UI yet. Tokens: page number, page count, Page 1 of n, dates, Bates number (digits, start, prefix, suffix); bates_add builds the Bates token. No file-name tokens."
 
 [[feature]]
 id = "doc-150"
@@ -5821,9 +5848,10 @@ section = "Headers, footers, stamps and watermarks"
 name = "Edit / update / delete"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:295"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["headers_footers_watermarks_and_bates"]
+notes = "replace: true re-applies (updating numbers); marks_remove deletes headers/footers, watermarks; no editing of the stored settings."
 
 [[feature]]
 id = "doc-153"
@@ -5845,9 +5873,10 @@ section = "Headers, footers, stamps and watermarks"
 name = "Watermark"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:297"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["headers_footers_watermarks_and_bates"]
+notes = "Headless (engine + automation tool); no UI yet. watermark_add: text, size (or fit), colour, opacity, rotation, offset, behind or on top; marks_remove removes."
 
 [[feature]]
 id = "doc-155"
@@ -5881,9 +5910,10 @@ section = "OCR and search"
 name = "Text search"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:305"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["text_search_finds_hits_with_rectangles"]
+notes = "Headless (engine + automation tool); no UI yet. text_search over the page text layer (pdfcraft-render): hits with page, text, context and per-line rectangles in user space."
 
 [[feature]]
 id = "doc-158"
@@ -5893,9 +5923,10 @@ section = "OCR and search"
 name = "Search scope"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:306"
-status = "missing"
+status = "partial"
 cpp = "partial"
-evidence = []
+evidence = ["text_search_finds_hits_with_rectangles"]
+notes = "Current document, all or chosen pages; no other files, Sets or folders."
 
 [[feature]]
 id = "doc-159"
@@ -5905,9 +5936,10 @@ section = "OCR and search"
 name = "Search options"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:307"
-status = "missing"
+status = "partial"
 cpp = "partial"
-evidence = []
+evidence = ["text_search_finds_hits_with_rectangles"]
+notes = "Page text, case sensitive, whole words, hit limit; not file names, properties, fields or markup text."
 
 [[feature]]
 id = "doc-160"
@@ -6061,9 +6093,10 @@ section = "Security and redaction"
 name = "Open password-protected PDFs"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:335"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["security_passwords_encrypt_open_and_remove"]
+notes = "Headless (engine + automation tool); no UI yet. doc_open_protected opens with the open or permissions password (RC4, AES-128, AES-256 via pdfcraft-cos); a protected document saves again."
 
 [[feature]]
 id = "doc-173"
@@ -6085,9 +6118,10 @@ section = "Security and redaction"
 name = "Set passwords and permissions"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:337"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["security_passwords_encrypt_open_and_remove"]
+notes = "Headless (engine + automation tool); no UI yet. security_set: open and/or permissions password, eight permissions, AES-256/AES-128/RC4; security_remove with the permissions password; applied by a full save."
 
 [[feature]]
 id = "doc-175"
@@ -6145,9 +6179,10 @@ section = "Flatten, file size and archive"
 name = "Flatten markups"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:347"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["flatten_markups_by_filter"]
+notes = "Headless (engine + automation tool); no UI yet. markup_flatten burns appearances into page content by ids, pages, kinds, layers or authors (pop-ups and replies go too); undoable until saved, then a full save. Not recoverable (no unflatten)."
 
 [[feature]]
 id = "doc-180"
@@ -6181,9 +6216,10 @@ section = "Flatten, file size and archive"
 name = "Reduce file size"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:350"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["reduce_file_size_reports_sizes"]
+notes = "Headless (engine + automation tool); no UI yet. doc_reduce_size (pdfcraft-optimize): resample/recompress images, drop thumbnails, compress streams, remove dead links; reports full-save sizes."
 
 [[feature]]
 id = "doc-183"
@@ -6193,9 +6229,10 @@ section = "Flatten, file size and archive"
 name = "Reduce size custom settings"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:351"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["reduce_file_size_reports_sizes"]
+notes = "Target and threshold ppi, JPEG quality or lossless, thumbnails; not the other per-class options."
 
 [[feature]]
 id = "doc-184"
@@ -6289,9 +6326,10 @@ section = "Properties, metadata and attachments"
 name = "Document Properties"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:369"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["document_properties_and_xmp"]
+notes = "Headless (engine + automation tool); no UI yet. doc_properties: standard entries, custom entries, PDF version, pages, encryption, XMP presence (Security in security_info)."
 
 [[feature]]
 id = "doc-192"
@@ -6301,9 +6339,10 @@ section = "Properties, metadata and attachments"
 name = "File properties metadata"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:370"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["document_properties_and_xmp"]
+notes = "Headless (engine + automation tool); no UI yet. doc_properties_set edits Title, Author, Subject, Keywords, Creator, Producer; the XMP packet is rewritten to match."
 
 [[feature]]
 id = "doc-193"
@@ -6313,9 +6352,10 @@ section = "Properties, metadata and attachments"
 name = "Custom properties"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:371"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["document_properties_and_xmp"]
+notes = "Headless (engine + automation tool); no UI yet. Custom /Info entries added, changed and removed through doc_properties_set."
 
 [[feature]]
 id = "doc-194"
@@ -6325,9 +6365,10 @@ section = "Properties, metadata and attachments"
 name = "Embedded file attachments"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:372"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["attachments_add_list_extract_delete"]
+notes = "Headless (engine + automation tool); no UI yet. attachment_add / list / extract / delete on the /EmbeddedFiles name tree."
 
 [[feature]]
 id = "doc-195"
@@ -6373,9 +6414,10 @@ section = "Links and places"
 name = "Hyperlink tool"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:381"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["links_to_pages_urls_and_files"]
+notes = "link_add makes a link over a rectangle; no drawing tool or link-from-text."
 
 [[feature]]
 id = "doc-199"
@@ -6385,9 +6427,10 @@ section = "Links and places"
 name = "Link actions"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:382"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["links_to_pages_urls_and_files"]
+notes = "Go to a page, open a URL, open a file (GoToR with page for PDFs, Launch otherwise); no Place, Space or snapshot views."
 
 [[feature]]
 id = "doc-200"
@@ -6409,9 +6452,10 @@ section = "Links and places"
 name = "Links panel"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:384"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["links_to_pages_urls_and_files"]
+notes = "link_list lists every link with its target; link_delete; no panel."
 
 [[feature]]
 id = "doc-202"

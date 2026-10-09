@@ -5,6 +5,8 @@ MarkupCraft is written in Rust; dependencies keep their own licenses (`cargo tre
 | Component | Use | License |
 |---|---|---|
 | [PdfCraft](https://github.com/storytold/pdfcraft) `pdfcraft-cos`, `pdfcraft-render` (pinned commit) | PDF object layer, page rendering | MIT OR Apache-2.0 |
+| [PdfCraft](https://github.com/storytold/pdfcraft) `pdfcraft-organize`, `pdfcraft-edit`, `pdfcraft-print`, `pdfcraft-xfdf`, `pdfcraft-optimize` (pinned commit) | bookmarks, page boxes, replace pages; headers, footers, watermarks, Bates; print imposition; XFDF/FDF; reduce file size | MIT OR Apache-2.0 |
+| [PdfCraft](https://github.com/storytold/pdfcraft) `pdfcraft-edit` flattener (adapted source) | flatten markups by filter (`crates/engine/src/flatten.rs`) | MIT OR Apache-2.0 |
 | [PdfCraft](https://github.com/storytold/pdfcraft) `pdfcraft-automation` (adapted source) | `--root` path confinement (`crates/automation/src/paths.rs`), MCP server (`crates/automation/src/mcp.rs`), tool-table conventions | MIT OR Apache-2.0 |
 | [hayro](https://github.com/LaurenzV/hayro) (with PdfCraft's safety patches) | PDF interpretation and rasterization | MIT OR Apache-2.0 |
 | [egui / eframe](https://github.com/emilk/egui) with wgpu | user interface, GPU canvas | MIT OR Apache-2.0 |

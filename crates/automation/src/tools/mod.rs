@@ -4,12 +4,22 @@
 //!
 //! TODO(render): a `page_render` tool (page to PNG) once `markupcraft-render` exposes rendering.
 
+mod attachments;
+mod bookmarks;
 mod doc;
+mod docprops;
 mod edit;
 mod export;
+mod files;
+mod flatten;
+mod links;
+mod marks;
 mod markups;
 mod pages;
 mod scale;
+mod search;
+mod security;
+mod xfdf;
 
 use markupcraft_engine::{Markup, Session};
 use serde_json::{Value, json};
@@ -67,6 +77,46 @@ pub static TOOLS: &[&Tool] = &[
     &edit::REDO,
     &edit::COMMAND_LIST,
     &edit::COMMAND_RUN,
+    &bookmarks::LIST,
+    &bookmarks::ADD,
+    &bookmarks::EDIT,
+    &bookmarks::MOVE,
+    &bookmarks::DELETE,
+    &bookmarks::CREATE,
+    &bookmarks::NUMBER,
+    &bookmarks::SET,
+    &bookmarks::CLEAR,
+    &bookmarks::FROM_BOOKMARKS,
+    &search::SEARCH,
+    &search::PAGE_TEXT,
+    &links::LIST,
+    &links::ADD,
+    &links::DELETE,
+    &attachments::LIST,
+    &attachments::ADD,
+    &attachments::EXTRACT,
+    &attachments::DELETE,
+    &docprops::GET,
+    &docprops::SET,
+    &marks::HEADER_FOOTER,
+    &marks::WATERMARK,
+    &marks::BATES,
+    &marks::REMOVE,
+    &flatten::FLATTEN,
+    &xfdf::EXPORT,
+    &xfdf::IMPORT,
+    &security::OPEN,
+    &security::INFO,
+    &security::SET,
+    &security::REMOVE,
+    &files::REDUCE,
+    &files::PRINT,
+    &files::SPLIT,
+    &files::COMBINE,
+    &files::REPLACE,
+    &files::BOXES,
+    &files::CROP,
+    &files::RESIZE,
 ];
 
 pub fn find(name: &str) -> Option<&'static Tool> {

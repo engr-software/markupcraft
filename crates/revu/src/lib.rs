@@ -105,7 +105,17 @@ pub fn save(file: &mut PdfFile, doc: &mut Document, out: impl AsRef<Path>, mode:
     std::fs::write(&tmp, &bytes).map_err(io)?;
     std::fs::rename(&tmp, out).map_err(io)?;
     let bytes = Arc::new(bytes);
-    file.cos = file.cos.reopen_after_save(bytes)?;
+    file.cos = match file.cos.reopen_after_save(bytes) {
+        Ok(c) => c,
+        // A file saved with an open password cannot be reread without it: keep the object
+        // graph in memory, and rewrite the whole file on later saves.
+        Err(CosError::NeedsPassword) => {
+            let mut c = file.cos.clone();
+            c.require_full_save();
+            c
+        }
+        Err(e) => return Err(e.into()),
+    };
     file.path = out.to_path_buf();
     for m in &mut doc.markups {
         if m.dirty {

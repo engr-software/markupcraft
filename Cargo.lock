@@ -1806,6 +1806,8 @@ dependencies = [
  "num-traits",
  "png 0.18.1",
  "tiff",
+ "zune-core",
+ "zune-jpeg",
 ]
 
 [[package]]
@@ -2119,6 +2121,12 @@ dependencies = [
  "markupcraft-measure",
  "markupcraft-model",
  "markupcraft-revu",
+ "pdfcraft-edit",
+ "pdfcraft-optimize",
+ "pdfcraft-organize",
+ "pdfcraft-print",
+ "pdfcraft-render",
+ "pdfcraft-xfdf",
  "thiserror 2.0.21",
 ]
 
@@ -2757,6 +2765,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
+name = "pdfcraft-annot"
+version = "0.4.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=a6bc63a497954af87c1cd5a2a1e72e928a11c039#a6bc63a497954af87c1cd5a2a1e72e928a11c039"
+dependencies = [
+ "pdfcraft-cos",
+ "pdfcraft-fonts",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "pdfcraft-content"
+version = "0.4.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=a6bc63a497954af87c1cd5a2a1e72e928a11c039#a6bc63a497954af87c1cd5a2a1e72e928a11c039"
+dependencies = [
+ "pdfcraft-cos",
+]
+
+[[package]]
 name = "pdfcraft-cos"
 version = "0.4.0"
 source = "git+https://github.com/storytold/pdfcraft?rev=a6bc63a497954af87c1cd5a2a1e72e928a11c039#a6bc63a497954af87c1cd5a2a1e72e928a11c039"
@@ -2779,6 +2805,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "pdfcraft-edit"
+version = "0.4.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=a6bc63a497954af87c1cd5a2a1e72e928a11c039#a6bc63a497954af87c1cd5a2a1e72e928a11c039"
+dependencies = [
+ "pdfcraft-content",
+ "pdfcraft-cos",
+ "pdfcraft-fonts",
+ "pdfcraft-model",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "pdfcraft-filters"
 version = "0.4.0"
 source = "git+https://github.com/storytold/pdfcraft?rev=a6bc63a497954af87c1cd5a2a1e72e928a11c039#a6bc63a497954af87c1cd5a2a1e72e928a11c039"
@@ -2797,6 +2835,60 @@ dependencies = [
 ]
 
 [[package]]
+name = "pdfcraft-forms"
+version = "0.4.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=a6bc63a497954af87c1cd5a2a1e72e928a11c039#a6bc63a497954af87c1cd5a2a1e72e928a11c039"
+dependencies = [
+ "pdfcraft-content",
+ "pdfcraft-cos",
+ "pdfcraft-fonts",
+ "pdfcraft-model",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "pdfcraft-model"
+version = "0.4.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=a6bc63a497954af87c1cd5a2a1e72e928a11c039#a6bc63a497954af87c1cd5a2a1e72e928a11c039"
+dependencies = [
+ "pdfcraft-cos",
+]
+
+[[package]]
+name = "pdfcraft-optimize"
+version = "0.4.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=a6bc63a497954af87c1cd5a2a1e72e928a11c039#a6bc63a497954af87c1cd5a2a1e72e928a11c039"
+dependencies = [
+ "image",
+ "pdfcraft-annot",
+ "pdfcraft-content",
+ "pdfcraft-cos",
+ "pdfcraft-model",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "pdfcraft-organize"
+version = "0.4.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=a6bc63a497954af87c1cd5a2a1e72e928a11c039#a6bc63a497954af87c1cd5a2a1e72e928a11c039"
+dependencies = [
+ "pdfcraft-content",
+ "pdfcraft-cos",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "pdfcraft-print"
+version = "0.4.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=a6bc63a497954af87c1cd5a2a1e72e928a11c039#a6bc63a497954af87c1cd5a2a1e72e928a11c039"
+dependencies = [
+ "pdfcraft-content",
+ "pdfcraft-cos",
+ "pdfcraft-model",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "pdfcraft-render"
 version = "0.4.0"
 source = "git+https://github.com/storytold/pdfcraft?rev=a6bc63a497954af87c1cd5a2a1e72e928a11c039#a6bc63a497954af87c1cd5a2a1e72e928a11c039"
@@ -2808,6 +2900,19 @@ dependencies = [
  "log",
  "lopdf",
  "pdfcraft-fonts",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "pdfcraft-xfdf"
+version = "0.4.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=a6bc63a497954af87c1cd5a2a1e72e928a11c039#a6bc63a497954af87c1cd5a2a1e72e928a11c039"
+dependencies = [
+ "pdfcraft-annot",
+ "pdfcraft-cos",
+ "pdfcraft-forms",
+ "pdfcraft-model",
+ "roxmltree",
  "thiserror 2.0.21",
 ]
 
@@ -3713,7 +3818,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix 1.1.5",
  "windows-sys 0.61.2",
