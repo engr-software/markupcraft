@@ -29,6 +29,8 @@ pub mod icons;
 pub mod interact;
 pub mod painter;
 pub mod panels;
+pub mod prefs_ui;
+pub mod shell;
 pub mod snapping;
 pub mod theme;
 pub mod tools;
@@ -209,6 +211,8 @@ pub struct AppState {
     /// The window may close now (prompts answered).
     pub close_now: bool,
     next_uid: u64,
+    /// Window furniture, view history, splits, recent files, preferences (`shell`).
+    pub shell: shell::Shell,
 }
 
 impl Default for AppState {
@@ -248,6 +252,7 @@ impl Default for AppState {
             reset_layout: false,
             close_now: false,
             next_uid: 1,
+            shell: shell::Shell::default(),
         }
     }
 }
@@ -336,9 +341,12 @@ impl AppState {
         let r = std::fs::read(path)
             .map_err(|e| e.to_string())
             .and_then(|b| self.open_bytes(&name, Some(path.to_path_buf()), b));
-        if let Err(e) = r {
-            self.status = format!("Could not open {name}: {e}");
-            log::warn!("{}", self.status);
+        match r {
+            Ok(()) => shell::recent::opened(self, path),
+            Err(e) => {
+                self.status = format!("Could not open {name}: {e}");
+                log::warn!("{}", self.status);
+            }
         }
     }
 
@@ -357,6 +365,7 @@ impl AppState {
 
     /// Close a document without asking.
     pub fn force_close(&mut self, uid: u64) {
+        shell::recent::closing(self, uid);
         if let Some(i) = self.docs.iter().position(|d| d.uid == uid) {
             self.docs.remove(i);
             if self.active > i || self.active >= self.docs.len() {
@@ -483,6 +492,7 @@ impl AppState {
                         });
                     }
                 }
+                Purpose::Shell { tag } => shell::dialog_answer(self, &tag, &paths),
                 Purpose::ExtractPages { pages } => {
                     if let Some(d) = self.doc_mut() {
                         let r = d.session.extract_pages(&pages, &first, false);
@@ -497,6 +507,9 @@ impl AppState {
 
     /// Whether a command can run now.
     pub fn enabled(&self, id: &str) -> bool {
+        if let Some(e) = shell::enabled(self, id) {
+            return e;
+        }
         let doc = self.doc();
         let selected = doc.is_some_and(|d| !d.selection().is_empty());
         match id {
@@ -529,6 +542,9 @@ impl AppState {
 
     /// Checkmark state for toggles (`None` = not a toggle).
     pub fn checked(&self, id: &str) -> Option<bool> {
+        if let Some(c) = shell::checked(self, id) {
+            return Some(c);
+        }
         if let Some(t) = id.strip_prefix("tool.") {
             return Some(self.tool == t);
         }
@@ -714,7 +730,7 @@ impl AppState {
 
     /// Run one command (see `commands::COMMANDS`, plus `tool.<id>` and `panel.<id>`).
     pub fn run(&mut self, id: &str, ctx: &egui::Context) {
-        if !self.enabled(id) {
+        if !self.enabled(id) || shell::run(self, id, ctx) {
             return;
         }
         if let Some(t) = id.strip_prefix("tool.").and_then(tools::find) {
@@ -1036,11 +1052,17 @@ impl MarkupCraftApp {
                 app.state.status = e.clone();
             }
         }
+        shell::load_user(&mut app.state);
         app
     }
 
     pub fn open_path(&mut self, path: &Path) {
         self.state.open_path(path);
+    }
+
+    /// The panel layout (tests, the layout preference).
+    pub fn dock(&self) -> &DockState<Tab> {
+        &self.dock
     }
 
     pub fn open_bytes(&mut self, name: &str, path: Option<PathBuf>, bytes: Vec<u8>) -> Result<(), String> {
@@ -1115,6 +1137,7 @@ impl eframe::App for MarkupCraftApp {
             }
         }
         self.state.take_dialogs();
+        shell::begin_frame(&mut self.state, &ctx);
         self.state.open_panels = dock::open_panels(&self.dock);
         // The Thumbnails panel says each frame whether it is showing; the canvas requests
         // thumbnails while it is.
@@ -1148,6 +1171,7 @@ impl eframe::App for MarkupCraftApp {
         });
         chrome::windows(&mut self.state, &ctx);
         windows::show(&mut self.state, &ctx);
+        shell::windows(&mut self.state, &ctx);
 
         for id in std::mem::take(&mut self.state.queued) {
             self.state.run(&id, &ctx);
@@ -1164,6 +1188,8 @@ impl eframe::App for MarkupCraftApp {
         if std::mem::take(&mut self.state.reset_layout) {
             self.dock = dock::default_layout();
         }
+        shell::dock_frame(&mut self.state, &mut self.dock);
+        shell::end_frame(&mut self.state, &ctx);
         // A finished gesture (slider drag, typing) closes its undo step.
         let idle = !ctx.input(|i| i.pointer.any_down()) && ctx.memory(|m| m.focused().is_none());
         if idle && let Some(d) = self.state.doc_mut() {

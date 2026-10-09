@@ -19,6 +19,34 @@ pub const GRID: f64 = 18.0;
 /// How far the pointer reaches for a snap, in screen points.
 pub const REACH: f32 = 10.0;
 
+// Preferences > Grid & Snap: spacing and sensitivity (process-wide, like the preference).
+static GRID_BITS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static REACH_BITS: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+
+/// The grid spacing in points ([`GRID`] until a preference sets it).
+pub fn grid() -> f64 {
+    let v = f64::from_bits(GRID_BITS.load(std::sync::atomic::Ordering::Relaxed));
+    if v.is_finite() && v >= 1.0 { v } else { GRID }
+}
+
+pub fn set_grid_spacing(points: f64) {
+    if points.is_finite() && (1.0..=1000.0).contains(&points) {
+        GRID_BITS.store(points.to_bits(), std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
+/// The snap reach in screen points ([`REACH`] until a preference sets it).
+pub fn reach() -> f32 {
+    let v = f32::from_bits(REACH_BITS.load(std::sync::atomic::Ordering::Relaxed));
+    if v.is_finite() && v >= 1.0 { v } else { REACH }
+}
+
+pub fn set_reach(px: f32) {
+    if px.is_finite() && (1.0..=100.0).contains(&px) {
+        REACH_BITS.store(px.to_bits(), std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
 /// What a snapped point is, for its indicator glyph.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Glyph {
@@ -199,7 +227,8 @@ pub fn snap_point(raw: Point, snaps: Snaps, reach: f64, content: Option<&SnapInd
         return Snapped { pt: p, glyph: Some(g) };
     }
     if snaps.grid {
-        let g = Point::new((raw.x / GRID).round() * GRID, (raw.y / GRID).round() * GRID);
+        let gs = grid();
+        let g = Point::new((raw.x / gs).round() * gs, (raw.y / gs).round() * gs);
         return Snapped {
             pt: g,
             glyph: Some(Glyph::Grid),
@@ -303,7 +332,7 @@ pub fn paint_glyph(p: &Painter, at: Pos2, g: Glyph) {
 /// Grid lines over a page (screen rect `page`, `k` screen points per PDF point), when the
 /// spacing is large enough to read.
 pub fn paint_grid(p: &Painter, page: egui::Rect, k: f32) {
-    let step = GRID as f32 * k;
+    let step = grid() as f32 * k;
     if step < 6.0 {
         return;
     }

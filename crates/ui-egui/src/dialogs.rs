@@ -26,6 +26,10 @@ pub enum Purpose {
     ExtractPages {
         pages: Vec<usize>,
     },
+    /// An answer for the shell (`shell::dialog_answer`): page dialogs, profiles, File Access.
+    Shell {
+        tag: String,
+    },
 }
 
 struct Pending {

@@ -990,9 +990,10 @@ section = "Drawing aids and snapping"
 name = "Rulers"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:175"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["rulers_crosshair_and_dimmer", "ruler_ticks_stay_readable"]
+notes = "View > Rulers (Ctrl+R) with selectable units."
 
 [[feature]]
 id = "meas-080"
@@ -4096,10 +4097,10 @@ section = "Opening, tabs and multiple documents"
 name = "Open PDF"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:89"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["cli: list"]
-notes = "Open and load every page and markup (crates/revu open); no viewer UI."
+evidence = ["document_tabs_cycle_close_others_close_all_and_save_all", "recent_files_reopen_at_the_last_page_and_pin", "cli: list"]
+notes = "File > Open takes several PDFs, each in its own tab; a file already open is brought forward."
 
 [[feature]]
 id = "doc-002"
@@ -4121,9 +4122,10 @@ section = "Opening, tabs and multiple documents"
 name = "Drag-and-drop open"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:91"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["dropped_files_open_in_tabs_pan_tool_and_fit_width_lock"]
+notes = "Dropping PDFs on the window opens each in its own tab (an open one comes forward); dropping on Thumbnails is not built."
 
 [[feature]]
 id = "doc-004"
@@ -4133,9 +4135,10 @@ section = "Opening, tabs and multiple documents"
 name = "Document tabs"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:92"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["document_tabs_cycle_close_others_close_all_and_save_all"]
+notes = "One tab per open file over the workspace; drag a tab to reorder; right-click for Close, Close Others, Close All, Save, Open in Split View, Copy Path."
 
 [[feature]]
 id = "doc-005"
@@ -4145,9 +4148,10 @@ section = "Opening, tabs and multiple documents"
 name = "Next / previous document"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:93"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["document_tabs_cycle_close_others_close_all_and_save_all"]
+notes = "Ctrl+Tab / Ctrl+Shift+Tab."
 
 [[feature]]
 id = "doc-006"
@@ -4157,9 +4161,10 @@ section = "Opening, tabs and multiple documents"
 name = "Close / Close All"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:94"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["document_tabs_cycle_close_others_close_all_and_save_all"]
+notes = "File > Close (Ctrl+F4), Close Others, Close All (Ctrl+Shift+W); unsaved documents ask first."
 
 [[feature]]
 id = "doc-007"
@@ -4169,10 +4174,10 @@ section = "Opening, tabs and multiple documents"
 name = "Save / Save As"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:95"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["cli: resave"]
-notes = "Incremental or full save through a temporary file then rename; no UI."
+evidence = ["document_tabs_cycle_close_others_close_all_and_save_all", "saves_and_reopens_an_edit", "cli: resave"]
+notes = "Save (Ctrl+S) and Save As (Ctrl+Shift+S)."
 
 [[feature]]
 id = "doc-008"
@@ -4182,9 +4187,10 @@ section = "Opening, tabs and multiple documents"
 name = "Save All"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:96"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["document_tabs_cycle_close_others_close_all_and_save_all"]
+notes = "File > Save All (Shift+F2): every edited file; Save As for untitled ones."
 
 [[feature]]
 id = "doc-009"
@@ -4194,9 +4200,10 @@ section = "Opening, tabs and multiple documents"
 name = "Tab name truncation"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:97"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["tab_names_truncate_at_either_end", "preferences_dialog_applies_and_persists"]
+notes = "Preferences > General: longest tab name and cut at the end or the start; full path on hover."
 
 [[feature]]
 id = "doc-010"
@@ -4206,9 +4213,10 @@ section = "Opening, tabs and multiple documents"
 name = "Reopen last session"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:98"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["recent_files_reopen_at_the_last_page_and_pin"]
+notes = "Preferences > General: reopen the files that were open last time (on by default)."
 
 [[feature]]
 id = "doc-011"
@@ -4218,9 +4226,10 @@ section = "Opening, tabs and multiple documents"
 name = "Startup options"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:99"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["recent_files_reopen_at_the_last_page_and_pin"]
+notes = "Reopen last session and recent files on the start page; no startup mode or startup file."
 
 [[feature]]
 id = "doc-012"
@@ -4230,9 +4239,10 @@ section = "Opening, tabs and multiple documents"
 name = "Remember last page"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:100"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["recent_files_reopen_at_the_last_page_and_pin"]
+notes = "Each file reopens at its page, zoom and page layout (preference)."
 
 [[feature]]
 id = "doc-013"
@@ -4266,9 +4276,10 @@ section = "Opening, tabs and multiple documents"
 name = "Open Recent"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:103"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["recent_files_reopen_at_the_last_page_and_pin"]
+notes = "File > Open Recent (and the start page) list recent files; Clear Recent Files."
 
 [[feature]]
 id = "doc-016"
@@ -4278,9 +4289,10 @@ section = "Opening, tabs and multiple documents"
 name = "New blank PDF / from template"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:104"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["new_blank_pdf_and_refresh_from_disk"]
+notes = "File > New Blank PDF (Ctrl+N): an untitled Letter page; no templates."
 
 [[feature]]
 id = "doc-017"
@@ -4350,9 +4362,10 @@ section = "Opening, tabs and multiple documents"
 name = "Refresh"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:110"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["new_blank_pdf_and_refresh_from_disk"]
+notes = "View > Refresh (F5) redraws; File > Refresh Document (Shift+F5) reloads the file from disk."
 
 [[feature]]
 id = "doc-023"
@@ -4386,9 +4399,10 @@ section = "Page navigation and zoom"
 name = "Next / previous page"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:118"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["fit_zoom_and_page_navigation_keys"]
+notes = "Ctrl+Right / Ctrl+Left, PgDn / PgUp, navigation bar buttons."
 
 [[feature]]
 id = "doc-026"
@@ -4398,9 +4412,10 @@ section = "Page navigation and zoom"
 name = "First / last page"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:119"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["fit_zoom_and_page_navigation_keys"]
+notes = "Home / End and navigation bar buttons."
 
 [[feature]]
 id = "doc-027"
@@ -4410,9 +4425,10 @@ section = "Page navigation and zoom"
 name = "Page number box"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:120"
-status = "missing"
+status = "partial"
 cpp = "have"
-evidence = []
+evidence = ["fit_zoom_and_page_navigation_keys"]
+notes = "Navigation bar page box takes a page number and shows the label; typing a label is not supported yet."
 
 [[feature]]
 id = "doc-028"
@@ -4422,9 +4438,10 @@ section = "Page navigation and zoom"
 name = "Previous / next view"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:121"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["previous_and_next_view_walk_the_history"]
+notes = "Alt+Left / Alt+Right and navigation bar buttons: page, zoom, layout, rotation and position per document."
 
 [[feature]]
 id = "doc-029"
@@ -4434,9 +4451,10 @@ section = "Page navigation and zoom"
 name = "Fit Page / Fit Width / Actual Size"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:122"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["fit_zoom_and_page_navigation_keys"]
+notes = "Ctrl+9 / Ctrl+0 / Ctrl+8 and the zoom menu."
 
 [[feature]]
 id = "doc-030"
@@ -4446,9 +4464,10 @@ section = "Page navigation and zoom"
 name = "Zoom in / out"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:123"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["fit_zoom_and_page_navigation_keys"]
+notes = "Plus / Minus (and =)."
 
 [[feature]]
 id = "doc-031"
@@ -4458,9 +4477,10 @@ section = "Page navigation and zoom"
 name = "Zoom tool"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:124"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["zoom_tool_clicks_and_boxes"]
+notes = "Zoom tool (Z): click in, Ctrl+click or right-click out, drag a box; Shift+Z toggles it."
 
 [[feature]]
 id = "doc-032"
@@ -4470,9 +4490,10 @@ section = "Page navigation and zoom"
 name = "Mouse wheel behaviour"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:125"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["wheel_zooms_or_scrolls_by_preference_and_ctrl_swaps"]
+notes = "Preferences > Navigation: wheel zooms or scrolls per mode, Ctrl swaps, reverse direction, sensitivity; Shift+wheel scrolls sideways."
 
 [[feature]]
 id = "doc-033"
@@ -4482,9 +4503,10 @@ section = "Page navigation and zoom"
 name = "Pan with mouse"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:126"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["middle_drag_pans_and_double_click_recentres"]
+notes = "Middle drag pans, middle double-click re-centres, Space held pans with any tool."
 
 [[feature]]
 id = "doc-034"
@@ -4494,9 +4516,10 @@ section = "Page navigation and zoom"
 name = "Pan tool"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:127"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["dropped_files_open_in_tabs_pan_tool_and_fit_width_lock"]
+notes = "Pan tool (Shift+V) on the toolbar and the navigation bar."
 
 [[feature]]
 id = "doc-035"
@@ -4506,9 +4529,10 @@ section = "Page navigation and zoom"
 name = "Maximum zoom"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:128"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["fit_zoom_and_page_navigation_keys"]
+notes = "Preferences > Document: maximum zoom."
 
 [[feature]]
 id = "doc-036"
@@ -4530,9 +4554,10 @@ section = "Page navigation and zoom"
 name = "Lock panning in Fit Width"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:130"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["dropped_files_open_in_tabs_pan_tool_and_fit_width_lock"]
+notes = "Preferences > Navigation: lock panning to up and down in Fit Width."
 
 [[feature]]
 id = "doc-038"
@@ -4542,9 +4567,10 @@ section = "Page navigation and zoom"
 name = "Page layout modes"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:131"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["page_layout_modes_side_by_side_and_cover"]
+notes = "Single Page (Ctrl+4), Continuous (Ctrl+5), Side by Side (Ctrl+6), Continuous Side by Side (Ctrl+7), Show Cover Page Alone."
 
 [[feature]]
 id = "doc-039"
@@ -4554,9 +4580,10 @@ section = "Page navigation and zoom"
 name = "Default layout rule"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:132"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["default_layout_rule_by_page_size", "recent_files_reopen_at_the_last_page_and_pin"]
+notes = "Preferences > Document: default layout (any mode, or by page size: drawings one page at a time) and default fit."
 
 [[feature]]
 id = "doc-040"
@@ -4566,9 +4593,10 @@ section = "Page navigation and zoom"
 name = "Rotate view"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:133"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["rotate_view_turns_the_display_not_the_file"]
+notes = "View > Rotate View (Ctrl+Shift+Plus / Minus): the display turns, the file does not."
 
 [[feature]]
 id = "doc-041"
@@ -4578,9 +4606,10 @@ section = "Page navigation and zoom"
 name = "Full screen / Presentation"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:134"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["full_screen_presentation_always_on_top_and_bars"]
+notes = "Window > Full Screen (F11, Esc leaves); Presentation (Ctrl+Enter): one page full screen, arrows advance, loop and timed advance."
 
 [[feature]]
 id = "doc-042"
@@ -4590,9 +4619,10 @@ section = "Page navigation and zoom"
 name = "Always on top"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:135"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["full_screen_presentation_always_on_top_and_bars"]
+notes = "Window > Always on Top (Ctrl+F12)."
 
 [[feature]]
 id = "doc-043"
@@ -4602,9 +4632,10 @@ section = "Page navigation and zoom"
 name = "Hide panels / toolbars"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:136"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["full_screen_presentation_always_on_top_and_bars"]
+notes = "Hide Panels (Shift+F4) restores the same layout; Menu Bar (F9), Navigation Bar (F4), Status Bar (F8); toolbars from Window > Toolbars."
 
 [[feature]]
 id = "doc-044"
@@ -4614,9 +4645,10 @@ section = "Page navigation and zoom"
 name = "Navigation bar page info"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:137"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["rulers_crosshair_and_dimmer"]
+notes = "Navigation bar shows the page scale (click to calibrate); the status bar shows the page size."
 
 [[feature]]
 id = "doc-045"
@@ -4626,9 +4658,10 @@ section = "Page navigation and zoom"
 name = "Rulers"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:138"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["rulers_crosshair_and_dimmer", "ruler_ticks_stay_readable"]
+notes = "View > Rulers (Ctrl+R): zero at the page corner, inches / cm / mm / points / picas (right-click), page and selection extent, pointer mark."
 
 [[feature]]
 id = "doc-046"
@@ -4638,9 +4671,10 @@ section = "Page navigation and zoom"
 name = "Full-screen crosshair"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:139"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["rulers_crosshair_and_dimmer"]
+notes = "View > Full-Screen Crosshair (also in Preferences > Advanced)."
 
 [[feature]]
 id = "doc-047"
@@ -4650,9 +4684,10 @@ section = "Page navigation and zoom"
 name = "Dimmer"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:140"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["rulers_crosshair_and_dimmer"]
+notes = "View > Dimmer (Ctrl+F5) and a navigation bar button; amount 5-95 % in Preferences > Advanced."
 
 [[feature]]
 id = "doc-048"
@@ -4674,9 +4709,10 @@ section = "Page navigation and zoom"
 name = "Dark mode / theme"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:142"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_dialog_applies_and_persists", "dark_theme_and_menus_render"]
+notes = "Preferences > General: light, dark or system theme for the application; no dark workspace treatment of pages."
 
 [[feature]]
 id = "doc-050"
@@ -4686,9 +4722,10 @@ section = "Split views, sync and second monitor (MultiView)"
 name = "Split vertical / horizontal"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:148"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["split_views_sync_switch_balance_unsplit"]
+notes = "View > Split Vertical (Ctrl+2) / Split Horizontal (Ctrl+H): two panes, any open document in each (the same one included), a draggable divider; one split level."
 
 [[feature]]
 id = "doc-051"
@@ -4698,9 +4735,10 @@ section = "Split views, sync and second monitor (MultiView)"
 name = "Unsplit"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:149"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["split_views_sync_switch_balance_unsplit"]
+notes = "View > Unsplit (Ctrl+Shift+2) and the pane's close button."
 
 [[feature]]
 id = "doc-052"
@@ -4710,9 +4748,10 @@ section = "Split views, sync and second monitor (MultiView)"
 name = "Toggle split / Switch / Balance"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:150"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["split_views_sync_switch_balance_unsplit"]
+notes = "Toggle Split (Ctrl+I), Switch (Ctrl+1), Balance (Shift+F12)."
 
 [[feature]]
 id = "doc-053"
@@ -4722,9 +4761,10 @@ section = "Split views, sync and second monitor (MultiView)"
 name = "Synchronize Document"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:151"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["split_views_sync_switch_balance_unsplit"]
+notes = "View > Synchronize: Document, and the status bar Sync button."
 
 [[feature]]
 id = "doc-054"
@@ -4734,9 +4774,10 @@ section = "Split views, sync and second monitor (MultiView)"
 name = "Synchronize Page"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:152"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["split_views_sync_switch_balance_unsplit"]
+notes = "View > Synchronize: Page: pan and zoom move the other pane by as much."
 
 [[feature]]
 id = "doc-055"
@@ -4746,9 +4787,10 @@ section = "Split views, sync and second monitor (MultiView)"
 name = "Move tab between splits"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:153"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["split_views_sync_switch_balance_unsplit"]
+notes = "The second pane's document picker (or a tab's Open in Split View) puts any tab in it; no tab drag between panes."
 
 [[feature]]
 id = "doc-056"
@@ -4770,9 +4812,10 @@ section = "Thumbnails panel"
 name = "Thumbnail list"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:160"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["thumbnails_select_reorder_and_page_commands"]
+notes = "Thumbnails panel (Alt+T): click to go, Up / Down arrows move between pages."
 
 [[feature]]
 id = "doc-058"
@@ -4782,9 +4825,10 @@ section = "Thumbnails panel"
 name = "Thumbnail size slider"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:161"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["thumbnails_select_reorder_and_page_commands"]
+notes = "Size slider at the top of the panel."
 
 [[feature]]
 id = "doc-059"
@@ -4794,9 +4838,10 @@ section = "Thumbnails panel"
 name = "Label display toggles"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:162"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["thumbnails_select_reorder_and_page_commands"]
+notes = "Labels menu: page label and page scale under each thumbnail."
 
 [[feature]]
 id = "doc-060"
@@ -4806,9 +4851,10 @@ section = "Thumbnails panel"
 name = "Multi-select pages"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:163"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["thumbnails_select_reorder_and_page_commands", "thumbnail_clicks_select_like_a_file_list"]
+notes = "Ctrl+click and Shift+click select pages; page commands apply to all of them."
 
 [[feature]]
 id = "doc-061"
@@ -4818,9 +4864,10 @@ section = "Thumbnails panel"
 name = "Reorder by drag"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:164"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["thumbnails_select_reorder_and_page_commands"]
+notes = "Drag thumbnails to move the pages (one undo step)."
 
 [[feature]]
 id = "doc-062"
@@ -4830,9 +4877,10 @@ section = "Thumbnails panel"
 name = "Cut / copy / paste pages"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:165"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["thumbnails_select_reorder_and_page_commands"]
+notes = "Cut / Copy / Paste Pages in the thumbnail menu, within or between documents."
 
 [[feature]]
 id = "doc-063"
@@ -4866,9 +4914,10 @@ section = "Thumbnails panel"
 name = "Page commands from Thumbnails"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:168"
-status = "missing"
+status = "partial"
 cpp = "partial"
-evidence = []
+evidence = ["thumbnails_select_reorder_and_page_commands"]
+notes = "Thumbnail menu: rotate, Rotate Pages, insert blank, Insert Pages, Extract, Replace, Crop, Page Setup, move up / down, cut / copy / paste, delete; no stamp, numbering, export, print or summary."
 
 [[feature]]
 id = "doc-066"
@@ -5140,9 +5189,10 @@ section = "Page operations"
 name = "Insert blank page"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:205"
-status = "missing"
+status = "partial"
 cpp = "partial"
-evidence = []
+evidence = ["page_dialogs_insert_rotate_crop_setup_delete"]
+notes = "Document > Insert Blank Pages: count, standard or custom size, orientation, before / after a page; no grid or template."
 
 [[feature]]
 id = "doc-088"
@@ -5176,9 +5226,10 @@ section = "Page operations"
 name = "Extract pages"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:208"
-status = "missing"
+status = "partial"
 cpp = "partial"
-evidence = []
+evidence = ["extract_and_replace_pages_through_dialogs"]
+notes = "Document > Extract Pages: page range, delete after extracting, open the new file; one file only."
 
 [[feature]]
 id = "doc-091"
@@ -5201,9 +5252,10 @@ section = "Page operations"
 name = "Delete pages"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:210"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["page_dialogs_insert_rotate_crop_setup_delete", "thumbnails_select_reorder_and_page_commands"]
+notes = "Document > Delete Pages with the page range picker, or the thumbnail menu; a document keeps one page."
 
 [[feature]]
 id = "doc-093"
@@ -5213,9 +5265,10 @@ section = "Page operations"
 name = "Rotate pages (dialog)"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:211"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["page_dialogs_insert_rotate_crop_setup_delete"]
+notes = "Document > Rotate Pages (Ctrl+Shift+R): 90 / 180 / 270 on all, current, selected, even, odd, landscape, portrait, first, last or a list."
 
 [[feature]]
 id = "doc-094"
@@ -5225,9 +5278,10 @@ section = "Page operations"
 name = "Rotate page quick buttons"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:212"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["thumbnails_select_reorder_and_page_commands", "engine_commands_and_page_operations"]
+notes = "Rotate Page Clockwise / Counterclockwise (Shift+Alt+Plus / Minus) on the current page; the thumbnail menu rotates the selected pages."
 
 [[feature]]
 id = "doc-095"
@@ -5265,8 +5319,8 @@ priority = "P3"
 source = "docs/revu_features/03_documents.md:215"
 status = "partial"
 cpp = "missing"
-evidence = ["crop_boxes_and_page_resize"]
-notes = "page_resize changes the media size (custom or paper name, orientation) around an anchor, keeping markups and scales in place; no content scaling, rotation or offsets."
+evidence = ["page_dialogs_insert_rotate_crop_setup_delete", "crop_boxes_and_page_resize"]
+notes = "Document > Page Setup: standard or custom size, orientation, keep the drawing at an anchor; no content scaling, offsets or borders."
 
 [[feature]]
 id = "doc-098"
@@ -5288,9 +5342,10 @@ section = "Page operations"
 name = "Page range picker (shared)"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:217"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["page_dialogs_insert_rotate_crop_setup_delete"]
+notes = "Shared picker in the page dialogs: all, current, selected thumbnails, even, odd, landscape, portrait, first, last, or a list like 1-3, 7."
 
 [[feature]]
 id = "doc-100"
@@ -6598,9 +6653,10 @@ section = "Recent files and File Access panel"
 name = "File Access: Recents"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:391"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["recent_files_reopen_at_the_last_page_and_pin"]
+notes = "File Access panel (Alt+A): recents with path on hover; click opens, Ctrl+click opens behind; Remove from List and Clear."
 
 [[feature]]
 id = "doc-204"
@@ -6610,9 +6666,10 @@ section = "Recent files and File Access panel"
 name = "Recents sorting"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:392"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["recent_files_reopen_at_the_last_page_and_pin"]
+notes = "Sort by date, folder, most used or name; no history grouped by day."
 
 [[feature]]
 id = "doc-205"
@@ -6622,9 +6679,10 @@ section = "Recent files and File Access panel"
 name = "Pinned files"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:393"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["recent_files_reopen_at_the_last_page_and_pin"]
+notes = "Pin a file (pin button) so it stays at the top of File Access."
 
 [[feature]]
 id = "doc-206"
@@ -6634,9 +6692,10 @@ section = "Recent files and File Access panel"
 name = "Pin categories"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:394"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["recent_files_reopen_at_the_last_page_and_pin"]
+notes = "A pinned file goes into the category typed in the panel; no rename or collapse."
 
 [[feature]]
 id = "doc-207"
@@ -6646,9 +6705,10 @@ section = "Recent files and File Access panel"
 name = "Recents preferences"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:395"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["recent_files_reopen_at_the_last_page_and_pin", "preferences_dialog_applies_and_persists"]
+notes = "Preferences > Interface: how many recent files and days kept, clear; no preview option."
 
 [[feature]]
 id = "doc-208"
@@ -6658,9 +6718,10 @@ section = "Recent files and File Access panel"
 name = "File Access: Explorer"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:396"
-status = "missing"
+status = "partial"
 cpp = "missing"
 evidence = []
+notes = "File Access > Explorer: the folder's PDFs and subfolders, up, open, pin; no path box, drive list or sort options."
 
 [[feature]]
 id = "doc-209"
@@ -7684,9 +7745,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Menu bar (not a ribbon)"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:160"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["full_screen_presentation_always_on_top_and_bars", "dark_theme_and_menus_render"]
+notes = "Classic menu bar (File, Edit, View, Markup, Measure, Tools, Document, Batch, Window, Help); F9 shows / hides it."
 
 [[feature]]
 id = "ui-074"
@@ -7708,9 +7770,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Toolbars in toolstrips"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:162"
-status = "missing"
+status = "partial"
 cpp = "partial"
-evidence = []
+evidence = ["toolbars_show_hide_customize_and_lock"]
+notes = "Main, Markup and Measure toolbars in one strip; not dockable."
 
 [[feature]]
 id = "ui-076"
@@ -7720,9 +7783,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Show/hide toolbars"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:163"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["toolbars_show_hide_customize_and_lock"]
+notes = "Window > Toolbars: check each toolbar."
 
 [[feature]]
 id = "ui-077"
@@ -7732,9 +7796,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Customize toolbars"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:164"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["toolbars_show_hide_customize_and_lock"]
+notes = "Window > Toolbars > Customize: add, remove, reorder commands and separators on the main toolbar; no new toolbars."
 
 [[feature]]
 id = "ui-078"
@@ -7744,9 +7809,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Lock toolbars"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:165"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["toolbars_show_hide_customize_and_lock"]
+notes = "Window > Toolbars > Lock Toolbars."
 
 [[feature]]
 id = "ui-079"
@@ -7768,9 +7834,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Navigation bar"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:167"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["full_screen_presentation_always_on_top_and_bars", "rulers_crosshair_and_dimmer"]
+notes = "Navigation bar under the workspace (F4): page navigation, previous / next view, layout modes, rotate view, split, dimmer, scale, zoom."
 
 [[feature]]
 id = "ui-081"
@@ -7780,9 +7847,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Status bar"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:168"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["full_screen_presentation_always_on_top_and_bars", "rulers_crosshair_and_dimmer"]
+notes = "Status bar (F8): grid / content / markup snap, Reuse tool, view Sync, pointer position, page size, messages."
 
 [[feature]]
 id = "ui-082"
@@ -7792,9 +7860,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Page scale on bar"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:169"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["rulers_crosshair_and_dimmer"]
+notes = "The navigation bar shows the scale at the pointer or the page's, and clicking it starts Calibrate."
 
 [[feature]]
 id = "ui-083"
@@ -7804,9 +7873,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Side and bottom panels"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:170"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["full_screen_presentation_always_on_top_and_bars", "default_layout_has_every_panel_and_toggles"]
+notes = "Docking panels left, right and bottom; Window menu toggles; Hide Panels (Shift+F4)."
 
 [[feature]]
 id = "ui-084"
@@ -7876,9 +7946,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Layout persistence"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:176"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["layout_persists_and_a_new_session_restores_it", "layout_round_trips_and_rejects_junk"]
+notes = "The panel layout is saved with the profile and restored at the next start."
 
 [[feature]]
 id = "ui-090"
@@ -7888,9 +7959,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Document tabs"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:177"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["document_tabs_cycle_close_others_close_all_and_save_all"]
+notes = "Document tabs; Ctrl+Tab cycles."
 
 [[feature]]
 id = "ui-091"
@@ -7900,9 +7972,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Tab truncation"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:178"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["tab_names_truncate_at_either_end"]
+notes = "Preference: tab length and which end is cut."
 
 [[feature]]
 id = "ui-092"
@@ -7936,9 +8009,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Close / Close All"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:181"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["document_tabs_cycle_close_others_close_all_and_save_all"]
+notes = "Close (Ctrl+F4), Close Others, Close All (Ctrl+Shift+W)."
 
 [[feature]]
 id = "ui-095"
@@ -7960,9 +8034,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Always on Top"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:183"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["full_screen_presentation_always_on_top_and_bars"]
+notes = "Window > Always on Top (Ctrl+F12)."
 
 [[feature]]
 id = "ui-097"
@@ -7984,9 +8059,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "File Access panel"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:185"
-status = "missing"
+status = "partial"
 cpp = "partial"
-evidence = []
+evidence = ["recent_files_reopen_at_the_last_page_and_pin"]
+notes = "File Access panel (Alt+A): recents, pinned files in categories, explorer; no DMS integration."
 
 [[feature]]
 id = "ui-099"
@@ -7996,9 +8072,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Revu menu"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:186"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_dialog_applies_and_persists", "dark_theme_and_menus_render"]
+notes = "About and Keyboard Shortcuts (Help), Preferences and profiles (Window > Preferences, Ctrl+K), Exit (File); no separate Revu menu."
 
 [[feature]]
 id = "ui-100"
@@ -8109,9 +8186,10 @@ section = "7. View modes, navigation, MultiView"
 name = "Fit Page / Fit Width / Actual Size"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:205"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["fit_zoom_and_page_navigation_keys"]
+notes = "Ctrl+9 / Ctrl+0 / Ctrl+8."
 
 [[feature]]
 id = "ui-109"
@@ -8121,9 +8199,10 @@ section = "7. View modes, navigation, MultiView"
 name = "Zoom in / out keys"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:206"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["fit_zoom_and_page_navigation_keys"]
+notes = "Plus / Minus."
 
 [[feature]]
 id = "ui-110"
@@ -8133,9 +8212,10 @@ section = "7. View modes, navigation, MultiView"
 name = "Zoom tool / toggle zoom"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:207"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["zoom_tool_clicks_and_boxes"]
+notes = "Zoom tool (Z), Shift+Z toggles."
 
 [[feature]]
 id = "ui-111"
@@ -8145,9 +8225,10 @@ section = "7. View modes, navigation, MultiView"
 name = "Page layout modes"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:208"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["page_layout_modes_side_by_side_and_cover"]
+notes = "Single, Continuous, Side by Side, Continuous Side by Side, cover page alone."
 
 [[feature]]
 id = "ui-112"
@@ -8157,9 +8238,10 @@ section = "7. View modes, navigation, MultiView"
 name = "Page navigation"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:209"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["fit_zoom_and_page_navigation_keys"]
+notes = "Home / Ctrl+Left / Ctrl+Right / End, page number box."
 
 [[feature]]
 id = "ui-113"
@@ -8169,9 +8251,10 @@ section = "7. View modes, navigation, MultiView"
 name = "Previous / next view"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:210"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["previous_and_next_view_walk_the_history"]
+notes = "Alt+Left / Alt+Right."
 
 [[feature]]
 id = "ui-114"
@@ -8181,9 +8264,10 @@ section = "7. View modes, navigation, MultiView"
 name = "Rotate view"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:211"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["rotate_view_turns_the_display_not_the_file"]
+notes = "Ctrl+Shift+Plus / Minus."
 
 [[feature]]
 id = "ui-115"
@@ -8193,9 +8277,10 @@ section = "7. View modes, navigation, MultiView"
 name = "Refresh"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:212"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["new_blank_pdf_and_refresh_from_disk"]
+notes = "F5 redraws; Shift+F5 reloads from disk."
 
 [[feature]]
 id = "ui-116"
@@ -8205,9 +8290,10 @@ section = "7. View modes, navigation, MultiView"
 name = "Split vertical / horizontal (MultiView)"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:213"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["split_views_sync_switch_balance_unsplit"]
+notes = "Ctrl+2 / Ctrl+H; one split level (two panes)."
 
 [[feature]]
 id = "ui-117"
@@ -8217,9 +8303,10 @@ section = "7. View modes, navigation, MultiView"
 name = "Toggle split / switch / balance / unsplit"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:214"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["split_views_sync_switch_balance_unsplit"]
+notes = "Ctrl+I / Ctrl+1 / Shift+F12 / Ctrl+Shift+2."
 
 [[feature]]
 id = "ui-118"
@@ -8229,9 +8316,10 @@ section = "7. View modes, navigation, MultiView"
 name = "Synchronize views"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:215"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["split_views_sync_switch_balance_unsplit"]
+notes = "Synchronize Off / Document / Page (View menu and status bar)."
 
 [[feature]]
 id = "ui-119"
@@ -8241,9 +8329,10 @@ section = "7. View modes, navigation, MultiView"
 name = "Full screen"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:216"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["full_screen_presentation_always_on_top_and_bars"]
+notes = "F11; Esc leaves."
 
 [[feature]]
 id = "ui-120"
@@ -8253,9 +8342,10 @@ section = "7. View modes, navigation, MultiView"
 name = "Presentation mode"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:217"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["full_screen_presentation_always_on_top_and_bars"]
+notes = "Ctrl+Enter: one page full screen, arrows and Space advance, loop and timed advance (Preferences > Window), Esc leaves."
 
 [[feature]]
 id = "ui-121"
@@ -8265,9 +8355,10 @@ section = "7. View modes, navigation, MultiView"
 name = "Dimmer"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:218"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["rulers_crosshair_and_dimmer"]
+notes = "Ctrl+F5; amount in Preferences > Advanced."
 
 [[feature]]
 id = "ui-122"
@@ -8289,9 +8380,10 @@ section = "7. View modes, navigation, MultiView"
 name = "Dark / light UI theme"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:220"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_dialog_applies_and_persists", "dark_theme_and_menus_render"]
+notes = "Preferences > General > Theme: light, dark or system."
 
 [[feature]]
 id = "ui-124"
@@ -8313,9 +8405,10 @@ section = "8. Rulers, grid, snap, crosshair, line weights"
 name = "Rulers"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:227"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["rulers_crosshair_and_dimmer", "ruler_ticks_stay_readable"]
+notes = "View > Rulers (Ctrl+R): page bounds, selection extent, pointer."
 
 [[feature]]
 id = "ui-126"
@@ -8325,9 +8418,10 @@ section = "8. Rulers, grid, snap, crosshair, line weights"
 name = "Ruler units"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:228"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["rulers_crosshair_and_dimmer"]
+notes = "Right-click a ruler: inches, centimetres, millimetres, points, picas."
 
 [[feature]]
 id = "ui-127"
@@ -8337,9 +8431,10 @@ section = "8. Rulers, grid, snap, crosshair, line weights"
 name = "Show grid"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:229"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["rulers_crosshair_and_dimmer"]
+notes = "View > Show Grid (Shift+F9)."
 
 [[feature]]
 id = "ui-128"
@@ -8349,9 +8444,10 @@ section = "8. Rulers, grid, snap, crosshair, line weights"
 name = "Snap to grid"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:230"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["snap_to_markup_and_grid"]
+notes = "Snap to Grid (Ctrl+Shift+F9) works with the grid hidden."
 
 [[feature]]
 id = "ui-129"
@@ -8361,9 +8457,10 @@ section = "8. Rulers, grid, snap, crosshair, line weights"
 name = "Grid spacing + units"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:231"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_dialog_applies_and_persists"]
+notes = "Preferences > Grid & Snap: grid spacing (points, shown in inches) and ruler units."
 
 [[feature]]
 id = "ui-130"
@@ -8373,9 +8470,10 @@ section = "8. Rulers, grid, snap, crosshair, line weights"
 name = "Snap to content"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:232"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["snap_to_content_lands_on_a_wall_corner"]
+notes = "Snap to Content (Ctrl+Shift+F8)."
 
 [[feature]]
 id = "ui-131"
@@ -8385,9 +8483,10 @@ section = "8. Rulers, grid, snap, crosshair, line weights"
 name = "Snap to markup"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:233"
-status = "missing"
+status = "partial"
 cpp = "have"
-evidence = []
+evidence = ["snap_to_markup_and_grid"]
+notes = "Snap to Markup (Ctrl+Shift+F7); no alignment guide lines."
 
 [[feature]]
 id = "ui-132"
@@ -8409,9 +8508,10 @@ section = "8. Rulers, grid, snap, crosshair, line weights"
 name = "Snap sensitivity"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:235"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_dialog_applies_and_persists"]
+notes = "Preferences > Grid & Snap: snap sensitivity in pixels."
 
 [[feature]]
 id = "ui-134"
@@ -8433,9 +8533,10 @@ section = "8. Rulers, grid, snap, crosshair, line weights"
 name = "Override snap with Ctrl"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:237"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["ctrl_places_a_point_without_snapping"]
+notes = "Hold Ctrl while placing a point to ignore every snap."
 
 [[feature]]
 id = "ui-136"
@@ -8445,9 +8546,10 @@ section = "8. Rulers, grid, snap, crosshair, line weights"
 name = "Full-screen crosshair"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:238"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["rulers_crosshair_and_dimmer"]
+notes = "View > Full-Screen Crosshair."
 
 [[feature]]
 id = "ui-137"
@@ -8481,10 +8583,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Preferences dialog"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:251"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["preferences_profiles_set_switch_export_import"]
-notes = "Preferences model (author, units, precision, colours, snapping, autosave, save mode, recent files, theme) with validation and storage; no dialog yet."
+evidence = ["preferences_dialog_applies_and_persists", "preferences_profiles_set_switch_export_import"]
+notes = "Window > Preferences (Ctrl+K): General, Document, Navigation, Grid & Snap, Interface, Tools, Window, Advanced, Admin; changes apply at once and persist to the active profile."
 
 [[feature]]
 id = "ui-140"
@@ -8496,8 +8598,8 @@ priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:252"
 status = "have"
 cpp = "missing"
-evidence = ["preferences_profiles_set_switch_export_import"]
-notes = "author preference; new markups take it."
+evidence = ["preferences_dialog_applies_and_persists", "preferences_profiles_set_switch_export_import"]
+notes = "General: user name, the author of new markups in every open document."
 
 [[feature]]
 id = "ui-141"
@@ -8507,9 +8609,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "General > Options: language, theme"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:253"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_dialog_applies_and_persists", "dark_theme_and_menus_render"]
+notes = "General: theme (light, dark, system); no language choice."
 
 [[feature]]
 id = "ui-142"
@@ -8519,9 +8622,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "General > Options: startup"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:254"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["recent_files_reopen_at_the_last_page_and_pin"]
+notes = "General: reopen last session, recent files on the start page; no startup mode."
 
 [[feature]]
 id = "ui-143"
@@ -8544,9 +8648,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "General > Document: default layout and fit"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:256"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["default_layout_rule_by_page_size", "fit_zoom_and_page_navigation_keys"]
+notes = "Document: default layout (four modes or by page size), default fit, maximum zoom."
 
 [[feature]]
 id = "ui-145"
@@ -8556,9 +8661,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "General > Document: misc"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:257"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["recent_files_reopen_at_the_last_page_and_pin"]
+notes = "Document: remember last page; the other options are not built."
 
 [[feature]]
 id = "ui-146"
@@ -8568,9 +8674,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "General > Navigation: wheel = zoom or scroll"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:258"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["wheel_zooms_or_scrolls_by_preference_and_ctrl_swaps"]
+notes = "Navigation: wheel zooms or scrolls, separately for single and continuous modes."
 
 [[feature]]
 id = "ui-147"
@@ -8580,9 +8687,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "General > Navigation: wheel tuning"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:259"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["wheel_zooms_or_scrolls_by_preference_and_ctrl_swaps"]
+notes = "Navigation: reverse zoom, zoom sensitivity; horizontal wheel pans sideways."
 
 [[feature]]
 id = "ui-148"
@@ -8592,9 +8700,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "General > Navigation: scrollbars"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:260"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["dropped_files_open_in_tabs_pan_tool_and_fit_width_lock"]
+notes = "Navigation: lock panning in Fit Width; no scrollbars."
 
 [[feature]]
 id = "ui-149"
@@ -8616,10 +8725,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "General > Grid & Snap"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:262"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["preferences_profiles_set_switch_export_import"]
-notes = "Grid and snap preferences stored (content, markup, grid, spacing, sensitivity); the canvas does not read them yet."
+evidence = ["preferences_dialog_applies_and_persists", "preferences_profiles_set_switch_export_import"]
+notes = "Grid & Snap: units, grid spacing, snap to grid / content / markup, sensitivity; no snap-target filters or colour."
 
 [[feature]]
 id = "ui-151"
@@ -8642,9 +8751,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Interface > File Access"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:264"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_dialog_applies_and_persists"]
+notes = "Interface: recent files count, days kept, clear; no preview or DMS settings."
 
 [[feature]]
 id = "ui-153"
@@ -8678,9 +8788,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Tools > Markup"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:267"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_dialog_applies_and_persists", "reuse_tool_keeps_drawing"]
+notes = "Tools: reuse markup tools, measurement units and precision, colours of new markups (stored in the profile)."
 
 [[feature]]
 id = "ui-156"
@@ -8750,9 +8861,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Window > Presentation"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:273"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["full_screen_presentation_always_on_top_and_bars"]
+notes = "Window: presentation loop and auto-advance interval."
 
 [[feature]]
 id = "ui-162"
@@ -8812,9 +8924,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Advanced > 2D Rendering"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:278"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["rulers_crosshair_and_dimmer"]
+notes = "Advanced: dimmer amount and crosshair; no rendering engine options."
 
 [[feature]]
 id = "ui-167"
@@ -8850,9 +8963,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Admin"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:281"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_dialog_applies_and_persists"]
+notes = "Admin: back up, restore and reset settings, profiles; no viewer, log or browser options."
 
 [[feature]]
 id = "ui-170"
@@ -8862,9 +8976,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Admin > settings backup/restore"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:282"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_dialog_applies_and_persists"]
+notes = "Admin: Back Up Settings writes the active profile to a file; Restore reads one back."
 
 [[feature]]
 id = "ui-171"
@@ -8898,9 +9013,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Middle-drag pan"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:290"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["middle_drag_pans_and_double_click_recentres"]
+notes = "Middle drag pans with any tool."
 
 [[feature]]
 id = "ui-174"
@@ -8910,9 +9026,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Middle double-click re-center"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:291"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["middle_drag_pans_and_double_click_recentres"]
+notes = "Middle double-click re-centres on the point."
 
 [[feature]]
 id = "ui-175"
@@ -8922,9 +9039,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Wheel zoom vs scroll"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:292"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["wheel_zooms_or_scrolls_by_preference_and_ctrl_swaps"]
+notes = "Wheel zooms or scrolls by preference; Ctrl swaps."
 
 [[feature]]
 id = "ui-176"
@@ -8934,9 +9052,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Spacebar temporary pan"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:293"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["middle_drag_pans_and_double_click_recentres"]
+notes = "Space held pans with any tool; the tool stays."
 
 [[feature]]
 id = "ui-177"
@@ -8946,9 +9065,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Right-click context menus"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:294"
-status = "missing"
+status = "partial"
 cpp = "partial"
-evidence = []
+evidence = ["context_menu_saves_a_look_to_the_tool_chest", "document_tabs_cycle_close_others_close_all_and_save_all", "thumbnails_select_reorder_and_page_commands"]
+notes = "Page and markup menus, document tab menu, thumbnail menu, ruler menu, Markups List menus; no text or other panel menus."
 
 [[feature]]
 id = "ui-178"
@@ -8970,9 +9090,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Shift+drag multi-select; Shift+click add"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:296"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["box_select_and_view_commands", "click_selects_drag_moves_delete_and_undo"]
+notes = "Drag a box to select several; Shift / Ctrl+click adds."
 
 [[feature]]
 id = "ui-180"
@@ -8982,9 +9103,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Shift ortho / 45-degree lock"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:297"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["shift_constrains_a_line_and_a_drag_makes_an_arrow"]
+notes = "Shift constrains to 0 / 45 / 90 degrees from the last point."
 
 [[feature]]
 id = "ui-181"
@@ -9042,9 +9164,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Paste in place"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:302"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["engine_commands_and_page_operations"]
+notes = "Edit > Paste in Place (Ctrl+Shift+V)."
 
 [[feature]]
 id = "ui-186"
@@ -9090,9 +9213,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Shift-drag measurement caption"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:306"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["shift_drag_moves_a_caption_alone"]
+notes = "Shift+drag a measurement's caption."
 
 [[feature]]
 id = "ui-190"
@@ -9138,9 +9262,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Esc behavior"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:310"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["escape_cancels_a_drawing", "full_screen_presentation_always_on_top_and_bars"]
+notes = "Esc cancels the drawing, ends multi-click tools, leaves full screen and presentation."
 
 [[feature]]
 id = "ui-194"
@@ -9150,9 +9275,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Enter / double-click to finish"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:311"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["polyline_takes_clicks_backspace_and_enter", "area_shows_its_value_and_finishes_on_double_click"]
+notes = "Enter or a double-click finishes."
 
 [[feature]]
 id = "ui-195"
@@ -9162,9 +9288,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Reuse markup tool"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:312"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["reuse_tool_keeps_drawing", "preferences_dialog_applies_and_persists"]
+notes = "Status bar Reuse toggle and Preferences > Tools: stay in the tool after placing a markup."
 
 [[feature]]
 id = "ui-196"
@@ -9174,9 +9301,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Tab / panel focus cycling"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:313"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["document_tabs_cycle_close_others_close_all_and_save_all"]
+notes = "Ctrl+Tab cycles document tabs."
 
 [[feature]]
 id = "ui-197"
@@ -10323,10 +10451,10 @@ area = "shortcuts"
 section = "File"
 name = "Create PDF (Ctrl + N)"
 source = "docs/revu_features/05_shortcuts.md:90"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "new_blank_pdf_and_refresh_from_disk"]
+notes = "Ctrl+N makes a new blank PDF; creating a PDF from another file type is not built."
 
 [[feature]]
 id = "key-062"
@@ -10381,9 +10509,9 @@ area = "shortcuts"
 section = "File"
 name = "Save All (Shift + F2)"
 source = "docs/revu_features/05_shortcuts.md:95"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "document_tabs_cycle_close_others_close_all_and_save_all"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10557,9 +10685,9 @@ area = "shortcuts"
 section = "View"
 name = "Balance (Shift + F12)"
 source = "docs/revu_features/05_shortcuts.md:110"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "split_views_sync_switch_balance_unsplit"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10581,9 +10709,9 @@ area = "shortcuts"
 section = "View"
 name = "Continuous Side by Side Mode (Ctrl + 7)"
 source = "docs/revu_features/05_shortcuts.md:112"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "page_layout_modes_side_by_side_and_cover"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10593,9 +10721,9 @@ area = "shortcuts"
 section = "View"
 name = "Dimmer (Ctrl + F5)"
 source = "docs/revu_features/05_shortcuts.md:113"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "rulers_crosshair_and_dimmer"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10640,9 +10768,9 @@ area = "shortcuts"
 section = "View"
 name = "Next View (Alt + Right)"
 source = "docs/revu_features/05_shortcuts.md:117"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "previous_and_next_view_walk_the_history"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10663,9 +10791,9 @@ area = "shortcuts"
 section = "View"
 name = "Previous View (Alt + Left)"
 source = "docs/revu_features/05_shortcuts.md:119"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "previous_and_next_view_walk_the_history"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10675,9 +10803,9 @@ area = "shortcuts"
 section = "View"
 name = "Refresh (F5)"
 source = "docs/revu_features/05_shortcuts.md:120"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "new_blank_pdf_and_refresh_from_disk"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10699,9 +10827,9 @@ area = "shortcuts"
 section = "View"
 name = "Rotate View Clockwise (Ctrl + Shift + Plus)"
 source = "docs/revu_features/05_shortcuts.md:122"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "rotate_view_turns_the_display_not_the_file"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10711,9 +10839,9 @@ area = "shortcuts"
 section = "View"
 name = "Rotate View Counterclockwise (Ctrl + Shift + Minus)"
 source = "docs/revu_features/05_shortcuts.md:123"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "rotate_view_turns_the_display_not_the_file"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10723,9 +10851,9 @@ area = "shortcuts"
 section = "View"
 name = "Rulers (Ctrl + R)"
 source = "docs/revu_features/05_shortcuts.md:124"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "rulers_crosshair_and_dimmer"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10747,9 +10875,9 @@ area = "shortcuts"
 section = "View"
 name = "Side by Side (Ctrl + 6)"
 source = "docs/revu_features/05_shortcuts.md:126"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "page_layout_modes_side_by_side_and_cover"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10807,9 +10935,9 @@ area = "shortcuts"
 section = "View"
 name = "Split Horizontal (Ctrl + H)"
 source = "docs/revu_features/05_shortcuts.md:131"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "split_views_sync_switch_balance_unsplit"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10819,9 +10947,9 @@ area = "shortcuts"
 section = "View"
 name = "Split Vertical (Ctrl + 2)"
 source = "docs/revu_features/05_shortcuts.md:132"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "split_views_sync_switch_balance_unsplit"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10831,9 +10959,9 @@ area = "shortcuts"
 section = "View"
 name = "Switch (Ctrl + 1)"
 source = "docs/revu_features/05_shortcuts.md:133"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "split_views_sync_switch_balance_unsplit"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10843,9 +10971,9 @@ area = "shortcuts"
 section = "View"
 name = "Toggle Split (Ctrl + I)"
 source = "docs/revu_features/05_shortcuts.md:134"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "split_views_sync_switch_balance_unsplit"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10855,9 +10983,9 @@ area = "shortcuts"
 section = "View"
 name = "Unsplit (Ctrl + Shift + 2)"
 source = "docs/revu_features/05_shortcuts.md:135"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "split_views_sync_switch_balance_unsplit"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11044,9 +11172,9 @@ area = "shortcuts"
 section = "Document"
 name = "Crop Pages (Shift + Alt + O)"
 source = "docs/revu_features/05_shortcuts.md:151"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "page_dialogs_insert_rotate_crop_setup_delete"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11200,9 +11328,9 @@ area = "shortcuts"
 section = "Document"
 name = "Refresh Document (Shift + F5)"
 source = "docs/revu_features/05_shortcuts.md:164"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "new_blank_pdf_and_refresh_from_disk"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11212,9 +11340,9 @@ area = "shortcuts"
 section = "Document"
 name = "Replace Pages (Ctrl + Shift + Y)"
 source = "docs/revu_features/05_shortcuts.md:165"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "extract_and_replace_pages_through_dialogs"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11248,9 +11376,9 @@ area = "shortcuts"
 section = "Document"
 name = "Rotate Pages (Ctrl + Shift + R)"
 source = "docs/revu_features/05_shortcuts.md:168"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "page_dialogs_insert_rotate_crop_setup_delete"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11344,9 +11472,9 @@ area = "shortcuts"
 section = "Window"
 name = "Always on Top (Ctrl + F12)"
 source = "docs/revu_features/05_shortcuts.md:176"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "full_screen_presentation_always_on_top_and_bars"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11368,9 +11496,9 @@ area = "shortcuts"
 section = "Window"
 name = "Close All (Ctrl + Shift + W)"
 source = "docs/revu_features/05_shortcuts.md:178"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "document_tabs_cycle_close_others_close_all_and_save_all"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11380,9 +11508,9 @@ area = "shortcuts"
 section = "Window"
 name = "File Access (Alt + A)"
 source = "docs/revu_features/05_shortcuts.md:179"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "recent_files_reopen_at_the_last_page_and_pin"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11404,9 +11532,9 @@ area = "shortcuts"
 section = "Window"
 name = "Full Screen (F11)"
 source = "docs/revu_features/05_shortcuts.md:181"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "full_screen_presentation_always_on_top_and_bars"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11416,9 +11544,9 @@ area = "shortcuts"
 section = "Window"
 name = "Hide Panels (Shift + F4)"
 source = "docs/revu_features/05_shortcuts.md:182"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "full_screen_presentation_always_on_top_and_bars"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11488,9 +11616,9 @@ area = "shortcuts"
 section = "Window"
 name = "Menu Bar (F9)"
 source = "docs/revu_features/05_shortcuts.md:188"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "full_screen_presentation_always_on_top_and_bars"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11500,9 +11628,9 @@ area = "shortcuts"
 section = "Window"
 name = "Navigation Bar (F4)"
 source = "docs/revu_features/05_shortcuts.md:189"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "full_screen_presentation_always_on_top_and_bars"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11512,9 +11640,9 @@ area = "shortcuts"
 section = "Window"
 name = "Preferences (Ctrl + K)"
 source = "docs/revu_features/05_shortcuts.md:190"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "preferences_dialog_applies_and_persists"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11524,9 +11652,9 @@ area = "shortcuts"
 section = "Window"
 name = "Presentation (Ctrl + Enter)"
 source = "docs/revu_features/05_shortcuts.md:191"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "full_screen_presentation_always_on_top_and_bars"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11608,9 +11736,9 @@ area = "shortcuts"
 section = "Window"
 name = "Status Bar (F8)"
 source = "docs/revu_features/05_shortcuts.md:198"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_window_view_document_file_shortcuts_are_bound", "full_screen_presentation_always_on_top_and_bars"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]

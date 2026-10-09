@@ -219,11 +219,13 @@ fn snap_at(
         return Snapped::raw(raw);
     };
     let s = cx.snaps;
-    if !(s.grid || s.content || s.markup) {
+    // Holding Ctrl places the point exactly where the pointer is (Revu: Ctrl overrides snap).
+    let ctrl = ix.ui.input(|i| i.modifiers.command);
+    if ctrl || !(s.grid || s.content || s.markup) {
         doc.view.snapped = None;
         return Snapped::raw(raw);
     }
-    let reach = f64::from(snapping::REACH / xf.k.max(1e-6));
+    let reach = f64::from(snapping::reach() / xf.k.max(1e-6));
     let content = if s.content {
         let bytes = doc.bytes.clone();
         doc.snaps.index(page, &bytes)

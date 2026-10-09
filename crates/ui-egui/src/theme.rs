@@ -52,6 +52,28 @@ impl Tokens {
         radius: 4,
     };
 
+    /// Dark chrome (Preferences > General > Theme).
+    pub const DARK: Tokens = Tokens {
+        chrome: Color32::from_rgb(0x2B, 0x2D, 0x31),
+        panel: Color32::from_rgb(0x23, 0x25, 0x29),
+        workspace: Color32::from_rgb(0x4A, 0x4D, 0x52),
+        border: Color32::from_rgb(0x45, 0x48, 0x4E),
+        divider: Color32::from_rgb(0x38, 0x3B, 0x40),
+        text: Color32::from_rgb(0xE6, 0xE7, 0xEA),
+        text_muted: Color32::from_rgb(0xB4, 0xB6, 0xBC),
+        text_faint: Color32::from_rgb(0x8C, 0x8F, 0x96),
+        icon: Color32::from_rgb(0xD8, 0xDA, 0xDE),
+        hover: Color32::from_rgb(0x3A, 0x3D, 0x43),
+        pressed: Color32::from_rgb(0x46, 0x4A, 0x51),
+        selected: Color32::from_rgb(0x24, 0x3E, 0x6B),
+        accent: Color32::from_rgb(0x4C, 0x8D, 0xF6),
+        accent_text: Color32::from_rgb(0x7E, 0xAE, 0xFA),
+        accent_soft: Color32::from_rgb(0x26, 0x3A, 0x5C),
+        page_shadow: Color32::from_black_alpha(120),
+        select: Color32::from_rgb(0x4C, 0x8D, 0xF6),
+        radius: 4,
+    };
+
     pub fn get(ctx: &egui::Context) -> Self {
         ctx.data(|d| d.get_temp::<Tokens>(egui::Id::new("markupcraft-theme")))
             .unwrap_or(Self::LIGHT)
@@ -60,13 +82,23 @@ impl Tokens {
 
 /// Install the tokens and the matching egui visuals.
 pub fn apply(ctx: &egui::Context) {
-    let t = Tokens::LIGHT;
+    apply_mode(ctx, false);
+}
+
+/// Install the light or dark tokens and visuals.
+pub fn apply_mode(ctx: &egui::Context, dark: bool) {
+    let t = if dark { Tokens::DARK } else { Tokens::LIGHT };
     ctx.data_mut(|d| d.insert_temp(egui::Id::new("markupcraft-theme"), t));
-    let mut v = Visuals::light();
+    let mut v = if dark { Visuals::dark() } else { Visuals::light() };
     v.panel_fill = t.panel;
     v.window_fill = t.panel;
-    v.extreme_bg_color = Color32::WHITE;
-    v.faint_bg_color = Color32::from_rgb(0xF6, 0xF7, 0xF9);
+    if dark {
+        v.extreme_bg_color = Color32::from_rgb(0x1B, 0x1D, 0x20);
+        v.faint_bg_color = Color32::from_rgb(0x2A, 0x2C, 0x30);
+    } else {
+        v.extreme_bg_color = Color32::WHITE;
+        v.faint_bg_color = Color32::from_rgb(0xF6, 0xF7, 0xF9);
+    }
     v.selection.bg_fill = t.selected;
     v.selection.stroke = Stroke::new(1.0, t.accent_text);
     v.hyperlink_color = t.accent_text;
@@ -77,7 +109,8 @@ pub fn apply(ctx: &egui::Context) {
     v.widgets.inactive.fg_stroke = Stroke::new(1.0, t.text);
     v.widgets.hovered.weak_bg_fill = t.hover;
     v.widgets.active.weak_bg_fill = t.pressed;
-    ctx.set_visuals(v);
+    ctx.set_visuals_of(if dark { egui::Theme::Dark } else { egui::Theme::Light }, v);
+    ctx.set_theme(if dark { egui::Theme::Dark } else { egui::Theme::Light });
     ctx.global_style_mut(|s| {
         s.spacing.item_spacing = egui::vec2(6.0, 4.0);
         s.spacing.button_padding = egui::vec2(6.0, 3.0);

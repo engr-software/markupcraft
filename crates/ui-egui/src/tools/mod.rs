@@ -13,6 +13,7 @@ pub mod select;
 pub mod shapes;
 pub mod text;
 pub mod textmarkup;
+pub mod zoom;
 
 use markupcraft_geom::{Point, Rect, bbox};
 use markupcraft_model::{Color, CountSymbol, Kind, Markup, SnapshotSource};
@@ -101,6 +102,7 @@ impl ToolDef {
 pub static TOOLS: &[&ToolDef] = &[
     &select::TOOL,
     &pan::TOOL,
+    &zoom::TOOL,
     &text::TEXT_BOX,
     &text::CALLOUT,
     &text::TYPEWRITER,

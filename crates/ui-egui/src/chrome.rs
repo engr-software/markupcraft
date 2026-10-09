@@ -3,8 +3,8 @@
 
 use egui::{Align, Layout, RichText, Stroke, vec2};
 
-use crate::canvas::{self, CanvasCx, Fit, PageMode};
-use crate::commands::{self, COMMANDS, MAIN_TOOLBAR, MENUS};
+use crate::canvas::{Fit, PageMode};
+use crate::commands::{self, COMMANDS, MENUS};
 use crate::panels::PANELS;
 use crate::theme::Tokens;
 use crate::tools::ToolDef;
@@ -13,6 +13,9 @@ use crate::{AppState, icons};
 
 /// The menu bar, from the command, tool and panel tables.
 pub fn menu_bar(app: &mut AppState, ui: &mut egui::Ui) {
+    if !app.shell.menu_visible() {
+        return;
+    }
     let t = Tokens::get(ui.ctx());
     egui::Panel::top("menu_bar")
         .frame(
@@ -75,6 +78,23 @@ fn menu_items(app: &mut AppState, ui: &mut egui::Ui, menu: &str) {
             let on = app.open_panels.contains(&p.id);
             item(app, ui, &format!("panel.{}", p.id), p.title, p.keys, true, Some(on));
         }
+        ui.menu_button("Toolbars", |ui| {
+            ui.set_min_width(200.0);
+            for id in [
+                "window.toolbar_main",
+                "window.toolbar_markup",
+                "window.toolbar_measure",
+                "|",
+                "window.customize_toolbars",
+                "window.lock_toolbars",
+            ] {
+                if id == "|" {
+                    ui.separator();
+                } else if let Some(c) = commands::find(id) {
+                    item(app, ui, id, c.label, c.keys, app.enabled(id), app.checked(id));
+                }
+            }
+        });
     }
     let mut group = None;
     let mut first = tools.is_empty() && menu != "Window";
@@ -93,6 +113,9 @@ fn menu_items(app: &mut AppState, ui: &mut egui::Ui, menu: &str) {
             format!("{} (not yet)", c.label)
         };
         item(app, ui, c.id, &label, c.keys, enabled, app.checked(c.id));
+        if c.id == "file.open" {
+            crate::shell::recent::menu(app, ui);
+        }
     }
 }
 
@@ -107,6 +130,10 @@ fn separator(ui: &mut egui::Ui, t: &Tokens) {
 
 /// The main toolbar and the markup tools.
 pub fn toolbar(app: &mut AppState, ui: &mut egui::Ui) {
+    let tb = app.shell.ui.toolbars.clone();
+    if !app.shell.chrome_visible() || !(tb.show_main || tb.show_markup || tb.show_measure) {
+        return;
+    }
     let t = Tokens::get(ui.ctx());
     egui::Panel::top("toolbar")
         .exact_size(36.0)
@@ -119,15 +146,25 @@ pub fn toolbar(app: &mut AppState, ui: &mut egui::Ui) {
         .show(ui, |ui| {
             ui.horizontal_centered(|ui| {
                 ui.spacing_mut().item_spacing.x = 2.0;
-                for id in MAIN_TOOLBAR {
-                    if *id == "|" {
-                        separator(ui, &t);
+                let mut first = true;
+                if tb.show_main {
+                    for id in &tb.main {
+                        if id == "|" {
+                            separator(ui, &t);
+                            continue;
+                        }
+                        tool_button(app, ui, id);
+                    }
+                    first = false;
+                }
+                for (group, on) in [("Markup", tb.show_markup), ("Measure", tb.show_measure)] {
+                    if !on {
                         continue;
                     }
-                    tool_button(app, ui, id);
-                }
-                for group in ["Markup", "Measure"] {
-                    separator(ui, &t);
+                    if !first {
+                        separator(ui, &t);
+                    }
+                    first = false;
                     let tools: Vec<&&ToolDef> = TOOLS.iter().filter(|tl| tl.menu == group && tl.draws()).collect();
                     for tool in tools {
                         tool_button(app, ui, &format!("tool.{}", tool.id));
@@ -155,48 +192,76 @@ fn tool_button(app: &mut AppState, ui: &mut egui::Ui, id: &str) {
     }
 }
 
-/// The status bar: snap toggles, page navigation, zoom and scale.
+fn toggle(app: &mut AppState, ui: &mut egui::Ui, id: &str, label: &str) {
+    let on = app.checked(id).unwrap_or(false);
+    let tip = commands::describe(id).map(|(l, _, k)| match k {
+        Some(k) => format!("{l} ({})", k.label()),
+        None => l,
+    });
+    let b = egui::Button::new(RichText::new(label).size(11.0))
+        .selected(on)
+        .min_size(vec2(0.0, 20.0));
+    let r = ui.add_enabled(app.enabled(id), b);
+    if r.clicked() {
+        app.queue(id);
+    }
+    if let Some(tip) = tip {
+        r.on_hover_text(tip);
+    }
+}
+
+/// The status bar (F8): snap toggles, reuse tool, view sync, pointer position, page size,
+/// messages. Under it (F4) the navigation bar: page navigation, previous / next view, layout
+/// modes, rotate view, split, dimmer, scale (click to calibrate) and zoom.
 pub fn status_bar(app: &mut AppState, ui: &mut egui::Ui) {
+    if !app.shell.chrome_visible() {
+        return;
+    }
     let t = Tokens::get(ui.ctx());
-    egui::Panel::bottom("status_bar")
-        .exact_size(28.0)
-        .frame(
+    let bar = |id: &'static str| {
+        egui::Panel::bottom(id).exact_size(28.0).frame(
             egui::Frame::NONE
                 .fill(t.chrome)
                 .inner_margin(egui::Margin::symmetric(8, 0))
                 .stroke(Stroke::new(1.0, t.divider)),
         )
-        .show(ui, |ui| {
+    };
+    if app.shell.ui.show_status_bar {
+        bar("status_bar").show(ui, |ui| {
             ui.horizontal_centered(|ui| {
                 ui.spacing_mut().item_spacing.x = 4.0;
-                for (id, label) in [
-                    ("snap.grid", "Grid"),
-                    ("snap.content", "Content"),
-                    ("snap.markup", "Markup"),
-                ] {
-                    let on = app.checked(id).unwrap_or(false);
-                    let tip = commands::find(id).map(|c| match c.keys {
-                        Some(k) => format!("{} ({})", c.label, k.label()),
-                        None => c.label.to_string(),
-                    });
-                    let b = egui::Button::new(RichText::new(label).size(11.0))
-                        .selected(on)
-                        .min_size(vec2(0.0, 20.0));
-                    let r = ui.add(b);
-                    if r.clicked() {
-                        app.queue(id);
-                    }
-                    if let Some(tip) = tip {
-                        r.on_hover_text(tip);
+                toggle(app, ui, "snap.grid", "Grid");
+                toggle(app, ui, "snap.content", "Content");
+                toggle(app, ui, "snap.markup", "Markup");
+                separator(ui, &t);
+                toggle(app, ui, "window.reuse_tools", "Reuse");
+                if app.shell.split.is_some() {
+                    let sync = app
+                        .shell
+                        .split
+                        .as_ref()
+                        .map_or(crate::shell::split::Sync::Off, |s| s.sync);
+                    let (next, label) = match sync {
+                        crate::shell::split::Sync::Off => ("view.sync_document", "Sync: Off"),
+                        crate::shell::split::Sync::Document => ("view.sync_page", "Sync: Document"),
+                        crate::shell::split::Sync::Page => ("view.sync_off", "Sync: Page"),
+                    };
+                    if ui
+                        .add(egui::Button::new(RichText::new(label).size(11.0)).min_size(vec2(0.0, 20.0)))
+                        .on_hover_text("Synchronize the split views (click to change)")
+                        .clicked()
+                    {
+                        app.queue(next);
                     }
                 }
-                separator(ui, &t);
-                page_nav(app, ui);
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    zoom_box(app, ui);
-                    separator(ui, &t);
-                    let scale = app.scale_readout();
-                    ui.label(RichText::new(scale).size(11.0).color(t.text_muted));
+                    if let Some(s) = crate::shell::overlay::page_size_readout(app) {
+                        ui.label(RichText::new(s).size(11.0).color(t.text_muted));
+                    }
+                    if let Some(p) = crate::shell::overlay::pointer_readout(app) {
+                        separator(ui, &t);
+                        ui.label(RichText::new(p).size(11.0).color(t.text_muted).monospace());
+                    }
                     if !app.status.is_empty() {
                         separator(ui, &t);
                         ui.label(RichText::new(&app.status).size(11.0).color(t.text_muted));
@@ -204,6 +269,80 @@ pub fn status_bar(app: &mut AppState, ui: &mut egui::Ui) {
                 });
             });
         });
+    }
+}
+
+/// The navigation bar (F4) under the document area (Revu puts it between the workspace and
+/// the bottom panel): page navigation, previous / next view, layout modes, rotate view, split,
+/// dimmer, scale (click to calibrate) and zoom.
+pub fn nav_bar(app: &mut AppState, ui: &mut egui::Ui) {
+    if !app.shell.chrome_visible() || !app.shell.ui.show_nav_bar {
+        return;
+    }
+    let t = Tokens::get(ui.ctx());
+    {
+        egui::Panel::bottom("nav_bar")
+            .exact_size(28.0)
+            .frame(
+                egui::Frame::NONE
+                    .fill(t.chrome)
+                    .inner_margin(egui::Margin::symmetric(8, 0))
+                    .stroke(Stroke::new(1.0, t.divider)),
+            )
+            .show(ui, |ui| {
+                ui.horizontal_centered(|ui| {
+                    ui.spacing_mut().item_spacing.x = 2.0;
+                    page_nav(app, ui);
+                    separator(ui, &t);
+                    for id in ["view.prev_view", "view.next_view"] {
+                        nav_button(app, ui, id);
+                    }
+                    separator(ui, &t);
+                    for (id, label) in [
+                        ("view.single_page", "1"),
+                        ("view.continuous", "C"),
+                        ("view.side_by_side", "2"),
+                        ("view.continuous_side", "C2"),
+                    ] {
+                        toggle(app, ui, id, label);
+                    }
+                    separator(ui, &t);
+                    for id in ["view.rotate_view_ccw", "view.rotate_view_cw"] {
+                        nav_button(app, ui, id);
+                    }
+                    separator(ui, &t);
+                    toggle(app, ui, "view.split_vertical", "Split |");
+                    toggle(app, ui, "view.split_horizontal", "Split -");
+                    toggle(app, ui, "view.dimmer", "Dimmer");
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        zoom_box(app, ui);
+                        separator(ui, &t);
+                        let scale = app.scale_readout();
+                        let r = ui
+                            .add(egui::Button::new(RichText::new(scale).size(11.0).color(t.text_muted)).frame(false))
+                            .on_hover_text("Click to calibrate the page scale");
+                        if r.clicked() && app.has_doc() {
+                            app.queue("tool.calibrate");
+                        }
+                    });
+                });
+            });
+    }
+}
+
+/// A navigation bar button: the command's icon (or its short label when it has none).
+fn nav_button(app: &mut AppState, ui: &mut egui::Ui, id: &str) {
+    let has_icon = commands::describe(id).is_some_and(|(_, i, _)| !i.is_empty());
+    if has_icon {
+        tool_button(app, ui, id);
+        return;
+    }
+    let label = match id {
+        "view.prev_view" => "<",
+        "view.next_view" => ">",
+        _ => "?",
+    };
+    toggle(app, ui, id, label);
 }
 
 fn page_nav(app: &mut AppState, ui: &mut egui::Ui) {
@@ -300,69 +439,33 @@ pub fn document_area(app: &mut AppState, ui: &mut egui::Ui) {
                 if ui.button("Open...").clicked() {
                     app.queue("file.open");
                 }
-            });
-        });
-        return;
-    }
-    // Document tabs.
-    let mut close = None;
-    egui::Frame::NONE
-        .fill(t.chrome)
-        .inner_margin(egui::Margin::symmetric(4, 2))
-        .show(ui, |ui| {
-            ui.set_min_width(ui.available_width());
-            ui.horizontal(|ui| {
-                ui.spacing_mut().item_spacing.x = 2.0;
-                for i in 0..app.docs.len() {
-                    let Some(d) = app.docs.get(i) else { continue };
-                    let name = if d.session.is_dirty() {
-                        format!("{} *", d.name)
-                    } else {
-                        d.name.clone()
-                    };
-                    let active = i == app.active;
-                    let r = ui.add(
-                        egui::Button::new(RichText::new(name).size(12.0))
-                            .selected(active)
-                            .min_size(vec2(80.0, 22.0)),
-                    );
-                    if r.clicked() {
-                        app.active = i;
+                if app.shell.ui.show_recents_on_start && !app.shell.recent.files.is_empty() {
+                    ui.add_space(14.0);
+                    ui.label(RichText::new("Recent files").color(egui::Color32::from_gray(235)));
+                    let files = app.shell.recent.sorted(crate::shell::recent::Sort::Date);
+                    for f in files.iter().take(8) {
+                        let name = f
+                            .path
+                            .file_name()
+                            .map_or_else(|| f.path.display().to_string(), |n| n.to_string_lossy().into_owned());
+                        if ui.button(name).on_hover_text(f.path.display().to_string()).clicked() {
+                            app.open_path(&f.path);
+                        }
                     }
-                    if icons::button(ui, "x", 18.0, false, "Close").clicked() {
-                        close = Some(i);
-                    }
-                    ui.add_space(6.0);
                 }
             });
         });
-    if let Some(i) = close {
-        app.close_doc(i);
         return;
     }
-    let tool = crate::tools::find(app.tool).unwrap_or(&crate::tools::select::TOOL);
-    let (template, drawing_mode) = {
-        let (t, d) = app.template();
-        (t.cloned(), d)
-    };
-    let author = app.author.clone();
-    let cx = CanvasCx {
-        tool,
-        wheel_zooms: app.wheel_zooms,
-        hide_markups: app.hide_markups,
-        want_thumbs: app.thumbs_wanted_last,
-        snaps: app.snaps,
-        show_grid: app.show_grid,
-        template: template.as_ref(),
-        drawing_mode,
-        stamp: app.stamp,
-        author: &author,
-    };
-    let Some(doc) = app.docs.get_mut(app.active) else {
-        return;
-    };
-    let out = canvas::show(ui, doc, &cx);
-    app.apply_canvas_out(out);
+    nav_bar(app, ui);
+    // Document tabs (not in presentation), then one canvas or the split panes.
+    if app.shell.screen != crate::shell::Screen::Presentation {
+        crate::shell::tabs::tab_bar(app, ui);
+        if app.docs.is_empty() {
+            return;
+        }
+    }
+    crate::shell::split::show(app, ui);
 }
 
 /// Help > Keyboard Shortcuts, Help > About, Document Properties.

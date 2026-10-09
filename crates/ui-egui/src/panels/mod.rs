@@ -3,6 +3,7 @@
 //! default layout; Window menu entries and shortcuts come from the same row.
 
 pub mod bookmarks;
+pub mod file_access;
 pub mod markups_list;
 pub mod measurements;
 pub mod properties;
@@ -34,6 +35,7 @@ pub struct PanelDef {
 pub static PANELS: &[&PanelDef] = &[
     &thumbnails::PANEL,
     &bookmarks::PANEL,
+    &file_access::PANEL,
     &properties::PANEL,
     &toolchest::PANEL,
     &measurements::PANEL,

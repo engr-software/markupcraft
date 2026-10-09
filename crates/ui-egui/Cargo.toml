@@ -19,7 +19,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 egui = { workspace = true }
 egui_extras = { workspace = true }
-egui_dock = { workspace = true }
+egui_dock = { workspace = true, features = ["serde"] }
 eframe = { workspace = true, features = ["default_fonts", "wgpu", "accesskit"] }
 log = { workspace = true }
 

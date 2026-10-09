@@ -43,6 +43,76 @@ pub const MAX_ZOOM: f32 = 64.0;
 pub enum PageMode {
     Single,
     Continuous,
+    /// Two pages at a time, side by side (Ctrl+6).
+    SideBySide,
+    /// Every page, two to a row (Ctrl+7).
+    ContinuousSideBySide,
+}
+
+impl PageMode {
+    /// Pages sit two to a row.
+    pub fn two_up(self) -> bool {
+        matches!(self, PageMode::SideBySide | PageMode::ContinuousSideBySide)
+    }
+
+    /// Every page is laid out (else only the current page or spread).
+    pub fn continuous(self) -> bool {
+        matches!(self, PageMode::Continuous | PageMode::ContinuousSideBySide)
+    }
+}
+
+/// How the view behaves, from Preferences (set by the shell every frame).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ViewOpts {
+    /// The wheel zooms (else scrolls) in Single Page / Side by Side.
+    pub wheel_zooms_single: bool,
+    /// The wheel zooms (else scrolls) in the continuous modes.
+    pub wheel_zooms_continuous: bool,
+    /// Wheel up zooms out.
+    pub reverse_wheel: bool,
+    /// Zoom per wheel notch (1 = Revu's default step).
+    pub wheel_sensitivity: f32,
+    /// Largest zoom (1 = 100 %).
+    pub max_zoom: f32,
+    /// In Fit Width, panning moves up and down only.
+    pub lock_fit_width: bool,
+    /// Fade the page content by this fraction (0 = off), so markups stand out.
+    pub dim: f32,
+}
+
+impl Default for ViewOpts {
+    fn default() -> Self {
+        Self {
+            wheel_zooms_single: true,
+            wheel_zooms_continuous: true,
+            reverse_wheel: false,
+            wheel_sensitivity: 1.0,
+            max_zoom: MAX_ZOOM,
+            lock_fit_width: false,
+            dim: 0.0,
+        }
+    }
+}
+
+/// Map a point of the unrotated page (normalized `u, v`) to the displayed page rotated `rot`
+/// degrees clockwise.
+pub fn rot_uv(rot: u16, u: f32, v: f32) -> (f32, f32) {
+    match rot % 360 {
+        90 => (1.0 - v, u),
+        180 => (1.0 - u, 1.0 - v),
+        270 => (v, 1.0 - u),
+        _ => (u, v),
+    }
+}
+
+/// The inverse of [`rot_uv`].
+pub fn unrot_uv(rot: u16, x: f32, y: f32) -> (f32, f32) {
+    match rot % 360 {
+        90 => (y, 1.0 - x),
+        180 => (1.0 - x, 1.0 - y),
+        270 => (1.0 - y, x),
+        _ => (x, y),
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -89,6 +159,13 @@ pub struct DocView {
     pub pointer: Option<(usize, Point)>,
     /// Visible renders still missing (for the headless screenshot and tests).
     pub missing: usize,
+    /// View rotation, clockwise degrees (View > Rotate View; the file is unchanged).
+    pub rotation: u16,
+    /// Side by Side modes: the first page sits alone (a cover).
+    pub cover: bool,
+    pub opts: ViewOpts,
+    /// Zoom tool: where a zoom-box drag started (screen).
+    pub zoom_box: Option<Pos2>,
 }
 
 impl Default for DocView {
@@ -115,6 +192,10 @@ impl Default for DocView {
             context: None,
             pointer: None,
             missing: 1,
+            rotation: 0,
+            cover: false,
+            opts: ViewOpts::default(),
+            zoom_box: None,
         }
     }
 }
@@ -134,27 +215,97 @@ impl DocView {
         self.last_queue.clear();
     }
 
-    pub fn page_size(&self, g: &PageGeom) -> Vec2 {
-        vec2(g.width, g.height) * self.zoom * PT
+    /// The page's displayed size in points with the view rotation applied.
+    fn dims(&self, g: &PageGeom) -> (f32, f32) {
+        if self.rotation % 180 == 90 {
+            (g.height, g.width)
+        } else {
+            (g.width, g.height)
+        }
     }
 
-    /// Page rects in content space (`None` for pages not shown in single-page mode).
+    pub fn page_size(&self, g: &PageGeom) -> Vec2 {
+        let (w, h) = self.dims(g);
+        vec2(w, h) * self.zoom * PT
+    }
+
+    /// The page geometry as displayed: the view rotation added to the page's own.
+    pub fn view_geom(&self, g: &PageGeom) -> PageGeom {
+        let mut v = g.clone();
+        if !self.rotation.is_multiple_of(360) {
+            v.rotation = (g.rotation + self.rotation) % 360;
+            (v.width, v.height) = self.dims(g);
+        }
+        v
+    }
+
+    /// Rows of pages as laid out: (first page, how many), one or two to a row.
+    pub fn rows(&self, n: usize) -> Vec<(usize, usize)> {
+        if !self.mode.two_up() {
+            return (0..n).map(|i| (i, 1)).collect();
+        }
+        let mut out = Vec::with_capacity(n / 2 + 1);
+        let mut i = 0;
+        if self.cover && n > 0 {
+            out.push((0, 1));
+            i = 1;
+        }
+        while i < n {
+            let len = if i + 1 < n { 2 } else { 1 };
+            out.push((i, len));
+            i += len;
+        }
+        out
+    }
+
+    /// The row holding the current page.
+    fn current_row(&self, n: usize) -> (usize, usize) {
+        self.rows(n)
+            .into_iter()
+            .find(|(f, l)| (*f..f + l).contains(&self.current))
+            .unwrap_or((self.current, 1))
+    }
+
+    /// Width (points, unzoomed) and height of a row.
+    fn row_dims(&self, pages: &[PageGeom], (first, len): (usize, usize)) -> (f32, f32) {
+        pages.iter().skip(first).take(len).fold((0.0, 0.0), |(w, h), g| {
+            let (gw, gh) = self.dims(g);
+            (w + gw, f32::max(h, gh))
+        })
+    }
+
+    /// Page rects in content space (`None` for pages not shown in the paged modes).
     fn layout(&self, pages: &[PageGeom]) -> (Vec<Option<Rect>>, Vec2) {
         let vw = self.viewport.width().max(100.0);
-        let max_w = pages.iter().map(|g| self.page_size(g).x).fold(0.0, f32::max);
+        let current = self.current_row(pages.len());
+        let rows: Vec<(usize, usize)> = self
+            .rows(pages.len())
+            .into_iter()
+            .filter(|r| self.mode.continuous() || *r == current)
+            .collect();
+        let row_w = |r: (usize, usize)| {
+            let (w, _) = self.row_dims(pages, r);
+            w * self.zoom * PT + GAP * r.1.saturating_sub(1) as f32
+        };
+        let max_w = rows.iter().map(|r| row_w(*r)).fold(0.0, f32::max);
         let content_w = vw.max(max_w + 2.0 * MARGIN);
-        let mut rects = Vec::with_capacity(pages.len());
+        let mut rects = vec![None; pages.len()];
         let mut y = MARGIN;
-        for (i, g) in pages.iter().enumerate() {
-            if self.mode == PageMode::Single && i != self.current {
-                rects.push(None);
-                continue;
+        for r in rows {
+            let mut x = (content_w - row_w(r)) / 2.0;
+            let mut h = 0.0f32;
+            for i in r.0..r.0 + r.1 {
+                let (Some(g), Some(slot)) = (pages.get(i), rects.get_mut(i)) else {
+                    continue;
+                };
+                let s = self.page_size(g);
+                *slot = Some(Rect::from_min_size(pos2(x, y), s));
+                x += s.x + GAP;
+                h = h.max(s.y);
             }
-            let s = self.page_size(g);
-            rects.push(Some(Rect::from_min_size(pos2((content_w - s.x) / 2.0, y), s)));
-            y += s.y + GAP;
+            y += h + GAP;
         }
-        (rects, vec2(content_w, y - GAP + MARGIN))
+        (rects, vec2(content_w, (y - GAP + MARGIN).max(2.0 * MARGIN)))
     }
 
     fn clamp_offset(&mut self, content: Vec2) {
@@ -173,22 +324,31 @@ impl DocView {
 
     fn fit_zoom(&mut self, pages: &[PageGeom]) {
         let (vw, vh) = (self.viewport.width().max(100.0), self.viewport.height().max(100.0));
-        let page = pages.get(self.current).or(pages.first());
-        let Some(g) = page else { return };
+        if pages.is_empty() {
+            return;
+        }
+        let row = self.current_row(pages.len());
+        let gaps = |r: (usize, usize)| GAP * r.1.saturating_sub(1) as f32;
         let z = match self.fit {
             Fit::None => return,
             Fit::Width => {
-                let w = if self.mode == PageMode::Single {
-                    g.width
+                let (w, r) = if self.mode.continuous() {
+                    self.rows(pages.len())
+                        .into_iter()
+                        .map(|r| (self.row_dims(pages, r).0, r))
+                        .fold((1.0, row), |a, b| if b.0 > a.0 { b } else { a })
                 } else {
-                    pages.iter().map(|p| p.width).fold(1.0, f32::max)
+                    (self.row_dims(pages, row).0, row)
                 };
-                (vw - 2.0 * MARGIN) / (w * PT)
+                (vw - 2.0 * MARGIN - gaps(r)) / (w.max(1.0) * PT)
             }
-            Fit::Page => ((vw - 2.0 * MARGIN) / (g.width * PT)).min((vh - 2.0 * MARGIN) / (g.height * PT)),
+            Fit::Page => {
+                let (w, h) = self.row_dims(pages, row);
+                ((vw - 2.0 * MARGIN - gaps(row)) / (w.max(1.0) * PT)).min((vh - 2.0 * MARGIN) / (h.max(1.0) * PT))
+            }
         };
         if z.is_finite() {
-            self.zoom = z.clamp(MIN_ZOOM, MAX_ZOOM);
+            self.zoom = z.clamp(MIN_ZOOM, self.max_zoom());
         }
     }
 
@@ -205,7 +365,7 @@ impl DocView {
     /// Zoom to `zoom`, keeping the page point under `anchor` (screen) in place.
     pub fn zoom_to(&mut self, zoom: f32, anchor: Option<Pos2>, pages: &[PageGeom], now: f64) {
         let zoom = if zoom.is_finite() {
-            zoom.clamp(MIN_ZOOM, MAX_ZOOM)
+            zoom.clamp(MIN_ZOOM, self.max_zoom())
         } else {
             self.zoom
         };
@@ -262,14 +422,14 @@ impl DocView {
 
     /// Bring a user-space point of `page` to the middle of the view.
     pub fn center_on(&mut self, page: usize, p: Point, pages: &[PageGeom]) {
-        if self.mode == PageMode::Single {
+        if !self.mode.continuous() {
             self.current = page;
         }
         let (rects, content) = self.layout(pages);
         let (Some(Some(r)), Some(g)) = (rects.get(page), pages.get(page)) else {
             return;
         };
-        let v = g.user_to_view(p.x as f32, p.y as f32);
+        let v = self.view_geom(g).user_to_view(p.x as f32, p.y as f32);
         let at = r.min + vec2(v[0], v[1]) * self.zoom * PT;
         self.offset = at.to_vec2() - self.viewport.size() / 2.0;
         self.clamp_offset(content);
@@ -282,8 +442,74 @@ impl DocView {
         let (rects, _) = self.layout(pages);
         let r = (*rects.get(page)?)?;
         let g = pages.get(page)?;
-        let v = g.user_to_view(p.x as f32, p.y as f32);
+        let v = self.view_geom(g).user_to_view(p.x as f32, p.y as f32);
         Some(self.viewport.min - self.offset + r.min.to_vec2() + vec2(v[0], v[1]) * self.zoom * PT)
+    }
+
+    /// Show exactly this place (view history, synchronised splits): no pending scroll.
+    pub fn place(&mut self, current: usize, zoom: f32, fit: Fit, offset: Vec2) {
+        self.current = current;
+        if zoom.is_finite() {
+            self.zoom = zoom.clamp(MIN_ZOOM, self.max_zoom());
+        }
+        self.fit = fit;
+        self.offset = offset;
+        self.scroll_to = None;
+    }
+
+    /// The largest zoom allowed (Preferences > Document: maximum zoom).
+    pub fn max_zoom(&self) -> f32 {
+        if self.opts.max_zoom.is_finite() {
+            self.opts.max_zoom.clamp(MIN_ZOOM * 2.0, MAX_ZOOM)
+        } else {
+            MAX_ZOOM
+        }
+    }
+
+    /// The canvas area on screen in the last frame.
+    pub fn viewport(&self) -> Rect {
+        self.viewport
+    }
+
+    /// Fill the view with a screen rectangle (Zoom tool box).
+    pub fn zoom_to_rect(&mut self, r: Rect, pages: &[PageGeom], now: f64) {
+        let r = Rect::from_two_pos(r.min, r.max);
+        if r.width() < 4.0 || r.height() < 4.0 || !self.viewport.is_positive() {
+            return;
+        }
+        let factor = (self.viewport.width() / r.width()).min(self.viewport.height() / r.height());
+        self.zoom_to(self.zoom * factor, Some(r.center()), pages, now);
+        // The box centre stayed put; bring it to the middle.
+        self.offset += r.center() - self.viewport.center();
+        let (_, content) = self.layout(pages);
+        self.clamp_offset(content);
+    }
+
+    /// Lay out now (after a change made outside the frame, e.g. from a test or a sync).
+    pub fn relayout(&mut self, pages: &[PageGeom]) {
+        self.fit_zoom(pages);
+        let (rects, content) = self.layout(pages);
+        if let Some(p) = self.scroll_to.take()
+            && let Some(Some(r)) = rects.get(p)
+        {
+            self.offset = vec2(self.offset.x, r.top() - MARGIN);
+        }
+        self.clamp_offset(content);
+    }
+
+    /// The page and point (user space) at the middle of the view.
+    pub fn center_point(&self, pages: &[PageGeom]) -> Option<(usize, Point)> {
+        let (rects, _) = self.layout(pages);
+        let at = (self.viewport.size() / 2.0 + self.offset).to_pos2();
+        let (i, r) = rects
+            .iter()
+            .enumerate()
+            .filter_map(|(i, r)| r.map(|r| (i, r)))
+            .min_by(|(_, a), (_, b)| a.distance_to_pos(at).total_cmp(&b.distance_to_pos(at)))?;
+        let g = self.view_geom(pages.get(i)?);
+        let v = (at - r.min) / (self.zoom * PT);
+        let u = g.view_to_user(v.x, v.y);
+        Some((i, Point::new(f64::from(u[0]), f64::from(u[1]))))
     }
 
     /// Pull finished renders into textures.
@@ -370,12 +596,33 @@ fn uv(x: f32, y: f32, x1: f32, y1: f32) -> Rect {
 }
 
 /// Draw `texture` (a raster of the page, or part of it in normalized page coordinates `src`).
-fn paint_raster(p: &egui::Painter, page: Rect, tex: &TextureHandle, src: Rect) {
-    let dst = Rect::from_min_max(
-        page.min + src.min.to_vec2() * page.size(),
-        page.min + src.max.to_vec2() * page.size(),
-    );
-    p.image(tex.id(), dst, uv(0.0, 0.0, 1.0, 1.0), Color32::WHITE);
+/// `rot` is the view rotation: the raster is of the unrotated page.
+fn paint_raster(p: &egui::Painter, page: Rect, tex: &TextureHandle, src: Rect, rot: u16) {
+    if rot.is_multiple_of(360) {
+        let dst = Rect::from_min_max(
+            page.min + src.min.to_vec2() * page.size(),
+            page.min + src.max.to_vec2() * page.size(),
+        );
+        p.image(tex.id(), dst, uv(0.0, 0.0, 1.0, 1.0), Color32::WHITE);
+        return;
+    }
+    let mut mesh = egui::Mesh::with_texture(tex.id());
+    let corners = [
+        (src.min.x, src.min.y, 0.0, 0.0),
+        (src.max.x, src.min.y, 1.0, 0.0),
+        (src.max.x, src.max.y, 1.0, 1.0),
+        (src.min.x, src.max.y, 0.0, 1.0),
+    ];
+    for (u, v, tu, tv) in corners {
+        let (x, y) = rot_uv(rot, u, v);
+        mesh.vertices.push(egui::epaint::Vertex {
+            pos: page.min + vec2(x, y) * page.size(),
+            uv: pos2(tu, tv),
+            color: Color32::WHITE,
+        });
+    }
+    mesh.indices.extend_from_slice(&[0, 1, 2, 0, 2, 3]);
+    p.add(egui::Shape::mesh(mesh));
 }
 
 fn snap(r: Rect, ppp: f32) -> Rect {
@@ -444,34 +691,100 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
     let hovered = resp.hovered() || resp.dragged();
     let space = ui.input(|i| i.key_down(egui::Key::Space)) && !ui.ctx().egui_wants_keyboard_input();
     if hovered {
-        let (zoom_delta, scroll, pointer) =
-            ui.input(|i| (i.zoom_delta(), i.smooth_scroll_delta, i.pointer.hover_pos()));
-        if (zoom_delta - 1.0).abs() > 1e-4 {
-            view.zoom_by(zoom_delta, pointer, pages, now);
-        } else if scroll != Vec2::ZERO {
-            if cx.wheel_zooms && scroll.x.abs() < 0.5 {
-                view.zoom_by((scroll.y / 240.0).exp(), pointer, pages, now);
+        // The wheel zooms or scrolls by the mode's preference; Ctrl swaps the two (Revu).
+        // Read raw wheel events: egui turns Ctrl+wheel into a zoom factor of its own.
+        let (wheel, ctrl, shift, pinch, pointer) = ui.input(|i| {
+            let mut d = Vec2::ZERO;
+            for e in &i.events {
+                if let egui::Event::MouseWheel { unit, delta, .. } = e {
+                    d += match unit {
+                        egui::MouseWheelUnit::Point => *delta,
+                        egui::MouseWheelUnit::Line => *delta * 50.0,
+                        egui::MouseWheelUnit::Page => *delta * rect.height(),
+                    };
+                }
+            }
+            let pinch = i
+                .events
+                .iter()
+                .filter_map(|e| if let egui::Event::Zoom(z) = e { Some(*z) } else { None })
+                .product::<f32>();
+            (d, i.modifiers.command, i.modifiers.shift, pinch, i.pointer.hover_pos())
+        });
+        let mode_zooms = if view.mode.continuous() {
+            view.opts.wheel_zooms_continuous
+        } else {
+            view.opts.wheel_zooms_single
+        };
+        let zooms = (cx.wheel_zooms && mode_zooms) != ctrl;
+        if (pinch - 1.0).abs() > 1e-4 && pinch.is_finite() {
+            view.zoom_by(pinch, pointer, pages, now);
+        } else if wheel != Vec2::ZERO && wheel.is_finite() {
+            if zooms && wheel.x.abs() < 0.5 && !shift {
+                let dir = if view.opts.reverse_wheel { -1.0 } else { 1.0 };
+                let k = view.opts.wheel_sensitivity.clamp(0.1, 10.0);
+                view.zoom_by((dir * k * wheel.y / 240.0).exp(), pointer, pages, now);
             } else {
-                view.offset -= scroll;
-                view.fit = if view.fit == Fit::Page && view.mode == PageMode::Continuous {
-                    Fit::None
+                let mut d = if shift && wheel.x.abs() < 0.5 {
+                    vec2(wheel.y, 0.0)
                 } else {
-                    view.fit
+                    wheel
                 };
+                if view.fit == Fit::Width && view.opts.lock_fit_width {
+                    d.x = 0.0;
+                }
+                view.offset -= d;
+                if view.fit == Fit::Page && view.mode.continuous() {
+                    view.fit = Fit::None;
+                }
             }
         }
     }
+    let mut zoom_band: Option<Rect> = None;
+    let zoom_tool = cx.tool.id == "zoom";
+    let pan_tool = matches!(cx.tool.kind, ToolKind::Pan) && !zoom_tool;
     let panning = resp.dragged_by(egui::PointerButton::Middle)
-        || (resp.dragged_by(egui::PointerButton::Primary) && (space || matches!(cx.tool.kind, ToolKind::Pan)));
+        || (resp.dragged_by(egui::PointerButton::Primary) && (space || pan_tool));
     if panning {
-        view.offset -= resp.drag_delta();
+        let mut d = resp.drag_delta();
+        if view.fit == Fit::Width && view.opts.lock_fit_width {
+            d.x = 0.0;
+        }
+        view.offset -= d;
         ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
-    } else if (space || matches!(cx.tool.kind, ToolKind::Pan)) && hovered {
+    } else if (space || pan_tool) && hovered {
         ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
     }
-    if resp.double_clicked_by(egui::PointerButton::Middle) {
-        view.set_fit(Fit::Page);
-        view.fit_zoom(pages);
+    if resp.double_clicked_by(egui::PointerButton::Middle)
+        && let Some(at) = resp.interact_pointer_pos()
+    {
+        // Re-centre on the double-clicked point.
+        view.offset += at - rect.center();
+    }
+    if zoom_tool && !space {
+        // Zoom: click zooms in, Ctrl+click or right-click zooms out, a drag fills the view with
+        // the box.
+        let at = resp.interact_pointer_pos();
+        if hovered {
+            ui.ctx().set_cursor_icon(egui::CursorIcon::ZoomIn);
+        }
+        if resp.drag_started_by(egui::PointerButton::Primary) {
+            view.zoom_box = ui.input(|i| i.pointer.press_origin()).or(at);
+        }
+        if let (Some(a), Some(b)) = (view.zoom_box, ui.input(|i| i.pointer.latest_pos())) {
+            let r = Rect::from_two_pos(a, b);
+            zoom_band = Some(r);
+            if resp.drag_stopped() {
+                view.zoom_box = None;
+                view.zoom_to_rect(r, pages, now);
+            }
+        }
+        let ctrl = ui.input(|i| i.modifiers.command);
+        if resp.clicked_by(egui::PointerButton::Primary) {
+            view.zoom_by(if ctrl { 0.8 } else { 1.25 }, at, pages, now);
+        } else if resp.secondary_clicked() {
+            view.zoom_by(0.8, at, pages, now);
+        }
     }
 
     // ---- layout ------------------------------------------------------------------------
@@ -502,12 +815,12 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
             i,
             Xf {
                 rect: sr,
-                geom: g.clone(),
+                geom: view.view_geom(g),
                 k: view.zoom * PT,
             },
         ));
     }
-    if view.mode == PageMode::Continuous && best.0 >= 0.0 {
+    if view.mode.continuous() && best.0 >= 0.0 {
         view.current = best.1;
     }
 
@@ -544,7 +857,9 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
             );
             continue;
         }
-        let g = &xf.geom;
+        // The raster is of the unrotated page; the view rotation turns it on screen.
+        let Some(g) = pages.get(i) else { continue };
+        let rot = view.rotation;
         let longest = g.width.max(g.height) * scale;
         let tiled = longest > TILE_THRESHOLD;
         let (want_scale, want_tag) = if tiled {
@@ -555,7 +870,7 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
         };
         match view.pages.get(&i) {
             Some((ptag, tex)) => {
-                paint_raster(&painter, sr, tex, uv(0.0, 0.0, 1.0, 1.0));
+                paint_raster(&painter, sr, tex, uv(0.0, 0.0, 1.0, 1.0), rot);
                 if *ptag != want_tag && !(settling && !tiled) {
                     wanted.push(markupcraft_render::page_request(i, want_scale, want_tag));
                     if on_screen && !tiled {
@@ -580,8 +895,13 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
         if tiled && on_screen && !settling {
             let (dw, dh) = (device_pixels(g.width, scale), device_pixels(g.height, scale));
             let vis = sr.intersect(visible);
-            let f0 = (vis.min - sr.min) / sr.size();
-            let f1 = (vis.max - sr.min) / sr.size();
+            let a = (vis.min - sr.min) / sr.size();
+            let b = (vis.max - sr.min) / sr.size();
+            // The visible part in unrotated page fractions.
+            let (u0, v0) = unrot_uv(rot, a.x, a.y);
+            let (u1, v1) = unrot_uv(rot, b.x, b.y);
+            let f0 = vec2(u0.min(u1), v0.min(v1));
+            let f1 = vec2(u0.max(u1), v0.max(v1));
             let region = [
                 (f0.x.max(0.0) * dw as f32) as u32,
                 (f0.y.max(0.0) * dh as f32) as u32,
@@ -596,13 +916,18 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
                     (tl.y + tl.h) as f32 / dh as f32,
                 );
                 match view.tiles.get(&(i, tl.x / TILE, tl.y / TILE)) {
-                    Some((ttag, tex)) if *ttag == tag => paint_raster(&painter, sr, tex, src),
+                    Some((ttag, tex)) if *ttag == tag => paint_raster(&painter, sr, tex, src, rot),
                     _ => {
                         missing += 1;
                         wanted.push(markupcraft_render::tile_request(i, scale, tl, tag));
                     }
                 }
             }
+        }
+        if view.opts.dim > 0.0 {
+            // Dimmer: fade the page content toward white; markups are drawn after, unfaded.
+            let a = (view.opts.dim.clamp(0.0, 0.95) * 255.0) as u8;
+            painter.rect_filled(sr, CornerRadius::ZERO, Color32::from_white_alpha(a));
         }
         painter.rect_stroke(
             sr,
@@ -674,6 +999,11 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
             let m = view.preview.get(&m.id).unwrap_or(m);
             painter::paint_selection(&painter, xf, m, &t, editable(m));
         }
+    }
+
+    if let Some(r) = zoom_band {
+        painter.rect_filled(r, 0.0, t.select.gamma_multiply(0.12));
+        painter.rect_stroke(r, 0.0, Stroke::new(1.0, t.select), egui::StrokeKind::Middle);
     }
 
     // ---- pointer tools -----------------------------------------------------------------

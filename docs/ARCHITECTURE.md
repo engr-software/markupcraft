@@ -80,4 +80,13 @@ Measurements are ordinary annotations plus Revu keys:
   Recent Tools live for the session. The desktop app loads it; tests and the headless `shot`
   example use an in-memory chest.
 - File dialogs run on their own threads (`dialogs.rs`); the frame loop polls for answers.
+- The shell (`shell/`): bars and toolbars, full screen and presentation, view history, rotate
+  view and page layout modes (`canvas.rs` lays out one or two pages to a row), rulers and the
+  crosshair, the dimmer, split views (the second pane keeps its own `DocView` and renderer and
+  swaps them in to draw), document tabs, recent files and the last session
+  (`<config>/recent.json`), page dialogs. `AppState::run`, `enabled` and `checked` ask
+  `shell::run` / `enabled` / `checked` first, so shell commands are rows in the command table
+  plus an arm there. Preferences (`prefs_ui.rs`) edit the engine's `prefs` (per profile) plus
+  the interface preferences in `<config>/ui/<profile>.json` (`shell::UiPrefs`, including the
+  dock layout).
   `/PCArcs`, `/PCColumns`, `/PCColumnData`, `/PCStamp`, `/PCHatch`, `/PCLegend`, page `/PCSpaces`.
