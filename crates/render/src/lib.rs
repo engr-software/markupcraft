@@ -21,6 +21,7 @@
     clippy::unreachable
 )]
 
+pub mod snap;
 pub mod synthetic;
 pub mod text;
 

@@ -64,7 +64,7 @@ fn main() -> eframe::Result {
         "MarkupCraft",
         native,
         Box::new(move |_cc| {
-            let mut app = MarkupCraftApp::new();
+            let mut app = MarkupCraftApp::with_user_settings();
             for f in &files {
                 app.open_path(f);
             }

@@ -29,7 +29,7 @@ pub fn default_layout() -> DockState<Tab> {
     let mut center = NodeIndex::root();
     let bottom = slot_tabs(Slot::Bottom);
     if !bottom.is_empty() {
-        [center, _] = tree.split_below(center, 0.74, bottom);
+        [center, _] = tree.split_below(center, 0.7, bottom);
     }
     // egui_dock's fraction is the share of the first (left / upper) child.
     let left = slot_tabs(Slot::Left);
@@ -90,6 +90,13 @@ pub fn toggle_panel(dock: &mut DockState<Tab>, id: &'static str) {
         Slot::Right => tree.split_right(node.node, 0.78, tabs),
         Slot::Bottom => tree.split_below(node.node, 0.72, tabs),
     };
+}
+
+/// Bring an open panel to the front of its tab group.
+pub fn focus_panel(dock: &mut DockState<Tab>, id: &'static str) {
+    if let Some(p) = dock.find_tab(&Tab::Panel(id)) {
+        let _ = dock.set_active_tab(p);
+    }
 }
 
 /// Draws each dock tab.

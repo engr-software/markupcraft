@@ -49,7 +49,7 @@ fn drag(h: &mut Harness<'_, MarkupCraftApp>, from: Pos2, to: Pos2) {
 }
 
 fn square_center(h: &Harness<'_, MarkupCraftApp>) -> Point {
-    let m = h.state().state.doc().unwrap().session.doc.find(SQUARE).unwrap();
+    let m = h.state().state.doc().unwrap().session.doc().find(SQUARE).unwrap();
     Point::new((m.rect.x0 + m.rect.x1) / 2.0, (m.rect.y0 + m.rect.y1) / 2.0)
 }
 
@@ -62,7 +62,7 @@ fn click_selects_drag_moves_delete_and_undo() {
     press(&mut h, at, true);
     press(&mut h, at, false);
     h.run_steps(2);
-    assert_eq!(h.state().state.doc().unwrap().selection, vec![SQUARE.to_string()]);
+    assert_eq!(h.state().state.doc().unwrap().selection(), vec![SQUARE.to_string()]);
 
     // Drag 60 screen points to the right: the square follows in page units.
     let k = {
@@ -76,11 +76,11 @@ fn click_selects_drag_moves_delete_and_undo() {
 
     h.key_press(Key::Delete);
     h.run_steps(2);
-    assert!(h.state().state.doc().unwrap().session.doc.find(SQUARE).is_none());
+    assert!(h.state().state.doc().unwrap().session.doc().find(SQUARE).is_none());
 
     h.key_press_modifiers(Modifiers::COMMAND, Key::Z);
     h.run_steps(2);
-    assert!(h.state().state.doc().unwrap().session.doc.find(SQUARE).is_some());
+    assert!(h.state().state.doc().unwrap().session.doc().find(SQUARE).is_some());
     h.key_press_modifiers(Modifiers::COMMAND, Key::Z);
     h.run_steps(2);
     assert!((square_center(&h).x - 950.0).abs() < 0.5, "move undone");
@@ -92,23 +92,23 @@ fn rectangle_tool_draws_and_returns_to_select() {
     h.key_press(Key::R);
     h.run_steps(2);
     assert_eq!(h.state().state.tool, "rectangle");
-    let before = h.state().state.doc().unwrap().session.doc.markups.len();
+    let before = h.state().state.doc().unwrap().session.doc().markups.len();
     let a = screen_of(&h, Point::new(150.0, 400.0));
     let b = screen_of(&h, Point::new(250.0, 330.0));
     drag(&mut h, a, b);
     let s = &h.state().state;
     let d = s.doc().unwrap();
-    assert_eq!(d.session.doc.markups.len(), before + 1);
-    let m = d.session.doc.markups.last().unwrap();
+    assert_eq!(d.session.doc().markups.len(), before + 1);
+    let m = d.session.doc().markups.last().unwrap();
     assert_eq!(m.kind, markupcraft_model::Kind::Rectangle);
     assert!(
         (m.rect.x0 - 150.0).abs() < 1.0 && (m.rect.y1 - 400.0).abs() < 1.0,
         "{:?}",
         m.rect
     );
-    assert_eq!(d.selection, vec![m.id.clone()]);
+    assert_eq!(d.selection(), vec![m.id.clone()]);
     assert_eq!(s.tool, "select");
-    assert!(d.session.modified);
+    assert!(d.session.is_dirty());
 }
 
 #[test]
@@ -118,7 +118,7 @@ fn box_select_and_view_commands() {
     let a = screen_of(&h, Point::new(690.0, 720.0));
     let b = screen_of(&h, Point::new(1010.0, 550.0));
     drag(&mut h, a, b);
-    let mut sel = h.state().state.doc().unwrap().selection.clone();
+    let mut sel = h.state().state.doc().unwrap().selection().to_vec();
     sel.sort();
     assert_eq!(sel, vec!["SAMPLECIRCLEAAAA".to_string(), SQUARE.to_string()]);
 

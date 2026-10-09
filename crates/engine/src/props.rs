@@ -3,7 +3,7 @@
 
 use std::collections::BTreeMap;
 
-use markupcraft_model::{Color, Kind, Markup, Scale};
+use markupcraft_model::{Color, CountSymbol, Kind, Markup, Point, Scale};
 use markupcraft_revu::kinds;
 
 use crate::{Result, invalid};
@@ -173,6 +173,17 @@ pub struct MarkupPatch {
     pub scale: Option<Scale>,
     /// custom column id -> value ("" removes the value)
     pub columns: BTreeMap<String, String>,
+    pub underline: Option<bool>,
+    /// 0 left, 1 center, 2 right
+    pub align: Option<i32>,
+    pub count_symbol: Option<CountSymbol>,
+    pub symbol_scale: Option<f64>,
+    /// Show Segment Values
+    pub segment_values: Option<bool>,
+    /// a moved measurement caption (`Some(None)` puts it back)
+    pub caption_offset: Option<Option<Point>>,
+    /// Note icon (`/Name`)
+    pub icon: Option<String>,
 }
 
 fn unit_range(name: &str, v: Option<f64>) -> Result<()> {
@@ -253,6 +264,24 @@ impl MarkupPatch {
         ] {
             text_len(name, v)?;
         }
+        if let Some(a) = self.align
+            && !(0..=2).contains(&a)
+        {
+            return Err(invalid(format!(
+                "align must be 0 (left), 1 (center) or 2 (right) (got {a})"
+            )));
+        }
+        if let Some(v) = self.symbol_scale
+            && !(0.05..=50.0).contains(&v)
+        {
+            return Err(invalid(format!("symbol scale must be 0.05 to 50 (got {v})")));
+        }
+        if let Some(Some(o)) = self.caption_offset
+            && !(o.x.is_finite() && o.y.is_finite() && o.x.abs() <= 1.0e6 && o.y.abs() <= 1.0e6)
+        {
+            return Err(invalid("the caption offset must be finite numbers"));
+        }
+        text_len("icon", &self.icon)?;
         for (k, v) in &self.columns {
             if k.is_empty() || k.len() > 256 || v.len() > MAX_TEXT {
                 return Err(invalid(
@@ -351,6 +380,27 @@ impl MarkupPatch {
             } else {
                 m.column_data.insert(k.clone(), v.clone());
             }
+        }
+        if let Some(v) = self.underline {
+            m.text.underline = v;
+        }
+        if let Some(v) = self.align {
+            m.text.align = v;
+        }
+        if let Some(v) = self.count_symbol {
+            m.count_symbol = v;
+        }
+        if let Some(v) = self.symbol_scale {
+            m.symbol_scale = v;
+        }
+        if let Some(v) = self.segment_values {
+            m.segment_values = v;
+        }
+        if let Some(v) = self.caption_offset {
+            m.caption_offset = v;
+        }
+        if let Some(v) = &self.icon {
+            m.icon = v.clone();
         }
         if self.locked == Some(true) {
             m.set_locked(true);

@@ -1,16 +1,26 @@
-//! Markups List (Alt+L): every markup in the document as a table. Click a row to select the
-//! markup and bring it into view; Shift/Ctrl+click adds to the selection; click a header to
-//! sort. Filters, grouping, custom columns and export arrive with the Markups List wave.
+//! Markups List (Alt+L): every markup as a table on `markupcraft_model::MarkupTable`. Columns
+//! (standard and custom) can be shown or hidden; click a header to sort, right-click it to
+//! group by it, filter its values or hide it. Groups show subtotals; the last row is the grand
+//! total per unit. Status is a menu, Checkmark a box, text cells edit on double-click. Click a
+//! row to select its markup and bring it into view; right-click for its menu. Export writes
+//! the list as CSV, a totals summary or XML; Manage Columns edits the custom columns.
+
+use std::collections::BTreeSet;
+use std::path::Path;
 
 use egui::{Color32, RichText, Sense};
 use egui_extras::{Column, TableBuilder};
-use markupcraft_model::Markup;
+use markupcraft_model::csv::{group_name, table_csv, table_xml, totals_csv};
+use markupcraft_model::{
+    CellEdit, ColumnType, CustomColumn, Group, MarkupTable, Scope, View, default_visible_columns, make_column_id,
+};
 
 use super::{PanelDef, Slot};
-use crate::AppState;
-use crate::actions::markup_bbox;
+use crate::actions::{self, markup_bbox};
 use crate::commands::alt;
+use crate::dialogs::{self, Purpose};
 use crate::theme::{Tokens, color32};
+use crate::{AppState, DocTab};
 
 pub static PANEL: PanelDef = PanelDef {
     id: "markups",
@@ -21,172 +31,745 @@ pub static PANEL: PanelDef = PanelDef {
     ui,
 };
 
-/// Header, width, cell text.
-type ColumnDef = (&'static str, f32, fn(&Markup) -> String);
+/// The list's view and editing state (kept across frames, shared by every document).
+pub struct ListState {
+    pub view: View,
+    /// A cell being typed into: markup id, column id, text.
+    pub editing: Option<(String, String, String)>,
+    /// Manage Columns: the custom columns being edited.
+    pub columns_editor: Option<Vec<CustomColumn>>,
+}
 
-/// The columns, in order.
-const COLUMNS: &[ColumnDef] = &[
-    ("Subject", 140.0, |m| m.subject.clone()),
-    ("Page", 44.0, |m| format!("{}", m.page + 1)),
-    ("Label", 110.0, |m| m.label.clone()),
-    ("Measurement", 110.0, |m| m.quantity_text()),
-    ("Type", 90.0, |m| m.kind.name().to_string()),
-    ("Author", 100.0, |m| m.author.clone()),
-    ("Date", 130.0, |m| pretty_date(&m.modified)),
-    ("Color", 50.0, |m| m.color.hex()),
-    ("Status", 80.0, |m| m.status.clone()),
-    ("Layer", 90.0, |m| m.layer.clone()),
-    ("Comments", 220.0, |m| {
-        m.contents.lines().next().unwrap_or_default().to_string()
-    }),
-];
-
-/// `D:20261009153000Z` -> `2026-10-09 15:30`.
-fn pretty_date(d: &str) -> String {
-    let s = d.strip_prefix("D:").unwrap_or(d);
-    let digits: String = s.chars().take_while(char::is_ascii_digit).collect();
-    match digits.len() {
-        n if n >= 12 => format!(
-            "{}-{}-{} {}:{}",
-            &digits[0..4],
-            &digits[4..6],
-            &digits[6..8],
-            &digits[8..10],
-            &digits[10..12]
-        ),
-        n if n >= 8 => format!("{}-{}-{}", &digits[0..4], &digits[4..6], &digits[6..8]),
-        _ => d.to_string(),
+impl Default for ListState {
+    fn default() -> Self {
+        Self {
+            view: View {
+                visible: default_visible_columns(),
+                ..Default::default()
+            },
+            editing: None,
+            columns_editor: None,
+        }
     }
+}
+
+/// One line of the list as drawn.
+enum Line<'a> {
+    Group(&'a Group),
+    Markup(usize),
+    Total(&'a Group),
+}
+
+fn flatten<'a>(g: &'a Group, out: &mut Vec<Line<'a>>) {
+    if g.column.is_some() {
+        out.push(Line::Group(g));
+    }
+    for r in &g.rows {
+        out.push(Line::Markup(*r));
+    }
+    for c in &g.children {
+        flatten(c, out);
+    }
+}
+
+/// The view with this frame's scope.
+fn scoped(view: &View, doc: &DocTab) -> View {
+    let mut v = view.clone();
+    v.scope = match &view.scope {
+        Scope::CurrentPage(_) => Scope::CurrentPage(doc.view.current),
+        Scope::Selected(_) => {
+            let sel = doc.selection();
+            Scope::Selected(
+                doc.session
+                    .doc()
+                    .markups
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, m)| sel.contains(&m.id))
+                    .map(|(i, _)| i)
+                    .collect(),
+            )
+        }
+        Scope::AllPages => Scope::AllPages,
+    };
+    v
+}
+
+/// What a click on the list asks for.
+enum Act {
+    Select(usize, bool),
+    Sort(String),
+    GroupBy(String),
+    Hide(String),
+    Filter(String, String, bool),
+    ClearFilter(String),
+    SetCell(String, String, String),
+    StartEdit(String, String, String),
+    Command(&'static str),
 }
 
 fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
-    let (sort_col, ascending) = app.list_sort;
-    let Some(doc) = app.doc_mut() else {
+    let Some(doc) = app.docs.get_mut(app.active) else {
         super::empty(ui, "No document open.");
         return;
     };
-    let markups = &doc.session.doc.markups;
-    let mut order: Vec<usize> = (0..markups.len()).collect();
-    if let Some((_, _, cell)) = COLUMNS.get(sort_col) {
-        order.sort_by(|a, b| {
-            let (ma, mb) = (&markups[*a], &markups[*b]);
-            let o = if sort_col == 1 {
-                ma.page.cmp(&mb.page)
-            } else {
-                cell(ma).to_lowercase().cmp(&cell(mb).to_lowercase())
-            };
-            if ascending { o } else { o.reverse() }
-        });
-    }
+    let list = &mut app.list;
+    let mut acts: Vec<Act> = Vec::new();
+    let mut export: Option<Purpose> = None;
+
+    // ---- toolbar ------------------------------------------------------------------------
     ui.horizontal(|ui| {
-        ui.label(
-            RichText::new(format!("{} markups", markups.len()))
-                .color(t.text_muted)
-                .size(11.0),
+        ui.add(
+            egui::TextEdit::singleline(&mut list.view.search)
+                .hint_text("Search")
+                .desired_width(160.0),
         );
-        if !doc.selection.is_empty() {
-            ui.label(
-                RichText::new(format!("{} selected", doc.selection.len()))
-                    .color(t.text_muted)
-                    .size(11.0),
-            );
-        }
-    });
-    let mut clicked: Option<usize> = None;
-    let mut new_sort = None;
-    let add = ui.input(|i| i.modifiers.shift || i.modifiers.command);
-    let selection = &doc.selection;
-    TableBuilder::new(ui)
-        .striped(true)
-        .resizable(true)
-        .sense(Sense::click())
-        .auto_shrink([false, false])
-        .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
-        .columns(
-            Column::initial(100.0).at_least(30.0).clip(true),
-            COLUMNS.len().saturating_sub(1),
-        )
-        .column(Column::remainder().at_least(60.0).clip(true))
-        .header(22.0, |mut row| {
-            for (i, (name, _, _)) in COLUMNS.iter().enumerate() {
-                row.col(|ui| {
-                    let arrow = if i == sort_col {
-                        if ascending { " ^" } else { " v" }
-                    } else {
-                        ""
-                    };
-                    if ui
-                        .add(egui::Button::new(RichText::new(format!("{name}{arrow}")).strong()).frame(false))
-                        .clicked()
-                    {
-                        new_sort = Some(if i == sort_col { (i, !ascending) } else { (i, true) });
-                    }
-                });
-            }
-        })
-        .body(|body| {
-            body.rows(20.0, order.len(), |mut row| {
-                let Some(m) = order.get(row.index()).and_then(|i| markups.get(*i)) else {
-                    return;
-                };
-                row.set_selected(selection.contains(&m.id));
-                for (ci, (_, _, cell)) in COLUMNS.iter().enumerate() {
-                    row.col(|ui| {
-                        if ci == 7 {
-                            let (r, _) = ui.allocate_exact_size(egui::vec2(14.0, 14.0), Sense::hover());
-                            ui.painter().rect_filled(r, 2.0, color32(&m.color, 1.0));
-                            ui.painter().rect_stroke(
-                                r,
-                                2.0,
-                                egui::Stroke::new(1.0, Color32::from_black_alpha(80)),
-                                egui::StrokeKind::Inside,
-                            );
-                        } else {
-                            ui.label(cell(m));
-                        }
-                    });
+        let scope_name = match list.view.scope {
+            Scope::AllPages => "All Pages",
+            Scope::CurrentPage(_) => "Current Page",
+            Scope::Selected(_) => "Selected",
+        };
+        egui::ComboBox::from_id_salt("list-scope")
+            .selected_text(scope_name)
+            .show_ui(ui, |ui| {
+                if ui.selectable_label(scope_name == "All Pages", "All Pages").clicked() {
+                    list.view.scope = Scope::AllPages;
                 }
-                if row.response().clicked() {
-                    clicked = order.get(row.index()).copied();
+                if ui
+                    .selectable_label(scope_name == "Current Page", "Current Page")
+                    .clicked()
+                {
+                    list.view.scope = Scope::CurrentPage(0);
+                }
+                if ui.selectable_label(scope_name == "Selected", "Selected").clicked() {
+                    list.view.scope = Scope::Selected(BTreeSet::new());
                 }
             });
-        });
-    if let Some(s) = new_sort {
-        app.list_sort = s;
-    }
-    let Some(doc) = app.doc_mut() else { return };
-    if let Some(i) = clicked
-        && let Some(m) = doc.session.doc.markups.get(i)
-    {
-        let id = m.id.clone();
-        if add {
-            if let Some(k) = doc.selection.iter().position(|x| *x == id) {
-                doc.selection.remove(k);
-            } else {
-                doc.selection.push(id);
+        let table = MarkupTable::new(doc.session.doc());
+        let header_of = |id: &str| {
+            table
+                .column_index(id)
+                .and_then(|i| table.columns().get(i))
+                .map_or(id.to_string(), |c| c.header.clone())
+        };
+        let grouped = list
+            .view
+            .group_by
+            .first()
+            .map(|g| header_of(g))
+            .unwrap_or("None".into());
+        egui::ComboBox::from_id_salt("list-group")
+            .selected_text(format!("Group: {grouped}"))
+            .show_ui(ui, |ui| {
+                if ui.selectable_label(list.view.group_by.is_empty(), "None").clicked() {
+                    list.view.group_by.clear();
+                }
+                for c in table.columns() {
+                    if ui
+                        .selectable_label(list.view.group_by.first() == Some(&c.id), &c.header)
+                        .clicked()
+                    {
+                        list.view.group_by = vec![c.id.clone()];
+                    }
+                }
+            });
+        ui.menu_button("Columns", |ui| {
+            egui::ScrollArea::vertical().max_height(300.0).show(ui, |ui| {
+                for c in table.columns() {
+                    let mut on = list.view.visible.contains(&c.id);
+                    if ui.checkbox(&mut on, &c.header).changed() {
+                        if on {
+                            list.view.visible.push(c.id.clone());
+                        } else {
+                            list.view.visible.retain(|v| *v != c.id);
+                        }
+                    }
+                }
+            });
+            ui.separator();
+            if ui.button("Manage Columns...").clicked() {
+                list.columns_editor = Some(doc.session.doc().columns.clone());
+                ui.close();
             }
+            if ui.button("Reset Columns").clicked() {
+                list.view.visible = default_visible_columns();
+                ui.close();
+            }
+        });
+        if !list.view.filters.is_empty() {
+            let n = list.view.filters.len();
+            if ui
+                .button(format!("Clear {}", actions::plural(n, "filter")))
+                .on_hover_text("Show every markup again")
+                .clicked()
+            {
+                list.view.filters.clear();
+            }
+        }
+        ui.menu_button("Export", |ui| {
+            if ui.button("Markups (CSV)...").clicked() {
+                export = Some(Purpose::ExportCsv);
+                ui.close();
+            }
+            if ui.button("Totals Summary (CSV)...").clicked() {
+                export = Some(Purpose::ExportTotals);
+                ui.close();
+            }
+            if ui.button("Summary (XML)...").clicked() {
+                export = Some(Purpose::ExportXml);
+                ui.close();
+            }
+        });
+    });
+
+    // ---- the table ----------------------------------------------------------------------
+    let view = scoped(&list.view, doc);
+    let table = MarkupTable::new(doc.session.doc());
+    let root = table.build(&view);
+    let cols: Vec<usize> = view.visible.iter().filter_map(|id| table.column_index(id)).collect();
+    let mut lines = Vec::new();
+    flatten(&root, &mut lines);
+    lines.push(Line::Total(&root));
+    let selection = doc.selection().to_vec();
+    let add = ui.input(|i| i.modifiers.shift || i.modifiers.command);
+    let markups = &doc.session.doc().markups;
+    let editing = list.editing.clone();
+    // The grand total stays in sight under the table.
+    let footer = 24.0;
+    let room = (ui.available_height() - footer - 28.0).max(40.0);
+    let summary: Vec<String> = cols
+        .iter()
+        .filter_map(|&c| {
+            let v = table.totals_text(c, &root.totals);
+            let h = table.columns().get(c).map(|col| col.header.clone())?;
+            (!v.is_empty()).then(|| format!("{h}: {v}"))
+        })
+        .collect();
+    let full = ui.available_rect_before_wrap();
+    let table_rect = egui::Rect::from_min_max(full.min, egui::pos2(full.max.x, (full.max.y - footer).max(full.min.y)));
+    let footer_rect = egui::Rect::from_min_max(egui::pos2(full.min.x, table_rect.max.y), full.max);
+    ui.scope_builder(egui::UiBuilder::new().max_rect(table_rect), |ui| {
+        let mut builder = TableBuilder::new(ui)
+            .max_scroll_height(room)
+            .min_scrolled_height(0.0)
+            .striped(true)
+            .resizable(true)
+            .sense(Sense::click())
+            .auto_shrink([false, true])
+            .cell_layout(egui::Layout::left_to_right(egui::Align::Center));
+        for (k, &c) in cols.iter().enumerate() {
+            let w = table.columns().get(c).map_or(100.0, |col| col.width as f32);
+            builder = if k + 1 == cols.len() {
+                builder.column(Column::remainder().at_least(60.0).clip(true))
+            } else {
+                builder.column(Column::initial(w).at_least(30.0).clip(true))
+            };
+        }
+        if cols.is_empty() {
+            ui.label("No columns are shown: pick some from Columns.");
+            return;
+        }
+        builder
+            .header(22.0, |mut row| {
+                for &c in &cols {
+                    let Some(col) = table.columns().get(c) else { continue };
+                    row.col(|ui| {
+                        let arrow = if view.sort_column == col.id {
+                            if view.sort_descending { " v" } else { " ^" }
+                        } else {
+                            ""
+                        };
+                        let filtered = view.filters.contains_key(&col.id);
+                        let mut text =
+                            RichText::new(format!("{}{arrow}{}", col.header, if filtered { " *" } else { "" }))
+                                .strong();
+                        if filtered {
+                            text = text.color(t.accent_text);
+                        }
+                        let r = ui.add(egui::Button::new(text).frame(false));
+                        if r.clicked() {
+                            acts.push(Act::Sort(col.id.clone()));
+                        }
+                        r.context_menu(|ui| {
+                            if ui.button("Group by This Column").clicked() {
+                                acts.push(Act::GroupBy(col.id.clone()));
+                                ui.close();
+                            }
+                            if ui.button("Hide Column").clicked() {
+                                acts.push(Act::Hide(col.id.clone()));
+                                ui.close();
+                            }
+                            ui.menu_button("Filter", |ui| {
+                                let allowed = view.filters.get(&col.id);
+                                egui::ScrollArea::vertical().max_height(260.0).show(ui, |ui| {
+                                    for v in table.distinct_values(
+                                        c,
+                                        &View {
+                                            filters: Default::default(),
+                                            ..view.clone()
+                                        },
+                                    ) {
+                                        let mut on = allowed.is_none_or(|a| a.contains(&v));
+                                        let label = if v.is_empty() { "(blank)".to_string() } else { v.clone() };
+                                        if ui.checkbox(&mut on, label).changed() {
+                                            acts.push(Act::Filter(col.id.clone(), v.clone(), on));
+                                        }
+                                    }
+                                });
+                                if ui.button("Show All").clicked() {
+                                    acts.push(Act::ClearFilter(col.id.clone()));
+                                    ui.close();
+                                }
+                            });
+                        });
+                    });
+                }
+            })
+            .body(|body| {
+                body.rows(20.0, lines.len(), |mut row| {
+                    let Some(line) = lines.get(row.index()) else { return };
+                    match line {
+                        Line::Group(g) | Line::Total(g) => {
+                            let total = matches!(line, Line::Total(_));
+                            for (k, &c) in cols.iter().enumerate() {
+                                row.col(|ui| {
+                                    let v = table.totals_text(c, &g.totals);
+                                    let text = if k == 0 {
+                                        let name = if total {
+                                            format!("Total ({})", g.totals.count)
+                                        } else {
+                                            format!(
+                                                "{}{} ({})",
+                                                "  ".repeat(g.level),
+                                                group_name(&table, g),
+                                                g.totals.count
+                                            )
+                                        };
+                                        if v.is_empty() { name } else { format!("{name}  {v}") }
+                                    } else {
+                                        v
+                                    };
+                                    let rt = RichText::new(text).strong();
+                                    ui.label(if total { rt.color(t.accent_text) } else { rt });
+                                });
+                            }
+                        }
+                        Line::Markup(i) => {
+                            let Some(m) = markups.get(*i) else { return };
+                            row.set_selected(selection.contains(&m.id));
+                            for &c in &cols {
+                                let Some(col) = table.columns().get(c) else { continue };
+                                let cell = table.cell(*i, c);
+                                row.col(|ui| {
+                                    let editing_here = editing
+                                        .as_ref()
+                                        .is_some_and(|(id, cid, _)| *id == m.id && *cid == col.id);
+                                    if editing_here {
+                                        let mut text = editing.as_ref().map(|e| e.2.clone()).unwrap_or_default();
+                                        let r =
+                                            ui.add(egui::TextEdit::singleline(&mut text).desired_width(f32::INFINITY));
+                                        r.request_focus();
+                                        if r.lost_focus() {
+                                            acts.push(Act::SetCell(m.id.clone(), col.id.clone(), text));
+                                        } else {
+                                            acts.push(Act::StartEdit(m.id.clone(), col.id.clone(), text));
+                                        }
+                                        return;
+                                    }
+                                    match col.edit {
+                                        CellEdit::Check => {
+                                            let mut on = !cell.text.is_empty() && cell.text != "0";
+                                            if ui.checkbox(&mut on, "").changed() {
+                                                acts.push(Act::SetCell(
+                                                    m.id.clone(),
+                                                    col.id.clone(),
+                                                    if on { "1".into() } else { String::new() },
+                                                ));
+                                            }
+                                        }
+                                        CellEdit::Choice => {
+                                            let choices = table.choices(*i, c);
+                                            let shown = if cell.text.is_empty() { "-" } else { cell.text.as_str() };
+                                            let b = egui::Button::new(RichText::new(shown)).frame(false);
+                                            let r = ui.add(b).on_hover_text("Click to choose");
+                                            egui::Popup::menu(&r).show(|ui| {
+                                                for ch in choices {
+                                                    let label =
+                                                        if ch.is_empty() { "(none)".into() } else { ch.clone() };
+                                                    if ui.selectable_label(cell.text == ch, label).clicked() {
+                                                        acts.push(Act::SetCell(m.id.clone(), col.id.clone(), ch));
+                                                        ui.close();
+                                                    }
+                                                }
+                                            });
+                                        }
+                                        _ if col.id == "color" => {
+                                            let (r, _) = ui.allocate_exact_size(egui::vec2(14.0, 14.0), Sense::hover());
+                                            ui.painter().rect_filled(r, 2.0, color32(&m.color, 1.0));
+                                            ui.painter().rect_stroke(
+                                                r,
+                                                2.0,
+                                                egui::Stroke::new(1.0, Color32::from_black_alpha(80)),
+                                                egui::StrokeKind::Inside,
+                                            );
+                                        }
+                                        edit => {
+                                            let mut rt = RichText::new(&cell.text);
+                                            if col.markup_color {
+                                                rt = rt.color(color32(&m.color, 1.0));
+                                            }
+                                            if cell.error {
+                                                rt = rt.color(Color32::from_rgb(0xB0, 0x20, 0x20));
+                                            }
+                                            let lr = if col.right_align {
+                                                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                                    ui.add(egui::Label::new(rt).sense(Sense::click()))
+                                                })
+                                                .inner
+                                            } else {
+                                                ui.add(egui::Label::new(rt).sense(Sense::click()))
+                                            };
+                                            if lr.double_clicked() && edit != CellEdit::None {
+                                                let start = if col.id == "comments" {
+                                                    m.contents.clone()
+                                                } else {
+                                                    cell.text.clone()
+                                                };
+                                                acts.push(Act::StartEdit(m.id.clone(), col.id.clone(), start));
+                                            } else if lr.clicked() {
+                                                acts.push(Act::Select(*i, add));
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                            let resp = row.response();
+                            if resp.clicked() {
+                                acts.push(Act::Select(*i, add));
+                            }
+                            resp.context_menu(|ui| {
+                                if !selection.contains(&m.id) {
+                                    acts.push(Act::Select(*i, false));
+                                }
+                                ui.menu_button("Status", |ui| {
+                                    for st in markupcraft_model::review_statuses() {
+                                        if ui.button(*st).clicked() {
+                                            acts.push(Act::SetCell(m.id.clone(), "status".into(), st.to_string()));
+                                            ui.close();
+                                        }
+                                    }
+                                });
+                                let check = if m.checked { "Clear Checkmark" } else { "Checkmark" };
+                                if ui.button(check).clicked() {
+                                    acts.push(Act::SetCell(
+                                        m.id.clone(),
+                                        "checkmark".into(),
+                                        if m.checked { String::new() } else { "1".into() },
+                                    ));
+                                    ui.close();
+                                }
+                                let (label, cmd) = if m.locked() {
+                                    ("Unlock", "markup.unlock")
+                                } else {
+                                    ("Lock", "markup.lock")
+                                };
+                                if ui.button(label).clicked() {
+                                    acts.push(Act::Command(cmd));
+                                    ui.close();
+                                }
+                                if ui.button("Delete").clicked() {
+                                    acts.push(Act::Command("edit.delete"));
+                                    ui.close();
+                                }
+                                if ui.button("Properties").clicked() {
+                                    acts.push(Act::Command("panel-properties"));
+                                    ui.close();
+                                }
+                            });
+                        }
+                    }
+                });
+            });
+    });
+    ui.scope_builder(egui::UiBuilder::new().max_rect(footer_rect), |ui| {
+        ui.horizontal(|ui| {
+            ui.label(RichText::new(format!("Total ({})", root.totals.count)).strong());
+            for s in &summary {
+                ui.label(RichText::new(s).strong().color(t.accent_text));
+            }
+            if !selection.is_empty() {
+                ui.label(RichText::new(format!("{} selected", selection.len())).color(t.text_muted));
+            }
+        });
+    });
+
+    // ---- apply ----------------------------------------------------------------------------
+    let mut commands: Vec<&'static str> = Vec::new();
+    for a in acts {
+        match a {
+            Act::Select(i, add) => select_row(doc, i, add),
+            Act::Sort(id) => {
+                if list.view.sort_column == id {
+                    list.view.sort_descending = !list.view.sort_descending;
+                } else {
+                    list.view.sort_column = id;
+                    list.view.sort_descending = false;
+                }
+            }
+            Act::GroupBy(id) => list.view.group_by = vec![id],
+            Act::Hide(id) => list.view.visible.retain(|v| *v != id),
+            Act::Filter(col, value, on) => {
+                let table = MarkupTable::new(doc.session.doc());
+                let all: BTreeSet<String> = table
+                    .column_index(&col)
+                    .map(|c| table.distinct_values(c, &View::default()))
+                    .unwrap_or_default()
+                    .into_iter()
+                    .collect();
+                let set = list.view.filters.entry(col.clone()).or_insert(all.clone());
+                if on {
+                    set.insert(value);
+                } else {
+                    set.remove(&value);
+                }
+                if *set == all {
+                    list.view.filters.remove(&col);
+                }
+            }
+            Act::ClearFilter(col) => {
+                list.view.filters.remove(&col);
+            }
+            Act::StartEdit(id, col, text) => list.editing = Some((id, col, text)),
+            Act::SetCell(id, col, text) => {
+                list.editing = None;
+                let r = doc.session.set_cell(&id, &col, &text);
+                if let Ok(false) = r {
+                    log::info!("the list did not take {text:?} for {col}");
+                }
+                if let Err(e) = r {
+                    log::info!("list: {e}");
+                }
+            }
+            Act::Command(c) => commands.push(c),
+        }
+    }
+    if let Some(cols) = list.columns_editor.as_mut() {
+        let mut open = true;
+        let mut apply = false;
+        egui::Window::new("Manage Columns")
+            .open(&mut open)
+            .default_width(520.0)
+            .show(ui.ctx(), |ui| {
+                apply = columns_editor(ui, cols);
+            });
+        if apply {
+            let r = doc.session.set_custom_columns(cols.clone());
+            match r {
+                Ok(()) => {
+                    for c in cols.iter() {
+                        let id = format!("c:{}", c.id);
+                        if !list.view.visible.contains(&id) {
+                            list.view.visible.push(id);
+                        }
+                    }
+                    list.columns_editor = None;
+                }
+                Err(e) => log::info!("columns: {e}"),
+            }
+        } else if !open {
+            list.columns_editor = None;
+        }
+    }
+    let name = doc.name.trim_end_matches(".pdf").to_string();
+    for c in commands {
+        if c == "panel-properties" {
+            app.show_panel("properties");
         } else {
-            doc.selection = vec![id];
+            app.queue(c);
         }
-        let b = markup_bbox(m);
-        let page = m.page;
-        if let Some(render) = doc.render.as_ref() {
-            doc.view.center_on(
-                page,
-                markupcraft_geom::Point::new((b.x0 + b.x1) / 2.0, (b.y0 + b.y1) / 2.0),
-                render.pages(),
-            );
+    }
+    if let Some(p) = export {
+        let (filter, ext) = match p {
+            Purpose::ExportXml => (dialogs::XML, "xml"),
+            _ => (dialogs::CSV, "csv"),
+        };
+        let suffix = if p == Purpose::ExportTotals {
+            " totals"
+        } else {
+            " markups"
+        };
+        app.dialogs.save(p, filter, &format!("{name}{suffix}.{ext}"));
+    }
+}
+
+fn select_row(doc: &mut DocTab, i: usize, add: bool) {
+    let Some(m) = doc.session.doc().markups.get(i).cloned() else {
+        return;
+    };
+    if add {
+        actions::toggle_selected(&mut doc.session, &m.id);
+    } else {
+        actions::select(&mut doc.session, vec![m.id.clone()]);
+    }
+    let b = markup_bbox(&m);
+    if let Some(render) = doc.render.as_ref() {
+        doc.view.center_on(
+            m.page,
+            markupcraft_geom::Point::new((b.x0 + b.x1) / 2.0, (b.y0 + b.y1) / 2.0),
+            render.pages(),
+        );
+    }
+}
+
+/// The Manage Columns editor; true when Apply was clicked.
+fn columns_editor(ui: &mut egui::Ui, cols: &mut Vec<CustomColumn>) -> bool {
+    let mut remove = None;
+    egui::ScrollArea::vertical().max_height(360.0).show(ui, |ui| {
+        egui::Grid::new("columns-editor")
+            .striped(true)
+            .num_columns(6)
+            .show(ui, |ui| {
+                ui.label(RichText::new("Name").strong());
+                ui.label(RichText::new("Type").strong());
+                ui.label(RichText::new("Decimals").strong());
+                ui.label(RichText::new("Total").strong());
+                ui.label(RichText::new("Formula / choices").strong());
+                ui.label("");
+                ui.end_row();
+                for (i, c) in cols.iter_mut().enumerate() {
+                    ui.add(egui::TextEdit::singleline(&mut c.name).desired_width(120.0));
+                    egui::ComboBox::from_id_salt(("col-type", i))
+                        .selected_text(c.kind.name())
+                        .show_ui(ui, |ui| {
+                            for k in [
+                                ColumnType::Text,
+                                ColumnType::Number,
+                                ColumnType::Currency,
+                                ColumnType::Percent,
+                                ColumnType::Date,
+                                ColumnType::Choice,
+                                ColumnType::Formula,
+                                ColumnType::Checkmark,
+                            ] {
+                                ui.selectable_value(&mut c.kind, k, k.name());
+                            }
+                        });
+                    ui.add(egui::DragValue::new(&mut c.decimals).range(0..=6));
+                    ui.checkbox(&mut c.total, "");
+                    match c.kind {
+                        ColumnType::Formula => {
+                            ui.add(
+                                egui::TextEdit::singleline(&mut c.formula)
+                                    .hint_text("e.g. Measurement * Unit Cost")
+                                    .desired_width(180.0),
+                            );
+                        }
+                        ColumnType::Choice => {
+                            let mut text: String =
+                                c.items.iter().map(|i| i.text.clone()).collect::<Vec<_>>().join(", ");
+                            if ui
+                                .add(
+                                    egui::TextEdit::singleline(&mut text)
+                                        .hint_text("one, two, three")
+                                        .desired_width(180.0),
+                                )
+                                .changed()
+                            {
+                                c.items = text
+                                    .split(',')
+                                    .map(str::trim)
+                                    .filter(|s| !s.is_empty())
+                                    .map(|s| markupcraft_model::ChoiceItem {
+                                        text: s.to_string(),
+                                        ..Default::default()
+                                    })
+                                    .collect();
+                            }
+                        }
+                        _ => {
+                            ui.label("");
+                        }
+                    }
+                    if crate::icons::button(ui, "trash-2", 20.0, false, "Remove column").clicked() {
+                        remove = Some(i);
+                    }
+                    ui.end_row();
+                }
+            });
+    });
+    if let Some(i) = remove
+        && i < cols.len()
+    {
+        cols.remove(i);
+    }
+    let mut apply = false;
+    ui.horizontal(|ui| {
+        if ui.button("Add Column").clicked() {
+            let name = format!("Column {}", cols.len() + 1);
+            let id = make_column_id(&name, cols);
+            cols.push(CustomColumn {
+                id,
+                name,
+                ..Default::default()
+            });
         }
+        if ui.button("Apply").clicked() {
+            apply = true;
+        }
+    });
+    apply
+}
+
+/// Write the list (as the panel shows it) to `path`; returns the status text.
+pub fn export(app: &mut AppState, purpose: &Purpose, path: &Path) -> String {
+    let Some(doc) = app.docs.get(app.active) else {
+        return "No document open".into();
+    };
+    let view = scoped(&app.list.view, doc);
+    let table = MarkupTable::new(doc.session.doc());
+    let root = table.build(&view);
+    let text = match purpose {
+        Purpose::ExportTotals => totals_csv(&table, &root, &view.visible),
+        Purpose::ExportXml => table_xml(&table, &root, &view.visible, &doc.name),
+        _ => table_csv(&table, &root, &view.visible, true),
+    };
+    match crate::chest::write_atomic(path, text.as_bytes()) {
+        Ok(()) => format!(
+            "Exported {} to {}",
+            actions::plural(root.totals.count, "markup"),
+            path.display()
+        ),
+        Err(e) => format!("Export failed: {e}"),
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
-    fn dates_read_well() {
-        assert_eq!(super::pretty_date("D:20261009153000Z"), "2026-10-09 15:30");
-        assert_eq!(super::pretty_date("D:2026"), "D:2026");
-        assert_eq!(super::pretty_date(""), "");
+    fn export_writes_the_list_with_totals() {
+        let mut app = AppState {
+            threads: 0,
+            ..Default::default()
+        };
+        app.open_bytes("sample.pdf", None, markupcraft_render::synthetic::sample_pdf())
+            .unwrap();
+        app.list.view.group_by = vec!["type".into()];
+        let dir = std::env::temp_dir().join(format!("markupcraft-list-{}", std::process::id()));
+        let csv = dir.join("list.csv");
+        let s = export(&mut app, &Purpose::ExportCsv, &csv);
+        assert!(s.starts_with("Exported 6 markups"), "{s}");
+        let text = std::fs::read_to_string(&csv).unwrap();
+        assert!(text.starts_with("Subject,"), "{text}");
+        assert!(text.contains("Total (6)"), "{text}");
+        let xml = dir.join("list.xml");
+        export(&mut app, &Purpose::ExportXml, &xml);
+        assert!(std::fs::read_to_string(&xml).unwrap().contains("<MarkupSummary"));
+        let tot = dir.join("totals.csv");
+        export(&mut app, &Purpose::ExportTotals, &tot);
+        assert!(std::fs::read_to_string(&tot).unwrap().starts_with("Group,Count"));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

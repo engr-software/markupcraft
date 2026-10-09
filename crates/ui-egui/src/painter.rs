@@ -1,14 +1,19 @@
 //! Draws markups from the model onto the canvas (so edits show at once, without a re-render),
 //! plus selection outlines and handles. Geometry is PDF user space; [`Xf`] maps it to the
-//! screen through the page's crop box and `/Rotate`.
+//! screen through the page's crop box and `/Rotate`. Text is laid out with the same wrapping
+//! the PDF writer uses (`markupcraft_geom::text`), so what is typed lands where it saves.
 
 use egui::epaint::{Mesh, PathShape, PathStroke};
-use egui::{Align2, Color32, FontId, Painter, Pos2, Rect, Shape, Stroke, Vec2, pos2, vec2};
-use markupcraft_geom::Point;
-use markupcraft_model::{Kind, Markup, caption};
+use egui::text::{LayoutJob, TextFormat};
+use egui::{Align2, Color32, FontFamily, FontId, Painter, Pos2, Rect, Shape, Stroke, Vec2, pos2, vec2};
+use markupcraft_geom::path::Seg;
+use markupcraft_geom::text::{layout_text, stamp_lines, text_inset};
+use markupcraft_geom::{Point, shapes};
+use markupcraft_model::{Kind, Markup, caption, measure_extras};
 use markupcraft_render::PageGeom;
+use markupcraft_revu::kinds::common::font_of;
 
-use crate::actions::{markup_bbox, uses_rect};
+use crate::actions::{box_of, markup_bbox, uses_rect};
 use crate::theme::{Tokens, color32};
 
 /// One page's mapping between PDF user space and the screen.
@@ -39,12 +44,25 @@ impl Xf {
     pub fn len(&self, pt: f64) -> f32 {
         pt as f32 * self.k
     }
+
+    /// A user-space rectangle on screen.
+    pub fn rect_of(&self, r: markupcraft_geom::Rect) -> Rect {
+        Rect::from_two_pos(
+            self.to_screen(Point::new(r.x0, r.y0)),
+            self.to_screen(Point::new(r.x1, r.y1)),
+        )
+    }
 }
 
-/// The handle positions of a markup (user space): its vertices, or its box corners.
+/// The handle positions of a markup (user space): its vertices, or its box corners (a
+/// Callout adds its leader tip and knee as handles 4 and 5).
 pub fn handles(m: &Markup) -> Vec<Point> {
     if uses_rect(m.kind) {
-        return m.rect.normalized().corners().to_vec();
+        let mut h = box_of(m).corners().to_vec();
+        if m.kind == Kind::Callout {
+            h.extend(m.pts.iter().skip(4).take(2));
+        }
+        return h;
     }
     match m.kind {
         Kind::TextHighlight | Kind::Underline | Kind::Strikeout | Kind::Squiggly | Kind::Ink | Kind::Highlight => {
@@ -67,6 +85,51 @@ fn fill_of(m: &Markup) -> Option<Color32> {
     m.fill.map(|f| color32(&f, m.fill_opacity * m.opacity))
 }
 
+/// A PDF path flattened onto the screen (one list of points per subpath).
+fn flatten(xf: &Xf, path: &[Seg]) -> Vec<Vec<Pos2>> {
+    let mut out: Vec<Vec<Pos2>> = Vec::new();
+    let mut cur: Vec<Pos2> = Vec::new();
+    let mut last = Point::default();
+    for s in path {
+        match *s {
+            Seg::Move(p) => {
+                if cur.len() > 1 {
+                    out.push(std::mem::take(&mut cur));
+                }
+                cur.clear();
+                cur.push(xf.to_screen(p));
+                last = p;
+            }
+            Seg::Line(p) => {
+                cur.push(xf.to_screen(p));
+                last = p;
+            }
+            Seg::Curve(a, b, c) => {
+                let n = 8;
+                for i in 1..=n {
+                    let t = i as f64 / n as f64;
+                    let u = 1.0 - t;
+                    let q = Point::new(
+                        u * u * u * last.x + 3.0 * u * u * t * a.x + 3.0 * u * t * t * b.x + t * t * t * c.x,
+                        u * u * u * last.y + 3.0 * u * u * t * a.y + 3.0 * u * t * t * b.y + t * t * t * c.y,
+                    );
+                    cur.push(xf.to_screen(q));
+                }
+                last = c;
+            }
+            Seg::Close => {
+                if let Some(f) = cur.first().copied() {
+                    cur.push(f);
+                }
+            }
+        }
+    }
+    if cur.len() > 1 {
+        out.push(cur);
+    }
+    out
+}
+
 /// Draw one markup.
 pub fn paint_markup(p: &Painter, xf: &Xf, m: &Markup) {
     let stroke = stroke_of(xf, m);
@@ -76,11 +139,18 @@ pub fn paint_markup(p: &Painter, xf: &Xf, m: &Markup) {
         Kind::Area | Kind::Perimeter | Kind::Polygon | Kind::Volume | Kind::Cloud => {
             let pts = screen(&m.pts);
             if let Some(f) = fill.filter(|_| m.kind != Kind::Perimeter) {
-                fill_polygon(p, &pts, f);
+                if m.holes.is_empty() {
+                    fill_polygon(p, &pts, f);
+                } else {
+                    let mut rings = vec![pts.clone()];
+                    rings.extend(m.holes.iter().map(|h| screen(h)));
+                    fill_even_odd(p, &rings, f);
+                }
             }
             if m.kind == Kind::Cloud || m.cloud > 0.0 {
-                let bumps = cloud_path(&pts, xf.len(6.0 + 4.0 * m.cloud.clamp(0.0, 4.0)));
-                stroke_path(p, &bumps, true, stroke, &m.dash, xf);
+                for sub in flatten(xf, &shapes::cloud_path(&m.pts, m.cloud.clamp(0.0, 4.0))) {
+                    stroke_path(p, &sub, false, stroke, &m.dash, xf);
+                }
             } else {
                 stroke_path(p, &pts, true, stroke, &m.dash, xf);
             }
@@ -105,7 +175,7 @@ pub fn paint_markup(p: &Painter, xf: &Xf, m: &Markup) {
         }
         Kind::Ink | Kind::Highlight => {
             let st = if m.kind == Kind::Highlight {
-                Stroke::new(stroke.width.max(xf.len(8.0)), color32(&m.color, m.opacity.min(0.45)))
+                Stroke::new(stroke.width.max(1.0), color32(&m.color, m.opacity.min(0.45)))
             } else {
                 stroke
             };
@@ -120,25 +190,31 @@ pub fn paint_markup(p: &Painter, xf: &Xf, m: &Markup) {
                 }
             }
         }
-        Kind::Rectangle | Kind::Stamp | Kind::Snapshot | Kind::Attachment | Kind::Hyperlink | Kind::Caret => {
-            let pts = screen(&m.rect.normalized().corners());
+        Kind::Rectangle | Kind::Attachment | Kind::Hyperlink | Kind::Caret => {
+            let pts = screen(&box_of(m).corners());
             if let Some(f) = fill {
                 fill_polygon(p, &pts, f);
             }
             stroke_path(p, &pts, true, stroke, &m.dash, xf);
-            if m.kind == Kind::Stamp && !m.subject.is_empty() {
-                let r = Rect::from_points(&pts);
-                p.text(
-                    r.center(),
-                    Align2::CENTER_CENTER,
-                    &m.subject,
-                    FontId::proportional((r.height() * 0.4).clamp(6.0, 48.0)),
-                    stroke.color,
-                );
-            }
+        }
+        Kind::Stamp => paint_stamp(p, xf, m, stroke, fill),
+        Kind::Snapshot => {
+            let r = xf.rect_of(box_of(m));
+            p.extend(Shape::dashed_line(
+                &[
+                    r.left_top(),
+                    r.right_top(),
+                    r.right_bottom(),
+                    r.left_bottom(),
+                    r.left_top(),
+                ],
+                Stroke::new(1.0, Color32::from_gray(90)),
+                5.0,
+                3.0,
+            ));
         }
         Kind::Ellipse => {
-            let r = Rect::from_points(&screen(&m.rect.normalized().corners()));
+            let r = xf.rect_of(box_of(m));
             let n = 72;
             let pts: Vec<Pos2> = (0..n)
                 .map(|i| {
@@ -157,6 +233,7 @@ pub fn paint_markup(p: &Painter, xf: &Xf, m: &Markup) {
                 let s = screen(q);
                 // QuadPoints order: top-left, top-right, bottom-left, bottom-right.
                 let [tl, tr, bl, br] = [s[0], s[1], s[2], s[3]];
+                let w = (tl.distance(bl) * 0.08).clamp(1.0, 4.0);
                 match m.kind {
                     Kind::TextHighlight => {
                         p.add(Shape::convex_polygon(
@@ -166,13 +243,10 @@ pub fn paint_markup(p: &Painter, xf: &Xf, m: &Markup) {
                         ));
                     }
                     Kind::Underline => {
-                        p.line_segment([bl, br], Stroke::new((stroke.width).max(1.0), stroke.color));
+                        p.line_segment([bl, br], Stroke::new(w, stroke.color));
                     }
                     Kind::Strikeout => {
-                        p.line_segment(
-                            [tl.lerp(bl, 0.55), tr.lerp(br, 0.55)],
-                            Stroke::new(stroke.width.max(1.0), stroke.color),
-                        );
+                        p.line_segment([tl.lerp(bl, 0.55), tr.lerp(br, 0.55)], Stroke::new(w, stroke.color));
                     }
                     _ => {
                         let len = bl.distance(br);
@@ -221,8 +295,8 @@ pub fn paint_markup(p: &Painter, xf: &Xf, m: &Markup) {
             }
         }
         Kind::Note => {
-            let r = m.rect.normalized();
-            let at = xf.to_screen(Point::new(r.x0, r.y1));
+            let b = box_of(m);
+            let at = xf.to_screen(Point::new(b.x0, b.y1));
             let s = xf.len(20.0).clamp(10.0, 40.0);
             let box_ = Rect::from_min_size(at, Vec2::splat(s));
             p.rect_filled(box_, 2.0, color32(&m.color, m.opacity));
@@ -243,38 +317,147 @@ pub fn paint_markup(p: &Painter, xf: &Xf, m: &Markup) {
         Kind::Other => {}
     }
     if m.kind.is_measurement() {
+        if m.segment_values {
+            paint_segment_values(p, xf, m);
+        }
         paint_caption(p, xf, m);
     }
 }
 
+fn family(m: &Markup) -> FontFamily {
+    if m.text.font.to_ascii_lowercase().contains("courier") {
+        FontFamily::Monospace
+    } else {
+        FontFamily::Proportional
+    }
+}
+
+/// One line of text with its baseline at `base` (screen).
+#[allow(clippy::too_many_arguments)]
+fn text_line(
+    p: &Painter,
+    base: Pos2,
+    text: &str,
+    size: f32,
+    color: Color32,
+    fam: FontFamily,
+    italic: bool,
+    underline: bool,
+) {
+    let mut job = LayoutJob::default();
+    job.append(
+        text,
+        0.0,
+        TextFormat {
+            font_id: FontId::new(size, fam),
+            color,
+            italics: italic,
+            underline: if underline {
+                Stroke::new((size / 14.0).max(1.0), color)
+            } else {
+                Stroke::NONE
+            },
+            ..Default::default()
+        },
+    );
+    let galley = p.layout_job(job);
+    // egui places text by its top; the baseline sits about 0.78 of the size below it.
+    let top = base - vec2(0.0, size * 0.78 + size * 0.1);
+    p.galley(top, galley, color);
+}
+
 fn paint_text_box(p: &Painter, xf: &Xf, m: &Markup, stroke: Stroke, fill: Option<Color32>) {
-    let corners = m.rect.normalized().corners();
-    let pts: Vec<Pos2> = corners.iter().map(|q| xf.to_screen(*q)).collect();
-    let r = Rect::from_points(&pts);
+    let b = box_of(m);
+    let r = xf.rect_of(b);
+    if m.kind == Kind::Callout
+        && m.pts.len() >= 6
+        && let (Some(tip), Some(knee)) = (m.pts.get(4).copied(), m.pts.get(5).copied())
+    {
+        let at = markupcraft_revu::kinds::text::callout_attach(m);
+        let lead = vec![xf.to_screen(at), xf.to_screen(knee), xf.to_screen(tip)];
+        let st = Stroke::new(stroke.width.max(1.0), stroke.color);
+        p.add(Shape::line(lead.clone(), st));
+        let reversed: Vec<Pos2> = lead.iter().rev().copied().collect();
+        let mut e = m.clone();
+        e.line_start = m.line_end.clone();
+        e.line_end = "None".into();
+        line_endings(p, &reversed, &e, st);
+    }
     if let Some(f) = fill {
         p.rect_filled(r, 0.0, f);
     }
     if m.kind != Kind::Typewriter && stroke.width > 0.0 {
         p.rect_stroke(r, 0.0, stroke, egui::StrokeKind::Middle);
     }
-    if m.kind == Kind::Callout && m.pts.len() >= 2 {
-        let lead: Vec<Pos2> = m.pts.iter().map(|q| xf.to_screen(*q)).collect();
-        p.add(Shape::line(lead.clone(), stroke));
-        line_endings(p, &lead, m, stroke);
-    }
+    paint_text_lines(p, xf, m, b);
+}
+
+/// The markup's text laid out in box `b` like the writer does.
+pub fn paint_text_lines(p: &Painter, xf: &Xf, m: &Markup, b: markupcraft_geom::Rect) {
     let size = xf.len(m.text.size.clamp(1.0, 400.0));
     if size < 3.0 || m.contents.is_empty() {
         return;
     }
-    let galley = p.layout(
-        m.contents.clone(),
-        FontId::proportional(size),
-        color32(&m.text.color, m.opacity),
-        (r.width() - 4.0).max(10.0),
-    );
-    let clip = p.clip_rect().intersect(r.expand(1.0));
-    p.with_clip_rect(clip)
-        .galley(r.min + vec2(2.0, 2.0), galley, Color32::BLACK);
+    let font = font_of(&m.text);
+    let col = color32(&m.text.color, m.opacity);
+    let clip = p.clip_rect().intersect(xf.rect_of(b).expand(2.0));
+    let cp = p.with_clip_rect(clip);
+    for l in layout_text(b, &m.contents, &font, m.text.align, text_inset(m.line_width))
+        .iter()
+        .take(400)
+    {
+        text_line(
+            &cp,
+            xf.to_screen(Point::new(l.x, l.y)),
+            &l.text,
+            size,
+            col,
+            family(m),
+            m.text.italic,
+            m.text.underline,
+        );
+    }
+}
+
+fn paint_stamp(p: &Painter, xf: &Xf, m: &Markup, stroke: Stroke, fill: Option<Color32>) {
+    let b = box_of(m);
+    let r = xf.rect_of(b);
+    let rad = (r.width().min(r.height()) * 0.12).min(255.0) as u8;
+    if let Some(f) = fill {
+        p.rect_filled(r, rad, f);
+    }
+    if stroke.width > 0.0 {
+        p.rect_stroke(r, rad, stroke, egui::StrokeKind::Inside);
+        let inset = xf.len(m.line_width + 2.5);
+        p.rect_stroke(
+            r.shrink(inset),
+            rad.saturating_sub(inset as u8),
+            Stroke::new((stroke.width / 3.0).max(0.5), stroke.color),
+            egui::StrokeKind::Inside,
+        );
+    }
+    let text = if m.contents.is_empty() {
+        m.subject.clone()
+    } else {
+        m.contents.clone()
+    };
+    let font = font_of(&m.text);
+    let col = color32(&m.text.color, m.opacity);
+    for (l, size) in stamp_lines(b, &text, &font, m.line_width).iter().take(20) {
+        let s = xf.len(*size);
+        if s >= 3.0 {
+            text_line(
+                p,
+                xf.to_screen(Point::new(l.x, l.y)),
+                &l.text,
+                s,
+                col,
+                family(m),
+                m.text.italic,
+                false,
+            );
+        }
+    }
 }
 
 /// The measured value at the caption anchor.
@@ -290,12 +473,46 @@ fn paint_caption(p: &Painter, xf: &Xf, m: &Markup) {
     if size < 4.0 {
         return;
     }
-    let at = xf.to_screen(caption::caption_anchor(m));
+    let r = caption_rect(p, xf, m, &text, size);
     let col = color32(&m.color, 1.0);
-    let galley = p.layout_no_wrap(text, FontId::proportional(size), col);
-    let r = Align2::CENTER_CENTER.anchor_size(at, galley.size());
     p.rect_filled(r.expand(1.0), 1.0, Color32::from_white_alpha(170));
+    let galley = p.layout_no_wrap(text, FontId::proportional(size), col);
     p.galley(r.min, galley, col);
+}
+
+/// Where the caption of `m` is on screen (for drawing and for Shift-dragging it).
+pub fn caption_rect(p: &Painter, xf: &Xf, m: &Markup, text: &str, size: f32) -> Rect {
+    let at = xf.to_screen(caption::caption_anchor(m));
+    let galley = p.layout_no_wrap(text.to_string(), FontId::proportional(size), Color32::BLACK);
+    Align2::CENTER_CENTER.anchor_size(at, galley.size())
+}
+
+/// The screen rectangle of a measurement's caption, `None` when it has none.
+pub fn caption_hit_rect(p: &Painter, xf: &Xf, m: &Markup) -> Option<Rect> {
+    if !m.kind.is_measurement() || m.kind == Kind::Count {
+        return None;
+    }
+    let text = m.quantity_text();
+    if text.is_empty() {
+        return None;
+    }
+    let size = xf.len(m.text.size.clamp(4.0, 200.0));
+    (size >= 4.0).then(|| caption_rect(p, xf, m, &text, size).expand(2.0))
+}
+
+fn paint_segment_values(p: &Painter, xf: &Xf, m: &Markup) {
+    let size = xf.len((m.text.size * 0.8).clamp(4.0, 200.0));
+    if size < 5.0 {
+        return;
+    }
+    let col = color32(&m.color, 1.0);
+    for v in measure_extras::segment_values(m).iter().take(2000) {
+        let at = xf.to_screen(v.at);
+        let galley = p.layout_no_wrap(v.text.clone(), FontId::proportional(size), col);
+        let r = Align2::CENTER_BOTTOM.anchor_size(at - vec2(0.0, 2.0), galley.size());
+        p.rect_filled(r, 1.0, Color32::from_white_alpha(150));
+        p.galley(r.min, galley, col);
+    }
 }
 
 /// Stroke a path, dashed when `dash` is set (PDF units).
@@ -334,6 +551,42 @@ pub fn fill_polygon(p: &Painter, pts: &[Pos2], color: Color32) {
     }
     for [a, b, c] in tris {
         mesh.add_triangle(a as u32, b as u32, c as u32);
+    }
+    p.add(Shape::mesh(mesh));
+}
+
+/// Fill rings with the even-odd rule (an area with cutouts), one screen row at a time.
+pub fn fill_even_odd(p: &Painter, rings: &[Vec<Pos2>], color: Color32) {
+    let all: Vec<Pos2> = rings.iter().flatten().copied().collect();
+    if all.len() < 3 {
+        return;
+    }
+    let bounds = Rect::from_points(&all).intersect(p.clip_rect());
+    if !bounds.is_positive() {
+        return;
+    }
+    let mut mesh = Mesh::default();
+    let mut y = bounds.top().floor() + 0.5;
+    let mut xs: Vec<f32> = Vec::new();
+    let mut rows = 0;
+    while y < bounds.bottom() && rows < 4000 {
+        xs.clear();
+        for ring in rings {
+            let n = ring.len();
+            for i in 0..n {
+                let (a, b) = (ring[i], ring[(i + 1) % n]);
+                if (a.y <= y && b.y > y) || (b.y <= y && a.y > y) {
+                    xs.push(a.x + (y - a.y) / (b.y - a.y) * (b.x - a.x));
+                }
+            }
+        }
+        xs.sort_by(f32::total_cmp);
+        for span in xs.as_chunks::<2>().0 {
+            let r = Rect::from_min_max(pos2(span[0], y - 0.5), pos2(span[1], y + 0.5));
+            mesh.add_colored_rect(r, color);
+        }
+        y += 1.0;
+        rows += 1;
     }
     p.add(Shape::mesh(mesh));
 }
@@ -396,37 +649,6 @@ pub fn triangulate(pts: &[Pos2]) -> Vec<[usize; 3]> {
     }
     if let [a, b, c] = idx[..] {
         out.push([a, b, c]);
-    }
-    out
-}
-
-/// A revision-cloud outline: arcs of about `chord` along each edge, bulging outward.
-fn cloud_path(pts: &[Pos2], chord: f32) -> Vec<Pos2> {
-    let n = pts.len();
-    if n < 3 {
-        return pts.to_vec();
-    }
-    let chord = chord.max(3.0);
-    // Screen y points down, so a positive signed area is clockwise on screen.
-    let outward = if signed_area(pts) > 0.0 { -1.0 } else { 1.0 };
-    let mut out = Vec::new();
-    for i in 0..n {
-        let (a, b) = (pts[i], pts[(i + 1) % n]);
-        let len = a.distance(b);
-        let arcs = (len / chord).ceil().clamp(1.0, 400.0) as usize;
-        for j in 0..arcs {
-            let (q0, q1) = (
-                a.lerp(b, j as f32 / arcs as f32),
-                a.lerp(b, (j + 1) as f32 / arcs as f32),
-            );
-            let mid = q0.lerp(q1, 0.5);
-            let half = (q1 - q0) / 2.0;
-            let normal = vec2(-half.y, half.x) * outward;
-            for s in 0..=8 {
-                let t = s as f32 / 8.0 * std::f32::consts::PI;
-                out.push(mid - half * t.cos() + normal * t.sin());
-            }
-        }
     }
     out
 }
@@ -501,11 +723,7 @@ fn line_endings(p: &Painter, pts: &[Pos2], m: &Markup, stroke: Stroke) {
 /// Selection outline and handles for a selected markup.
 pub fn paint_selection(p: &Painter, xf: &Xf, m: &Markup, t: &Tokens, editable: bool) {
     let b = markup_bbox(m);
-    let r = Rect::from_points(&[
-        xf.to_screen(Point::new(b.x0, b.y0)),
-        xf.to_screen(Point::new(b.x1, b.y1)),
-    ])
-    .expand(3.0);
+    let r = xf.rect_of(b).expand(3.0);
     let col = if editable { t.select } else { t.text_faint };
     p.extend(Shape::dashed_line(
         &[
@@ -565,7 +783,21 @@ pub fn hit(m: &Markup, at: Point, tol: f64) -> bool {
             .0
             .iter()
             .any(|q| point_in_polygon(at, &[q[0], q[1], q[3], q[2]])),
-        _ => m.rect.normalized().padded(tol).contains(at),
+        Kind::Callout => {
+            box_of(m).padded(tol).contains(at)
+                || m.pts.get(4..6).is_some_and(|l| {
+                    let a = markupcraft_revu::kinds::text::callout_attach(m);
+                    dist_to_segment(at, a, l[1]) <= tol + 1.0 || dist_to_segment(at, l[1], l[0]) <= tol + 1.0
+                })
+        }
+        Kind::Note => {
+            let b = box_of(m);
+            markupcraft_geom::Rect::new(b.x0, b.y1 - 20.0, b.x0 + 20.0, b.y1)
+                .padded(tol)
+                .contains(at)
+                || b.padded(tol).contains(at)
+        }
+        _ => box_of(m).padded(tol).contains(at),
     }
 }
 
@@ -618,5 +850,19 @@ mod tests {
         let mut r = Markup::new(Kind::Rectangle, 0, Vec::new());
         r.rect = markupcraft_geom::Rect::new(0.0, 0.0, 10.0, 10.0);
         assert!(hit(&r, Point::new(5.0, 5.0), 1.0));
+    }
+
+    #[test]
+    fn callouts_have_leader_handles() {
+        let m = crate::tools::new_markup(
+            Kind::Callout,
+            0,
+            &[Point::new(0.0, 0.0), Point::new(100.0, 100.0), Point::new(200.0, 150.0)],
+        )
+        .unwrap();
+        let h = handles(&m);
+        assert_eq!(h.len(), 6);
+        assert_eq!(h[4], Point::new(0.0, 0.0));
+        assert!(hit(&m, Point::new(150.0, 120.0), 1.0));
     }
 }

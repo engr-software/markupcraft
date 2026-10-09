@@ -7,6 +7,7 @@ use crate::canvas::{self, CanvasCx, Fit, PageMode};
 use crate::commands::{self, COMMANDS, MAIN_TOOLBAR, MENUS};
 use crate::panels::PANELS;
 use crate::theme::Tokens;
+use crate::tools::ToolDef;
 use crate::tools::{TOOLS, ToolKind};
 use crate::{AppState, icons};
 
@@ -125,9 +126,12 @@ pub fn toolbar(app: &mut AppState, ui: &mut egui::Ui) {
                     }
                     tool_button(app, ui, id);
                 }
-                separator(ui, &t);
-                for tool in TOOLS.iter().filter(|tl| matches!(tl.kind, ToolKind::Drag(_))) {
-                    tool_button(app, ui, &format!("tool.{}", tool.id));
+                for group in ["Markup", "Measure"] {
+                    separator(ui, &t);
+                    let tools: Vec<&&ToolDef> = TOOLS.iter().filter(|tl| tl.menu == group && tl.draws()).collect();
+                    for tool in tools {
+                        tool_button(app, ui, &format!("tool.{}", tool.id));
+                    }
                 }
             });
         });
@@ -311,7 +315,7 @@ pub fn document_area(app: &mut AppState, ui: &mut egui::Ui) {
                 ui.spacing_mut().item_spacing.x = 2.0;
                 for i in 0..app.docs.len() {
                     let Some(d) = app.docs.get(i) else { continue };
-                    let name = if d.session.modified {
+                    let name = if d.session.is_dirty() {
                         format!("{} *", d.name)
                     } else {
                         d.name.clone()
@@ -337,30 +341,28 @@ pub fn document_area(app: &mut AppState, ui: &mut egui::Ui) {
         return;
     }
     let tool = crate::tools::find(app.tool).unwrap_or(&crate::tools::select::TOOL);
+    let (template, drawing_mode) = {
+        let (t, d) = app.template();
+        (t.cloned(), d)
+    };
+    let author = app.author.clone();
     let cx = CanvasCx {
         tool,
         wheel_zooms: app.wheel_zooms,
         hide_markups: app.hide_markups,
         want_thumbs: app.thumbs_wanted_last,
-        author: &app.author,
+        snaps: app.snaps,
+        show_grid: app.show_grid,
+        template: template.as_ref(),
+        drawing_mode,
+        stamp: app.stamp,
+        author: &author,
     };
     let Some(doc) = app.docs.get_mut(app.active) else {
         return;
     };
-    let out = canvas::show(
-        ui,
-        &mut doc.session,
-        doc.render.as_ref(),
-        &mut doc.view,
-        &mut doc.selection,
-        &cx,
-    );
-    if let Some(s) = out.status {
-        app.status = s;
-    }
-    if out.created {
-        app.tool = "select";
-    }
+    let out = canvas::show(ui, doc, &cx);
+    app.apply_canvas_out(out);
 }
 
 /// Help > Keyboard Shortcuts, Help > About, Document Properties.
@@ -399,9 +401,9 @@ pub fn windows(app: &mut AppState, ctx: &egui::Context) {
     let info = app.doc().map(|d| {
         (
             d.name.clone(),
-            d.session.doc.path.clone(),
+            d.session.path().display().to_string(),
             d.render.as_ref().map_or(0, |r| r.page_count()),
-            d.session.doc.markups.len(),
+            d.session.doc().markups.len(),
             d.render.as_ref().map_or(0, |r| r.hidden_count()),
         )
     });

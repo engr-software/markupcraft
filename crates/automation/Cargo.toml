@@ -11,6 +11,7 @@ workspace = true
 [dependencies]
 markupcraft-engine = { workspace = true }
 markupcraft-measure = { workspace = true }
+markupcraft-model = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]

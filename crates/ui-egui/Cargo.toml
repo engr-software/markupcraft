@@ -10,9 +10,13 @@ workspace = true
 
 [dependencies]
 markupcraft-geom = { workspace = true }
+markupcraft-measure = { workspace = true }
 markupcraft-model = { workspace = true }
 markupcraft-revu = { workspace = true }
 markupcraft-render = { workspace = true }
+markupcraft-engine = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 egui = { workspace = true }
 egui_extras = { workspace = true }
 egui_dock = { workspace = true }

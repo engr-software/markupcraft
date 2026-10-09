@@ -38,7 +38,7 @@ with the same safety patches PdfCraft carries (`[patch.crates-io]` in `Cargo.tom
 | an engine command | `crates/engine/src/commands/<area>.rs`, one line in the command table |
 | a headless tool | `crates/automation/src/tools/<area>.rs`, one line in `TOOLS` |
 | a UI panel | `crates/ui-egui/src/panels/<name>.rs`, one line in the panel registry |
-| a drawing tool | `crates/ui-egui/src/tools/<name>.rs`, one line in the tool registry |
+| a drawing tool | a `pub static` `ToolDef` in `crates/ui-egui/src/tools/<family>.rs` (gesture + markup kind), one line in the tool registry; `tools::new_markup` builds its markup |
 | a menu / toolbar command | `crates/ui-egui/src/commands.rs` table (id, label, shortcut, icon) |
 | a parity row status | `parity/revu-features.toml` |
 
@@ -64,3 +64,19 @@ Measurements are ordinary annotations plus Revu keys:
 - MarkupCraft's own keys (when Revu's storage is not known yet): `/PCCutouts`, `/PCCountSymbol`,
   `/PCSymbolScale`, `/PCCountShape`, `/PCSegmentValues`, `/PCRiseDrop`, `/PCCaptionOffset`,
   `/PCArcs`, `/PCColumns`, `/PCColumnData`, `/PCStamp`.
+
+## The interface (`crates/ui-egui`)
+
+- Every edit is a `markupcraft_engine::Session` call, the session automation drives, so undo,
+  the command table, the clipboard and page operations are shared. A gesture that edits many
+  times (a slider drag, typing) runs under a merge key and is one undo step
+  (`Session::set_merge_key`, `Session::seal`).
+- `interact.rs` runs the active tool: drafts (points, drags, freehand), the text editor over the
+  page, Select-tool gestures shown as live previews and committed on release, the context menu.
+- Snapping (`snapping.rs`): page linework from `markupcraft_render::snap` indexed per page in
+  `markupcraft_geom::snap::SnapIndex` on a worker thread, plus markup vertices and the grid.
+- Tool Chest (`chest.rs`): My Tools, the user's tool sets and Set as Default looks in
+  `<config folder>/MarkupCraft/toolchest.json` (`MARKUPCRAFT_CONFIG_DIR` overrides the folder);
+  Recent Tools live for the session. The desktop app loads it; tests and the headless `shot`
+  example use an in-memory chest.
+- File dialogs run on their own threads (`dialogs.rs`); the frame loop polls for answers.

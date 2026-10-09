@@ -4,9 +4,10 @@ MarkupCraft is written in Rust; dependencies keep their own licenses (`cargo tre
 
 | Component | Use | License |
 |---|---|---|
-| [PdfCraft](https://github.com/storytold/pdfcraft) `pdfcraft-cos`, `pdfcraft-render` (pinned commit) | PDF object layer, page rendering | MIT OR Apache-2.0 |
+| [PdfCraft](https://github.com/storytold/pdfcraft) `pdfcraft-cos`, `pdfcraft-render`, `pdfcraft-content` (pinned commit) | PDF object layer, page rendering, content stream parsing | MIT OR Apache-2.0 |
 | [PdfCraft](https://github.com/storytold/pdfcraft) `pdfcraft-organize`, `pdfcraft-edit`, `pdfcraft-print`, `pdfcraft-xfdf`, `pdfcraft-optimize` (pinned commit) | bookmarks, page boxes, replace pages; headers, footers, watermarks, Bates; print imposition; XFDF/FDF; reduce file size | MIT OR Apache-2.0 |
 | [PdfCraft](https://github.com/storytold/pdfcraft) `pdfcraft-edit` flattener (adapted source) | flatten markups by filter (`crates/engine/src/flatten.rs`) | MIT OR Apache-2.0 |
+| [PdfCraft](https://github.com/storytold/pdfcraft) `pdfcraft-measure` snapping extraction (adapted source) | page linework for Snap to Content (`crates/render/src/snap.rs`) | MIT OR Apache-2.0 |
 | [PdfCraft](https://github.com/storytold/pdfcraft) `pdfcraft-automation` (adapted source) | `--root` path confinement (`crates/automation/src/paths.rs`), MCP server (`crates/automation/src/mcp.rs`), tool-table conventions | MIT OR Apache-2.0 |
 | [PdfCraft](https://github.com/storytold/pdfcraft) `pdfcraft-compare`, `pdfcraft-ocr`, `pdfcraft-redact`, `pdfcraft-forms`, `pdfcraft-sign`, `pdfcraft-edit`, `pdfcraft-annot`, `pdfcraft-fonts` (pinned commit) | text compare, OCR text layer, redaction, form fields, digital signatures (the image-appearance signing in `crates/engine/src/signatures.rs` adapts `pdfcraft-sign`'s PAdES recipe), flattening | MIT OR Apache-2.0 |
 | [ocrs](https://github.com/robertknight/ocrs) and [rten](https://github.com/robertknight/rten) (through `pdfcraft-ocr`) | OCR engine | MIT OR Apache-2.0 |

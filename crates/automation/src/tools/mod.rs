@@ -25,6 +25,7 @@ mod search;
 mod security;
 mod sign;
 mod spell;
+mod takeoff;
 mod visual;
 mod xfdf;
 
@@ -140,6 +141,10 @@ pub static TOOLS: &[&Tool] = &[
     &sign::SIGN,
     &sign::LIST,
     &spell::CHECK,
+    &takeoff::CUTOUT_ADD,
+    &takeoff::CUTOUT_DELETE,
+    &takeoff::CELL_SET,
+    &takeoff::COLUMNS_SET,
 ];
 
 pub fn find(name: &str) -> Option<&'static Tool> {

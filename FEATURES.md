@@ -9,21 +9,21 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | Area | Rows | Proven | Have | Partial | Missing | Excluded | C++ have | C++ partial |
 |---|---|---|---|---|---|---|---|---|
-| Measurement and takeoff | 134 | 2 | 10 | 24 | 98 | 0 | 47 | 17 |
-| Markup tools, Properties, Tool Chest, layers, Markups List | 192 | 0 | 14 | 33 | 145 | 0 | 86 | 23 |
+| Measurement and takeoff | 134 | 2 | 39 | 17 | 76 | 0 | 47 | 17 |
+| Markup tools, Properties, Tool Chest, layers, Markups List | 192 | 0 | 66 | 35 | 91 | 0 | 86 | 23 |
 | Documents, pages, batch, print, search, security | 217 | 0 | 28 | 29 | 154 | 6 | 38 | 23 |
 | Compare/overlay, interface, preferences, mouse, Studio | 226 | 0 | 20 | 10 | 165 | 31 | 24 | 22 |
-| Default keyboard shortcuts | 177 | 0 | 0 | 0 | 177 | 0 | 11 | 18 |
-| **All** | 946 | 2 | 72 | 96 | 739 | 37 | 206 | 103 |
+| Default keyboard shortcuts | 177 | 0 | 74 | 0 | 103 | 0 | 11 | 18 |
+| **All** | 946 | 2 | 227 | 91 | 589 | 37 | 206 | 103 |
 
 ### By priority (rows in scope)
 
 | Priority | Proven | Have | Partial | Missing |
 |---|---|---|---|---|
-| P0 | 2 | 11 | 31 | 97 |
-| P1 | 0 | 27 | 39 | 151 |
-| P2 | 0 | 20 | 11 | 178 |
-| P3 | 0 | 14 | 15 | 136 |
+| P0 | 2 | 58 | 27 | 54 |
+| P1 | 0 | 54 | 37 | 126 |
+| P2 | 0 | 26 | 10 | 173 |
+| P3 | 0 | 15 | 17 | 133 |
 
 ## Measurement and takeoff
 
@@ -31,19 +31,19 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| meas-001 | Calibrate | P0 | partial | have | Scale::calibrated computes the scale from a measured line; no calibrate tool yet. |
-| meas-002 | Preset scales | P0 | partial | have | `scale_quantities` Architectural and engineering presets in crates/measure; no picker UI. |
-| meas-003 | Custom scale | P0 | partial | have | `scale_quantities` Scale model with independent paper/real units; no dialog. |
+| meas-001 | Calibrate | P0 | have | have | `calibrate_asks_for_the_distance_and_sets_the_scale` `calibrate_measure_and_viewports_survive_save` Calibrate tool (Measure menu, Measurements panel): two clicks or a drag, then a dialog for the real distance (feet-inches accepted), unit, pages and whether measurements update. |
+| meas-002 | Preset scales | P0 | have | have | `scale_quantities` `measurements_panel_sets_a_custom_scale_on_every_page` Architectural, engineering and metric presets in the Measurements panel and the Properties panel scale picker. |
+| meas-003 | Custom scale | P0 | have | have | `scale_quantities` `measurements_panel_sets_a_custom_scale_on_every_page` Measurements panel: paper length and unit = real length and unit. |
 | meas-004 | Save custom/calibrated scale as preset | P2 | missing | missing |  |
-| meas-005 | Apply scale to page range | P0 | missing | partial |  |
-| meas-006 | Add Scale to More Pages | P1 | missing | have |  |
-| meas-007 | Per-page scale | P0 | partial | have | `viewport_wins_over_page_scale` Page scale read from and written to /VP; no UI. |
+| meas-005 | Apply scale to page range | P0 | have | partial | `measurements_panel_sets_a_custom_scale_on_every_page` `page_ranges` Apply to: this page, all, or a range like 1-3, 7 (Measurements panel and Calibrate). |
+| meas-006 | Add Scale to More Pages | P1 | have | have | `measurements_panel_sets_a_custom_scale_on_every_page` Apply to other pages from the Measurements panel and the Calibrate dialog. |
+| meas-007 | Per-page scale | P0 | have | have | `viewport_wins_over_page_scale` `calibrate_measure_and_viewports_survive_save` `measurements_panel_sets_a_custom_scale_on_every_page` Page scale read from and written to /VP; no UI. |
 | meas-008 | Separate Y scale | P3 | missing | missing |  |
-| meas-009 | Precision | P0 | partial | have | `feet_inches_quarter` `decimal_area_strips_zeros_and_groups` Number formats with precision (/D /A); no UI. |
-| meas-010 | Scale shown in status bar | P1 | missing | have |  |
+| meas-009 | Precision | P0 | partial | have | `feet_inches_quarter` `decimal_area_strips_zeros_and_groups` Precision and display unit pickers in the Measurements and Properties panels (no UI test yet). |
+| meas-010 | Scale shown in status bar | P1 | have | have | `opens_the_sample_and_hides_what_it_draws` Status bar shows the scale under the pointer (viewport first, else the page scale). |
 | meas-011 | Protected / temporary page scales | P3 | missing | missing |  |
 | meas-012 | Recalculate | P1 | missing | have |  |
-| meas-013 | "Scale not set" state | P1 | missing | partial |  |
+| meas-013 | "Scale not set" state | P1 | have | partial | `measuring_without_a_scale_says_so` Measuring on a page without a scale says so next to the cursor and in the status bar; the Measurements panel shows Not set. |
 
 ### Viewports
 
@@ -61,13 +61,13 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | meas-020 | Length | P0 | proven | have | `cli: check` `cli: resave` Matches Revu on the reference set: value and label identical on 410/410 Revu-made measurements (check) and 410/410 after rewrite and reload (resave). No drawing tool yet (no UI). |
-| meas-021 | Polylength | P0 | partial | have | Polylength read/write and quantity (incl. Rise/Drop); not on the reference set; no tool. |
-| meas-022 | Perimeter | P1 | partial | have | `square_area_and_perimeter` Perimeter read/write and quantity; not on the reference set; no tool. |
-| meas-023 | Backspace removes last point | P0 | missing | missing |  |
-| meas-024 | Enter / double-click to finish; click first point to close | P0 | missing | have |  |
-| meas-025 | Rise/Drop (Polylength) | P1 | partial | have | Rise/Drop stored as /PCRiseDrop and added to the quantity; no UI. |
+| meas-021 | Polylength | P0 | have | have | `length_and_polylength_measure` Polylength read/write and quantity (incl. Rise/Drop); not on the reference set; no tool. |
+| meas-022 | Perimeter | P1 | partial | have | `square_area_and_perimeter` Perimeter tool built (click points, Enter / double-click); no UI test yet. |
+| meas-023 | Backspace removes last point | P0 | have | missing | `polyline_takes_clicks_backspace_and_enter` Every point tool. |
+| meas-024 | Enter / double-click to finish; click first point to close | P0 | have | have | `polyline_takes_clicks_backspace_and_enter` `area_shows_its_value_and_finishes_on_double_click` `clicking_the_first_point_closes_a_polygon_and_ellipse_drags` `length_and_polylength_measure` Enter, double-click or right-click finishes; clicking the first point closes a closed shape. |
+| meas-025 | Rise/Drop (Polylength) | P1 | partial | have | Rise/Drop field in Properties; no UI test yet. |
 | meas-026 | Slope (Length/Area) | P2 | missing | missing |  |
-| meas-027 | Show Segment Values | P1 | partial | have | Segment-values flag stored as /PCSegmentValues; not drawn yet. |
+| meas-027 | Show Segment Values | P1 | have | have | `segment_values_toggle_from_the_menu` Right-click menu and Properties checkbox; values drawn on the canvas per segment. |
 | meas-028 | Convert segment to arc | P1 | partial | have | Arcs stored as /PCArcs; no editing. |
 | meas-029 | Add / delete control point | P1 | missing | have |  |
 
@@ -82,9 +82,9 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | meas-034 | Wall Area | P2 | missing | missing |  |
 | meas-035 | Show All Measurements | P1 | missing | missing |  |
 | meas-036 | Show Centroid | P3 | missing | missing |  |
-| meas-037 | Polygon Cutout | P0 | partial | partial | `area_with_cutout` Cutouts subtract from the area and are stored as /PCCutouts; no cutout tool. |
+| meas-037 | Polygon Cutout | P0 | have | partial | `area_with_cutout` `cutout_cuts_a_hole_in_the_area` `cutouts_are_one_step_each` `cutout_add_and_delete` Polygon Cutout tool: draw inside an Area (the selected one first); right-click > Delete Cutout. |
 | meas-038 | Ellipse Cutout | P1 | missing | have |  |
-| meas-039 | Edit / delete cutout | P1 | missing | have |  |
+| meas-039 | Edit / delete cutout | P1 | partial | have | Right-click > Delete Cutout and the cutout_delete tool; editing cutout vertices not yet. |
 | meas-040 | Cutout to its own measurement | P3 | missing | missing |  |
 | meas-041 | Hatch fill | P2 | missing | missing |  |
 | meas-042 | Rotate measurement | P3 | missing | missing |  |
@@ -102,8 +102,8 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| meas-047 | Count | P0 | partial | have | Count read/write and quantity; not on the reference set; no tool. |
-| meas-048 | Count symbol choice / scale | P0 | partial | partial | Count symbol and scale stored (/PCCountSymbol, /PCSymbolScale); no UI. |
+| meas-047 | Count | P0 | have | have | `count_adds_items_until_enter` Click per item; Enter or Esc ends the group; the tool stays active. |
+| meas-048 | Count symbol choice / scale | P0 | partial | partial | Symbol and size in Properties; custom symbols not yet. |
 | meas-049 | Custom count symbol from any markup | P1 | missing | have |  |
 | meas-050 | Resume Count | P0 | missing | have |  |
 | meas-051 | Delete one item from a count group | P0 | missing | have |  |
@@ -142,50 +142,50 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| meas-072 | Snap Orthogonal / Shift constraint | P0 | missing | have |  |
-| meas-073 | Snap to Content | P0 | missing | have |  |
-| meas-074 | Snap to Markup | P1 | missing | have |  |
-| meas-075 | Snap to Grid | P3 | missing | missing |  |
-| meas-076 | Show Grid | P3 | missing | missing |  |
-| meas-077 | Snap point types | P1 | missing | have |  |
+| meas-072 | Snap Orthogonal / Shift constraint | P0 | have | have | `shift_constrains_a_line_and_a_drag_makes_an_arrow` `shift_constrains_to_45_degrees` Shift: 0/45/90 degrees from the last point; squares for box tools. |
+| meas-073 | Snap to Content | P0 | have | have | `snap_to_content_lands_on_a_wall_corner` `sample_pages_have_linework` `content_markup_and_grid` Page linework (paths in content and forms) indexed per page on a worker; Ctrl+Shift+F8. |
+| meas-074 | Snap to Markup | P1 | have | have | `snap_to_markup_and_grid` `content_markup_and_grid` Vertices, segment midpoints, nearest point and box centres of the page's markups; Ctrl+Shift+F7. |
+| meas-075 | Snap to Grid | P3 | have | missing | `snap_to_markup_and_grid` Quarter-inch grid; Ctrl+Shift+F9. |
+| meas-076 | Show Grid | P3 | partial | missing | View > Show Grid (Shift+F9) draws the quarter-inch grid; spacing not configurable yet. |
+| meas-077 | Snap point types | P1 | have | have | `content_markup_and_grid` `snap_to_content_lands_on_a_wall_corner` Endpoint, intersection, midpoint, nearest, centre and grid, each with its own indicator glyph. |
 | meas-078 | Snap sensitivity | P2 | missing | missing |  |
 | meas-079 | Rulers | P3 | missing | missing |  |
 | meas-080 | Pan while drawing | P0 | missing | have |  |
 | meas-081 | Ctrl wheel toggle zoom/pan | P1 | missing | partial |  |
-| meas-082 | Copy in straight line | P1 | missing | have |  |
+| meas-082 | Copy in straight line | P1 | have | have | `ctrl_shift_drag_copies_in_a_straight_line` |
 
 ### Measurement properties, captions and appearance
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| meas-083 | Subject | P0 | partial | have | `list_set_cell_validates_input` Subject read/write, editable headlessly through the Markups List table. |
-| meas-084 | Label | P0 | partial | have | `list_set_cell_validates_input` Label read/write, editable headlessly through the Markups List table. |
+| meas-083 | Subject | P0 | partial | have | `list_set_cell_validates_input` Properties > Subject (typing is one undo step); no UI test of typing yet. |
+| meas-084 | Label | P0 | partial | have | `list_set_cell_validates_input` Properties > Label; no UI test of typing yet. |
 | meas-085 | Per-measurement units | P0 | missing | partial |  |
-| meas-086 | Set as Default | P0 | missing | have |  |
+| meas-086 | Set as Default | P0 | have | have | `set_as_default_styles_new_markups` `tool_sets_persist_and_reload` Right-click > Set as Default or Properties > Options; saved with the Tool Chest. |
 | meas-087 | Show Caption + Edit caption contents | P1 | missing | partial |  |
-| meas-088 | Move caption independently | P1 | partial | have | Caption offset read/written as Revu /CO; no drag UI. |
+| meas-088 | Move caption independently | P1 | have | have | `shift_drag_moves_a_caption_alone` Shift-drag a caption; stored as /CO; right-click > Reset Caption Position. |
 | meas-089 | Caption leader line | P2 | missing | missing |  |
 | meas-090 | Caption default placement | P1 | missing | partial |  |
 | meas-091 | Line endpoints (Start/End) | P2 | missing | missing |  |
-| meas-092 | Line style / width / opacity / color / fill | P1 | missing | partial |  |
+| meas-092 | Line style / width / opacity / color / fill | P1 | partial | partial | Properties: color, fill, opacity, fill opacity, line width, style, endings; no UI test per field yet. |
 | meas-093 | Font for captions | P2 | missing | missing |  |
-| meas-094 | Live measure readout | P1 | missing | have |  |
+| meas-094 | Live measure readout | P1 | have | have | `area_shows_its_value_and_finishes_on_double_click` `measuring_without_a_scale_says_so` The value under construction follows the cursor and shows in the status bar. |
 | meas-095 | Temporary vs persistent measurements | P2 | missing | missing |  |
 | meas-096 | Measure tool (unified) | P2 | missing | missing |  |
-| meas-097 | Measurements panel | P0 | missing | partial |  |
+| meas-097 | Measurements panel | P0 | have | partial | `measurements_panel_sets_a_custom_scale_on_every_page` Measurements panel (Alt+U): page scale, presets, custom scale, calibrate, units and precision, viewports, selection totals. |
 | meas-098 | Properties toolbar Totals | P1 | missing | have |  |
-| meas-099 | Bulk edit selected measurements | P0 | missing | partial |  |
+| meas-099 | Bulk edit selected measurements | P0 | have | partial | `properties_edit_every_selected_markup` Properties edits apply to every selected markup. |
 | meas-100 | Layer, Author, Comment fields | P2 | missing | partial |  |
-| meas-101 | Lock markup | P2 | partial | missing | `extras_columns_status_replies_lock_round_trip` Lock flag (/F Locked) in the model and file; no UI. |
+| meas-101 | Lock markup | P2 | have | missing | `extras_columns_status_replies_lock_round_trip` `properties_edit_every_selected_markup` Properties > Options > Locked, Ctrl+Shift+L, right-click. |
 | meas-102 | Legacy Subject/Label persist | P3 | missing | missing |  |
 
 ### Tool Chest for takeoff
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| meas-103 | Save measurement tool to Tool Chest | P0 | missing | have |  |
-| meas-104 | Properties Mode vs Drawing Mode | P1 | missing | missing |  |
-| meas-105 | Tool sets (e.g. one per system) | P0 | missing | have |  |
+| meas-103 | Save measurement tool to Tool Chest | P0 | have | have | `context_menu_saves_a_look_to_the_tool_chest` `tool_sets_persist_and_reload` |
+| meas-104 | Properties Mode vs Drawing Mode | P1 | have | missing | `drawing_mode_places_a_copy` `tool_sets_persist_and_reload` Tool Chest item right-click: Properties Mode / Drawing Mode. |
+| meas-105 | Tool sets (e.g. one per system) | P0 | have | have | `tool_sets_persist_and_reload` New / rename / delete tool sets; copy items between sets. |
 | meas-106 | Dynamic Tool Set Scaler | P2 | missing | missing |  |
 | meas-107 | Takeoff profile | P3 | missing | missing |  |
 
@@ -242,43 +242,43 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| mark-001 | Text Box | P0 | partial | have | `cli: markupcheck` Revu text boxes are read and rewritten (markupcheck); no tool. |
-| mark-002 | Autosize Text Box | P1 | missing | partial |  |
-| mark-003 | Typewriter | P1 | missing | have |  |
-| mark-004 | Note | P1 | missing | have |  |
-| mark-005 | Callout | P0 | partial | have | `cli: markupcheck` Revu callouts are read and rewritten (markupcheck); no tool. |
+| mark-001 | Text Box | P0 | have | have | `cli: markupcheck` `text_box_typewriter_and_note_type_in_place` `an_empty_text_box_is_not_added` Drag a box or click, type in the editor over the page; double-click to edit later. |
+| mark-002 | Autosize Text Box | P1 | partial | partial | Alt+Z autosizes; text boxes grow with their text when typed. |
+| mark-003 | Typewriter | P1 | have | have | `text_box_typewriter_and_note_type_in_place` |
+| mark-004 | Note | P1 | have | have | `text_box_typewriter_and_note_type_in_place` Click to place, type the comment; icon in Properties. |
+| mark-005 | Callout | P0 | have | have | `cli: markupcheck` `callout_tip_then_box_then_text` Click the tip, then where the box goes (or drag), then type. |
 | mark-006 | Rich text editing in text markups | P1 | missing | partial |  |
 | mark-007 | Spell check | P2 | have | have | `spell_check_flags_markup_text_with_suggestions` `the_bundled_dictionary_checks_english` `affix_expansion_and_checks` Tool spell_check: markup comment text (or given text) against assets/dictionaries/en_US, read by a pure-Rust Hunspell affix expander; REP / one-edit / two-edit suggestions; words with digits, one letter or ALL CAPS skipped; accept list. No underline-as-you-type UI yet. |
 | mark-008 | Review Text (text-edit view) | P3 | missing | missing |  |
-| mark-009 | Text Highlight | P2 | missing | have |  |
-| mark-010 | Underline text | P2 | missing | have |  |
-| mark-011 | Strikethrough text | P2 | missing | have |  |
+| mark-009 | Text Highlight | P2 | have | have | `text_markups_follow_the_page_text` Over the page text layer; on pages without text the dragged rectangle. |
+| mark-010 | Underline text | P2 | have | have | `text_markups_follow_the_page_text` |
+| mark-011 | Strikethrough text | P2 | have | have | `strikethrough_marks_text` |
 | mark-012 | Squiggly text | P3 | missing | have |  |
 | mark-013 | Insert/Replace text markup (caret) | P3 | missing | have |  |
 | mark-014 | Sequences / incrementing text | P1 | missing | missing |  |
-| mark-015 | Text font properties | P0 | missing | have |  |
+| mark-015 | Text font properties | P0 | have | have | `properties_panel_edits_go_through_the_engine` Properties > Text: font, size, colour, bold, italic, underline, alignment. |
 | mark-016 | Text box margins / line spacing | P2 | missing | missing |  |
-| mark-017 | Callout leader/leader end | P1 | missing | have |  |
+| mark-017 | Callout leader/leader end | P1 | partial | have | Leader tip and knee are handles; end style in Properties. |
 
 ### B. Line and shape markups
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| mark-018 | Line | P0 | partial | have | `cli: markupcheck` Read/write in the file (markupcheck); no drawing tool. |
-| mark-019 | Arrow | P0 | partial | have | `cli: markupcheck` Revu arrows are read and rewritten (markupcheck); no tool. |
+| mark-018 | Line | P0 | have | have | `cli: markupcheck` `shift_constrains_a_line_and_a_drag_makes_an_arrow` `snap_to_content_lands_on_a_wall_corner` Read/write in the file (markupcheck); no drawing tool. |
+| mark-019 | Arrow | P0 | have | have | `cli: markupcheck` `shift_constrains_a_line_and_a_drag_makes_an_arrow` Revu arrows are read and rewritten (markupcheck); no tool. |
 | mark-020 | Dimension | P2 | missing | missing |  |
-| mark-021 | Polyline | P1 | partial | have | `cli: markupcheck` Read/write in the file (markupcheck); no drawing tool. |
-| mark-022 | Polygon | P1 | partial | have | `cli: markupcheck` Read/write in the file (markupcheck); no drawing tool. |
-| mark-023 | Rectangle | P0 | partial | have | `cli: markupcheck` Read/write in the file (markupcheck); no drawing tool. |
-| mark-024 | Ellipse | P1 | partial | have | Read/write in the file; no drawing tool. |
+| mark-021 | Polyline | P1 | have | have | `cli: markupcheck` `polyline_takes_clicks_backspace_and_enter` Read/write in the file (markupcheck); no drawing tool. |
+| mark-022 | Polygon | P1 | have | have | `cli: markupcheck` `clicking_the_first_point_closes_a_polygon_and_ellipse_drags` `escape_cancels_a_drawing` Read/write in the file (markupcheck); no drawing tool. |
+| mark-023 | Rectangle | P0 | have | have | `cli: markupcheck` `rectangle_tool_draws_and_returns_to_select` `set_as_default_styles_new_markups` Read/write in the file (markupcheck); no drawing tool. |
+| mark-024 | Ellipse | P1 | have | have | `clicking_the_first_point_closes_a_polygon_and_ellipse_drags` Read/write in the file; no drawing tool. |
 | mark-025 | Arc | P2 | missing | missing |  |
-| mark-026 | Cloud | P0 | partial | have | `cli: markupcheck` Revu clouds are read and rewritten (markupcheck); no tool. |
-| mark-027 | Cloud+ | P0 | missing | partial |  |
+| mark-026 | Cloud | P0 | have | have | `cli: markupcheck` `cloud_plus_adds_a_cloud_and_its_callout_as_a_group` Revu clouds are read and rewritten (markupcheck); no tool. |
+| mark-027 | Cloud+ | P0 | have | partial | `cloud_plus_adds_a_cloud_and_its_callout_as_a_group` Cloud, then a click places a callout pointing at it; the two are grouped. |
 | mark-028 | Rectangle/polygon cloud modes | P1 | missing | have |  |
-| mark-029 | Pen (freehand ink) | P1 | partial | have | Ink read/write in the file; no pen tool. |
-| mark-030 | Highlighter (freehand) | P1 | missing | have |  |
+| mark-029 | Pen (freehand ink) | P1 | have | have | `pen_and_highlight_draw_freehand` One stroke per markup. |
+| mark-030 | Highlighter (freehand) | P1 | have | have | `pen_and_highlight_draw_freehand` |
 | mark-031 | Eraser | P2 | missing | missing |  |
-| mark-032 | Shift-constrain while drawing | P0 | missing | have |  |
+| mark-032 | Shift-constrain while drawing | P0 | have | have | `shift_constrains_a_line_and_a_drag_makes_an_arrow` `shift_constrains_to_45_degrees` |
 | mark-033 | Spacebar pan while drawing | P1 | missing | have |  |
 | mark-034 | Shape fill hatch patterns | P2 | missing | missing |  |
 | mark-035 | Flag | P3 | missing | missing |  |
@@ -287,7 +287,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| mark-036 | Stamp tool | P1 | missing | partial |  |
+| mark-036 | Stamp tool | P1 | have | partial | `stamp_places_the_chosen_design` Click to place (or drag the box) the design chosen in Tool Chest > Stamps; our own designs. |
 | mark-037 | Stamp library management | P2 | missing | missing |  |
 | mark-038 | Create Stamp | P2 | missing | missing |  |
 | mark-039 | Dynamic stamp text | P1 | missing | missing |  |
@@ -295,7 +295,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-041 | Stamp from image/PDF | P2 | missing | missing |  |
 | mark-042 | Image markup | P2 | missing | missing |  |
 | mark-043 | Image From Scanner | P3 | missing | missing |  |
-| mark-044 | Snapshot | P1 | partial | have | `cli: markupcheck` Revu snapshots are read and kept on save; no tool. |
+| mark-044 | Snapshot | P1 | have | have | `cli: markupcheck` `snapshot_copies_a_region_and_ctrl_v_pastes_it` Drag a region; Ctrl+V pastes it at the pointer. |
 | mark-045 | Copy Page to Snapshot | P3 | missing | have |  |
 | mark-046 | Snapshot Content (cut/copy region of page) | P2 | missing | partial |  |
 | mark-047 | Hyperlink | P1 | partial | missing | `links_to_pages_urls_and_files` Links made headlessly (link_add); no drawing tool. |
@@ -313,37 +313,37 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| mark-057 | Properties panel (markup context) | P0 | missing | have |  |
-| mark-058 | Multi-select property editing | P0 | missing | have |  |
-| mark-059 | General: Subject | P0 | partial | partial | `list_set_cell_validates_input` Editable headlessly through the Markups List table; no Properties panel. |
+| mark-057 | Properties panel (markup context) | P0 | have | have | `properties_panel_edits_go_through_the_engine` `properties_edit_every_selected_markup` General, Appearance, Text, Measurement, Note, Layout and Options sections; page info when nothing is selected. |
+| mark-058 | Multi-select property editing | P0 | have | have | `properties_edit_every_selected_markup` |
+| mark-059 | General: Subject | P0 | partial | partial | `list_set_cell_validates_input` Properties > Subject; no UI test of typing yet. |
 | mark-060 | General: Author | P1 | missing | missing |  |
 | mark-061 | General: Date / modified | P2 | missing | missing |  |
-| mark-062 | General: Label | P0 | partial | partial | `list_set_cell_validates_input` Editable headlessly through the Markups List table; no Properties panel. |
-| mark-063 | General: Comments | P0 | missing | missing |  |
+| mark-062 | General: Label | P0 | partial | partial | `list_set_cell_validates_input` Properties > Label; no UI test of typing yet. |
+| mark-063 | General: Comments | P0 | partial | missing | Properties > Comments for non-text markups. |
 | mark-064 | General: Reply count / status | P2 | missing | missing |  |
-| mark-065 | Appearance: Color (stroke) | P0 | missing | partial |  |
-| mark-066 | Appearance: Fill color | P0 | missing | missing |  |
-| mark-067 | Appearance: Opacity | P0 | missing | missing |  |
-| mark-068 | Appearance: Fill opacity | P0 | missing | missing |  |
-| mark-069 | Appearance: Line width | P0 | missing | missing |  |
-| mark-070 | Appearance: Line style | P1 | missing | missing |  |
+| mark-065 | Appearance: Color (stroke) | P0 | partial | partial | Properties > Color (all selected). |
+| mark-066 | Appearance: Fill color | P0 | partial | missing | Properties > Fill on/off and colour. |
+| mark-067 | Appearance: Opacity | P0 | partial | missing | Properties > Opacity slider (one undo step per drag). |
+| mark-068 | Appearance: Fill opacity | P0 | partial | missing | Properties > Fill opacity slider. |
+| mark-069 | Appearance: Line width | P0 | partial | missing | Properties > Line width. |
+| mark-070 | Appearance: Line style | P1 | have | missing | `line_styles_are_valid_dashes` Solid, dashed, dotted, dash dot, long dash. |
 | mark-071 | Custom line style editor / line style sets | P2 | missing | missing |  |
-| mark-072 | Appearance: Line start / end | P1 | missing | missing |  |
-| mark-073 | Appearance: Cloud style / intensity | P0 | missing | missing |  |
+| mark-072 | Appearance: Line start / end | P1 | partial | missing | Properties > Start / End line endings. |
+| mark-073 | Appearance: Cloud style / intensity | P0 | partial | missing | Properties > Cloud intensity. |
 | mark-074 | Appearance: Blend mode | P1 | missing | missing |  |
 | mark-075 | Appearance: Hatch | P2 | missing | missing |  |
-| mark-076 | Appearance: Font | P0 | missing | missing |  |
-| mark-077 | Appearance: Icon (note/attachment) | P3 | missing | missing |  |
+| mark-076 | Appearance: Font | P0 | partial | missing | Properties > Font, size, colour, bold, italic, underline. |
+| mark-077 | Appearance: Icon (note/attachment) | P3 | partial | missing | Properties > Note icon. |
 | mark-078 | Layout: X, Y | P2 | missing | missing |  |
 | mark-079 | Layout: Width, Height | P2 | missing | missing |  |
 | mark-080 | Layout: Rotation | P2 | missing | missing |  |
 | mark-081 | Interactive rotation handle | P2 | missing | missing |  |
-| mark-082 | Layer property | P1 | missing | missing |  |
-| mark-084 | Options: Set as Default | P0 | missing | have |  |
-| mark-085 | Options: Add to Tool Chest | P0 | missing | have |  |
-| mark-083 | Lock property | P1 | partial | have | `extras_columns_status_replies_lock_round_trip` Lock flag in the model and file; no UI. |
+| mark-082 | Layer property | P1 | partial | missing | Properties > Layer name (no Layers panel yet). |
+| mark-084 | Options: Set as Default | P0 | have | have | `set_as_default_styles_new_markups` |
+| mark-085 | Options: Add to Tool Chest | P0 | have | have | `context_menu_saves_a_look_to_the_tool_chest` |
+| mark-083 | Lock property | P1 | have | have | `extras_columns_status_replies_lock_round_trip` `properties_edit_every_selected_markup` Lock flag in the model and file; no UI. |
 | mark-086 | Measurement properties | P0 | missing | partial |  |
-| mark-087 | Caption move (measurement) | P1 | missing | have |  |
+| mark-087 | Caption move (measurement) | P1 | have | have | `shift_drag_moves_a_caption_alone` |
 | mark-088 | Format Painter | P0 | missing | have |  |
 | mark-089 | Flip Horizontal / Vertical | P3 | missing | have |  |
 | mark-090 | Hidden / no-view / no-print flags | P2 | missing | missing |  |
@@ -352,49 +352,49 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| mark-091 | Select tool | P0 | missing | have |  |
-| mark-092 | Marquee multi-select | P0 | missing | have |  |
+| mark-091 | Select tool | P0 | have | have | `click_selects_drag_moves_delete_and_undo` |
+| mark-092 | Marquee multi-select | P0 | have | have | `box_select_and_view_commands` `properties_edit_every_selected_markup` |
 | mark-093 | Lasso select | P2 | missing | missing |  |
-| mark-094 | Select All | P0 | missing | have |  |
-| mark-095 | Cut / Copy / Paste | P0 | missing | have |  |
-| mark-096 | Paste in Place | P0 | missing | have |  |
+| mark-094 | Select All | P0 | have | have | `engine_commands_and_page_operations` |
+| mark-095 | Cut / Copy / Paste | P0 | have | have | `engine_commands_and_page_operations` `copy_paste_across_pages_and_groups` MarkupCraft clipboard (Ctrl+X/C/V); Ctrl+V pastes at the pointer. |
+| mark-096 | Paste in Place | P0 | have | have | `engine_commands_and_page_operations` Ctrl+Shift+V. |
 | mark-097 | Apply to All Pages / Paste to pages | P1 | missing | have |  |
-| mark-098 | Ctrl+Shift drag-copy | P1 | missing | have |  |
-| mark-099 | Delete | P0 | missing | have |  |
-| mark-100 | Undo / Redo | P0 | missing | have |  |
+| mark-098 | Ctrl+Shift drag-copy | P1 | have | have | `ctrl_shift_drag_copies_in_a_straight_line` |
+| mark-099 | Delete | P0 | have | have | `click_selects_drag_moves_delete_and_undo` |
+| mark-100 | Undo / Redo | P0 | have | have | `click_selects_drag_moves_delete_and_undo` `polyline_takes_clicks_backspace_and_enter` |
 | mark-101 | Nudge with arrow keys | P1 | missing | have |  |
-| mark-102 | Group | P1 | partial | have | `extras_groups_round_trip` group_markups + /RT /Group in the file; no UI command. |
-| mark-103 | Ungroup | P1 | partial | have | `extras_groups_round_trip` ungroup_markups + file; no UI command. |
+| mark-102 | Group | P1 | have | have | `extras_groups_round_trip` `copy_paste_across_pages_and_groups` `cloud_plus_adds_a_cloud_and_its_callout_as_a_group` Ctrl+G, Markup menu, right-click. |
+| mark-103 | Ungroup | P1 | have | have | `extras_groups_round_trip` `copy_paste_across_pages_and_groups` Ctrl+Shift+G, Markup menu, right-click. |
 | mark-104 | Remove From Group | P3 | partial | have | `extras_remove_from_group` remove_from_group (a group of one ends); no UI command. |
 | mark-105 | Align Left/Center/Right | P2 | missing | have |  |
 | mark-106 | Align Top/Middle/Bottom | P2 | missing | have |  |
 | mark-107 | Distribute horizontally/vertically | P3 | missing | have |  |
-| mark-108 | Bring Forward / to Front | P2 | missing | have |  |
-| mark-109 | Send Backward / to Back | P2 | missing | have |  |
-| mark-110 | Edit vertices | P0 | missing | partial |  |
-| mark-111 | Snap to Content / Grid / Markup | P0 | missing | missing |  |
+| mark-108 | Bring Forward / to Front | P2 | have | have | `arrange_and_save_order` `engine_commands_and_page_operations` Ctrl+] / Ctrl+Shift+], right-click > Arrange. |
+| mark-109 | Send Backward / to Back | P2 | have | have | `arrange_and_save_order` `engine_commands_and_page_operations` Ctrl+[ / Ctrl+Shift+[, right-click > Arrange. |
+| mark-110 | Edit vertices | P0 | partial | partial | Drag vertices; right-click > Add Vertex / Delete Vertex (no UI test yet). |
+| mark-111 | Snap to Content / Grid / Markup | P0 | have | missing | `snap_to_content_lands_on_a_wall_corner` `snap_to_markup_and_grid` Status bar toggles while drawing and reshaping. |
 | mark-112 | Grid and rulers | P3 | missing | missing |  |
-| mark-113 | Right-click markup context menu | P0 | missing | partial |  |
+| mark-113 | Right-click markup context menu | P0 | have | partial | `context_menu_saves_a_look_to_the_tool_chest` `segment_values_toggle_from_the_menu` Edit text, cut/copy/paste/duplicate/delete, properties, status, checkmark, lock, group, arrange, segment values, caption reset, add/delete vertex, delete cutout, Set as Default, Add to Tool Chest. |
 | mark-114 | Hide Markups | P1 | missing | have |  |
 
 ### F. Tool Chest
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| mark-115 | Tool Chest panel | P0 | missing | have |  |
-| mark-116 | Tool sets | P0 | missing | have |  |
-| mark-117 | My Tools | P0 | missing | have |  |
-| mark-118 | Recent Tools | P1 | missing | have |  |
+| mark-115 | Tool Chest panel | P0 | have | have | `context_menu_saves_a_look_to_the_tool_chest` `tool_sets_persist_and_reload` |
+| mark-116 | Tool sets | P0 | have | have | `tool_sets_persist_and_reload` JSON file in the user configuration folder. |
+| mark-117 | My Tools | P0 | have | have | `tool_sets_persist_and_reload` `context_menu_saves_a_look_to_the_tool_chest` |
+| mark-118 | Recent Tools | P1 | have | have | `recent_tools_dedupe_and_cap` `context_menu_saves_a_look_to_the_tool_chest` This session only, 12 newest. |
 | mark-119 | Recent Tools options | P3 | missing | missing |  |
-| mark-120 | Properties Mode vs Drawing Mode | P0 | missing | have |  |
-| mark-121 | Single-click vs double-click (sticky) tool | P0 | missing | have |  |
-| mark-122 | Tool item properties / edit | P1 | missing | have |  |
+| mark-120 | Properties Mode vs Drawing Mode | P0 | have | have | `drawing_mode_places_a_copy` `tool_sets_persist_and_reload` |
+| mark-121 | Single-click vs double-click (sticky) tool | P0 | partial | have | Double-click a Tool Chest tool or tick Keep tool selected; Count stays active. |
+| mark-122 | Tool item properties / edit | P1 | partial | have | Rename, mode, delete, copy to set; editing an item's look in place not yet. |
 | mark-123 | Update Tool Set Item on Reuse | P2 | missing | missing |  |
 | mark-124 | Comment persistence setting | P3 | missing | missing |  |
 | mark-125 | Tool set scale | P1 | missing | partial |  |
 | mark-126 | Symbol view / Detail view | P3 | missing | missing |  |
 | mark-127 | Icon size slider | P3 | missing | missing |  |
-| mark-128 | Manage Tool Sets | P1 | missing | partial |  |
+| mark-128 | Manage Tool Sets | P1 | partial | partial | New, rename, delete tool sets; reordering not yet. |
 | mark-129 | Import / Export tool set (.btx) | P0 | missing | partial |  |
 | mark-130 | Pin tool set to toolbar | P2 | missing | missing |  |
 | mark-131 | Collapsed set flyout | P3 | missing | missing |  |
@@ -425,13 +425,13 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| mark-149 | Markups List panel | P0 | partial | have | `list_default_columns_in_revu_order` `cli_list_and_summary_end_to_end` Headless Markups List (crates/model table, markupcraft-cli list); no panel UI. |
+| mark-149 | Markups List panel | P0 | have | have | `list_default_columns_in_revu_order` `cli_list_and_summary_end_to_end` `markups_list_shows_totals_and_status` `clicking_a_list_row_selects_its_markup` `export_writes_the_list_with_totals` On the model table: columns, group by, filters, search, scope, totals row and footer, status and checkmark cells, inline edits, export. |
 | mark-150 | Standard columns: identity | P0 | partial | have | `list_default_columns_in_revu_order` `list_cells_formula_choice_currency_status` Subject, Label, Page Label, Page Index, Author, Date, Creation Date, Color, Comments, Layer, Markup ID; Space blank; no Sequence. |
 | mark-151 | Standard columns: measurement | P0 | partial | partial | `list_cells_formula_choice_currency_status` Measurement, Length, Area, Perimeter, Volume, Count, Depth, Width, Height, Rise/Drop, Unit; Wall Area and Slope blank. |
 | mark-152 | Standard columns: geometry | P3 | missing | missing |  |
 | mark-153 | Standard columns: review | P1 | partial | partial | `list_cells_formula_choice_currency_status` Status, Checkmark, Lock; no Capture / Legend / 3D View. |
-| mark-154 | Show/hide columns | P0 | partial | have | `cli_list_and_summary_end_to_end` View::visible / --columns; no UI. |
-| mark-155 | Manage Columns dialog | P1 | partial | have | `extras_columns_status_replies_lock_round_trip` Custom column definitions in the model and file; no dialog. |
+| mark-154 | Show/hide columns | P0 | partial | have | `cli_list_and_summary_end_to_end` Columns menu shows or hides any column. |
+| mark-155 | Manage Columns dialog | P1 | have | have | `extras_columns_status_replies_lock_round_trip` `cells_and_custom_columns` `custom_columns_and_cells` Manage Columns window: name, type, decimals, total, formula, choices. |
 | mark-156 | Custom column: Text | P1 | have | have | `list_custom_column_types` Default value; no multiline wrap. |
 | mark-157 | Custom column: Number | P1 | have | have | `list_custom_column_types` `list_cells_formula_choice_currency_status` Number, Currency, Percent; decimals, symbol, default; no min/max. |
 | mark-158 | Custom column: Date | P2 | partial | partial | `list_custom_column_types` Stored as typed; no date format or current-date default. |
@@ -442,14 +442,14 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-163 | Save columns to profile | P1 | missing | partial |  |
 | mark-164 | Sort by column | P0 | have | have | `list_group_sort_and_totals_per_unit` Secondary sort by creation date, then file order; headless. |
 | mark-165 | Group by column (section dividers) | P0 | have | have | `list_group_sort_and_totals_per_unit` `cli_list_and_summary_end_to_end` Any column, nested, subtotals per unit; headless. |
-| mark-166 | Column filters | P0 | partial | partial | `list_filters_search_and_scope` Per-column value filters; no page dimming, no UI. |
+| mark-166 | Column filters | P0 | partial | partial | `list_filters_search_and_scope` Header right-click > Filter by values. |
 | mark-167 | Search markups | P1 | have | have | `list_filters_search_and_scope` Headless quick search over the shown columns. |
 | mark-168 | Saved filter configurations | P2 | missing | missing |  |
-| mark-169 | Inline cell editing | P0 | partial | have | `list_set_cell_validates_input` MarkupTable::set_cell validates text/number/choice/check edits; no grid UI. |
+| mark-169 | Inline cell editing | P0 | have | have | `list_set_cell_validates_input` `cells_and_custom_columns` `custom_columns_and_cells` Double-click a Subject, Label, Comments or custom cell to type; status and choice cells are menus; list_cell_set does the same headlessly. |
 | mark-170 | Status | P1 | have | have | `extras_columns_status_replies_lock_round_trip` None/Accepted/Rejected/Cancelled/Completed as /StateModel /Review replies (ISO 32000-1 12.5.6.4); no custom status sets. |
 | mark-171 | Checkmark | P1 | have | have | `extras_columns_status_replies_lock_round_trip` /StateModel /Marked replies. |
 | mark-172 | Replies | P1 | partial | partial | `extras_columns_status_replies_lock_round_trip` Read, list, add and write replies; no delete, no threads of threads. |
-| mark-173 | Select-in-list syncs page | P0 | missing | have |  |
+| mark-173 | Select-in-list syncs page | P0 | have | have | `clicking_a_list_row_selects_its_markup` Clicking a row selects the markup and brings it into view. |
 | mark-174 | Copy rows | P1 | missing | have |  |
 | mark-175 | Summary: CSV | P0 | have | have | `csv_summary_with_groups_and_totals` `cli_list_and_summary_end_to_end` `cli: summary` Visible columns, filters, grouping, totals; spreadsheet-safe. |
 | mark-176 | Summary: XML | P2 | have | have | `csv_summary_with_groups_and_totals` `cli: summary` |
@@ -459,17 +459,17 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-180 | Export markups | P2 | partial | missing | `xfdf_export_import_round_trip` XFDF / FDF export of every markup (pdfcraft-xfdf); Revu-only keys are not carried. |
 | mark-181 | Flatten markups | P1 | have | partial | `flatten_markups_by_filter` Headless (engine + automation tool); no UI yet. markup_flatten by ids (the selection), pages, kinds, layers, authors. |
 | mark-182 | Unflatten | P2 | missing | missing |  |
-| mark-183 | Lock / unlock from list | P1 | partial | have | `list_set_cell_validates_input` `extras_columns_status_replies_lock_round_trip` Lock column sets /F Locked headlessly; no list UI. |
+| mark-183 | Lock / unlock from list | P1 | partial | have | `list_set_cell_validates_input` `extras_columns_status_replies_lock_round_trip` Row right-click > Lock / Unlock. |
 | mark-184 | Layer from list | P2 | missing | missing |  |
 | mark-185 | Legend from list | P2 | missing | missing |  |
-| mark-186 | Properties from list | P1 | missing | have |  |
-| mark-187 | Delete from list | P0 | missing | have |  |
+| mark-186 | Properties from list | P1 | partial | have | Row right-click > Properties. |
+| mark-187 | Delete from list | P0 | partial | have | Row right-click > Delete. |
 
 ### I. Measurement-adjacent markup tools (listed here for shortcut completeness; full detail belongs in the measure inventory)
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| mark-188 | Length / Polylength / Area / Perimeter / Count | P0 | missing | have |  |
+| mark-188 | Length / Polylength / Area / Perimeter / Count | P0 | have | have | `length_and_polylength_measure` `area_shows_its_value_and_finishes_on_double_click` `count_adds_items_until_enter` |
 | mark-189 | Angle, Radius, Diameter, Volume | P2 | missing | missing |  |
 | mark-190 | Measure Tool (generic) | P1 | missing | partial |  |
 
@@ -1115,26 +1115,26 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-005 | Align Right (Ctrl + Alt + R) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-006 | Align Top (Ctrl + Alt + T) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-007 | Arc (Shift + C) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-008 | Arrow (A) |  | missing | partial | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-009 | Autosize Text Box (Alt + Z) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-010 | Bring Forward (Ctrl + ]) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-011 | Bring to Front (Ctrl + Shift + ]) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-012 | Callout (Q) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-008 | Arrow (A) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-009 | Autosize Text Box (Alt + Z) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-010 | Bring Forward (Ctrl + ]) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-011 | Bring to Front (Ctrl + Shift + ]) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-012 | Callout (Q) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-013 | Camera (Ctrl + Alt + I) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-014 | Spell Check (F7) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-015 | Cloud (C) |  | missing | partial | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-016 | Cloud+ (K) |  | missing | partial | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-015 | Cloud (C) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-016 | Cloud+ (K) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-017 | Dimension (Shift + L) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-018 | Edit Action (Ctrl + Shift + E) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-019 | Ellipse (E) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-019 | Ellipse (E) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-020 | Eraser (Shift + E) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-021 | Export Markups (Ctrl + F2) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-022 | File Attachment (F) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-023 | Flag (Shift + F) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-024 | Flip Horizontal (Ctrl + Alt + H) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-025 | Flip Vertical (Ctrl + Alt + V) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-026 | Group (Ctrl + G) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-027 | Highlight (H) |  | missing | partial | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-026 | Group (Ctrl + G) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-027 | Highlight (H) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-028 | Hyperlink (Shift + H) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-029 | Image (I) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-030 | Image From Scanner (Shift + I) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
@@ -1145,14 +1145,14 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | key-032 | Angle (Shift + Alt + G) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-033 | Area (Shift + Alt + A) |  | missing | partial | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-034 | Count (Shift + Alt + C) |  | missing | partial | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-033 | Area (Shift + Alt + A) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-034 | Count (Shift + Alt + C) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-035 | Diameter (Shift + Alt + D) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-036 | Dynamic Fill (J) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-037 | Length (Shift + Alt + L) |  | missing | partial | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-037 | Length (Shift + Alt + L) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-038 | Measure Tool (M) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-039 | Perimeter (Shift + Alt + P) |  | missing | partial | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-040 | Polylength (Shift + Alt + Q) |  | missing | partial | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-039 | Perimeter (Shift + Alt + P) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-040 | Polylength (Shift + Alt + Q) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-041 | Radius (Shift + Alt + U) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-042 | Volume (Shift + Alt + V) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 
@@ -1167,78 +1167,78 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| key-045 | Line (L) |  | missing | partial | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-046 | Lock (Ctrl + Shift + L) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-047 | Note (N) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-048 | Pen (P) |  | missing | partial | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-049 | Polygon (Shift + P) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-050 | Polyline (Shift + N) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-051 | Rectangle (R) |  | missing | partial | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-045 | Line (L) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-046 | Lock (Ctrl + Shift + L) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-047 | Note (N) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-048 | Pen (P) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-049 | Polygon (Shift + P) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-050 | Polyline (Shift + N) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-051 | Rectangle (R) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-052 | Remove From Group (Ctrl + Shift + Alt + G) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-053 | Review Text (Shift + Alt + R) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-054 | Send Backward (Ctrl + [) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-055 | Send to Back (Ctrl + Shift + [) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-056 | Stamp (S) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-057 | Text Box (T) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-058 | Typewriter (W) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-059 | Ungroup (Ctrl + Shift + G) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-054 | Send Backward (Ctrl + [) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-055 | Send to Back (Ctrl + Shift + [) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-056 | Stamp (S) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-057 | Text Box (T) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-058 | Typewriter (W) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-059 | Ungroup (Ctrl + Shift + G) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 
 ### File
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| key-060 | Close (Ctrl + F4) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-060 | Close (Ctrl + F4) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-061 | Create PDF (Ctrl + N) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-062 | Open (Ctrl + O) |  | missing | have |  |
+| key-062 | Open (Ctrl + O) |  | have | have | `revu_default_shortcuts_are_bound` |
 | key-063 | Print (Ctrl + P) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-064 | Publish as Compressed 1.5 (Ctrl + Shift + P) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-065 | Save (Ctrl + S) |  | missing | have |  |
+| key-065 | Save (Ctrl + S) |  | have | have | `revu_default_shortcuts_are_bound` |
 | key-066 | Save All (Shift + F2) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-067 | Save As (Ctrl + Shift + S) |  | missing | have |  |
+| key-067 | Save As (Ctrl + Shift + S) |  | have | have | `revu_default_shortcuts_are_bound` |
 
 ### Edit
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| key-068 | Copy (Ctrl + C) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-068 | Copy (Ctrl + C) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-069 | Copy Page to Snapshot (Ctrl + Alt + C) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-070 | Cut (Ctrl + X) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-071 | Delete (Del) |  | missing | have |  |
+| key-070 | Cut (Ctrl + X) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-071 | Delete (Del) |  | have | have | `revu_default_shortcuts_are_bound` |
 | key-072 | Format Painter (Ctrl + Shift + C) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-073 | Paste (Ctrl + V) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-074 | Paste in Place (Ctrl + Shift + V) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-075 | Redo (Ctrl + Y) |  | missing | have |  |
-| key-076 | Select All (Ctrl + A) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-073 | Paste (Ctrl + V) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-074 | Paste in Place (Ctrl + Shift + V) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-075 | Redo (Ctrl + Y) |  | have | have | `revu_default_shortcuts_are_bound` |
+| key-076 | Select All (Ctrl + A) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-077 | Select All Text (Ctrl + Shift + A) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-078 | Snapshot (G) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-079 | Undo (Ctrl + Z) |  | missing | have |  |
+| key-078 | Snapshot (G) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-079 | Undo (Ctrl + Z) |  | have | have | `revu_default_shortcuts_are_bound` |
 
 ### View
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| key-080 | Actual Size (Ctrl + 8) |  | missing | partial | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-080 | Actual Size (Ctrl + 8) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-081 | Balance (Shift + F12) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-082 | Continuous Mode (Ctrl + 5) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-082 | Continuous Mode (Ctrl + 5) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-083 | Continuous Side by Side Mode (Ctrl + 7) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-084 | Dimmer (Ctrl + F5) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-085 | Fit Page (Ctrl + 9) |  | missing | partial | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-086 | Fit Width (Ctrl + 0) |  | missing | partial | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-087 | Next Page (Ctrl + Right) |  | missing | have |  |
+| key-085 | Fit Page (Ctrl + 9) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-086 | Fit Width (Ctrl + 0) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-087 | Next Page (Ctrl + Right) |  | have | have | `revu_default_shortcuts_are_bound` |
 | key-088 | Next View (Alt + Right) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-089 | Previous Page (Ctrl + Left) |  | missing | have |  |
+| key-089 | Previous Page (Ctrl + Left) |  | have | have | `revu_default_shortcuts_are_bound` |
 | key-090 | Previous View (Alt + Left) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-091 | Refresh (F5) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-092 | Remote Files (Alt + K) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-093 | Rotate View Clockwise (Ctrl + Shift + Plus) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-094 | Rotate View Counterclockwise (Ctrl + Shift + Minus) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-095 | Rulers (Ctrl + R) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-096 | Show Grid (Shift + F9) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-096 | Show Grid (Shift + F9) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-097 | Side by Side (Ctrl + 6) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-098 | Single Page Mode (Ctrl + 4) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-099 | Snap to Content (Ctrl + Shift + F8) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-100 | Snap to Grid (Ctrl + Shift + F9) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-101 | Snap to Markup (Ctrl + Shift + F7) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-098 | Single Page Mode (Ctrl + 4) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-099 | Snap to Content (Ctrl + Shift + F8) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-100 | Snap to Grid (Ctrl + Shift + F9) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-101 | Snap to Markup (Ctrl + Shift + F7) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-102 | Split Horizontal (Ctrl + H) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-103 | Split Vertical (Ctrl + 2) |  | missing | partial | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-104 | Switch (Ctrl + 1) |  | missing | partial | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
@@ -1251,12 +1251,12 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | key-108 | Lasso (Shift + O) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-109 | Pan (Shift + V) |  | missing | partial | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-110 | Select (V) |  | missing | have |  |
+| key-109 | Pan (Shift + V) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-110 | Select (V) |  | have | have | `revu_default_shortcuts_are_bound` |
 | key-111 | Select Text (Shift + T) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-112 | Toggle Zoom Tool (Shift + Z) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-113 | Zoom In (Plus) |  | missing | have |  |
-| key-114 | Zoom Out (Minus) |  | missing | have |  |
+| key-113 | Zoom In (Plus) |  | have | have | `revu_default_shortcuts_are_bound` |
+| key-114 | Zoom Out (Minus) |  | have | have | `revu_default_shortcuts_are_bound` |
 | key-115 | Zoom Tool (Z) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 
 ### Search
@@ -1275,22 +1275,22 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-120 | Add Bookmark (Ctrl + B) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-121 | Apply Redactions (Shift + A) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-122 | Crop Pages (Shift + Alt + O) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-123 | Delete Pages (Ctrl + Shift + D) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-123 | Delete Pages (Ctrl + Shift + D) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-124 | Deskew (Ctrl + Alt + D) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-125 | Document Properties (Ctrl + D) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-125 | Document Properties (Ctrl + D) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-126 | Email (Ctrl + E) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-127 | Extract Pages (Ctrl + Shift + X) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-127 | Extract Pages (Ctrl + Shift + X) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-128 | Flatten (Ctrl + Shift + M) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-129 | Flattened (Ctrl + Alt + F) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-130 | Insert Blank Page (Ctrl + Shift + N) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-131 | Insert Pages (Ctrl + Shift + I) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-130 | Insert Blank Page (Ctrl + Shift + N) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-131 | Insert Pages (Ctrl + Shift + I) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-132 | Mark for Redaction (Shift + R) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-133 | Mark Text for Redaction (Shift + K) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-134 | OCR (Ctrl + Shift + O) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-135 | Refresh Document (Shift + F5) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-136 | Replace Pages (Ctrl + Shift + Y) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-137 | Rotate Clockwise (Shift + Alt + Plus) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-138 | Rotate Counterclockwise (Shift + Alt + Minus) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-137 | Rotate Clockwise (Shift + Alt + Plus) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-138 | Rotate Counterclockwise (Shift + Alt + Minus) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-139 | Rotate Pages (Ctrl + Shift + R) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-140 | Security (Ctrl + L) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-141 | Snapshot Content (Shift + G) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
@@ -1305,7 +1305,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 |---|---|---|---|---|---|
 | key-146 | 3D Model Tree (Alt + 3) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-147 | Always on Top (Ctrl + F12) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-148 | Bookmarks (Alt + B) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-148 | Bookmarks (Alt + B) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-149 | Close All (Ctrl + Shift + W) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-150 | File Access (Alt + A) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-151 | Forms (Alt + Q) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
@@ -1314,13 +1314,13 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-154 | JavaScript Console (Alt + J) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-155 | Layers (Alt + Y) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-156 | Links (Alt + N) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-157 | Markups (Alt + L) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-158 | Measurements (Alt + U) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-157 | Markups (Alt + L) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-158 | Measurements (Alt + U) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-159 | Menu Bar (F9) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-160 | Navigation Bar (F4) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-161 | Preferences (Ctrl + K) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-162 | Presentation (Ctrl + Enter) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-163 | Properties (Alt + P) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-163 | Properties (Alt + P) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-164 | Search (Alt + 1) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-165 | Sets (Alt + 2) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-166 | Show Context Menu (Shift + F10) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
@@ -1328,20 +1328,20 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-168 | Spaces (Alt + S) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-169 | Status Bar (F8) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-170 | Studio (Alt + C) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-171 | Thumbnails (Alt + T) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-172 | Tool Chest (Alt + X) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-171 | Thumbnails (Alt + T) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-172 | Tool Chest (Alt + X) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 
 ### Help
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| key-173 | Help (F1) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-173 | Help (F1) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 
 ### Navigation
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| key-174 | First Page (Home) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-175 | Last Page (End) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-176 | Next Document (Ctrl + Tab) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-177 | Previous Document (Ctrl + Shift + Tab) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-174 | First Page (Home) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-175 | Last Page (End) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-176 | Next Document (Ctrl + Tab) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-177 | Previous Document (Ctrl + Shift + Tab) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |

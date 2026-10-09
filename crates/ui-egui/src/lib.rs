@@ -4,7 +4,8 @@
 //! the middle and the panels around it, the status bar at the bottom. Three tables drive it:
 //! [`commands::COMMANDS`] (menus, toolbar, shortcuts), [`tools::TOOLS`] (what the mouse does)
 //! and [`panels::PANELS`] (dockable panels). Every document change goes through
-//! [`actions::Session`], the thin layer the engine crate will replace.
+//! `markupcraft_engine::Session`, the same session the automation tools drive, so undo/redo,
+//! the command table and page operations are shared with the CLI and MCP server.
 
 #![deny(
     clippy::unwrap_used,
@@ -17,45 +18,145 @@
 
 pub mod actions;
 pub mod canvas;
+pub mod chest;
 pub mod chrome;
 pub mod commands;
+pub mod context_menu;
+pub mod dialogs;
 pub mod dock;
 pub mod icon_data;
 pub mod icons;
+pub mod interact;
 pub mod painter;
 pub mod panels;
+pub mod snapping;
 pub mod theme;
 pub mod tools;
+pub mod windows;
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use egui_dock::{DockArea, DockState};
+use markupcraft_engine::Session;
+use markupcraft_model::Markup;
+use markupcraft_render::text::{PageText, TextExtractor, TextSource};
 use markupcraft_render::{RenderDoc, RenderOptions};
 
-use crate::actions::Session;
-use crate::canvas::{DocView, Fit, PageMode};
+use crate::canvas::{CanvasAction, CanvasCx, CanvasOut, DocView, Fit, PageMode};
+use crate::chest::ToolChest;
+use crate::dialogs::{Dialogs, Purpose};
 use crate::dock::Tab;
+use crate::snapping::SnapCache;
 
 /// One open document.
 pub struct DocTab {
+    /// Stable for the life of the tab (prompts and dialogs refer to it).
+    pub uid: u64,
     /// File name shown on the tab.
     pub name: String,
     /// Where Save writes; `None` = Save As first.
     pub path: Option<PathBuf>,
     pub session: Session,
     pub render: Option<RenderDoc>,
+    /// The bytes the renderer, snapping and text layer read.
+    pub bytes: Arc<Vec<u8>>,
     pub view: DocView,
-    /// Selected markups by `/NM`.
-    pub selection: Vec<String>,
+    pub snaps: SnapCache,
+    text: Option<TextExtractor>,
+    /// Page objects when the renderer was built (a page operation changes them).
+    page_refs: Vec<(u32, u16, i32, [i64; 4])>,
+}
+
+impl DocTab {
+    /// The page's text layer (for text markups), read on first use.
+    pub fn page_text(&mut self, page: usize) -> Option<Arc<PageText>> {
+        let bytes = self.bytes.clone();
+        self.text
+            .get_or_insert_with(|| TextExtractor::new(bytes))
+            .page_text(page)
+    }
+
+    pub fn selection(&self) -> &[String] {
+        self.session.selection()
+    }
+
+    /// What identifies the page structure: each page object with its rotation and size.
+    fn current_refs(&self) -> Vec<(u32, u16, i32, [i64; 4])> {
+        let pages = &self.session.doc().pages;
+        markupcraft_render::snap::page_refs(&self.session.pdf().cos)
+            .into_iter()
+            .enumerate()
+            .map(|(i, r)| {
+                let (rot, m) = pages.get(i).map_or((0, Default::default()), |p| (p.rotate, p.media));
+                let q = |v: f64| (v * 100.0).round() as i64;
+                (r.num, r.generation, rot, [q(m.x0), q(m.y0), q(m.x1), q(m.y1)])
+            })
+            .collect()
+    }
+
+    /// Rebuild the renderer from the session's current bytes (after a save or a page
+    /// operation).
+    fn rerender(&mut self, threads: usize) {
+        match self.session.render_bytes() {
+            Ok(bytes) => {
+                let opts = RenderOptions {
+                    hide: actions::drawn_objects(self.session.doc()),
+                    threads,
+                    hide_all_markups: false,
+                };
+                self.render = RenderDoc::open(bytes.clone(), &opts).ok();
+                self.bytes = bytes;
+            }
+            Err(e) => log::warn!("render {}: {e}", self.name),
+        }
+        self.view.invalidate();
+        self.snaps.invalidate();
+        self.text = None;
+        self.page_refs = self.current_refs();
+        let count = self.session.page_count();
+        if self.view.current >= count {
+            self.view.go_to_page(count.saturating_sub(1), count);
+        }
+    }
+
+    /// Re-render when a page operation (or its undo) changed the pages.
+    fn sync_pages(&mut self, threads: usize) {
+        if self.current_refs() != self.page_refs {
+            self.rerender(threads);
+        }
+    }
 }
 
 /// Status bar toggles.
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Snaps {
     pub grid: bool,
     pub content: bool,
     pub markup: bool,
+}
+
+/// The Calibrate dialog.
+#[derive(Debug, Clone)]
+pub struct Calibrate {
+    pub doc: u64,
+    pub page: usize,
+    pub a: markupcraft_geom::Point,
+    pub b: markupcraft_geom::Point,
+    pub length: String,
+    pub unit: markupcraft_measure::units::LengthUnit,
+    /// "" = this page, "all", or a range like `1-3, 7`
+    pub pages: String,
+    pub apply_to_markups: bool,
+}
+
+/// A question waiting for the user.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Prompt {
+    /// Close this document, which has unsaved changes.
+    Close(u64),
+    /// Exit with these documents unsaved.
+    Exit(Vec<u64>),
 }
 
 /// Everything except the dock layout (so panels can borrow it while the dock draws them).
@@ -64,7 +165,16 @@ pub struct AppState {
     pub active: usize,
     /// Active tool id (`tools::TOOLS`).
     pub tool: &'static str,
+    /// Keep the tool after drawing (else back to Select, Revu's default).
+    pub tool_locked: bool,
+    /// The Tool Chest item drawing with the active tool: (set id, item id).
+    pub active_item: Option<(String, String)>,
+    pub toolchest: ToolChest,
+    /// Stamp design for the Stamp tool.
+    pub stamp: &'static str,
     pub snaps: Snaps,
+    /// Draw the grid over the pages (Show Grid; Snap to Grid is a separate toggle).
+    pub show_grid: bool,
     /// Last message for the status bar.
     pub status: String,
     pub hide_markups: bool,
@@ -80,16 +190,25 @@ pub struct AppState {
     pub show_properties: bool,
     /// Panels open in the dock (refreshed every frame, for menu checkmarks).
     pub open_panels: Vec<&'static str>,
-    /// Markups List sort: column, ascending.
-    pub list_sort: (usize, bool),
+    /// The Markups List's view and editing state.
+    pub list: panels::markups_list::ListState,
+    /// The Measurements panel's entry fields.
+    pub measure: panels::measurements::MeasureState,
     /// The Thumbnails panel was drawn this frame / last frame.
     pub thumbs_wanted: bool,
     pub thumbs_wanted_last: bool,
+    pub dialogs: Dialogs,
+    pub prompts: Vec<Prompt>,
+    pub calibrate: Option<Calibrate>,
     /// Commands to run at the end of the frame.
     queued: Vec<String>,
     /// Dock changes the state cannot make itself.
     panel_toggles: Vec<&'static str>,
+    panel_shows: Vec<&'static str>,
     reset_layout: bool,
+    /// The window may close now (prompts answered).
+    pub close_now: bool,
+    next_uid: u64,
 }
 
 impl Default for AppState {
@@ -98,7 +217,12 @@ impl Default for AppState {
             docs: Vec::new(),
             active: 0,
             tool: "select",
+            tool_locked: false,
+            active_item: None,
+            toolchest: ToolChest::default(),
+            stamp: "Approved",
             snaps: Snaps::default(),
+            show_grid: false,
             status: String::new(),
             hide_markups: false,
             wheel_zooms: true,
@@ -111,14 +235,33 @@ impl Default for AppState {
             show_about: false,
             show_properties: false,
             open_panels: Vec::new(),
-            list_sort: (1, true),
+            list: Default::default(),
+            measure: Default::default(),
             thumbs_wanted: false,
             thumbs_wanted_last: true,
+            dialogs: Dialogs::default(),
+            prompts: Vec::new(),
+            calibrate: None,
             queued: Vec::new(),
             panel_toggles: Vec::new(),
+            panel_shows: Vec::new(),
             reset_layout: false,
+            close_now: false,
+            next_uid: 1,
         }
     }
+}
+
+/// The page ids (0-based) a `pages` field names: "" = `current`, "all", or a range text.
+pub fn pages_from_text(text: &str, current: usize, count: usize) -> Option<Vec<usize>> {
+    let t = text.trim();
+    if t.is_empty() {
+        return (current < count).then(|| vec![current]);
+    }
+    if t.eq_ignore_ascii_case("all") {
+        return Some((0..count).collect());
+    }
+    markupcraft_measure::units::parse_page_range(t, count).filter(|v| !v.is_empty())
 }
 
 impl AppState {
@@ -134,36 +277,51 @@ impl AppState {
         self.docs.get_mut(self.active)
     }
 
+    fn doc_by_uid(&mut self, uid: u64) -> Option<&mut DocTab> {
+        self.docs.iter_mut().find(|d| d.uid == uid)
+    }
+
     /// Run `id` at the end of this frame (menus, toolbar, shortcuts and panels all queue).
     pub fn queue(&mut self, id: &str) {
         self.queued.push(id.to_string());
     }
 
+    /// Show a panel (open it if closed) at the end of the frame.
+    pub fn show_panel(&mut self, id: &'static str) {
+        self.panel_shows.push(id);
+    }
+
     /// Open a PDF from bytes. `path` is where Save writes.
     pub fn open_bytes(&mut self, name: &str, path: Option<PathBuf>, bytes: Vec<u8>) -> Result<(), String> {
-        let bytes = Arc::new(bytes);
-        let session = Session::open_bytes(bytes.clone(), path.as_deref())?;
-        let render = self.make_renderer(&session, bytes)?;
-        self.docs.push(DocTab {
+        let at = path.clone().unwrap_or_else(|| PathBuf::from(name));
+        let mut session = Session::from_bytes(bytes, &at).map_err(|e| e.to_string())?;
+        session.set_author(&self.author);
+        let file_bytes = session.pdf().bytes();
+        let opts = RenderOptions {
+            hide: actions::drawn_objects(session.doc()),
+            threads: self.threads,
+            hide_all_markups: false,
+        };
+        let render = RenderDoc::open(file_bytes.clone(), &opts).map_err(|e| e.to_string())?;
+        let uid = self.next_uid;
+        self.next_uid += 1;
+        let mut tab = DocTab {
+            uid,
             name: name.to_string(),
             path,
             session,
             render: Some(render),
+            bytes: file_bytes,
             view: DocView::default(),
-            selection: Vec::new(),
-        });
+            snaps: SnapCache::new(self.threads == 0),
+            text: None,
+            page_refs: Vec::new(),
+        };
+        tab.page_refs = tab.current_refs();
+        self.docs.push(tab);
         self.active = self.docs.len() - 1;
         self.status = format!("Opened {name}");
         Ok(())
-    }
-
-    fn make_renderer(&self, session: &Session, bytes: Arc<Vec<u8>>) -> Result<RenderDoc, String> {
-        let opts = RenderOptions {
-            hide: session.drawn_objects(),
-            threads: self.threads,
-            hide_all_markups: false,
-        };
-        RenderDoc::open(bytes, &opts).map_err(|e| e.to_string())
     }
 
     /// Open a file from disk (argv, File > Open, a drop).
@@ -184,57 +342,184 @@ impl AppState {
         }
     }
 
+    /// Close document `i`, asking first when it has unsaved changes.
     pub fn close_doc(&mut self, i: usize) {
-        if i < self.docs.len() {
-            self.docs.remove(i);
+        let Some(d) = self.docs.get(i) else { return };
+        if d.session.is_dirty() {
+            let p = Prompt::Close(d.uid);
+            if !self.prompts.contains(&p) {
+                self.prompts.push(p);
+            }
+            return;
         }
-        if self.active >= self.docs.len() {
-            self.active = self.docs.len().saturating_sub(1);
+        self.force_close(d.uid);
+    }
+
+    /// Close a document without asking.
+    pub fn force_close(&mut self, uid: u64) {
+        if let Some(i) = self.docs.iter().position(|d| d.uid == uid) {
+            self.docs.remove(i);
+            if self.active > i || self.active >= self.docs.len() {
+                self.active = self.active.saturating_sub(1).min(self.docs.len().saturating_sub(1));
+            }
         }
     }
 
-    /// Save the active document (`as_new` or no path: ask where).
-    fn save(&mut self, as_new: bool) {
-        let Some(doc) = self.docs.get(self.active) else { return };
-        let target = match (&doc.path, as_new) {
-            (Some(p), false) => Some(p.clone()),
-            _ => pick_save_path(&doc.name),
-        };
-        let Some(target) = target else { return };
-        let threads = self.threads;
-        let Some(doc) = self.docs.get_mut(self.active) else {
+    /// Save a document to its file; without one, ask where (then close when `then_close`).
+    pub fn save_doc(&mut self, uid: u64, as_new: bool, then_close: bool) {
+        let Some(i) = self.docs.iter().position(|d| d.uid == uid) else {
             return;
         };
-        match doc.session.save(Some(&target)) {
-            Ok(p) => {
-                doc.path = Some(p.clone());
-                doc.name = p
+        let Some(d) = self.docs.get(i) else { return };
+        match (&d.path, as_new) {
+            (Some(p), false) => {
+                let p = p.clone();
+                self.save_to(uid, &p, then_close);
+            }
+            _ => {
+                let name = d.name.clone();
+                self.dialogs
+                    .save(Purpose::SaveAs { doc: i, then_close }, dialogs::PDF, &name);
+            }
+        }
+    }
+
+    fn save_to(&mut self, uid: u64, path: &Path, then_close: bool) {
+        let threads = self.threads;
+        let Some(d) = self.doc_by_uid(uid) else { return };
+        interact::commit_editor(d, &mut CanvasOut::default());
+        let same = d.path.as_deref() == Some(path);
+        let r = if same {
+            d.session.save(false)
+        } else {
+            d.session.save_as(path, false)
+        };
+        match r {
+            Ok(()) => {
+                d.path = Some(path.to_path_buf());
+                d.name = path
                     .file_name()
-                    .map_or_else(|| doc.name.clone(), |n| n.to_string_lossy().into_owned());
-                // The file changed on disk: render from the saved bytes.
-                if let Some(bytes) = doc.session.bytes() {
-                    let opts = RenderOptions {
-                        hide: doc.session.drawn_objects(),
-                        threads,
-                        hide_all_markups: false,
-                    };
-                    doc.render = RenderDoc::open(bytes, &opts).ok();
-                    doc.view.invalidate();
+                    .map_or_else(|| d.name.clone(), |n| n.to_string_lossy().into_owned());
+                d.rerender(threads);
+                self.status = format!("Saved {}", path.display());
+                if then_close {
+                    self.force_close(uid);
+                    self.after_prompt_save();
                 }
-                self.status = format!("Saved {}", p.display());
             }
             Err(e) => self.status = format!("Save failed: {e}"),
+        }
+    }
+
+    /// An Exit prompt finishes once every document it waited on is saved.
+    fn after_prompt_save(&mut self) {
+        let open: Vec<u64> = self.docs.iter().map(|d| d.uid).collect();
+        let mut done = false;
+        for p in &mut self.prompts {
+            if let Prompt::Exit(list) = p {
+                list.retain(|u| open.contains(u));
+                done |= list.is_empty();
+            }
+        }
+        if done {
+            self.prompts.retain(|p| !matches!(p, Prompt::Exit(l) if l.is_empty()));
+            self.close_now = true;
+        }
+    }
+
+    /// The window was asked to close: true when it may (nothing unsaved, or already asked).
+    pub fn may_exit(&mut self) -> bool {
+        if self.close_now {
+            return true;
+        }
+        let dirty: Vec<u64> = self
+            .docs
+            .iter()
+            .filter(|d| d.session.is_dirty())
+            .map(|d| d.uid)
+            .collect();
+        if dirty.is_empty() {
+            return true;
+        }
+        if !self.prompts.iter().any(|p| matches!(p, Prompt::Exit(_))) {
+            self.prompts.push(Prompt::Exit(dirty));
+        }
+        false
+    }
+
+    /// Answers from file dialogs.
+    fn take_dialogs(&mut self) {
+        for (purpose, paths) in self.dialogs.poll() {
+            let Some(first) = paths.first().cloned() else {
+                if let Purpose::SaveAs { then_close: true, .. } = purpose {
+                    self.status = "Not saved; the document stays open".into();
+                }
+                continue;
+            };
+            match purpose {
+                Purpose::Open => {
+                    for p in &paths {
+                        self.open_path(p);
+                    }
+                }
+                Purpose::SaveAs { doc, then_close } => {
+                    if let Some(uid) = self.docs.get(doc).map(|d| d.uid) {
+                        self.save_to(uid, &first, then_close);
+                    }
+                }
+                Purpose::ExportCsv | Purpose::ExportTotals | Purpose::ExportXml => {
+                    self.status = panels::markups_list::export(self, &purpose, &first);
+                }
+                Purpose::InsertPages { at } => {
+                    let threads = self.threads;
+                    if let Some(d) = self.doc_mut() {
+                        let r = d.session.insert_file_pages(at, &first, None);
+                        d.sync_pages(threads);
+                        self.status = actions::report(r, |rep| {
+                            format!(
+                                "Inserted {}",
+                                actions::plural(rep.pages_after.saturating_sub(rep.pages_before), "page")
+                            )
+                        });
+                    }
+                }
+                Purpose::ExtractPages { pages } => {
+                    if let Some(d) = self.doc_mut() {
+                        let r = d.session.extract_pages(&pages, &first, false);
+                        self.status = actions::report(r, |n| {
+                            format!("Extracted {} to {}", actions::plural(n, "page"), first.display())
+                        });
+                    }
+                }
+            }
         }
     }
 
     /// Whether a command can run now.
     pub fn enabled(&self, id: &str) -> bool {
         let doc = self.doc();
+        let selected = doc.is_some_and(|d| !d.selection().is_empty());
         match id {
-            "file.open" | "file.exit" | "help.shortcuts" | "help.about" | "window.reset_layout" => true,
+            "file.open" | "file.exit" | "help.shortcuts" | "help.about" | "window.reset_layout" | "tools.keep_tool" => {
+                true
+            }
             "edit.undo" => doc.is_some_and(|d| d.session.can_undo()),
             "edit.redo" => doc.is_some_and(|d| d.session.can_redo()),
-            "edit.delete" | "markup.lock" | "edit.deselect" => doc.is_some_and(|d| !d.selection.is_empty()),
+            "edit.paste" | "edit.paste_in_place" => doc.is_some_and(|d| !d.session.clipboard().is_empty()),
+            "edit.delete"
+            | "edit.cut"
+            | "edit.copy"
+            | "edit.duplicate"
+            | "markup.lock"
+            | "markup.unlock"
+            | "markup.group"
+            | "markup.ungroup"
+            | "markup.set_default"
+            | "markup.add_to_toolchest"
+            | "markup.edit_text"
+            | "markup.autosize" => selected,
+            _ if id.starts_with("arrange.") => selected,
+            "edit.deselect" => doc.is_some(),
             "window.next_document" | "window.prev_document" => self.docs.len() > 1,
             "tool.select" | "tool.pan" => true,
             _ if id.starts_with("panel.") || id.starts_with("snap.") => true,
@@ -257,8 +542,10 @@ impl AppState {
             "view.fit_width" => chrome::fit_checked(self, Fit::Width),
             "view.hide_markups" => Some(self.hide_markups),
             "snap.grid" => Some(self.snaps.grid),
+            "view.show_grid" => Some(self.show_grid),
             "snap.content" => Some(self.snaps.content),
             "snap.markup" => Some(self.snaps.markup),
+            "tools.keep_tool" => Some(self.tool_locked),
             _ => None,
         }
     }
@@ -267,7 +554,7 @@ impl AppState {
     pub fn scale_readout(&self) -> String {
         let Some(d) = self.doc() else { return String::new() };
         let page = d.view.pointer.map_or(d.view.current, |(p, _)| p);
-        let Some(info) = d.session.doc.pages.get(page) else {
+        let Some(info) = d.session.doc().pages.get(page) else {
             return String::new();
         };
         let scale = match d.view.pointer {
@@ -310,66 +597,248 @@ impl AppState {
         }
     }
 
+    /// The look a new markup from the active tool takes (Tool Chest item, else the tool's
+    /// Set as Default), and whether it is a Drawing-mode item.
+    pub fn template(&self) -> (Option<&Markup>, bool) {
+        if let Some((set, item)) = &self.active_item
+            && let Some(it) = self.toolchest.item(set, item)
+            && it.tool == self.tool
+        {
+            return (Some(&it.markup), it.mode == chest::Mode::Drawing);
+        }
+        (self.toolchest.defaults.get(self.tool), false)
+    }
+
+    /// The canvas inputs for this frame.
+    pub fn canvas_cx(&self) -> CanvasCx<'_> {
+        let tool = tools::find(self.tool).unwrap_or(&tools::select::TOOL);
+        let (template, drawing_mode) = self.template();
+        CanvasCx {
+            tool,
+            wheel_zooms: self.wheel_zooms,
+            hide_markups: self.hide_markups,
+            want_thumbs: self.thumbs_wanted_last,
+            snaps: self.snaps,
+            show_grid: self.show_grid,
+            template,
+            drawing_mode,
+            stamp: self.stamp,
+            author: &self.author,
+        }
+    }
+
+    /// Switch tools (drops a half-drawn markup, keeps typed text).
+    pub fn set_tool(&mut self, id: &'static str) {
+        if self.tool != id {
+            let mut out = CanvasOut::default();
+            if let Some(d) = self.doc_mut() {
+                interact::commit_editor(d, &mut out);
+                d.view.draft = None;
+            }
+            self.apply_canvas_out(out);
+        }
+        self.tool = id;
+        if self
+            .active_item
+            .as_ref()
+            .and_then(|(s, i)| self.toolchest.item(s, i))
+            .is_none_or(|it| it.tool != id)
+        {
+            self.active_item = None;
+        }
+    }
+
+    /// Use a Tool Chest item: its tool, with its look (or its copy, in Drawing mode).
+    pub fn use_item(&mut self, set: &str, item: &str) {
+        let Some(tool) = self
+            .toolchest
+            .item(set, item)
+            .and_then(|it| tools::find(&it.tool))
+            .map(|t| t.id)
+        else {
+            return;
+        };
+        self.set_tool(tool);
+        self.active_item = Some((set.to_string(), item.to_string()));
+    }
+
+    /// Handle what the canvas reported.
+    pub fn apply_canvas_out(&mut self, out: CanvasOut) {
+        if let Some(s) = out.status {
+            self.status = s;
+        }
+        if let Some((tool, m)) = out.created {
+            self.toolchest.add_recent(tool, &m);
+            let keeps = tool == "count" || self.tool_locked;
+            if !keeps && self.tool == tool {
+                self.tool = "select";
+            }
+        }
+        if out.done && !self.tool_locked {
+            self.tool = "select";
+        }
+        if let Some((page, a, b)) = out.calibrate
+            && let Some(uid) = self.doc().map(|d| d.uid)
+        {
+            self.calibrate = Some(Calibrate {
+                doc: uid,
+                page,
+                a,
+                b,
+                length: String::new(),
+                unit: markupcraft_measure::units::LengthUnit::Foot,
+                pages: String::new(),
+                apply_to_markups: true,
+            });
+        }
+        for c in out.commands {
+            self.queue(&c);
+        }
+        for a in out.actions {
+            match a {
+                CanvasAction::AddToToolChest(m) => {
+                    self.toolchest.add_markup(chest::MY_TOOLS, &m);
+                    self.status = format!("Added {} to My Tools", m.subject);
+                    self.show_panel("toolchest");
+                }
+                CanvasAction::SetDefault(m) => {
+                    self.status = match self.toolchest.set_default(&m) {
+                        Some(t) => format!("New {t} markups take this look"),
+                        None => "This markup has no tool to set a default for".into(),
+                    };
+                }
+                CanvasAction::ShowPanel(p) => self.show_panel(p),
+            }
+        }
+    }
+
     /// Run one command (see `commands::COMMANDS`, plus `tool.<id>` and `panel.<id>`).
     pub fn run(&mut self, id: &str, ctx: &egui::Context) {
         if !self.enabled(id) {
             return;
         }
         if let Some(t) = id.strip_prefix("tool.").and_then(tools::find) {
-            self.tool = t.id;
+            self.set_tool(t.id);
             return;
         }
         if let Some(p) = id.strip_prefix("panel.").and_then(panels::find) {
             self.panel_toggles.push(p.id);
             return;
         }
+        let threads = self.threads;
         match id {
-            "file.open" => {
-                for p in pick_open_paths() {
-                    self.open_path(&p);
+            "file.open" => self.dialogs.open(Purpose::Open, dialogs::PDF, true),
+            "file.close" => self.close_doc(self.active),
+            "file.save" | "file.save_as" => {
+                if let Some(uid) = self.doc().map(|d| d.uid) {
+                    self.save_doc(uid, id == "file.save_as", false);
                 }
             }
-            "file.close" => self.close_doc(self.active),
-            "file.save" => self.save(false),
-            "file.save_as" => self.save(true),
             "file.exit" => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
             "edit.undo" | "edit.redo" => {
                 if let Some(d) = self.doc_mut() {
-                    let done = if id == "edit.undo" {
+                    interact::commit_editor(d, &mut CanvasOut::default());
+                    let r = if id == "edit.undo" {
                         d.session.undo()
                     } else {
                         d.session.redo()
                     };
-                    let doc = &d.session.doc;
-                    d.selection.retain(|s| doc.find(s).is_some());
-                    if done {
-                        self.status = if id == "edit.undo" {
-                            "Undone".into()
-                        } else {
-                            "Redone".into()
-                        };
-                    }
-                }
-            }
-            "edit.delete" => {
-                if let Some(d) = self.doc_mut() {
-                    let n = d.session.delete(&d.selection);
-                    let doc = &d.session.doc;
-                    d.selection.retain(|s| doc.find(s).is_some());
-                    self.status = format!("Deleted {n} markup{}", if n == 1 { "" } else { "s" });
-                }
-            }
-            "edit.select_all" => {
-                if let Some(d) = self.doc_mut() {
-                    d.selection = d.session.doc.markups.iter().map(|m| m.id.clone()).collect();
+                    d.sync_pages(threads);
+                    self.status = match r {
+                        Ok(label) => format!("{} {label}", if id == "edit.undo" { "Undid" } else { "Redid" }),
+                        Err(e) => e.to_string(),
+                    };
                 }
             }
             "edit.deselect" => {
-                if let Some(d) = self.doc_mut() {
-                    d.selection.clear();
+                // Esc: end the text editor or the drawing (Count keeps what it counted), else
+                // clear the selection; then back to Select.
+                let tool = tools::find(self.tool).unwrap_or(&tools::select::TOOL);
+                let (template, drawing_mode) = {
+                    let (t, d) = self.template();
+                    (t.cloned(), d)
+                };
+                let (author, stamp, snaps) = (self.author.clone(), self.stamp, self.snaps);
+                let mut out = CanvasOut::default();
+                if let Some(d) = self.docs.get_mut(self.active) {
+                    let cx = CanvasCx {
+                        tool,
+                        wheel_zooms: true,
+                        hide_markups: false,
+                        want_thumbs: false,
+                        snaps,
+                        show_grid: false,
+                        template: template.as_ref(),
+                        drawing_mode,
+                        stamp,
+                        author: &author,
+                    };
+                    if !interact::escape(d, &cx, &mut out) {
+                        d.session.clear_selection();
+                    }
                 }
+                self.apply_canvas_out(out);
                 self.tool = "select";
+                self.active_item = None;
             }
+            "edit.select_all" => {
+                if let Some(d) = self.doc_mut() {
+                    d.session.select_all(None);
+                }
+            }
+            "edit.paste" => {
+                if let Some(d) = self.doc_mut() {
+                    let (page, at) = match d.view.pointer {
+                        Some((p, at)) => (p, Some(at)),
+                        None => (d.view.current, None),
+                    };
+                    let r = d.session.paste(Some(page), at);
+                    self.status = actions::report(r, |v| format!("Pasted {}", actions::plural(v.len(), "markup")));
+                }
+            }
+            "markup.edit_text" => {
+                if let Some(d) = self.doc_mut()
+                    && let Some(sel) = d.selection().first().cloned()
+                    && !interact::edit_existing(d, &sel)
+                {
+                    self.status = "Only text boxes, callouts, typewriter text and notes have text to edit".into();
+                }
+            }
+            "markup.autosize" => {
+                if let Some(d) = self.doc_mut() {
+                    let ids = d.selection().to_vec();
+                    d.session.set_merge_key(Some("autosize"));
+                    for id in &ids {
+                        if let Some(m) = d.session.doc().find(id).filter(|m| m.kind.is_text()).cloned() {
+                            let mut s = m.clone();
+                            markupcraft_revu::kinds::text::autosize_text_box(&mut s);
+                            if s.pts != m.pts {
+                                let _ = d.session.set_points(id, s.pts);
+                            }
+                        }
+                    }
+                    d.session.set_merge_key(None);
+                    d.session.seal();
+                }
+            }
+            "markup.set_default" | "markup.add_to_toolchest" => {
+                let m = self
+                    .doc()
+                    .and_then(|d| d.selection().first().and_then(|id| d.session.doc().find(id)).cloned());
+                if let Some(m) = m {
+                    let a = if id == "markup.set_default" {
+                        CanvasAction::SetDefault(m)
+                    } else {
+                        CanvasAction::AddToToolChest(m)
+                    };
+                    self.apply_canvas_out(CanvasOut {
+                        actions: vec![a],
+                        ..Default::default()
+                    });
+                }
+            }
+            "measure.calibrate" => self.set_tool("calibrate"),
+            "tools.keep_tool" => self.tool_locked = !self.tool_locked,
             "view.zoom_in" => self.zoom_step(1.25, ctx),
             "view.zoom_out" => self.zoom_step(0.8, ctx),
             "view.actual_size" => self.set_zoom(1.0, ctx),
@@ -393,26 +862,59 @@ impl AppState {
             "view.next_page" => self.page_step(|c, n| (c + 1).min(n - 1)),
             "view.last_page" => self.page_step(|_, n| n - 1),
             "view.hide_markups" => self.hide_markups = !self.hide_markups,
-            "markup.lock" => {
+            "document.properties" => self.show_properties = true,
+            "document.rotate_cw" | "document.rotate_ccw" | "document.delete_page" | "document.insert_blank" => {
                 if let Some(d) = self.doc_mut() {
-                    let all = d
-                        .selection
-                        .iter()
-                        .filter_map(|s| d.session.doc.find(s))
-                        .all(|m| m.locked());
-                    d.session.edit(&d.selection, "lock-cmd", |m| m.set_locked(!all));
-                    d.session.seal();
+                    let page = d.view.current;
+                    let r = match id {
+                        "document.rotate_cw" => d.session.rotate_pages(&[page], 90),
+                        "document.rotate_ccw" => d.session.rotate_pages(&[page], -90),
+                        "document.delete_page" => d.session.delete_pages(&[page]),
+                        _ => d.session.insert_blank_pages(page + 1, 1, None),
+                    };
+                    d.sync_pages(threads);
+                    self.status = actions::report(r, |_| {
+                        match id {
+                            "document.rotate_cw" | "document.rotate_ccw" => "Page rotated",
+                            "document.delete_page" => "Page deleted",
+                            _ => "Blank page inserted",
+                        }
+                        .to_string()
+                    });
                 }
             }
-            "document.properties" => self.show_properties = true,
+            "document.insert_pages" => {
+                if let Some(at) = self.doc().map(|d| d.view.current + 1) {
+                    self.dialogs.open(Purpose::InsertPages { at }, dialogs::PDF, false);
+                }
+            }
+            "document.extract_page" => {
+                if let Some((page, name)) = self.doc().map(|d| {
+                    (
+                        d.view.current,
+                        format!("{} page {}.pdf", d.name.trim_end_matches(".pdf"), d.view.current + 1),
+                    )
+                }) {
+                    self.dialogs
+                        .save(Purpose::ExtractPages { pages: vec![page] }, dialogs::PDF, &name);
+                }
+            }
             "window.reset_layout" => self.reset_layout = true,
             "window.next_document" => self.active = (self.active + 1) % self.docs.len().max(1),
             "window.prev_document" => self.active = (self.active + self.docs.len().max(1) - 1) % self.docs.len().max(1),
             "help.shortcuts" => self.show_shortcuts = true,
             "help.about" => self.show_about = true,
             "snap.grid" => self.snaps.grid = !self.snaps.grid,
+            "view.show_grid" => self.show_grid = !self.show_grid,
             "snap.content" => self.snaps.content = !self.snaps.content,
             "snap.markup" => self.snaps.markup = !self.snaps.markup,
+            _ if markupcraft_engine::commands::find(id).is_some() => {
+                if let Some(d) = self.doc_mut() {
+                    let r = markupcraft_engine::commands::run(&mut d.session, id);
+                    d.sync_pages(threads);
+                    self.status = actions::report(r, |s| s);
+                }
+            }
             _ => log::debug!("command {id} is not wired yet"),
         }
     }
@@ -440,23 +942,52 @@ impl AppState {
                 },
                 ctx,
             ),
-            "tool" => self.tool = tools::find(value).ok_or(format!("no tool {value}"))?.id,
+            "tool" => self.set_tool(tools::find(value).ok_or(format!("no tool {value}"))?.id),
             "select" => {
                 let d = self.doc_mut().ok_or("no document")?;
-                let ids: Vec<String> = d.session.doc.markups.iter().map(|m| m.id.clone()).collect();
-                d.selection = match value {
+                let ids: Vec<String> = d.session.doc().markups.iter().map(|m| m.id.clone()).collect();
+                let sel = match value {
                     "all" => ids,
                     v => {
                         let i: usize = v.parse().map_err(|_| format!("select: {v}"))?;
                         ids.get(i).cloned().into_iter().collect()
                     }
                 };
+                actions::select(&mut d.session, sel);
+            }
+            "show" => {
+                // Select markup number `value` (0-based) and go to its page.
+                let d = self.doc_mut().ok_or("no document")?;
+                let i: usize = value.parse().map_err(|_| format!("show: {value}"))?;
+                let m = d
+                    .session
+                    .doc()
+                    .markups
+                    .get(i)
+                    .cloned()
+                    .ok_or(format!("no markup {i}"))?;
+                actions::select(&mut d.session, vec![m.id.clone()]);
+                let count = d.session.page_count();
+                d.view.go_to_page(m.page, count);
             }
             "hide-markups" => self.hide_markups = value != "false",
             "panel" => self
-                .panel_toggles
+                .panel_shows
                 .push(panels::find(value).ok_or(format!("no panel {value}"))?.id),
             "wheel" => self.wheel_zooms = value == "zoom",
+            "snap" => {
+                for s in value.split(',') {
+                    match s.trim() {
+                        "grid" => self.snaps.grid = true,
+                        "content" => self.snaps.content = true,
+                        "markup" => self.snaps.markup = true,
+                        "" => {}
+                        o => return Err(format!("snap: {o}")),
+                    }
+                }
+            }
+            "group-by" => self.list.view.group_by = value.split(',').map(str::to_string).collect(),
+            "columns" => self.list.view.visible = value.split(',').map(str::to_string).collect(),
             _ => return Err(format!("unknown option {key}")),
         }
         Ok(())
@@ -466,32 +997,6 @@ impl AppState {
     pub fn render_pending(&self) -> bool {
         self.doc().is_some_and(|d| d.render.is_some() && d.view.missing > 0)
     }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn pick_open_paths() -> Vec<PathBuf> {
-    rfd::FileDialog::new()
-        .add_filter("PDF", &["pdf"])
-        .pick_files()
-        .unwrap_or_default()
-}
-
-#[cfg(target_arch = "wasm32")]
-fn pick_open_paths() -> Vec<PathBuf> {
-    Vec::new()
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn pick_save_path(name: &str) -> Option<PathBuf> {
-    rfd::FileDialog::new()
-        .add_filter("PDF", &["pdf"])
-        .set_file_name(name)
-        .save_file()
-}
-
-#[cfg(target_arch = "wasm32")]
-fn pick_save_path(_name: &str) -> Option<PathBuf> {
-    None
 }
 
 /// The app: state plus the dock layout.
@@ -511,6 +1016,7 @@ impl Default for MarkupCraftApp {
 }
 
 impl MarkupCraftApp {
+    /// An app with an in-memory Tool Chest (tests, screenshots).
     pub fn new() -> Self {
         Self {
             state: AppState::default(),
@@ -519,6 +1025,18 @@ impl MarkupCraftApp {
             title: String::new(),
             pending_options: Vec::new(),
         }
+    }
+
+    /// The desktop app: the user's Tool Chest from the configuration folder.
+    pub fn with_user_settings() -> Self {
+        let mut app = Self::new();
+        if let Some(dir) = chest::config_dir() {
+            app.state.toolchest = ToolChest::load(&dir.join("toolchest.json"));
+            if let Some(e) = &app.state.toolchest.error {
+                app.state.status = e.clone();
+            }
+        }
+        app
     }
 
     pub fn open_path(&mut self, path: &Path) {
@@ -584,11 +1102,19 @@ impl eframe::App for MarkupCraftApp {
                 }
             }
         }
+        // Closing the window waits for unsaved documents.
+        if ctx.input(|i| i.viewport().close_requested()) && !self.state.may_exit() {
+            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+        }
+        if self.state.close_now {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+        }
         for d in &mut self.state.docs {
             if let Some(r) = &d.render {
                 d.view.receive(&ctx, r);
             }
         }
+        self.state.take_dialogs();
         self.state.open_panels = dock::open_panels(&self.dock);
         // The Thumbnails panel says each frame whether it is showing; the canvas requests
         // thumbnails while it is.
@@ -597,10 +1123,13 @@ impl eframe::App for MarkupCraftApp {
         self.shortcuts(&ctx);
         self.take_dropped(&ctx);
 
-        let title = self
-            .state
-            .doc()
-            .map_or_else(|| "MarkupCraft".to_string(), |d| format!("{} - MarkupCraft", d.name));
+        let title = self.state.doc().map_or_else(
+            || "MarkupCraft".to_string(),
+            |d| {
+                let star = if d.session.is_dirty() { "*" } else { "" };
+                format!("{}{star} - MarkupCraft", d.name)
+            },
+        );
         if title != self.title {
             ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
             self.title = title;
@@ -618,12 +1147,19 @@ impl eframe::App for MarkupCraftApp {
                 .show_inside(ui, &mut dock::Viewer { app: &mut self.state });
         });
         chrome::windows(&mut self.state, &ctx);
+        windows::show(&mut self.state, &ctx);
 
         for id in std::mem::take(&mut self.state.queued) {
             self.state.run(&id, &ctx);
         }
         for p in std::mem::take(&mut self.state.panel_toggles) {
             dock::toggle_panel(&mut self.dock, p);
+        }
+        for p in std::mem::take(&mut self.state.panel_shows) {
+            if !dock::open_panels(&self.dock).contains(&p) {
+                dock::toggle_panel(&mut self.dock, p);
+            }
+            dock::focus_panel(&mut self.dock, p);
         }
         if std::mem::take(&mut self.state.reset_layout) {
             self.dock = dock::default_layout();
@@ -633,7 +1169,8 @@ impl eframe::App for MarkupCraftApp {
         if idle && let Some(d) = self.state.doc_mut() {
             d.session.seal();
         }
-        if self.state.render_pending() {
+        let snapping = self.state.doc().is_some_and(|d| d.snaps.building());
+        if self.state.render_pending() || self.state.dialogs.busy() || snapping {
             ctx.request_repaint_after(std::time::Duration::from_millis(30));
         }
     }
@@ -658,11 +1195,11 @@ mod tests {
         let s = app_with_sample();
         let d = s.doc().unwrap();
         assert_eq!(d.render.as_ref().unwrap().page_count(), 2);
-        assert_eq!(d.session.doc.markups.len(), 6);
+        assert_eq!(d.session.doc().markups.len(), 6);
         // Every sample markup has a writer, so all are drawn live from the model and editable.
         assert_eq!(d.render.as_ref().unwrap().hidden_count(), 6);
         assert!(crate::actions::editable(
-            d.session.doc.find("SAMPLETEXTAAAAAA").unwrap()
+            d.session.doc().find("SAMPLETEXTAAAAAA").unwrap()
         ));
         assert_eq!(s.scale_readout(), "Scale 1/8 in = 1 ft");
     }
@@ -673,13 +1210,59 @@ mod tests {
         let mut s = app_with_sample();
         s.set_option("select", "0", &ctx).unwrap();
         s.run("edit.delete", &ctx);
-        assert_eq!(s.doc().unwrap().session.doc.markups.len(), 5);
-        assert!(s.doc().unwrap().selection.is_empty());
+        assert_eq!(s.doc().unwrap().session.doc().markups.len(), 5);
+        assert!(s.doc().unwrap().selection().is_empty());
         s.run("edit.undo", &ctx);
-        assert_eq!(s.doc().unwrap().session.doc.markups.len(), 6);
+        assert_eq!(s.doc().unwrap().session.doc().markups.len(), 6);
+        assert!(s.status.starts_with("Undid"), "{}", s.status);
         s.run("tool.rectangle", &ctx);
         assert_eq!(s.tool, "rectangle");
         assert!(s.set_option("tool", "nope", &ctx).is_err());
+    }
+
+    #[test]
+    fn engine_commands_and_page_operations() {
+        let ctx = egui::Context::default();
+        let mut s = app_with_sample();
+        s.set_option("select", "0", &ctx).unwrap();
+        s.run("edit.copy", &ctx);
+        s.run("edit.paste", &ctx);
+        assert_eq!(s.doc().unwrap().session.doc().markups.len(), 7);
+        s.run("arrange.send_to_back", &ctx);
+        assert!(!s.status.is_empty());
+        s.run("edit.select_all", &ctx);
+        assert_eq!(s.doc().unwrap().selection().len(), 7);
+        s.run("edit.cut", &ctx);
+        assert_eq!(s.doc().unwrap().session.doc().markups.len(), 0);
+        s.run("edit.paste_in_place", &ctx);
+        assert_eq!(s.doc().unwrap().session.doc().markups.len(), 7);
+        // Rotating a page re-renders from the rewritten document; undo puts it back.
+        s.run("document.rotate_cw", &ctx);
+        assert_eq!(s.doc().unwrap().render.as_ref().unwrap().pages()[0].rotation, 90);
+        s.run("document.insert_blank", &ctx);
+        assert_eq!(s.doc().unwrap().render.as_ref().unwrap().page_count(), 3);
+        s.run("edit.undo", &ctx);
+        s.run("edit.undo", &ctx);
+        let d = s.doc().unwrap();
+        assert_eq!(d.render.as_ref().unwrap().page_count(), 2);
+        assert_eq!(d.render.as_ref().unwrap().pages()[0].rotation, 0);
+    }
+
+    #[test]
+    fn closing_an_edited_document_asks_first() {
+        let ctx = egui::Context::default();
+        let mut s = app_with_sample();
+        s.set_option("select", "0", &ctx).unwrap();
+        s.run("edit.delete", &ctx);
+        s.close_doc(0);
+        assert_eq!(s.docs.len(), 1);
+        assert_eq!(s.prompts.len(), 1);
+        assert!(!s.may_exit());
+        let uid = s.docs[0].uid;
+        s.prompts.clear();
+        s.force_close(uid);
+        assert!(s.docs.is_empty());
+        assert!(s.may_exit());
     }
 
     #[test]
@@ -696,12 +1279,13 @@ mod tests {
         s.open_path(&path);
         {
             let d = s.doc_mut().unwrap();
-            d.session.checkpoint();
-            let ids = vec!["SAMPLESQUAREAAAA".to_string()];
-            d.session.translate(&ids, markupcraft_geom::Point::new(-100.0, -50.0));
+            d.session
+                .move_markups(&["SAMPLESQUAREAAAA".to_string()], -100.0, -50.0)
+                .unwrap();
         }
         s.run("file.save", &ctx);
         assert!(s.status.starts_with("Saved"), "{}", s.status);
+        assert!(!s.doc().unwrap().session.is_dirty());
         let mut again = AppState {
             threads: 0,
             ..Default::default()
@@ -711,12 +1295,20 @@ mod tests {
             .doc()
             .unwrap()
             .session
-            .doc
+            .doc()
             .find("SAMPLESQUAREAAAA")
             .unwrap()
             .clone();
         // Moved 100 left: centred at x = 850 (the writer pads /Rect by the line width).
         assert!(((m.rect.x0 + m.rect.x1) / 2.0 - 850.0).abs() < 0.5, "{:?}", m.rect);
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn page_ranges() {
+        assert_eq!(pages_from_text("", 2, 5), Some(vec![2]));
+        assert_eq!(pages_from_text("all", 0, 3), Some(vec![0, 1, 2]));
+        assert_eq!(pages_from_text("1-2", 0, 3), Some(vec![0, 1]));
+        assert_eq!(pages_from_text("9", 0, 3), None);
     }
 }

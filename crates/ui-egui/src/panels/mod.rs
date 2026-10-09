@@ -4,6 +4,7 @@
 
 pub mod bookmarks;
 pub mod markups_list;
+pub mod measurements;
 pub mod properties;
 pub mod thumbnails;
 pub mod toolchest;
@@ -35,6 +36,7 @@ pub static PANELS: &[&PanelDef] = &[
     &bookmarks::PANEL,
     &properties::PANEL,
     &toolchest::PANEL,
+    &measurements::PANEL,
     &markups_list::PANEL,
 ];
 

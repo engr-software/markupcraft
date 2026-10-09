@@ -157,9 +157,11 @@ pub static COMMANDS: &[Command] = &[
     // Edit
     cmd("edit.undo", "Undo", "Edit", 1, ctrl(Key::Z), "undo-2"),
     cmd("edit.redo", "Redo", "Edit", 1, ctrl(Key::Y), "redo-2"),
-    later("edit.cut", "Cut", "Edit", 2, ctrl(Key::X), "scissors"),
-    later("edit.copy", "Copy", "Edit", 2, ctrl(Key::C), "copy"),
-    later("edit.paste", "Paste", "Edit", 2, ctrl(Key::V), "clipboard-paste"),
+    cmd("edit.cut", "Cut", "Edit", 2, ctrl(Key::X), "scissors"),
+    cmd("edit.copy", "Copy", "Edit", 2, ctrl(Key::C), "copy"),
+    cmd("edit.paste", "Paste", "Edit", 2, ctrl(Key::V), "clipboard-paste"),
+    cmd("edit.paste_in_place", "Paste in Place", "Edit", 2, ctrl_shift(Key::V), ""),
+    cmd("edit.duplicate", "Duplicate", "Edit", 2, None, ""),
     cmd("edit.delete", "Delete", "Edit", 3, key(Key::Delete), "trash-2"),
     cmd("edit.select_all", "Select All", "Edit", 3, ctrl(Key::A), ""),
     cmd("edit.deselect", "Deselect All", "Edit", 3, key(Key::Escape), ""),
@@ -176,15 +178,31 @@ pub static COMMANDS: &[Command] = &[
     with_alias(cmd("view.next_page", "Next Page", "View", 4, ctrl(Key::ArrowRight), "chevron-right"), key(Key::PageDown)),
     cmd("view.last_page", "Last Page", "View", 4, key(Key::End), "chevrons-right"),
     cmd("view.hide_markups", "Hide Markups", "View", 5, None, "eye-off"),
+    cmd("view.show_grid", "Show Grid", "View", 5, shift(Key::F9), "grid-3x3"),
     // Markup (drawing tools come from the tool registry)
+    cmd("markup.edit_text", "Edit Text", "Markup", 8, None, "type"),
+    cmd("markup.autosize", "Autosize Text Box", "Markup", 8, alt(Key::Z), ""),
     cmd("markup.lock", "Lock", "Markup", 9, ctrl_shift(Key::L), "lock"),
-    // Measure
-    later("measure.calibrate", "Calibrate...", "Measure", 9, None, "ruler"),
+    cmd("markup.unlock", "Unlock", "Markup", 9, None, "lock-open"),
+    cmd("markup.group", "Group", "Markup", 10, ctrl(Key::G), ""),
+    cmd("markup.ungroup", "Ungroup", "Markup", 10, ctrl_shift(Key::G), ""),
+    cmd("arrange.bring_to_front", "Bring to Front", "Markup", 11, ctrl_shift(Key::CloseBracket), ""),
+    cmd("arrange.bring_forward", "Bring Forward", "Markup", 11, ctrl(Key::CloseBracket), ""),
+    cmd("arrange.send_backward", "Send Backward", "Markup", 11, ctrl(Key::OpenBracket), ""),
+    cmd("arrange.send_to_back", "Send to Back", "Markup", 11, ctrl_shift(Key::OpenBracket), ""),
+    cmd("markup.set_default", "Set as Default", "Markup", 12, None, ""),
+    cmd("markup.add_to_toolchest", "Add to Tool Chest", "Markup", 12, None, "wrench"),
+    // Measure (the measurement tools come from the tool registry)
     // Tools (Select / Pan come from the tool registry)
+    cmd("tools.keep_tool", "Keep Tool Selected", "Tools", 9, None, "pin"),
     // Document
     cmd("document.properties", "Document Properties", "Document", 1, ctrl(Key::D), "info"),
-    later("document.insert_pages", "Insert Pages...", "Document", 2, ctrl_shift(Key::I), ""),
-    later("document.delete_pages", "Delete Pages...", "Document", 2, ctrl_shift(Key::D), ""),
+    cmd("document.rotate_cw", "Rotate Page Clockwise", "Document", 2, shift_alt(Key::Plus), "rotate-cw"),
+    cmd("document.rotate_ccw", "Rotate Page Counterclockwise", "Document", 2, shift_alt(Key::Minus), "rotate-ccw"),
+    cmd("document.insert_blank", "Insert Blank Page", "Document", 2, ctrl_shift(Key::N), "file-plus"),
+    cmd("document.insert_pages", "Insert Pages...", "Document", 2, ctrl_shift(Key::I), ""),
+    cmd("document.extract_page", "Extract Page...", "Document", 2, ctrl_shift(Key::X), "file-output"),
+    cmd("document.delete_page", "Delete Page", "Document", 2, ctrl_shift(Key::D), "file-minus"),
     later("document.flatten", "Flatten...", "Document", 3, ctrl_shift(Key::M), ""),
     // Batch
     later("batch.summary", "Summary...", "Batch", 1, None, "list-checks"),
@@ -197,7 +215,7 @@ pub static COMMANDS: &[Command] = &[
     cmd("help.shortcuts", "Keyboard Shortcuts", "Help", 1, key(Key::F1), "circle-help"),
     cmd("help.about", "About MarkupCraft", "Help", 2, None, "info"),
     // Status bar / toolbar only
-    cmd("snap.grid", "Grid", "", 0, shift(Key::F9), "grid-3x3"),
+    cmd("snap.grid", "Snap to Grid", "", 0, ctrl_shift(Key::F9), "grid-3x3"),
     cmd("snap.content", "Snap to Content", "", 0, ctrl_shift(Key::F8), "scan"),
     cmd("snap.markup", "Snap to Markup", "", 0, ctrl_shift(Key::F7), "square-dashed-mouse-pointer"),
 ];
@@ -283,6 +301,76 @@ mod tests {
         }
         for id in MAIN_TOOLBAR.iter().filter(|i| **i != "|") {
             assert!(describe(id).is_some(), "toolbar id {id}");
+        }
+    }
+
+    /// Revu 21's default keys (docs/revu_features/05_shortcuts.md) for the commands MarkupCraft
+    /// has, each bound to the matching command.
+    #[test]
+    fn revu_default_shortcuts_are_bound() {
+        let (c, s, a) = (true, true, true);
+        let k = |ctrl: bool, shift: bool, alt: bool, key: Key| Keys::new(ctrl, shift, alt, key);
+        let n = false;
+        #[rustfmt::skip]
+        let expected: &[(Keys, &str)] = &[
+            // Markup tools and commands
+            (k(n, n, n, Key::A), "tool.arrow"), (k(n, n, n, Key::Q), "tool.callout"),
+            (k(n, n, n, Key::C), "tool.cloud"), (k(n, n, n, Key::K), "tool.cloudplus"),
+            (k(n, n, n, Key::E), "tool.ellipse"), (k(n, n, n, Key::H), "tool.highlight"),
+            (k(n, n, n, Key::L), "tool.line"), (k(n, n, n, Key::N), "tool.note"),
+            (k(n, n, n, Key::P), "tool.pen"), (k(n, s, n, Key::P), "tool.polygon"),
+            (k(n, s, n, Key::N), "tool.polyline"), (k(n, n, n, Key::R), "tool.rectangle"),
+            (k(n, n, n, Key::S), "tool.stamp"), (k(n, n, n, Key::T), "tool.text"),
+            (k(n, n, n, Key::W), "tool.typewriter"), (k(n, n, n, Key::G), "tool.snapshot"),
+            (k(n, n, a, Key::Z), "markup.autosize"), (k(c, n, n, Key::G), "markup.group"),
+            (k(c, s, n, Key::G), "markup.ungroup"), (k(c, s, n, Key::L), "markup.lock"),
+            (k(c, n, n, Key::CloseBracket), "arrange.bring_forward"),
+            (k(c, s, n, Key::CloseBracket), "arrange.bring_to_front"),
+            (k(c, n, n, Key::OpenBracket), "arrange.send_backward"),
+            (k(c, s, n, Key::OpenBracket), "arrange.send_to_back"),
+            // Measure
+            (k(n, s, a, Key::A), "tool.area"), (k(n, s, a, Key::C), "tool.count"),
+            (k(n, s, a, Key::L), "tool.length"), (k(n, s, a, Key::P), "tool.perimeter"),
+            (k(n, s, a, Key::Q), "tool.polylength"),
+            // Edit
+            (k(c, n, n, Key::C), "edit.copy"), (k(c, n, n, Key::X), "edit.cut"),
+            (k(n, n, n, Key::Delete), "edit.delete"), (k(c, n, n, Key::V), "edit.paste"),
+            (k(c, s, n, Key::V), "edit.paste_in_place"), (k(c, n, n, Key::Y), "edit.redo"),
+            (k(c, n, n, Key::A), "edit.select_all"), (k(c, n, n, Key::Z), "edit.undo"),
+            // View
+            (k(c, n, n, Key::Num8), "view.actual_size"), (k(c, n, n, Key::Num5), "view.continuous"),
+            (k(c, n, n, Key::Num9), "view.fit_page"), (k(c, n, n, Key::Num0), "view.fit_width"),
+            (k(c, n, n, Key::ArrowRight), "view.next_page"), (k(c, n, n, Key::ArrowLeft), "view.prev_page"),
+            (k(n, s, n, Key::F9), "view.show_grid"), (k(c, n, n, Key::Num4), "view.single_page"),
+            (k(c, s, n, Key::F8), "snap.content"), (k(c, s, n, Key::F9), "snap.grid"),
+            (k(c, s, n, Key::F7), "snap.markup"),
+            (k(n, n, n, Key::Plus), "view.zoom_in"), (k(n, n, n, Key::Minus), "view.zoom_out"),
+            // Document
+            (k(c, s, n, Key::D), "document.delete_page"), (k(c, n, n, Key::D), "document.properties"),
+            (k(c, s, n, Key::X), "document.extract_page"), (k(c, s, n, Key::N), "document.insert_blank"),
+            (k(c, s, n, Key::I), "document.insert_pages"),
+            (k(n, s, a, Key::Plus), "document.rotate_cw"), (k(n, s, a, Key::Minus), "document.rotate_ccw"),
+            // File
+            (k(c, n, n, Key::F4), "file.close"), (k(c, n, n, Key::O), "file.open"),
+            (k(c, n, n, Key::S), "file.save"), (k(c, s, n, Key::S), "file.save_as"),
+            // Selection
+            (k(n, s, n, Key::V), "tool.pan"), (k(n, n, n, Key::V), "tool.select"),
+            // Window
+            (k(n, n, a, Key::B), "panel.bookmarks"), (k(n, n, a, Key::L), "panel.markups"),
+            (k(n, n, a, Key::U), "panel.measurements"), (k(n, n, a, Key::P), "panel.properties"),
+            (k(n, n, a, Key::T), "panel.thumbnails"), (k(n, n, a, Key::X), "panel.toolchest"),
+            // Help and navigation
+            (k(n, n, n, Key::F1), "help.shortcuts"),
+            (k(n, n, n, Key::Home), "view.first_page"), (k(n, n, n, Key::End), "view.last_page"),
+            (k(c, n, n, Key::Tab), "window.next_document"), (k(c, s, n, Key::Tab), "window.prev_document"),
+        ];
+        let b = bindings();
+        for (keys, id) in expected {
+            assert!(
+                b.iter().any(|(bk, bid)| bk == keys && bid == id),
+                "{} should run {id}",
+                keys.label()
+            );
         }
     }
 

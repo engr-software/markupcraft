@@ -1,6 +1,6 @@
 //! The document canvas: GPU-textured page rasters and tiles from the background render pool,
-//! smooth pan and zoom, single-page and continuous modes, markups drawn from the model, and
-//! the pointer tools (select, move, handles, box select, drag-to-create).
+//! smooth pan and zoom, single-page and continuous modes, and markups drawn from the model.
+//! What the pointer and keys do with the active tool lives in `interact.rs`.
 //!
 //! Coordinates: *content space* is the laid-out document in screen points (origin at the top
 //! left of the first page's margin); the viewport shows content from `offset`. Page rasters
@@ -11,13 +11,17 @@ use std::collections::HashMap;
 use egui::{
     Align2, Color32, CornerRadius, FontId, Pos2, Rect, Sense, Stroke, TextureHandle, TextureOptions, Vec2, pos2, vec2,
 };
-use markupcraft_geom::{Point, Rect as URect, bbox};
+use markupcraft_geom::Point;
+use markupcraft_model::Markup;
 use markupcraft_render::{PageGeom, RenderDoc, RenderRequest, device_pixels};
 
-use crate::actions::{Session, editable, markup_bbox, uses_rect};
+use crate::actions::editable;
+use crate::interact::{self, Draft, Gesture, TextEditor};
 use crate::painter::{self, Xf};
+use crate::snapping::Snapped;
 use crate::theme::Tokens;
 use crate::tools::{ToolDef, ToolKind};
+use crate::{DocTab, Snaps};
 
 /// Screen points per PDF point at 100 % (96 dpi screens, 72 points per inch).
 pub const PT: f32 = 96.0 / 72.0;
@@ -49,16 +53,6 @@ pub enum Fit {
     Width,
 }
 
-/// A pointer gesture in progress.
-#[derive(Debug, Clone)]
-pub enum Drag {
-    Pan,
-    Move { page: usize, last: Point },
-    Handle { id: String, index: usize, page: usize },
-    Box { page: usize, start: Pos2 },
-    Create { page: usize, start: Point },
-}
-
 /// Per-document view state.
 pub struct DocView {
     pub zoom: f32,
@@ -79,7 +73,18 @@ pub struct DocView {
     zoom_changed_at: f64,
     /// A page to scroll to once the viewport size is known.
     scroll_to: Option<usize>,
-    pub drag: Option<Drag>,
+    /// A Select-tool gesture in progress (move, reshape, caption, box select).
+    pub gesture: Option<Gesture>,
+    /// A markup being drawn.
+    pub draft: Option<Draft>,
+    /// Markups shown with live geometry while a gesture lasts (committed on release).
+    pub preview: HashMap<String, Markup>,
+    /// The text editor over the page.
+    pub editor: Option<TextEditor>,
+    /// The last snap, for its indicator: page and point.
+    pub snapped: Option<(usize, Snapped)>,
+    /// What the context menu was opened on.
+    pub context: Option<interact::ContextTarget>,
     /// Page and user-space position under the pointer.
     pub pointer: Option<(usize, Point)>,
     /// Visible renders still missing (for the headless screenshot and tests).
@@ -102,7 +107,12 @@ impl Default for DocView {
             last_queue: Vec::new(),
             zoom_changed_at: f64::NEG_INFINITY,
             scroll_to: Some(0),
-            drag: None,
+            gesture: None,
+            draft: None,
+            preview: HashMap::new(),
+            editor: None,
+            snapped: None,
+            context: None,
             pointer: None,
             missing: 1,
         }
@@ -317,15 +327,42 @@ pub struct CanvasCx<'a> {
     pub wheel_zooms: bool,
     pub hide_markups: bool,
     pub want_thumbs: bool,
+    pub snaps: Snaps,
+    pub show_grid: bool,
+    /// The look new markups take (a Tool Chest item, or the tool's Set as Default).
+    pub template: Option<&'a Markup>,
+    /// The active Tool Chest item places copies of its markup (Drawing mode).
+    pub drawing_mode: bool,
+    /// Stamp design for the Stamp tool.
+    pub stamp: &'a str,
     pub author: &'a str,
+}
+
+/// Something the canvas asks the app to do (it cannot reach app state itself).
+#[derive(Debug, Clone)]
+pub enum CanvasAction {
+    /// Save this markup's look as a tool in My Tools.
+    AddToToolChest(Markup),
+    /// Set as Default for its tool.
+    SetDefault(Markup),
+    /// Show a panel.
+    ShowPanel(&'static str),
 }
 
 /// What happened on the canvas this frame.
 #[derive(Default)]
 pub struct CanvasOut {
     pub status: Option<String>,
-    /// A markup was just created: switch back to Select (Revu's default).
-    pub created: bool,
+    /// A markup was just created by this tool (Recent Tools; back to Select unless the tool
+    /// keeps going).
+    pub created: Option<(&'static str, Markup)>,
+    /// The tool is finished: back to Select.
+    pub done: bool,
+    /// Calibrate: page and the two points measured.
+    pub calibrate: Option<(usize, Point, Point)>,
+    /// Commands to run (context menu items).
+    pub commands: Vec<String>,
+    pub actions: Vec<CanvasAction>,
 }
 
 fn uv(x: f32, y: f32, x1: f32, y1: f32) -> Rect {
@@ -346,22 +383,36 @@ fn snap(r: Rect, ppp: f32) -> Rect {
     Rect::from_min_size(pos2(s(r.min.x), s(r.min.y)), r.size())
 }
 
+/// A snapshot not saved yet shows its source region from the source page's raster (saving
+/// captures the page content itself).
+fn snapshot_preview(p: &egui::Painter, view: &DocView, pages: &[PageGeom], xf: &Xf, m: &Markup) {
+    let Some(src) = m.snapshot.as_ref().filter(|_| !m.in_file()) else {
+        return;
+    };
+    let (Some((_, tex)), Some(g)) = (
+        src.page.and_then(|sp| view.pages.get(&sp)),
+        src.page.and_then(|sp| pages.get(sp)),
+    ) else {
+        return;
+    };
+    let r = src.region.normalized();
+    let a = g.user_to_view(r.x0 as f32, r.y1 as f32);
+    let b = g.user_to_view(r.x1 as f32, r.y0 as f32);
+    let (w, h) = (g.width.max(1.0), g.height.max(1.0));
+    let uv = Rect::from_two_pos(pos2(a[0] / w, a[1] / h), pos2(b[0] / w, b[1] / h));
+    let dst = xf.rect_of(crate::actions::box_of(m));
+    p.image(tex.id(), dst, uv, Color32::WHITE);
+}
+
 /// Show the canvas for one document.
-pub fn show(
-    ui: &mut egui::Ui,
-    session: &mut Session,
-    render: Option<&RenderDoc>,
-    view: &mut DocView,
-    selection: &mut Vec<String>,
-    cx: &CanvasCx<'_>,
-) -> CanvasOut {
+pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut {
     let mut out = CanvasOut::default();
     let t = Tokens::get(ui.ctx());
     let rect = ui.available_rect_before_wrap();
     let resp = ui.allocate_rect(rect, Sense::click_and_drag());
     let painter = ui.painter_at(rect);
     painter.rect_filled(rect, CornerRadius::ZERO, t.workspace);
-    let Some(render) = render else {
+    let Some(render) = doc.render.as_ref() else {
         painter.text(
             rect.center(),
             Align2::CENTER_CENTER,
@@ -382,6 +433,7 @@ pub fn show(
         );
         return out;
     }
+    let view = &mut doc.view;
     let ppp = ui.ctx().pixels_per_point();
     let now = ui.input(|i| i.time);
     view.viewport = rect;
@@ -558,6 +610,9 @@ pub fn show(
             Stroke::new(0.5, Color32::from_black_alpha(90)),
             egui::StrokeKind::Outside,
         );
+        if cx.show_grid {
+            crate::snapping::paint_grid(&painter, sr, xf.k);
+        }
     }
     // Most urgent first: the current page, then the rest on screen, then a page either side.
     wanted.sort_by_key(|r| (r.page != view.current, r.tile.is_some()));
@@ -596,17 +651,27 @@ pub fn show(
         .retain(|(p, _, _), (tt, _)| keep(p) && (*tt == tag || settling));
 
     // ---- markups -----------------------------------------------------------------------
+    let editing = view.editor.as_ref().and_then(TextEditor::existing_id);
     if !cx.hide_markups {
         for (i, xf) in &xfs {
-            for m in session.doc.markups_on(*i) {
-                if crate::actions::drawn_by_us(m) {
+            for m in doc.session.doc().markups_on(*i) {
+                let m = view.preview.get(&m.id).unwrap_or(m);
+                if editing.as_deref() == Some(m.id.as_str()) {
+                    // The editor shows its text; draw the frame only.
+                    let mut frame = m.clone();
+                    frame.contents.clear();
+                    painter::paint_markup(&painter, xf, &frame);
+                } else if crate::actions::drawn_by_us(m) {
+                    snapshot_preview(&painter, view, pages, xf, m);
                     painter::paint_markup(&painter, xf, m);
                 }
             }
         }
     }
+    let selection = doc.session.selection().to_vec();
     for (i, xf) in &xfs {
-        for m in session.doc.markups_on(*i).filter(|m| selection.contains(&m.id)) {
+        for m in doc.session.doc().markups_on(*i).filter(|m| selection.contains(&m.id)) {
+            let m = view.preview.get(&m.id).unwrap_or(m);
             painter::paint_selection(&painter, xf, m, &t, editable(m));
         }
     }
@@ -618,252 +683,17 @@ pub fn show(
             .find(|(_, xf)| xf.rect.expand(4.0).contains(s))
             .map(|(i, xf)| (*i, xf))
     };
-    view.pointer = pointer.and_then(|s| page_at(s).map(|(i, xf)| (i, xf.to_user(s))));
-    if !panning && !space {
-        tool_input(ui, &resp, session, view, selection, cx, &xfs, &painter, &t, &mut out);
-    }
-    if !resp.dragged() && !resp.drag_stopped() {
-        // A gesture whose release we missed (focus loss) ends here.
-        if view.drag.take().is_some() {
-            session.seal();
-        }
-    }
+    doc.view.pointer = pointer.and_then(|s| page_at(s).map(|(i, xf)| (i, xf.to_user(s))));
+    let mut ix = interact::Input {
+        ui,
+        resp: &resp,
+        painter: &painter,
+        xfs: &xfs,
+        tokens: &t,
+        panning: panning || space,
+    };
+    interact::run(&mut ix, doc, cx, &mut out);
     out
-}
-
-#[allow(clippy::too_many_arguments)]
-fn tool_input(
-    ui: &egui::Ui,
-    resp: &egui::Response,
-    session: &mut Session,
-    view: &mut DocView,
-    selection: &mut Vec<String>,
-    cx: &CanvasCx<'_>,
-    xfs: &[(usize, Xf)],
-    painter: &egui::Painter,
-    t: &Tokens,
-    out: &mut CanvasOut,
-) {
-    let mods = ui.input(|i| i.modifiers);
-    let add = mods.shift || mods.command;
-    let xf_of = |page: usize| xfs.iter().find(|(i, _)| *i == page).map(|(_, xf)| xf);
-    let page_at = |s: Pos2| xfs.iter().find(|(_, xf)| xf.rect.contains(s)).map(|(i, xf)| (*i, xf));
-    // Where the button went down (a drag starts only after the pointer moved a little).
-    let press = resp
-        .drag_started_by(egui::PointerButton::Primary)
-        .then(|| ui.input(|i| i.pointer.press_origin()).or(resp.interact_pointer_pos()))
-        .flatten();
-    let click = resp
-        .interact_pointer_pos()
-        .filter(|_| resp.clicked_by(egui::PointerButton::Primary));
-    let current = ui.input(|i| i.pointer.latest_pos());
-
-    match cx.tool.kind {
-        ToolKind::Pan => {}
-        ToolKind::Drag(make) => {
-            if let Some(s) = resp.hover_pos()
-                && page_at(s).is_some()
-            {
-                ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
-            }
-            if let Some(s) = press
-                && let Some((page, xf)) = page_at(s)
-            {
-                view.drag = Some(Drag::Create {
-                    page,
-                    start: xf.to_user(s),
-                });
-            }
-            if let Some(Drag::Create { page, start }) = view.drag.clone()
-                && let (Some(xf), Some(cur)) = (xf_of(page), current)
-            {
-                let end = xf.to_user(cur);
-                if let Some(mut m) = make(page, start, end) {
-                    m.author = cx.author.to_string();
-                    if resp.drag_stopped() {
-                        let id = session.add(m);
-                        *selection = vec![id];
-                        view.drag = None;
-                        out.created = true;
-                        out.status = Some(format!("Added {}", cx.tool.label));
-                    } else if crate::actions::drawn_by_us(&m) {
-                        painter::paint_markup(painter, xf, &m);
-                    }
-                } else if resp.drag_stopped() {
-                    view.drag = None;
-                }
-            }
-        }
-        ToolKind::Select => {
-            let tol_px = 5.0;
-            // Press: a handle of the selection, else a markup, else start a box.
-            if let Some(s) = press {
-                view.drag = None;
-                if let Some((page, xf)) = page_at(s) {
-                    let at = xf.to_user(s);
-                    let tol = f64::from(tol_px / xf.k.max(1e-6));
-                    let handle = session
-                        .doc
-                        .markups_on(page)
-                        .filter(|m| selection.contains(&m.id) && editable(m) && !m.locked())
-                        .find_map(|m| {
-                            painter::handles(m)
-                                .iter()
-                                .position(|h| xf.to_screen(*h).distance(s) <= tol_px + 1.0)
-                                .map(|i| (m.id.clone(), i))
-                        });
-                    if let Some((id, index)) = handle {
-                        session.checkpoint();
-                        view.drag = Some(Drag::Handle { id, index, page });
-                    } else if let Some(id) = top_hit(session, page, at, tol) {
-                        if !selection.contains(&id) {
-                            if !add {
-                                selection.clear();
-                            }
-                            selection.push(id);
-                        }
-                        session.checkpoint();
-                        view.drag = Some(Drag::Move { page, last: at });
-                    } else {
-                        if !add {
-                            selection.clear();
-                        }
-                        view.drag = Some(Drag::Box { page, start: s });
-                    }
-                } else if !add {
-                    selection.clear();
-                }
-            }
-            if let Some(s) = click
-                && view.drag.is_none()
-            {
-                match page_at(s) {
-                    Some((page, xf)) => {
-                        let tol = f64::from(tol_px / xf.k.max(1e-6));
-                        match top_hit(session, page, xf.to_user(s), tol) {
-                            Some(id) if add => {
-                                if let Some(k) = selection.iter().position(|x| *x == id) {
-                                    selection.remove(k);
-                                } else {
-                                    selection.push(id);
-                                }
-                            }
-                            Some(id) => *selection = vec![id],
-                            None if !add => selection.clear(),
-                            None => {}
-                        }
-                    }
-                    None if !add => selection.clear(),
-                    None => {}
-                }
-            }
-            // Drag in progress.
-            match view.drag.clone() {
-                Some(Drag::Move { page, last }) => {
-                    if let (Some(xf), Some(cur)) = (xf_of(page), current) {
-                        let now = xf.to_user(cur);
-                        session.translate(selection, now - last);
-                        view.drag = Some(Drag::Move { page, last: now });
-                        ui.ctx().set_cursor_icon(egui::CursorIcon::Move);
-                    }
-                }
-                Some(Drag::Handle { id, index, page }) => {
-                    if let (Some(xf), Some(cur), Some(m)) = (xf_of(page), current, session.doc.find(&id)) {
-                        let (pts, rect) = reshape(m, index, xf.to_user(cur));
-                        session.set_geometry(&id, pts, rect);
-                    }
-                }
-                Some(Drag::Box { page, start }) => {
-                    if let Some(cur) = current {
-                        let r = Rect::from_two_pos(start, cur);
-                        painter.rect_filled(r, 0.0, t.select.gamma_multiply(0.12));
-                        painter.rect_stroke(r, 0.0, Stroke::new(1.0, t.select), egui::StrokeKind::Middle);
-                        if resp.drag_stopped()
-                            && let Some(xf) = xf_of(page)
-                        {
-                            let (a, b) = (xf.to_user(r.min), xf.to_user(r.max));
-                            let ur = URect::new(a.x, a.y, b.x, b.y).normalized();
-                            for m in session.doc.markups_on(page) {
-                                let mb = markup_bbox(m);
-                                let inside = mb.x0 >= ur.x0 && mb.x1 <= ur.x1 && mb.y0 >= ur.y0 && mb.y1 <= ur.y1;
-                                if inside && !selection.contains(&m.id) {
-                                    selection.push(m.id.clone());
-                                }
-                            }
-                        }
-                    }
-                }
-                _ => {}
-            }
-            if resp.drag_stopped() {
-                if matches!(view.drag, Some(Drag::Move { .. }) | Some(Drag::Handle { .. })) {
-                    session.seal();
-                }
-                view.drag = None;
-            }
-            // Hover cursor over markups.
-            if view.drag.is_none()
-                && let Some(s) = resp.hover_pos()
-                && let Some((page, xf)) = page_at(s)
-            {
-                let tol = f64::from(tol_px / xf.k.max(1e-6));
-                if top_hit(session, page, xf.to_user(s), tol).is_some() {
-                    ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
-                }
-            }
-        }
-    }
-}
-
-/// The topmost markup at `at` on `page`.
-fn top_hit(session: &Session, page: usize, at: Point, tol: f64) -> Option<String> {
-    session
-        .doc
-        .markups
-        .iter()
-        .rev()
-        .filter(|m| m.page == page)
-        .find(|m| painter::hit(m, at, tol))
-        .map(|m| m.id.clone())
-}
-
-/// New geometry when handle `index` of `m` is dragged to `to`.
-pub fn reshape(m: &markupcraft_model::Markup, index: usize, to: Point) -> (Vec<Point>, URect) {
-    if uses_rect(m.kind) {
-        let old = m.rect.normalized();
-        let corners = old.corners();
-        let fixed = corners
-            .get((index + 2) % 4)
-            .copied()
-            .unwrap_or(Point::new(old.x0, old.y0));
-        let new = URect::new(fixed.x, fixed.y, to.x, to.y).normalized();
-        let map = |p: Point| {
-            let fx = if old.width() > 0.0 {
-                (p.x - old.x0) / old.width()
-            } else {
-                0.0
-            };
-            let fy = if old.height() > 0.0 {
-                (p.y - old.y0) / old.height()
-            } else {
-                0.0
-            };
-            Point::new(new.x0 + fx * new.width(), new.y0 + fy * new.height())
-        };
-        let pts = if m.pts.len() == 4 {
-            new.corners().to_vec()
-        } else {
-            m.pts.iter().map(|p| map(*p)).collect()
-        };
-        return (pts, new);
-    }
-    let mut pts = m.pts.clone();
-    if let Some(p) = pts.get_mut(index) {
-        *p = to;
-    }
-    let pad = m.line_width.max(1.0);
-    let rect = bbox(&pts).map_or(m.rect, |b| b.padded(pad));
-    (pts, rect)
 }
 
 #[cfg(test)]
@@ -927,15 +757,5 @@ mod tests {
         let (rects, _) = v.layout(&pages());
         assert_eq!(rects.iter().filter(|r| r.is_some()).count(), 1);
         assert!(rects[1].is_some());
-    }
-
-    #[test]
-    fn dragging_a_corner_resizes_from_the_opposite_one() {
-        let r = URect::new(0.0, 0.0, 10.0, 10.0);
-        let mut m = markupcraft_model::Markup::new(markupcraft_model::Kind::Rectangle, 0, r.corners().to_vec());
-        m.rect = r;
-        let (pts, nr) = reshape(&m, 2, Point::new(20.0, 30.0));
-        assert_eq!(nr, URect::new(0.0, 0.0, 20.0, 30.0));
-        assert_eq!(pts[2], Point::new(20.0, 30.0));
     }
 }

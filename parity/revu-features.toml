@@ -15,10 +15,10 @@ section = "Scale and calibration"
 name = "Calibrate"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:57"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = []
-notes = "Scale::calibrated computes the scale from a measured line; no calibrate tool yet."
+evidence = ["calibrate_asks_for_the_distance_and_sets_the_scale", "calibrate_measure_and_viewports_survive_save"]
+notes = "Calibrate tool (Measure menu, Measurements panel): two clicks or a drag, then a dialog for the real distance (feet-inches accepted), unit, pages and whether measurements update."
 
 [[feature]]
 id = "meas-002"
@@ -28,10 +28,10 @@ section = "Scale and calibration"
 name = "Preset scales"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:58"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["scale_quantities"]
-notes = "Architectural and engineering presets in crates/measure; no picker UI."
+evidence = ["scale_quantities", "measurements_panel_sets_a_custom_scale_on_every_page"]
+notes = "Architectural, engineering and metric presets in the Measurements panel and the Properties panel scale picker."
 
 [[feature]]
 id = "meas-003"
@@ -41,10 +41,10 @@ section = "Scale and calibration"
 name = "Custom scale"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:59"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["scale_quantities"]
-notes = "Scale model with independent paper/real units; no dialog."
+evidence = ["scale_quantities", "measurements_panel_sets_a_custom_scale_on_every_page"]
+notes = "Measurements panel: paper length and unit = real length and unit."
 
 [[feature]]
 id = "meas-004"
@@ -66,9 +66,10 @@ section = "Scale and calibration"
 name = "Apply scale to page range"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:61"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["measurements_panel_sets_a_custom_scale_on_every_page", "page_ranges"]
+notes = "Apply to: this page, all, or a range like 1-3, 7 (Measurements panel and Calibrate)."
 
 [[feature]]
 id = "meas-006"
@@ -78,9 +79,10 @@ section = "Scale and calibration"
 name = "Add Scale to More Pages"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:62"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["measurements_panel_sets_a_custom_scale_on_every_page"]
+notes = "Apply to other pages from the Measurements panel and the Calibrate dialog."
 
 [[feature]]
 id = "meas-007"
@@ -90,9 +92,9 @@ section = "Scale and calibration"
 name = "Per-page scale"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:63"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["viewport_wins_over_page_scale"]
+evidence = ["viewport_wins_over_page_scale", "calibrate_measure_and_viewports_survive_save", "measurements_panel_sets_a_custom_scale_on_every_page"]
 notes = "Page scale read from and written to /VP; no UI."
 
 [[feature]]
@@ -118,7 +120,7 @@ source = "docs/revu_features/01_measurement.md:65"
 status = "partial"
 cpp = "have"
 evidence = ["feet_inches_quarter", "decimal_area_strips_zeros_and_groups"]
-notes = "Number formats with precision (/D /A); no UI."
+notes = "Precision and display unit pickers in the Measurements and Properties panels (no UI test yet)."
 
 [[feature]]
 id = "meas-010"
@@ -128,9 +130,10 @@ section = "Scale and calibration"
 name = "Scale shown in status bar"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:66"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["opens_the_sample_and_hides_what_it_draws"]
+notes = "Status bar shows the scale under the pointer (viewport first, else the page scale)."
 
 [[feature]]
 id = "meas-011"
@@ -164,9 +167,10 @@ section = "Scale and calibration"
 name = "\"Scale not set\" state"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:69"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["measuring_without_a_scale_says_so"]
+notes = "Measuring on a page without a scale says so next to the cursor and in the status bar; the Measurements panel shows Not set."
 
 [[feature]]
 id = "meas-014"
@@ -262,9 +266,9 @@ section = "Linear tools"
 name = "Polylength"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:87"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["length_and_polylength_measure"]
 notes = "Polylength read/write and quantity (incl. Rise/Drop); not on the reference set; no tool."
 
 [[feature]]
@@ -278,7 +282,7 @@ source = "docs/revu_features/01_measurement.md:88"
 status = "partial"
 cpp = "have"
 evidence = ["square_area_and_perimeter"]
-notes = "Perimeter read/write and quantity; not on the reference set; no tool."
+notes = "Perimeter tool built (click points, Enter / double-click); no UI test yet."
 
 [[feature]]
 id = "meas-023"
@@ -288,9 +292,10 @@ section = "Linear tools"
 name = "Backspace removes last point"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:89"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["polyline_takes_clicks_backspace_and_enter"]
+notes = "Every point tool."
 
 [[feature]]
 id = "meas-024"
@@ -300,9 +305,10 @@ section = "Linear tools"
 name = "Enter / double-click to finish; click first point to close"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:90"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["polyline_takes_clicks_backspace_and_enter", "area_shows_its_value_and_finishes_on_double_click", "clicking_the_first_point_closes_a_polygon_and_ellipse_drags", "length_and_polylength_measure"]
+notes = "Enter, double-click or right-click finishes; clicking the first point closes a closed shape."
 
 [[feature]]
 id = "meas-025"
@@ -315,7 +321,7 @@ source = "docs/revu_features/01_measurement.md:91"
 status = "partial"
 cpp = "have"
 evidence = []
-notes = "Rise/Drop stored as /PCRiseDrop and added to the quantity; no UI."
+notes = "Rise/Drop field in Properties; no UI test yet."
 
 [[feature]]
 id = "meas-026"
@@ -337,10 +343,10 @@ section = "Linear tools"
 name = "Show Segment Values"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:93"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = []
-notes = "Segment-values flag stored as /PCSegmentValues; not drawn yet."
+evidence = ["segment_values_toggle_from_the_menu"]
+notes = "Right-click menu and Properties checkbox; values drawn on the canvas per segment."
 
 [[feature]]
 id = "meas-028"
@@ -462,10 +468,10 @@ section = "Area and volume tools"
 name = "Polygon Cutout"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:108"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["area_with_cutout"]
-notes = "Cutouts subtract from the area and are stored as /PCCutouts; no cutout tool."
+evidence = ["area_with_cutout", "cutout_cuts_a_hole_in_the_area", "cutouts_are_one_step_each", "cutout_add_and_delete"]
+notes = "Polygon Cutout tool: draw inside an Area (the selected one first); right-click > Delete Cutout."
 
 [[feature]]
 id = "meas-038"
@@ -487,9 +493,10 @@ section = "Area and volume tools"
 name = "Edit / delete cutout"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:110"
-status = "missing"
+status = "partial"
 cpp = "have"
 evidence = []
+notes = "Right-click > Delete Cutout and the cutout_delete tool; editing cutout vertices not yet."
 
 [[feature]]
 id = "meas-040"
@@ -583,10 +590,10 @@ section = "Count"
 name = "Count"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:128"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = []
-notes = "Count read/write and quantity; not on the reference set; no tool."
+evidence = ["count_adds_items_until_enter"]
+notes = "Click per item; Enter or Esc ends the group; the tool stays active."
 
 [[feature]]
 id = "meas-048"
@@ -599,7 +606,7 @@ source = "docs/revu_features/01_measurement.md:129"
 status = "partial"
 cpp = "partial"
 evidence = []
-notes = "Count symbol and scale stored (/PCCountSymbol, /PCSymbolScale); no UI."
+notes = "Symbol and size in Properties; custom symbols not yet."
 
 [[feature]]
 id = "meas-049"
@@ -887,9 +894,10 @@ section = "Drawing aids and snapping"
 name = "Snap Orthogonal / Shift constraint"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:168"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["shift_constrains_a_line_and_a_drag_makes_an_arrow", "shift_constrains_to_45_degrees"]
+notes = "Shift: 0/45/90 degrees from the last point; squares for box tools."
 
 [[feature]]
 id = "meas-073"
@@ -899,9 +907,10 @@ section = "Drawing aids and snapping"
 name = "Snap to Content"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:169"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["snap_to_content_lands_on_a_wall_corner", "sample_pages_have_linework", "content_markup_and_grid"]
+notes = "Page linework (paths in content and forms) indexed per page on a worker; Ctrl+Shift+F8."
 
 [[feature]]
 id = "meas-074"
@@ -911,9 +920,10 @@ section = "Drawing aids and snapping"
 name = "Snap to Markup"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:170"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["snap_to_markup_and_grid", "content_markup_and_grid"]
+notes = "Vertices, segment midpoints, nearest point and box centres of the page's markups; Ctrl+Shift+F7."
 
 [[feature]]
 id = "meas-075"
@@ -923,9 +933,10 @@ section = "Drawing aids and snapping"
 name = "Snap to Grid"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:171"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["snap_to_markup_and_grid"]
+notes = "Quarter-inch grid; Ctrl+Shift+F9."
 
 [[feature]]
 id = "meas-076"
@@ -935,9 +946,10 @@ section = "Drawing aids and snapping"
 name = "Show Grid"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:172"
-status = "missing"
+status = "partial"
 cpp = "missing"
 evidence = []
+notes = "View > Show Grid (Shift+F9) draws the quarter-inch grid; spacing not configurable yet."
 
 [[feature]]
 id = "meas-077"
@@ -947,9 +959,10 @@ section = "Drawing aids and snapping"
 name = "Snap point types"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:173"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["content_markup_and_grid", "snap_to_content_lands_on_a_wall_corner"]
+notes = "Endpoint, intersection, midpoint, nearest, centre and grid, each with its own indicator glyph."
 
 [[feature]]
 id = "meas-078"
@@ -1007,9 +1020,9 @@ section = "Drawing aids and snapping"
 name = "Copy in straight line"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:178"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["ctrl_shift_drag_copies_in_a_straight_line"]
 
 [[feature]]
 id = "meas-083"
@@ -1022,7 +1035,7 @@ source = "docs/revu_features/01_measurement.md:184"
 status = "partial"
 cpp = "have"
 evidence = ["list_set_cell_validates_input"]
-notes = "Subject read/write, editable headlessly through the Markups List table."
+notes = "Properties > Subject (typing is one undo step); no UI test of typing yet."
 
 [[feature]]
 id = "meas-084"
@@ -1035,7 +1048,7 @@ source = "docs/revu_features/01_measurement.md:185"
 status = "partial"
 cpp = "have"
 evidence = ["list_set_cell_validates_input"]
-notes = "Label read/write, editable headlessly through the Markups List table."
+notes = "Properties > Label; no UI test of typing yet."
 
 [[feature]]
 id = "meas-085"
@@ -1057,9 +1070,10 @@ section = "Measurement properties, captions and appearance"
 name = "Set as Default"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:187"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["set_as_default_styles_new_markups", "tool_sets_persist_and_reload"]
+notes = "Right-click > Set as Default or Properties > Options; saved with the Tool Chest."
 
 [[feature]]
 id = "meas-087"
@@ -1081,10 +1095,10 @@ section = "Measurement properties, captions and appearance"
 name = "Move caption independently"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:189"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = []
-notes = "Caption offset read/written as Revu /CO; no drag UI."
+evidence = ["shift_drag_moves_a_caption_alone"]
+notes = "Shift-drag a caption; stored as /CO; right-click > Reset Caption Position."
 
 [[feature]]
 id = "meas-089"
@@ -1130,9 +1144,10 @@ section = "Measurement properties, captions and appearance"
 name = "Line style / width / opacity / color / fill"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:193"
-status = "missing"
+status = "partial"
 cpp = "partial"
 evidence = []
+notes = "Properties: color, fill, opacity, fill opacity, line width, style, endings; no UI test per field yet."
 
 [[feature]]
 id = "meas-093"
@@ -1154,9 +1169,10 @@ section = "Measurement properties, captions and appearance"
 name = "Live measure readout"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:195"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["area_shows_its_value_and_finishes_on_double_click", "measuring_without_a_scale_says_so"]
+notes = "The value under construction follows the cursor and shows in the status bar."
 
 [[feature]]
 id = "meas-095"
@@ -1190,9 +1206,10 @@ section = "Measurement properties, captions and appearance"
 name = "Measurements panel"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:198"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["measurements_panel_sets_a_custom_scale_on_every_page"]
+notes = "Measurements panel (Alt+U): page scale, presets, custom scale, calibrate, units and precision, viewports, selection totals."
 
 [[feature]]
 id = "meas-098"
@@ -1214,9 +1231,10 @@ section = "Measurement properties, captions and appearance"
 name = "Bulk edit selected measurements"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:200"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["properties_edit_every_selected_markup"]
+notes = "Properties edits apply to every selected markup."
 
 [[feature]]
 id = "meas-100"
@@ -1238,10 +1256,10 @@ section = "Measurement properties, captions and appearance"
 name = "Lock markup"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:202"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["extras_columns_status_replies_lock_round_trip"]
-notes = "Lock flag (/F Locked) in the model and file; no UI."
+evidence = ["extras_columns_status_replies_lock_round_trip", "properties_edit_every_selected_markup"]
+notes = "Properties > Options > Locked, Ctrl+Shift+L, right-click."
 
 [[feature]]
 id = "meas-102"
@@ -1263,9 +1281,9 @@ section = "Tool Chest for takeoff"
 name = "Save measurement tool to Tool Chest"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:209"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["context_menu_saves_a_look_to_the_tool_chest", "tool_sets_persist_and_reload"]
 
 [[feature]]
 id = "meas-104"
@@ -1275,9 +1293,10 @@ section = "Tool Chest for takeoff"
 name = "Properties Mode vs Drawing Mode"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:210"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["drawing_mode_places_a_copy", "tool_sets_persist_and_reload"]
+notes = "Tool Chest item right-click: Properties Mode / Drawing Mode."
 
 [[feature]]
 id = "meas-105"
@@ -1287,9 +1306,10 @@ section = "Tool Chest for takeoff"
 name = "Tool sets (e.g. one per system)"
 priority = "P0"
 source = "docs/revu_features/01_measurement.md:211"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["tool_sets_persist_and_reload"]
+notes = "New / rename / delete tool sets; copy items between sets."
 
 [[feature]]
 id = "meas-106"
@@ -1659,10 +1679,10 @@ section = "A. Text and comment markups"
 name = "Text Box"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:35"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["cli: markupcheck"]
-notes = "Revu text boxes are read and rewritten (markupcheck); no tool."
+evidence = ["cli: markupcheck", "text_box_typewriter_and_note_type_in_place", "an_empty_text_box_is_not_added"]
+notes = "Drag a box or click, type in the editor over the page; double-click to edit later."
 
 [[feature]]
 id = "mark-002"
@@ -1672,9 +1692,10 @@ section = "A. Text and comment markups"
 name = "Autosize Text Box"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:36"
-status = "missing"
+status = "partial"
 cpp = "partial"
 evidence = []
+notes = "Alt+Z autosizes; text boxes grow with their text when typed."
 
 [[feature]]
 id = "mark-003"
@@ -1684,9 +1705,9 @@ section = "A. Text and comment markups"
 name = "Typewriter"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:37"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["text_box_typewriter_and_note_type_in_place"]
 
 [[feature]]
 id = "mark-004"
@@ -1696,9 +1717,10 @@ section = "A. Text and comment markups"
 name = "Note"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:38"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["text_box_typewriter_and_note_type_in_place"]
+notes = "Click to place, type the comment; icon in Properties."
 
 [[feature]]
 id = "mark-005"
@@ -1708,10 +1730,10 @@ section = "A. Text and comment markups"
 name = "Callout"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:39"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["cli: markupcheck"]
-notes = "Revu callouts are read and rewritten (markupcheck); no tool."
+evidence = ["cli: markupcheck", "callout_tip_then_box_then_text"]
+notes = "Click the tip, then where the box goes (or drag), then type."
 
 [[feature]]
 id = "mark-006"
@@ -1758,9 +1780,10 @@ section = "A. Text and comment markups"
 name = "Text Highlight"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:43"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["text_markups_follow_the_page_text"]
+notes = "Over the page text layer; on pages without text the dragged rectangle."
 
 [[feature]]
 id = "mark-010"
@@ -1770,9 +1793,9 @@ section = "A. Text and comment markups"
 name = "Underline text"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:44"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["text_markups_follow_the_page_text"]
 
 [[feature]]
 id = "mark-011"
@@ -1782,9 +1805,9 @@ section = "A. Text and comment markups"
 name = "Strikethrough text"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:45"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["strikethrough_marks_text"]
 
 [[feature]]
 id = "mark-012"
@@ -1830,9 +1853,10 @@ section = "A. Text and comment markups"
 name = "Text font properties"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:49"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["properties_panel_edits_go_through_the_engine"]
+notes = "Properties > Text: font, size, colour, bold, italic, underline, alignment."
 
 [[feature]]
 id = "mark-016"
@@ -1854,9 +1878,10 @@ section = "A. Text and comment markups"
 name = "Callout leader/leader end"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:51"
-status = "missing"
+status = "partial"
 cpp = "have"
 evidence = []
+notes = "Leader tip and knee are handles; end style in Properties."
 
 [[feature]]
 id = "mark-018"
@@ -1866,9 +1891,9 @@ section = "B. Line and shape markups"
 name = "Line"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:57"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["cli: markupcheck"]
+evidence = ["cli: markupcheck", "shift_constrains_a_line_and_a_drag_makes_an_arrow", "snap_to_content_lands_on_a_wall_corner"]
 notes = "Read/write in the file (markupcheck); no drawing tool."
 
 [[feature]]
@@ -1879,9 +1904,9 @@ section = "B. Line and shape markups"
 name = "Arrow"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:58"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["cli: markupcheck"]
+evidence = ["cli: markupcheck", "shift_constrains_a_line_and_a_drag_makes_an_arrow"]
 notes = "Revu arrows are read and rewritten (markupcheck); no tool."
 
 [[feature]]
@@ -1904,9 +1929,9 @@ section = "B. Line and shape markups"
 name = "Polyline"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:60"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["cli: markupcheck"]
+evidence = ["cli: markupcheck", "polyline_takes_clicks_backspace_and_enter"]
 notes = "Read/write in the file (markupcheck); no drawing tool."
 
 [[feature]]
@@ -1917,9 +1942,9 @@ section = "B. Line and shape markups"
 name = "Polygon"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:61"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["cli: markupcheck"]
+evidence = ["cli: markupcheck", "clicking_the_first_point_closes_a_polygon_and_ellipse_drags", "escape_cancels_a_drawing"]
 notes = "Read/write in the file (markupcheck); no drawing tool."
 
 [[feature]]
@@ -1930,9 +1955,9 @@ section = "B. Line and shape markups"
 name = "Rectangle"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:62"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["cli: markupcheck"]
+evidence = ["cli: markupcheck", "rectangle_tool_draws_and_returns_to_select", "set_as_default_styles_new_markups"]
 notes = "Read/write in the file (markupcheck); no drawing tool."
 
 [[feature]]
@@ -1943,9 +1968,9 @@ section = "B. Line and shape markups"
 name = "Ellipse"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:63"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["clicking_the_first_point_closes_a_polygon_and_ellipse_drags"]
 notes = "Read/write in the file; no drawing tool."
 
 [[feature]]
@@ -1968,9 +1993,9 @@ section = "B. Line and shape markups"
 name = "Cloud"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:65"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["cli: markupcheck"]
+evidence = ["cli: markupcheck", "cloud_plus_adds_a_cloud_and_its_callout_as_a_group"]
 notes = "Revu clouds are read and rewritten (markupcheck); no tool."
 
 [[feature]]
@@ -1981,9 +2006,10 @@ section = "B. Line and shape markups"
 name = "Cloud+"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:66"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["cloud_plus_adds_a_cloud_and_its_callout_as_a_group"]
+notes = "Cloud, then a click places a callout pointing at it; the two are grouped."
 
 [[feature]]
 id = "mark-028"
@@ -2005,10 +2031,10 @@ section = "B. Line and shape markups"
 name = "Pen (freehand ink)"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:68"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = []
-notes = "Ink read/write in the file; no pen tool."
+evidence = ["pen_and_highlight_draw_freehand"]
+notes = "One stroke per markup."
 
 [[feature]]
 id = "mark-030"
@@ -2018,9 +2044,9 @@ section = "B. Line and shape markups"
 name = "Highlighter (freehand)"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:69"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["pen_and_highlight_draw_freehand"]
 
 [[feature]]
 id = "mark-031"
@@ -2042,9 +2068,9 @@ section = "B. Line and shape markups"
 name = "Shift-constrain while drawing"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:71"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["shift_constrains_a_line_and_a_drag_makes_an_arrow", "shift_constrains_to_45_degrees"]
 
 [[feature]]
 id = "mark-033"
@@ -2090,9 +2116,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Stamp tool"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:80"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["stamp_places_the_chosen_design"]
+notes = "Click to place (or drag the box) the design chosen in Tool Chest > Stamps; our own designs."
 
 [[feature]]
 id = "mark-037"
@@ -2186,10 +2213,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Snapshot"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:88"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["cli: markupcheck"]
-notes = "Revu snapshots are read and kept on save; no tool."
+evidence = ["cli: markupcheck", "snapshot_copies_a_region_and_ctrl_v_pastes_it"]
+notes = "Drag a region; Ctrl+V pastes it at the pointer."
 
 [[feature]]
 id = "mark-045"
@@ -2344,9 +2371,10 @@ section = "D. Properties panel"
 name = "Properties panel (markup context)"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:106"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["properties_panel_edits_go_through_the_engine", "properties_edit_every_selected_markup"]
+notes = "General, Appearance, Text, Measurement, Note, Layout and Options sections; page info when nothing is selected."
 
 [[feature]]
 id = "mark-058"
@@ -2356,9 +2384,9 @@ section = "D. Properties panel"
 name = "Multi-select property editing"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:107"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["properties_edit_every_selected_markup"]
 
 [[feature]]
 id = "mark-059"
@@ -2371,7 +2399,7 @@ source = "docs/revu_features/02_markups.md:108"
 status = "partial"
 cpp = "partial"
 evidence = ["list_set_cell_validates_input"]
-notes = "Editable headlessly through the Markups List table; no Properties panel."
+notes = "Properties > Subject; no UI test of typing yet."
 
 [[feature]]
 id = "mark-060"
@@ -2408,7 +2436,7 @@ source = "docs/revu_features/02_markups.md:111"
 status = "partial"
 cpp = "partial"
 evidence = ["list_set_cell_validates_input"]
-notes = "Editable headlessly through the Markups List table; no Properties panel."
+notes = "Properties > Label; no UI test of typing yet."
 
 [[feature]]
 id = "mark-063"
@@ -2418,9 +2446,10 @@ section = "D. Properties panel"
 name = "General: Comments"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:112"
-status = "missing"
+status = "partial"
 cpp = "missing"
 evidence = []
+notes = "Properties > Comments for non-text markups."
 
 [[feature]]
 id = "mark-064"
@@ -2442,9 +2471,10 @@ section = "D. Properties panel"
 name = "Appearance: Color (stroke)"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:114"
-status = "missing"
+status = "partial"
 cpp = "partial"
 evidence = []
+notes = "Properties > Color (all selected)."
 
 [[feature]]
 id = "mark-066"
@@ -2454,9 +2484,10 @@ section = "D. Properties panel"
 name = "Appearance: Fill color"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:115"
-status = "missing"
+status = "partial"
 cpp = "missing"
 evidence = []
+notes = "Properties > Fill on/off and colour."
 
 [[feature]]
 id = "mark-067"
@@ -2466,9 +2497,10 @@ section = "D. Properties panel"
 name = "Appearance: Opacity"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:116"
-status = "missing"
+status = "partial"
 cpp = "missing"
 evidence = []
+notes = "Properties > Opacity slider (one undo step per drag)."
 
 [[feature]]
 id = "mark-068"
@@ -2478,9 +2510,10 @@ section = "D. Properties panel"
 name = "Appearance: Fill opacity"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:117"
-status = "missing"
+status = "partial"
 cpp = "missing"
 evidence = []
+notes = "Properties > Fill opacity slider."
 
 [[feature]]
 id = "mark-069"
@@ -2490,9 +2523,10 @@ section = "D. Properties panel"
 name = "Appearance: Line width"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:118"
-status = "missing"
+status = "partial"
 cpp = "missing"
 evidence = []
+notes = "Properties > Line width."
 
 [[feature]]
 id = "mark-070"
@@ -2502,9 +2536,10 @@ section = "D. Properties panel"
 name = "Appearance: Line style"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:119"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["line_styles_are_valid_dashes"]
+notes = "Solid, dashed, dotted, dash dot, long dash."
 
 [[feature]]
 id = "mark-071"
@@ -2526,9 +2561,10 @@ section = "D. Properties panel"
 name = "Appearance: Line start / end"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:121"
-status = "missing"
+status = "partial"
 cpp = "missing"
 evidence = []
+notes = "Properties > Start / End line endings."
 
 [[feature]]
 id = "mark-073"
@@ -2538,9 +2574,10 @@ section = "D. Properties panel"
 name = "Appearance: Cloud style / intensity"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:122"
-status = "missing"
+status = "partial"
 cpp = "missing"
 evidence = []
+notes = "Properties > Cloud intensity."
 
 [[feature]]
 id = "mark-074"
@@ -2574,9 +2611,10 @@ section = "D. Properties panel"
 name = "Appearance: Font"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:125"
-status = "missing"
+status = "partial"
 cpp = "missing"
 evidence = []
+notes = "Properties > Font, size, colour, bold, italic, underline."
 
 [[feature]]
 id = "mark-077"
@@ -2586,9 +2624,10 @@ section = "D. Properties panel"
 name = "Appearance: Icon (note/attachment)"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:126"
-status = "missing"
+status = "partial"
 cpp = "missing"
 evidence = []
+notes = "Properties > Note icon."
 
 [[feature]]
 id = "mark-078"
@@ -2646,9 +2685,10 @@ section = "D. Properties panel"
 name = "Layer property"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:131"
-status = "missing"
+status = "partial"
 cpp = "missing"
 evidence = []
+notes = "Properties > Layer name (no Layers panel yet)."
 
 [[feature]]
 id = "mark-084"
@@ -2658,9 +2698,9 @@ section = "D. Properties panel"
 name = "Options: Set as Default"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:132"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["set_as_default_styles_new_markups"]
 
 [[feature]]
 id = "mark-085"
@@ -2670,9 +2710,9 @@ section = "D. Properties panel"
 name = "Options: Add to Tool Chest"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:133"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["context_menu_saves_a_look_to_the_tool_chest"]
 
 [[feature]]
 id = "mark-083"
@@ -2682,9 +2722,9 @@ section = "D. Properties panel"
 name = "Lock property"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:134"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["extras_columns_status_replies_lock_round_trip"]
+evidence = ["extras_columns_status_replies_lock_round_trip", "properties_edit_every_selected_markup"]
 notes = "Lock flag in the model and file; no UI."
 
 [[feature]]
@@ -2707,9 +2747,9 @@ section = "D. Properties panel"
 name = "Caption move (measurement)"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:136"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["shift_drag_moves_a_caption_alone"]
 
 [[feature]]
 id = "mark-088"
@@ -2755,9 +2795,9 @@ section = "E. Selection, arrangement and clipboard"
 name = "Select tool"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:145"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["click_selects_drag_moves_delete_and_undo"]
 
 [[feature]]
 id = "mark-092"
@@ -2767,9 +2807,9 @@ section = "E. Selection, arrangement and clipboard"
 name = "Marquee multi-select"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:146"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["box_select_and_view_commands", "properties_edit_every_selected_markup"]
 
 [[feature]]
 id = "mark-093"
@@ -2791,9 +2831,9 @@ section = "E. Selection, arrangement and clipboard"
 name = "Select All"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:148"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["engine_commands_and_page_operations"]
 
 [[feature]]
 id = "mark-095"
@@ -2803,9 +2843,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Cut / Copy / Paste"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:149"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["engine_commands_and_page_operations", "copy_paste_across_pages_and_groups"]
+notes = "MarkupCraft clipboard (Ctrl+X/C/V); Ctrl+V pastes at the pointer."
 
 [[feature]]
 id = "mark-096"
@@ -2815,9 +2856,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Paste in Place"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:150"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["engine_commands_and_page_operations"]
+notes = "Ctrl+Shift+V."
 
 [[feature]]
 id = "mark-097"
@@ -2839,9 +2881,9 @@ section = "E. Selection, arrangement and clipboard"
 name = "Ctrl+Shift drag-copy"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:152"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["ctrl_shift_drag_copies_in_a_straight_line"]
 
 [[feature]]
 id = "mark-099"
@@ -2851,9 +2893,9 @@ section = "E. Selection, arrangement and clipboard"
 name = "Delete"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:153"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["click_selects_drag_moves_delete_and_undo"]
 
 [[feature]]
 id = "mark-100"
@@ -2863,9 +2905,9 @@ section = "E. Selection, arrangement and clipboard"
 name = "Undo / Redo"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:154"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["click_selects_drag_moves_delete_and_undo", "polyline_takes_clicks_backspace_and_enter"]
 
 [[feature]]
 id = "mark-101"
@@ -2887,10 +2929,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Group"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:156"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["extras_groups_round_trip"]
-notes = "group_markups + /RT /Group in the file; no UI command."
+evidence = ["extras_groups_round_trip", "copy_paste_across_pages_and_groups", "cloud_plus_adds_a_cloud_and_its_callout_as_a_group"]
+notes = "Ctrl+G, Markup menu, right-click."
 
 [[feature]]
 id = "mark-103"
@@ -2900,10 +2942,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Ungroup"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:157"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["extras_groups_round_trip"]
-notes = "ungroup_markups + file; no UI command."
+evidence = ["extras_groups_round_trip", "copy_paste_across_pages_and_groups"]
+notes = "Ctrl+Shift+G, Markup menu, right-click."
 
 [[feature]]
 id = "mark-104"
@@ -2962,9 +3004,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Bring Forward / to Front"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:162"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["arrange_and_save_order", "engine_commands_and_page_operations"]
+notes = "Ctrl+] / Ctrl+Shift+], right-click > Arrange."
 
 [[feature]]
 id = "mark-109"
@@ -2974,9 +3017,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Send Backward / to Back"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:163"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["arrange_and_save_order", "engine_commands_and_page_operations"]
+notes = "Ctrl+[ / Ctrl+Shift+[, right-click > Arrange."
 
 [[feature]]
 id = "mark-110"
@@ -2986,9 +3030,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Edit vertices"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:164"
-status = "missing"
+status = "partial"
 cpp = "partial"
 evidence = []
+notes = "Drag vertices; right-click > Add Vertex / Delete Vertex (no UI test yet)."
 
 [[feature]]
 id = "mark-111"
@@ -2998,9 +3043,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Snap to Content / Grid / Markup"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:165"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["snap_to_content_lands_on_a_wall_corner", "snap_to_markup_and_grid"]
+notes = "Status bar toggles while drawing and reshaping."
 
 [[feature]]
 id = "mark-112"
@@ -3022,9 +3068,10 @@ section = "E. Selection, arrangement and clipboard"
 name = "Right-click markup context menu"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:167"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["context_menu_saves_a_look_to_the_tool_chest", "segment_values_toggle_from_the_menu"]
+notes = "Edit text, cut/copy/paste/duplicate/delete, properties, status, checkmark, lock, group, arrange, segment values, caption reset, add/delete vertex, delete cutout, Set as Default, Add to Tool Chest."
 
 [[feature]]
 id = "mark-114"
@@ -3046,9 +3093,9 @@ section = "F. Tool Chest"
 name = "Tool Chest panel"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:174"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["context_menu_saves_a_look_to_the_tool_chest", "tool_sets_persist_and_reload"]
 
 [[feature]]
 id = "mark-116"
@@ -3058,9 +3105,10 @@ section = "F. Tool Chest"
 name = "Tool sets"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:175"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["tool_sets_persist_and_reload"]
+notes = "JSON file in the user configuration folder."
 
 [[feature]]
 id = "mark-117"
@@ -3070,9 +3118,9 @@ section = "F. Tool Chest"
 name = "My Tools"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:176"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["tool_sets_persist_and_reload", "context_menu_saves_a_look_to_the_tool_chest"]
 
 [[feature]]
 id = "mark-118"
@@ -3082,9 +3130,10 @@ section = "F. Tool Chest"
 name = "Recent Tools"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:177"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["recent_tools_dedupe_and_cap", "context_menu_saves_a_look_to_the_tool_chest"]
+notes = "This session only, 12 newest."
 
 [[feature]]
 id = "mark-119"
@@ -3106,9 +3155,9 @@ section = "F. Tool Chest"
 name = "Properties Mode vs Drawing Mode"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:179"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["drawing_mode_places_a_copy", "tool_sets_persist_and_reload"]
 
 [[feature]]
 id = "mark-121"
@@ -3118,9 +3167,10 @@ section = "F. Tool Chest"
 name = "Single-click vs double-click (sticky) tool"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:180"
-status = "missing"
+status = "partial"
 cpp = "have"
 evidence = []
+notes = "Double-click a Tool Chest tool or tick Keep tool selected; Count stays active."
 
 [[feature]]
 id = "mark-122"
@@ -3130,9 +3180,10 @@ section = "F. Tool Chest"
 name = "Tool item properties / edit"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:181"
-status = "missing"
+status = "partial"
 cpp = "have"
 evidence = []
+notes = "Rename, mode, delete, copy to set; editing an item's look in place not yet."
 
 [[feature]]
 id = "mark-123"
@@ -3202,9 +3253,10 @@ section = "F. Tool Chest"
 name = "Manage Tool Sets"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:187"
-status = "missing"
+status = "partial"
 cpp = "partial"
 evidence = []
+notes = "New, rename, delete tool sets; reordering not yet."
 
 [[feature]]
 id = "mark-129"
@@ -3455,10 +3507,10 @@ section = "H. Markups List"
 name = "Markups List panel"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:218"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["list_default_columns_in_revu_order", "cli_list_and_summary_end_to_end"]
-notes = "Headless Markups List (crates/model table, markupcraft-cli list); no panel UI."
+evidence = ["list_default_columns_in_revu_order", "cli_list_and_summary_end_to_end", "markups_list_shows_totals_and_status", "clicking_a_list_row_selects_its_markup", "export_writes_the_list_with_totals"]
+notes = "On the model table: columns, group by, filters, search, scope, totals row and footer, status and checkmark cells, inline edits, export."
 
 [[feature]]
 id = "mark-150"
@@ -3522,7 +3574,7 @@ source = "docs/revu_features/02_markups.md:223"
 status = "partial"
 cpp = "have"
 evidence = ["cli_list_and_summary_end_to_end"]
-notes = "View::visible / --columns; no UI."
+notes = "Columns menu shows or hides any column."
 
 [[feature]]
 id = "mark-155"
@@ -3532,10 +3584,10 @@ section = "H. Markups List"
 name = "Manage Columns dialog"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:224"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["extras_columns_status_replies_lock_round_trip"]
-notes = "Custom column definitions in the model and file; no dialog."
+evidence = ["extras_columns_status_replies_lock_round_trip", "cells_and_custom_columns", "custom_columns_and_cells"]
+notes = "Manage Columns window: name, type, decimals, total, formula, choices."
 
 [[feature]]
 id = "mark-156"
@@ -3675,7 +3727,7 @@ source = "docs/revu_features/02_markups.md:235"
 status = "partial"
 cpp = "partial"
 evidence = ["list_filters_search_and_scope"]
-notes = "Per-column value filters; no page dimming, no UI."
+notes = "Header right-click > Filter by values."
 
 [[feature]]
 id = "mark-167"
@@ -3710,10 +3762,10 @@ section = "H. Markups List"
 name = "Inline cell editing"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:238"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["list_set_cell_validates_input"]
-notes = "MarkupTable::set_cell validates text/number/choice/check edits; no grid UI."
+evidence = ["list_set_cell_validates_input", "cells_and_custom_columns", "custom_columns_and_cells"]
+notes = "Double-click a Subject, Label, Comments or custom cell to type; status and choice cells are menus; list_cell_set does the same headlessly."
 
 [[feature]]
 id = "mark-170"
@@ -3762,9 +3814,10 @@ section = "H. Markups List"
 name = "Select-in-list syncs page"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:242"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["clicking_a_list_row_selects_its_markup"]
+notes = "Clicking a row selects the markup and brings it into view."
 
 [[feature]]
 id = "mark-174"
@@ -3889,7 +3942,7 @@ source = "docs/revu_features/02_markups.md:252"
 status = "partial"
 cpp = "have"
 evidence = ["list_set_cell_validates_input", "extras_columns_status_replies_lock_round_trip"]
-notes = "Lock column sets /F Locked headlessly; no list UI."
+notes = "Row right-click > Lock / Unlock."
 
 [[feature]]
 id = "mark-184"
@@ -3923,9 +3976,10 @@ section = "H. Markups List"
 name = "Properties from list"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:255"
-status = "missing"
+status = "partial"
 cpp = "have"
 evidence = []
+notes = "Row right-click > Properties."
 
 [[feature]]
 id = "mark-187"
@@ -3935,9 +3989,10 @@ section = "H. Markups List"
 name = "Delete from list"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:256"
-status = "missing"
+status = "partial"
 cpp = "have"
 evidence = []
+notes = "Row right-click > Delete."
 
 [[feature]]
 id = "mark-188"
@@ -3947,9 +4002,9 @@ section = "I. Measurement-adjacent markup tools (listed here for shortcut comple
 name = "Length / Polylength / Area / Perimeter / Count"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:262"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["length_and_polylength_measure", "area_shows_its_value_and_finishes_on_double_click", "count_adds_items_until_enter"]
 
 [[feature]]
 id = "mark-189"
@@ -9567,9 +9622,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Arrow (A)"
 source = "docs/revu_features/05_shortcuts.md:37"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9579,9 +9634,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Autosize Text Box (Alt + Z)"
 source = "docs/revu_features/05_shortcuts.md:38"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9591,9 +9646,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Bring Forward (Ctrl + ])"
 source = "docs/revu_features/05_shortcuts.md:39"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9603,9 +9658,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Bring to Front (Ctrl + Shift + ])"
 source = "docs/revu_features/05_shortcuts.md:40"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9615,9 +9670,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Callout (Q)"
 source = "docs/revu_features/05_shortcuts.md:41"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9651,9 +9706,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Cloud (C)"
 source = "docs/revu_features/05_shortcuts.md:44"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9663,9 +9718,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Cloud+ (K)"
 source = "docs/revu_features/05_shortcuts.md:45"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9699,9 +9754,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Ellipse (E)"
 source = "docs/revu_features/05_shortcuts.md:48"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9783,9 +9838,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Group (Ctrl + G)"
 source = "docs/revu_features/05_shortcuts.md:55"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9795,9 +9850,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Highlight (H)"
 source = "docs/revu_features/05_shortcuts.md:56"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9867,9 +9922,9 @@ area = "shortcuts"
 section = "Measure"
 name = "Area (Shift + Alt + A)"
 source = "docs/revu_features/05_shortcuts.md:62"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9879,9 +9934,9 @@ area = "shortcuts"
 section = "Measure"
 name = "Count (Shift + Alt + C)"
 source = "docs/revu_features/05_shortcuts.md:63"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9915,9 +9970,9 @@ area = "shortcuts"
 section = "Measure"
 name = "Length (Shift + Alt + L)"
 source = "docs/revu_features/05_shortcuts.md:66"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9939,9 +9994,9 @@ area = "shortcuts"
 section = "Measure"
 name = "Perimeter (Shift + Alt + P)"
 source = "docs/revu_features/05_shortcuts.md:68"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -9951,9 +10006,9 @@ area = "shortcuts"
 section = "Measure"
 name = "Polylength (Shift + Alt + Q)"
 source = "docs/revu_features/05_shortcuts.md:69"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10011,9 +10066,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Line (L)"
 source = "docs/revu_features/05_shortcuts.md:74"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10023,9 +10078,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Lock (Ctrl + Shift + L)"
 source = "docs/revu_features/05_shortcuts.md:75"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10035,9 +10090,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Note (N)"
 source = "docs/revu_features/05_shortcuts.md:76"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10047,9 +10102,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Pen (P)"
 source = "docs/revu_features/05_shortcuts.md:77"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10059,9 +10114,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Polygon (Shift + P)"
 source = "docs/revu_features/05_shortcuts.md:78"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10071,9 +10126,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Polyline (Shift + N)"
 source = "docs/revu_features/05_shortcuts.md:79"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10083,9 +10138,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Rectangle (R)"
 source = "docs/revu_features/05_shortcuts.md:80"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10119,9 +10174,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Send Backward (Ctrl + [)"
 source = "docs/revu_features/05_shortcuts.md:83"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10131,9 +10186,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Send to Back (Ctrl + Shift + [)"
 source = "docs/revu_features/05_shortcuts.md:84"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10143,9 +10198,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Stamp (S)"
 source = "docs/revu_features/05_shortcuts.md:85"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10155,9 +10210,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Text Box (T)"
 source = "docs/revu_features/05_shortcuts.md:86"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10167,9 +10222,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Typewriter (W)"
 source = "docs/revu_features/05_shortcuts.md:87"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10179,9 +10234,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Ungroup (Ctrl + Shift + G)"
 source = "docs/revu_features/05_shortcuts.md:88"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10191,9 +10246,9 @@ area = "shortcuts"
 section = "File"
 name = "Close (Ctrl + F4)"
 source = "docs/revu_features/05_shortcuts.md:89"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10215,9 +10270,9 @@ area = "shortcuts"
 section = "File"
 name = "Open (Ctrl + O)"
 source = "docs/revu_features/05_shortcuts.md:91"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 
 [[feature]]
 id = "key-063"
@@ -10250,9 +10305,9 @@ area = "shortcuts"
 section = "File"
 name = "Save (Ctrl + S)"
 source = "docs/revu_features/05_shortcuts.md:94"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 
 [[feature]]
 id = "key-066"
@@ -10273,9 +10328,9 @@ area = "shortcuts"
 section = "File"
 name = "Save As (Ctrl + Shift + S)"
 source = "docs/revu_features/05_shortcuts.md:96"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 
 [[feature]]
 id = "key-068"
@@ -10284,9 +10339,9 @@ area = "shortcuts"
 section = "Edit"
 name = "Copy (Ctrl + C)"
 source = "docs/revu_features/05_shortcuts.md:97"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10308,9 +10363,9 @@ area = "shortcuts"
 section = "Edit"
 name = "Cut (Ctrl + X)"
 source = "docs/revu_features/05_shortcuts.md:99"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10320,9 +10375,9 @@ area = "shortcuts"
 section = "Edit"
 name = "Delete (Del)"
 source = "docs/revu_features/05_shortcuts.md:100"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 
 [[feature]]
 id = "key-072"
@@ -10343,9 +10398,9 @@ area = "shortcuts"
 section = "Edit"
 name = "Paste (Ctrl + V)"
 source = "docs/revu_features/05_shortcuts.md:102"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10355,9 +10410,9 @@ area = "shortcuts"
 section = "Edit"
 name = "Paste in Place (Ctrl + Shift + V)"
 source = "docs/revu_features/05_shortcuts.md:103"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10367,9 +10422,9 @@ area = "shortcuts"
 section = "Edit"
 name = "Redo (Ctrl + Y)"
 source = "docs/revu_features/05_shortcuts.md:104"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 
 [[feature]]
 id = "key-076"
@@ -10378,9 +10433,9 @@ area = "shortcuts"
 section = "Edit"
 name = "Select All (Ctrl + A)"
 source = "docs/revu_features/05_shortcuts.md:105"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10402,9 +10457,9 @@ area = "shortcuts"
 section = "Edit"
 name = "Snapshot (G)"
 source = "docs/revu_features/05_shortcuts.md:107"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10414,9 +10469,9 @@ area = "shortcuts"
 section = "Edit"
 name = "Undo (Ctrl + Z)"
 source = "docs/revu_features/05_shortcuts.md:108"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 
 [[feature]]
 id = "key-080"
@@ -10425,9 +10480,9 @@ area = "shortcuts"
 section = "View"
 name = "Actual Size (Ctrl + 8)"
 source = "docs/revu_features/05_shortcuts.md:109"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10449,9 +10504,9 @@ area = "shortcuts"
 section = "View"
 name = "Continuous Mode (Ctrl + 5)"
 source = "docs/revu_features/05_shortcuts.md:111"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10485,9 +10540,9 @@ area = "shortcuts"
 section = "View"
 name = "Fit Page (Ctrl + 9)"
 source = "docs/revu_features/05_shortcuts.md:114"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10497,9 +10552,9 @@ area = "shortcuts"
 section = "View"
 name = "Fit Width (Ctrl + 0)"
 source = "docs/revu_features/05_shortcuts.md:115"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10509,9 +10564,9 @@ area = "shortcuts"
 section = "View"
 name = "Next Page (Ctrl + Right)"
 source = "docs/revu_features/05_shortcuts.md:116"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 
 [[feature]]
 id = "key-088"
@@ -10532,9 +10587,9 @@ area = "shortcuts"
 section = "View"
 name = "Previous Page (Ctrl + Left)"
 source = "docs/revu_features/05_shortcuts.md:118"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 
 [[feature]]
 id = "key-090"
@@ -10615,9 +10670,9 @@ area = "shortcuts"
 section = "View"
 name = "Show Grid (Shift + F9)"
 source = "docs/revu_features/05_shortcuts.md:125"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10639,9 +10694,9 @@ area = "shortcuts"
 section = "View"
 name = "Single Page Mode (Ctrl + 4)"
 source = "docs/revu_features/05_shortcuts.md:127"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10651,9 +10706,9 @@ area = "shortcuts"
 section = "View"
 name = "Snap to Content (Ctrl + Shift + F8)"
 source = "docs/revu_features/05_shortcuts.md:128"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10663,9 +10718,9 @@ area = "shortcuts"
 section = "View"
 name = "Snap to Grid (Ctrl + Shift + F9)"
 source = "docs/revu_features/05_shortcuts.md:129"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10675,9 +10730,9 @@ area = "shortcuts"
 section = "View"
 name = "Snap to Markup (Ctrl + Shift + F7)"
 source = "docs/revu_features/05_shortcuts.md:130"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10771,9 +10826,9 @@ area = "shortcuts"
 section = "Selection"
 name = "Pan (Shift + V)"
 source = "docs/revu_features/05_shortcuts.md:138"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10783,9 +10838,9 @@ area = "shortcuts"
 section = "Selection"
 name = "Select (V)"
 source = "docs/revu_features/05_shortcuts.md:139"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 
 [[feature]]
 id = "key-111"
@@ -10818,9 +10873,9 @@ area = "shortcuts"
 section = "Selection"
 name = "Zoom In (Plus)"
 source = "docs/revu_features/05_shortcuts.md:142"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 
 [[feature]]
 id = "key-114"
@@ -10829,9 +10884,9 @@ area = "shortcuts"
 section = "Selection"
 name = "Zoom Out (Minus)"
 source = "docs/revu_features/05_shortcuts.md:143"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 
 [[feature]]
 id = "key-115"
@@ -10936,9 +10991,9 @@ area = "shortcuts"
 section = "Document"
 name = "Delete Pages (Ctrl + Shift + D)"
 source = "docs/revu_features/05_shortcuts.md:152"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10960,9 +11015,9 @@ area = "shortcuts"
 section = "Document"
 name = "Document Properties (Ctrl + D)"
 source = "docs/revu_features/05_shortcuts.md:154"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10984,9 +11039,9 @@ area = "shortcuts"
 section = "Document"
 name = "Extract Pages (Ctrl + Shift + X)"
 source = "docs/revu_features/05_shortcuts.md:156"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11020,9 +11075,9 @@ area = "shortcuts"
 section = "Document"
 name = "Insert Blank Page (Ctrl + Shift + N)"
 source = "docs/revu_features/05_shortcuts.md:159"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11032,9 +11087,9 @@ area = "shortcuts"
 section = "Document"
 name = "Insert Pages (Ctrl + Shift + I)"
 source = "docs/revu_features/05_shortcuts.md:160"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11104,9 +11159,9 @@ area = "shortcuts"
 section = "Document"
 name = "Rotate Clockwise (Shift + Alt + Plus)"
 source = "docs/revu_features/05_shortcuts.md:166"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11116,9 +11171,9 @@ area = "shortcuts"
 section = "Document"
 name = "Rotate Counterclockwise (Shift + Alt + Minus)"
 source = "docs/revu_features/05_shortcuts.md:167"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11236,9 +11291,9 @@ area = "shortcuts"
 section = "Window"
 name = "Bookmarks (Alt + B)"
 source = "docs/revu_features/05_shortcuts.md:177"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11344,9 +11399,9 @@ area = "shortcuts"
 section = "Window"
 name = "Markups (Alt + L)"
 source = "docs/revu_features/05_shortcuts.md:186"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11356,9 +11411,9 @@ area = "shortcuts"
 section = "Window"
 name = "Measurements (Alt + U)"
 source = "docs/revu_features/05_shortcuts.md:187"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11416,9 +11471,9 @@ area = "shortcuts"
 section = "Window"
 name = "Properties (Alt + P)"
 source = "docs/revu_features/05_shortcuts.md:192"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11512,9 +11567,9 @@ area = "shortcuts"
 section = "Window"
 name = "Thumbnails (Alt + T)"
 source = "docs/revu_features/05_shortcuts.md:200"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11524,9 +11579,9 @@ area = "shortcuts"
 section = "Window"
 name = "Tool Chest (Alt + X)"
 source = "docs/revu_features/05_shortcuts.md:201"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11536,9 +11591,9 @@ area = "shortcuts"
 section = "Help"
 name = "Help (F1)"
 source = "docs/revu_features/05_shortcuts.md:202"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11548,9 +11603,9 @@ area = "shortcuts"
 section = "Navigation"
 name = "First Page (Home)"
 source = "docs/revu_features/05_shortcuts.md:203"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11560,9 +11615,9 @@ area = "shortcuts"
 section = "Navigation"
 name = "Last Page (End)"
 source = "docs/revu_features/05_shortcuts.md:204"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11572,9 +11627,9 @@ area = "shortcuts"
 section = "Navigation"
 name = "Next Document (Ctrl + Tab)"
 source = "docs/revu_features/05_shortcuts.md:205"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11584,7 +11639,7 @@ area = "shortcuts"
 section = "Navigation"
 name = "Previous Document (Ctrl + Shift + Tab)"
 source = "docs/revu_features/05_shortcuts.md:206"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["revu_default_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."

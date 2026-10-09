@@ -54,6 +54,7 @@ pub mod reduce;
 mod scales;
 pub mod search;
 pub mod security;
+mod session_ui;
 pub mod signatures;
 pub mod spell;
 pub mod synthetic;
@@ -144,6 +145,10 @@ pub struct Session {
     counter: u64,
     limits: UndoLimits,
     author: String,
+    /// Edits made under this key join the previous step made under it (`session_ui.rs`).
+    merge: Option<String>,
+    /// The merge key of the last undo step, until [`Session::seal`].
+    last_merge: Option<String>,
 }
 
 impl Session {
@@ -183,6 +188,8 @@ impl Session {
             counter: 0,
             limits: UndoLimits::default(),
             author: String::new(),
+            merge: None,
+            last_merge: None,
         }
     }
 
@@ -317,7 +324,11 @@ impl Session {
         match f(self) {
             Ok((v, changed)) => {
                 if changed {
-                    self.push_undo(snap);
+                    let join = self.merge.is_some() && self.merge == self.last_merge && !self.undo.is_empty();
+                    if !join {
+                        self.push_undo(snap);
+                    }
+                    self.last_merge = self.merge.clone();
                     self.redo.clear();
                     self.bump();
                     self.prune_selection();
@@ -373,6 +384,7 @@ impl Session {
     /// Undo the last step; returns its label.
     pub fn undo(&mut self) -> Result<String> {
         let s = self.undo.pop_back().ok_or(EngineError::NothingToUndo)?;
+        self.last_merge = None;
         self.undo_bytes = self.undo_bytes.saturating_sub(s.bytes);
         let label = s.label.clone();
         let current = self.snapshot(&label);
@@ -385,6 +397,7 @@ impl Session {
     /// Redo the last undone step; returns its label.
     pub fn redo(&mut self) -> Result<String> {
         let s = self.redo.pop().ok_or(EngineError::NothingToRedo)?;
+        self.last_merge = None;
         let label = s.label.clone();
         let current = self.snapshot(&label);
         self.restore(s);
