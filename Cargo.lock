@@ -2345,6 +2345,7 @@ dependencies = [
  "markupcraft-engine",
  "markupcraft-measure",
  "markupcraft-model",
+ "markupcraft-render",
  "markupcraft-revu",
  "serde_json",
 ]

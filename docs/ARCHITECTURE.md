@@ -89,4 +89,10 @@ Measurements are ordinary annotations plus Revu keys:
   plus an arm there. Preferences (`prefs_ui.rs`) edit the engine's `prefs` (per profile) plus
   the interface preferences in `<config>/ui/<profile>.json` (`shell::UiPrefs`, including the
   dock layout).
+- Document and review features (`features/`, one file each: search, compare, overlay, summary,
+  print, document operations, redaction, forms, spelling, stamps, batch, Dynamic Fill, spaces,
+  links, signatures, sets) keep their state in `AppState::features`, add menu rows in
+  `features::COMMANDS`, and ask for files with `Purpose::Feature`. A feature that needs a point,
+  box or outline on the page starts a pick (`features::start_pick`); `features/canvas.rs` runs it
+  ahead of the active tool and draws the features' highlights over the pages.
   `/PCArcs`, `/PCColumns`, `/PCColumnData`, `/PCStamp`, `/PCHatch`, `/PCLegend`, page `/PCSpaces`.

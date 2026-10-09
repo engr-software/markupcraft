@@ -24,6 +24,7 @@ pub mod commands;
 pub mod context_menu;
 pub mod dialogs;
 pub mod dock;
+pub mod features;
 pub mod icon_data;
 pub mod icons;
 pub mod interact;
@@ -202,6 +203,8 @@ pub struct AppState {
     pub dialogs: Dialogs,
     pub prompts: Vec<Prompt>,
     pub calibrate: Option<Calibrate>,
+    /// Search, compare, spaces, layers, summary and the other document features.
+    pub features: features::FeatureState,
     /// Commands to run at the end of the frame.
     queued: Vec<String>,
     /// Dock changes the state cannot make itself.
@@ -246,6 +249,7 @@ impl Default for AppState {
             dialogs: Dialogs::default(),
             prompts: Vec::new(),
             calibrate: None,
+            features: Default::default(),
             queued: Vec::new(),
             panel_toggles: Vec::new(),
             panel_shows: Vec::new(),
@@ -493,6 +497,7 @@ impl AppState {
                     }
                 }
                 Purpose::Shell { tag } => shell::dialog_answer(self, &tag, &paths),
+                Purpose::Feature(ask) => features::answer(self, ask, paths),
                 Purpose::ExtractPages { pages } => {
                     if let Some(d) = self.doc_mut() {
                         let r = d.session.extract_pages(&pages, &first, false);
@@ -536,6 +541,7 @@ impl AppState {
             "window.next_document" | "window.prev_document" => self.docs.len() > 1,
             "tool.select" | "tool.pan" => true,
             _ if id.starts_with("panel.") || id.starts_with("snap.") => true,
+            _ if features::handles(id) => features::enabled(self, id),
             _ => doc.is_some(),
         }
     }
@@ -924,6 +930,7 @@ impl AppState {
             "view.show_grid" => self.show_grid = !self.show_grid,
             "snap.content" => self.snaps.content = !self.snaps.content,
             "snap.markup" => self.snaps.markup = !self.snaps.markup,
+            _ if features::handles(id) => features::run(self, id, ctx),
             _ if markupcraft_engine::commands::find(id).is_some() => {
                 if let Some(d) = self.doc_mut() {
                     let r = markupcraft_engine::commands::run(&mut d.session, id);
@@ -1172,6 +1179,7 @@ impl eframe::App for MarkupCraftApp {
         chrome::windows(&mut self.state, &ctx);
         windows::show(&mut self.state, &ctx);
         shell::windows(&mut self.state, &ctx);
+        features::frame(&mut self.state, &ctx);
 
         for id in std::mem::take(&mut self.state.queued) {
             self.state.run(&id, &ctx);

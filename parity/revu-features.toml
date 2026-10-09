@@ -1620,10 +1620,10 @@ section = "Export, reporting and Excel"
 name = "Markup Summary to XML / PDF / Print"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:255"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["csv_summary_with_groups_and_totals"]
-notes = "XML summary; no PDF report or print. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table."
+evidence = ["csv_summary_with_groups_and_totals", "markup_summary_writes_excel_pdf_and_csv", "summary_export_writes_csv_xml_xlsx_and_pdf"]
+notes = "XML, CSV, Excel and PDF summary; print through the PDF report."
 
 [[feature]]
 id = "meas-130"
@@ -1633,9 +1633,10 @@ section = "Export, reporting and Excel"
 name = "Summary across files/folders"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:256"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["batch_link_summary_sets_and_apply", "batch_combine_summary_and_slip_sheet"]
+notes = "Batch > Summary: the Markups List of chosen files as one CSV with a File column; no folders or other formats."
 
 [[feature]]
 id = "meas-131"
@@ -2211,8 +2212,8 @@ priority = "P2"
 source = "docs/revu_features/02_markups.md:86"
 status = "partial"
 cpp = "missing"
-evidence = ["stamps_builtin_custom_dynamic_fields_and_images"]
-notes = "A PNG placed as an image stamp annotation; no separate Image markup kind."
+evidence = ["stamps_builtin_custom_dynamic_fields_and_images", "stamp_library_places_a_stamp_and_an_image"]
+notes = "Markup > Image places a PNG or JPEG (click or box) as an image stamp annotation; no separate Image markup kind."
 
 [[feature]]
 id = "mark-043"
@@ -2271,10 +2272,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Hyperlink"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:91"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["links_to_pages_urls_and_files"]
-notes = "Links made headlessly (link_add); no drawing tool."
+evidence = ["links_to_pages_urls_and_files", "hyperlink_tool_adds_a_page_link_listed_in_the_links_panel"]
+notes = "Markup > Hyperlink (Shift+H): drag the link area, choose page, web address or file."
 
 [[feature]]
 id = "mark-048"
@@ -3364,10 +3365,10 @@ section = "G. Layers (PDF optional content)"
 name = "Layers panel"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:199"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["layers_create_assign_hide_filter_rename_delete"]
-notes = "Layer data and tools (layer_list, layer_set, layer_assign...) over PDF optional content groups; no panel UI yet."
+evidence = ["layers_create_assign_hide_filter_rename_delete", "layers_panel_creates_assigns_hides_and_isolates"]
+notes = "Layers panel (Alt+Y): view, print and lock toggles, counts, new, rename, delete, isolate, show all, assign selected, select markups, flatten; hidden layers are not drawn."
 
 [[feature]]
 id = "mark-136"
@@ -3899,9 +3900,10 @@ section = "H. Markups List"
 name = "Summary: PDF report"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:246"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["markup_summary_writes_excel_pdf_and_csv"]
+notes = "Markup Summary as a PDF report."
 
 [[feature]]
 id = "mark-178"
@@ -5016,10 +5018,10 @@ section = "Bookmarks"
 name = "Bookmarks panel"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:186"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["bookmarks_add_rename_move_delete_and_create_from_labels"]
-notes = "bookmark_list returns the tree (path, title, page, open, children); no panel."
+evidence = ["bookmarks_add_rename_move_delete_and_create_from_labels", "bookmarks_panel_adds_renames_nests_and_deletes"]
+notes = "Bookmarks panel: go to, add (Ctrl+B), rename, set page, delete, up/down, indent/outdent, expand/collapse, from page labels, clear."
 
 [[feature]]
 id = "doc-074"
@@ -5141,9 +5143,10 @@ section = "Bookmarks"
 name = "Save collapse state"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:196"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["bookmarks_panel_adds_renames_nests_and_deletes"]
+notes = "Expanding or collapsing in the Bookmarks panel is written to the outline and saved with the file."
 
 [[feature]]
 id = "doc-084"
@@ -5699,10 +5702,10 @@ section = "Sets (many PDFs viewed as one)"
 name = "Navigate a Set"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:260"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["batch_link_summary_sets_and_apply"]
-notes = "set_sheets lists every sheet (file, page, label) and opens the files; no Sets panel."
+evidence = ["batch_link_summary_sets_and_apply", "sets_panel_lists_every_sheet_and_opens_one"]
+notes = "Sets panel (Alt+2): new, open, save (.pcset), add files; sheets by label (file order or sheet number), filter; click opens the file at the page."
 
 [[feature]]
 id = "doc-128"
@@ -5798,10 +5801,10 @@ section = "Markup summary and print"
 name = "Summary output types"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:273"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["csv_summary_with_groups_and_totals", "cli: summary"]
-notes = "CSV and XML; no PDF."
+evidence = ["csv_summary_with_groups_and_totals", "cli: summary", "markup_summary_writes_excel_pdf_and_csv", "summary_export_writes_csv_xml_xlsx_and_pdf"]
+notes = "CSV, XML, Excel (.xlsx) and a PDF report (Markup > Markup Summary, tool summary_export)."
 
 [[feature]]
 id = "doc-136"
@@ -5811,9 +5814,10 @@ section = "Markup summary and print"
 name = "Summary columns"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:274"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["markup_summary_writes_excel_pdf_and_csv", "summary_pages_and_columns_filter"]
+notes = "Any Markups List columns, custom columns included."
 
 [[feature]]
 id = "doc-137"
@@ -5823,9 +5827,10 @@ section = "Markup summary and print"
 name = "Summary filter and sort"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:275"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["summary_matches_the_list_and_writes_every_format"]
+notes = "Sort (ascending or descending) and group with subtotals; filters only through the engine options."
 
 [[feature]]
 id = "doc-138"
@@ -5837,8 +5842,8 @@ priority = "P1"
 source = "docs/revu_features/03_documents.md:276"
 status = "partial"
 cpp = "partial"
-evidence = ["cli_list_and_summary_end_to_end"]
-notes = "Columns, filters, grouping and totals; no page range or PDF layout options."
+evidence = ["cli_list_and_summary_end_to_end", "summary_pages_and_columns_filter", "markup_summary_writes_excel_pdf_and_csv"]
+notes = "Columns, grouping, sort, page range, measurements only, title; no PDF layout choices."
 
 [[feature]]
 id = "doc-139"
@@ -5848,9 +5853,10 @@ section = "Markup summary and print"
 name = "Summary PDF layout"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:277"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["summary_matches_the_list_and_writes_every_format"]
+notes = "A fixed landscape table with group headings and totals; no layout options."
 
 [[feature]]
 id = "doc-140"
@@ -5860,9 +5866,10 @@ section = "Markup summary and print"
 name = "Print dialog: printer"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:278"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["print_writes_a_print_ready_pdf"]
+notes = "File > Print (Ctrl+P) writes a print-ready PDF (pages, paper, orientation, scaling, markups); sending it to a printer is left to the PDF viewer."
 
 [[feature]]
 id = "doc-141"
@@ -6104,8 +6111,8 @@ priority = "P1"
 source = "docs/revu_features/03_documents.md:307"
 status = "partial"
 cpp = "partial"
-evidence = ["text_search_finds_hits_with_rectangles"]
-notes = "Page text, case sensitive, whole words, hit limit; not file names, properties, fields or markup text."
+evidence = ["text_search_finds_hits_with_rectangles", "search_panel_finds_text_then_counts_and_highlights_the_results"]
+notes = "Page text and markup text, case sensitive, whole words, hit limit; not file names, properties or form fields."
 
 [[feature]]
 id = "doc-160"
@@ -6127,9 +6134,10 @@ section = "OCR and search"
 name = "Act on search results"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:309"
-status = "missing"
+status = "have"
 cpp = "partial"
-evidence = []
+evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results"]
+notes = "Highlight, Count or Redact the checked results."
 
 [[feature]]
 id = "doc-162"
@@ -6578,9 +6586,10 @@ section = "Links and places"
 name = "Follow PDF links"
 priority = "P0"
 source = "docs/revu_features/03_documents.md:380"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["hyperlink_tool_adds_a_page_link_listed_in_the_links_panel"]
+notes = "Links panel Follow (or double-click): page links go to the page, file links open the file, web links open the browser."
 
 [[feature]]
 id = "doc-198"
@@ -6592,8 +6601,8 @@ priority = "P1"
 source = "docs/revu_features/03_documents.md:381"
 status = "partial"
 cpp = "missing"
-evidence = ["links_to_pages_urls_and_files"]
-notes = "link_add makes a link over a rectangle; no drawing tool or link-from-text."
+evidence = ["links_to_pages_urls_and_files", "hyperlink_tool_adds_a_page_link_listed_in_the_links_panel"]
+notes = "Hyperlink tool draws a link box (page, web address or file); no link-from-text."
 
 [[feature]]
 id = "doc-199"
@@ -6628,9 +6637,9 @@ section = "Links and places"
 name = "Links panel"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:384"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["links_to_pages_urls_and_files"]
+evidence = ["links_to_pages_urls_and_files", "hyperlink_tool_adds_a_page_link_listed_in_the_links_panel"]
 notes = "link_list lists every link with its target; link_delete; no panel."
 
 [[feature]]
@@ -6860,10 +6869,10 @@ section = "1. Compare Documents"
 name = "Document A / Document B pickers"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:69"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["compare_documents_clouds_changes_on_the_newer_revision"]
-notes = "The older revision is a file path or an open document (old / old_doc); no picker UI yet."
+evidence = ["compare_documents_clouds_changes_on_the_newer_revision", "compare_documents_clouds_the_changes_and_reviews_them"]
+notes = "Compare Documents dialog: older (A) from an open tab or Browse, newer (B) from the open tabs; results in the Compare panel (accept, reject, step through)."
 
 [[feature]]
 id = "ui-003"
@@ -7149,10 +7158,10 @@ section = "2. Overlay Pages"
 name = "Add overlay sources"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:97"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["overlay_pages_writes_coloured_toggleable_layers"]
-notes = "Layers are files (any number up to 16); no add-open-tabs UI."
+evidence = ["overlay_pages_writes_coloured_toggleable_layers", "overlay_pages_writes_the_overlay_and_opens_it"]
+notes = "Overlay Pages dialog lists the open documents and added files (check, page, colour, opacity per layer); the result opens in a new tab."
 
 [[feature]]
 id = "ui-026"
@@ -7362,9 +7371,10 @@ section = "3. Search panel (text) and Visual Search"
 name = "Search panel"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:119"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results"]
+notes = "Search panel (Alt+1, Ctrl+F): text and Visual Search tabs, results list, hits highlighted on the pages."
 
 [[feature]]
 id = "ui-043"
@@ -7374,9 +7384,10 @@ section = "3. Search panel (text) and Visual Search"
 name = "Search scope"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:120"
-status = "missing"
+status = "partial"
 cpp = "partial"
-evidence = []
+evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results"]
+notes = "All pages, current page or a page range; not other files, Sets or folders."
 
 [[feature]]
 id = "ui-044"
@@ -7386,9 +7397,9 @@ section = "3. Search panel (text) and Visual Search"
 name = "Search in page text"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:121"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results", "text_search_finds_hits_with_rectangles"]
 
 [[feature]]
 id = "ui-045"
@@ -7398,9 +7409,10 @@ section = "3. Search panel (text) and Visual Search"
 name = "Search in markups"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:122"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results", "markup_text_matches"]
+notes = "Comments, subjects, labels and authors of markups; a result selects its markup."
 
 [[feature]]
 id = "ui-046"
@@ -7422,9 +7434,10 @@ section = "3. Search panel (text) and Visual Search"
 name = "Case sensitive / whole words"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:124"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["markup_text_matches", "text_search_finds_hits_with_rectangles"]
+notes = "Match case and Whole words in the Search panel."
 
 [[feature]]
 id = "ui-048"
@@ -7434,9 +7447,10 @@ section = "3. Search panel (text) and Visual Search"
 name = "Results list"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:125"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results"]
+notes = "Results grouped by page with their context; click to centre a result."
 
 [[feature]]
 id = "ui-049"
@@ -7446,9 +7460,10 @@ section = "3. Search panel (text) and Visual Search"
 name = "Next / previous result"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:126"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results"]
+notes = "Prev / Next buttons, wrapping around."
 
 [[feature]]
 id = "ui-050"
@@ -7470,9 +7485,10 @@ section = "3. Search panel (text) and Visual Search"
 name = "Check results + bulk actions"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:128"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results"]
+notes = "Check boxes per result, Check all; Highlight, Count or Redact the checked results."
 
 [[feature]]
 id = "ui-052"
@@ -7482,9 +7498,10 @@ section = "3. Search panel (text) and Visual Search"
 name = "Apply Count to checked"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:129"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results", "visual_search_picks_a_region_and_finds_the_symbol"]
+notes = "One Count per page at the checked results, subject = the search text."
 
 [[feature]]
 id = "ui-053"
@@ -7506,9 +7523,9 @@ section = "3. Search panel (text) and Visual Search"
 name = "Clear results"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:131"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results"]
 
 [[feature]]
 id = "ui-055"
@@ -7606,10 +7623,10 @@ section = "4. Spaces, Links, Signatures panels"
 name = "Spaces panel"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:144"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["spaces_add_column_tally_export_import"]
-notes = "Spaces data and tools; no panel UI yet."
+evidence = ["spaces_add_column_tally_export_import", "spaces_panel_fills_a_room_lists_it_and_tallies_markups"]
+notes = "Spaces panel (Alt+S): list with markup counts per subject, Draw (corners) or Fill (inside a room), rename, delete, select markups, export/import."
 
 [[feature]]
 id = "ui-063"
@@ -7632,10 +7649,10 @@ section = "4. Spaces, Links, Signatures panels"
 name = "Highlight / edit spaces"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:146"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["spaces_add_column_tally_export_import"]
-notes = "space_edit renames and reshapes; highlighting is UI work still to do."
+evidence = ["spaces_add_column_tally_export_import", "spaces_panel_fills_a_room_lists_it_and_tallies_markups"]
+notes = "Spaces highlighted on the pages (Highlight toggle; the selected one emphasised); rename in the panel."
 
 [[feature]]
 id = "ui-065"
@@ -7695,9 +7712,10 @@ section = "4. Spaces, Links, Signatures panels"
 name = "Links panel: Hyperlinks list"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:151"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["hyperlink_tool_adds_a_page_link_listed_in_the_links_panel"]
+notes = "Links panel (Alt+N): every link with its target; go to, follow, delete, highlight."
 
 [[feature]]
 id = "ui-070"
@@ -7707,9 +7725,10 @@ section = "4. Spaces, Links, Signatures panels"
 name = "Hyperlink tool / Edit Action"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:152"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["hyperlink_tool_adds_a_page_link_listed_in_the_links_panel"]
+notes = "Hyperlink tool (Shift+H): drag the area, then page, web address or file; no Edit Action on an existing link."
 
 [[feature]]
 id = "ui-071"
@@ -7719,10 +7738,10 @@ section = "4. Spaces, Links, Signatures panels"
 name = "Signatures panel"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:153"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["signatures_sign_validate_and_track_changes"]
-notes = "The data (signature_list) is there; no panel yet."
+evidence = ["signatures_sign_validate_and_track_changes", "sign_with_a_new_digital_id_and_validate"]
+notes = "Signatures panel (Alt+4): status icon (valid, invalid, unknown, not signed), signer, date, reason, changes after signing; Validate, Trust Certificate, Sign."
 
 [[feature]]
 id = "ui-072"
@@ -9887,9 +9906,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Spell Check (F7)"
 source = "docs/revu_features/05_shortcuts.md:43"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["feature_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10055,9 +10074,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Hyperlink (Shift + H)"
 source = "docs/revu_features/05_shortcuts.md:57"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["feature_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10151,9 +10170,9 @@ area = "shortcuts"
 section = "Measure"
 name = "Dynamic Fill (J)"
 source = "docs/revu_features/05_shortcuts.md:65"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["feature_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -10474,9 +10493,9 @@ area = "shortcuts"
 section = "File"
 name = "Print (Ctrl + P)"
 source = "docs/revu_features/05_shortcuts.md:92"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["feature_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11124,9 +11143,9 @@ area = "shortcuts"
 section = "Search"
 name = "Search (Ctrl + F)"
 source = "docs/revu_features/05_shortcuts.md:147"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["feature_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11148,9 +11167,9 @@ area = "shortcuts"
 section = "Document"
 name = "Add Bookmark (Ctrl + B)"
 source = "docs/revu_features/05_shortcuts.md:149"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["feature_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11160,9 +11179,9 @@ area = "shortcuts"
 section = "Document"
 name = "Apply Redactions (Shift + A)"
 source = "docs/revu_features/05_shortcuts.md:150"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["feature_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11244,9 +11263,9 @@ area = "shortcuts"
 section = "Document"
 name = "Flatten (Ctrl + Shift + M)"
 source = "docs/revu_features/05_shortcuts.md:157"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["feature_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11292,9 +11311,9 @@ area = "shortcuts"
 section = "Document"
 name = "Mark for Redaction (Shift + R)"
 source = "docs/revu_features/05_shortcuts.md:161"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["feature_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11316,9 +11335,9 @@ area = "shortcuts"
 section = "Document"
 name = "OCR (Ctrl + Shift + O)"
 source = "docs/revu_features/05_shortcuts.md:163"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["feature_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11388,9 +11407,9 @@ area = "shortcuts"
 section = "Document"
 name = "Security (Ctrl + L)"
 source = "docs/revu_features/05_shortcuts.md:169"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["feature_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11568,9 +11587,9 @@ area = "shortcuts"
 section = "Window"
 name = "Layers (Alt + Y)"
 source = "docs/revu_features/05_shortcuts.md:184"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["feature_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11580,9 +11599,9 @@ area = "shortcuts"
 section = "Window"
 name = "Links (Alt + N)"
 source = "docs/revu_features/05_shortcuts.md:185"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["feature_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11676,9 +11695,9 @@ area = "shortcuts"
 section = "Window"
 name = "Search (Alt + 1)"
 source = "docs/revu_features/05_shortcuts.md:193"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["feature_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11688,9 +11707,9 @@ area = "shortcuts"
 section = "Window"
 name = "Sets (Alt + 2)"
 source = "docs/revu_features/05_shortcuts.md:194"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["feature_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11712,9 +11731,9 @@ area = "shortcuts"
 section = "Window"
 name = "Signatures (Alt + 4)"
 source = "docs/revu_features/05_shortcuts.md:196"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["feature_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11724,9 +11743,9 @@ area = "shortcuts"
 section = "Window"
 name = "Spaces (Alt + S)"
 source = "docs/revu_features/05_shortcuts.md:197"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["feature_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]

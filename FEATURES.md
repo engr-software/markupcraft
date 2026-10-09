@@ -9,21 +9,21 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | Area | Rows | Proven | Have | Partial | Missing | Excluded | C++ have | C++ partial |
 |---|---|---|---|---|---|---|---|---|
-| Measurement and takeoff | 134 | 2 | 48 | 23 | 61 | 0 | 47 | 17 |
-| Markup tools, Properties, Tool Chest, layers, Markups List | 192 | 0 | 83 | 38 | 71 | 0 | 86 | 23 |
-| Documents, pages, batch, print, search, security | 217 | 0 | 89 | 45 | 77 | 6 | 38 | 23 |
-| Compare/overlay, interface, preferences, mouse, Studio | 226 | 0 | 84 | 27 | 84 | 31 | 24 | 22 |
-| Default keyboard shortcuts | 177 | 0 | 104 | 1 | 72 | 0 | 11 | 18 |
-| **All** | 946 | 2 | 408 | 134 | 365 | 37 | 206 | 103 |
+| Measurement and takeoff | 134 | 2 | 49 | 23 | 60 | 0 | 47 | 17 |
+| Markup tools, Properties, Tool Chest, layers, Markups List | 192 | 0 | 86 | 36 | 70 | 0 | 86 | 23 |
+| Documents, pages, batch, print, search, security | 217 | 0 | 97 | 44 | 70 | 6 | 38 | 23 |
+| Compare/overlay, interface, preferences, mouse, Studio | 226 | 0 | 99 | 24 | 72 | 31 | 24 | 22 |
+| Default keyboard shortcuts | 177 | 0 | 121 | 1 | 55 | 0 | 11 | 18 |
+| **All** | 946 | 2 | 452 | 128 | 327 | 37 | 206 | 103 |
 
 ### By priority (rows in scope)
 
 | Priority | Proven | Have | Partial | Missing |
 |---|---|---|---|---|
-| P0 | 2 | 95 | 27 | 17 |
-| P1 | 0 | 107 | 52 | 58 |
-| P2 | 0 | 71 | 30 | 108 |
-| P3 | 0 | 31 | 24 | 110 |
+| P0 | 2 | 102 | 25 | 12 |
+| P1 | 0 | 120 | 50 | 47 |
+| P2 | 0 | 76 | 29 | 104 |
+| P3 | 0 | 33 | 23 | 109 |
 
 ## Measurement and takeoff
 
@@ -229,8 +229,8 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | meas-128 | Markup Summary to CSV | P0 | have | have | `csv_summary_with_groups_and_totals` `cli_list_and_summary_end_to_end` `cli: summary` Spreadsheet-safe CSV with groups, subtotals and grand total per unit. |
-| meas-129 | Markup Summary to XML / PDF / Print | P2 | partial | partial | `csv_summary_with_groups_and_totals` XML summary; no PDF report or print. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table. |
-| meas-130 | Summary across files/folders | P1 | missing | missing |  |
+| meas-129 | Markup Summary to XML / PDF / Print | P2 | have | partial | `csv_summary_with_groups_and_totals` `markup_summary_writes_excel_pdf_and_csv` `summary_export_writes_csv_xml_xlsx_and_pdf` XML, CSV, Excel and PDF summary; print through the PDF report. |
+| meas-130 | Summary across files/folders | P1 | partial | missing | `batch_link_summary_sets_and_apply` `batch_combine_summary_and_slip_sheet` Batch > Summary: the Markups List of chosen files as one CSV with a File column; no folders or other formats. |
 | meas-131 | Summary filters and sort | P1 | have | have | `cli_list_and_summary_end_to_end` Summary honours the view's filters, search, sort and grouping. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table. |
 | meas-132 | Quantity Link: link cell to total | P1 | missing | missing |  |
 | meas-133 | Quantity Link filters | P1 | missing | missing |  |
@@ -293,12 +293,12 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-039 | Dynamic stamp text | P1 | have | missing | `stamps_builtin_custom_dynamic_fields_and_images` `fields_expand_dates_pages_files_and_prompts` {user} {date[:FMT]} {time[:FMT]} {datetime:FMT} {page} {pagenum} {pages} {file} {filename} {path} {prompt:Label=Default}, filled when placed. Times are UTC unless a time is given. |
 | mark-040 | Interactive stamps | P2 | missing | missing |  |
 | mark-041 | Stamp from image/PDF | P2 | have | missing | `stamps_builtin_custom_dynamic_fields_and_images` Image stamps from a PNG (alpha as a soft mask) or a PDF page (copied as a form XObject), placed directly or from the library. |
-| mark-042 | Image markup | P2 | partial | missing | `stamps_builtin_custom_dynamic_fields_and_images` A PNG placed as an image stamp annotation; no separate Image markup kind. |
+| mark-042 | Image markup | P2 | partial | missing | `stamps_builtin_custom_dynamic_fields_and_images` `stamp_library_places_a_stamp_and_an_image` Markup > Image places a PNG or JPEG (click or box) as an image stamp annotation; no separate Image markup kind. |
 | mark-043 | Image From Scanner | P3 | missing | missing |  |
 | mark-044 | Snapshot | P1 | have | have | `cli: markupcheck` `snapshot_copies_a_region_and_ctrl_v_pastes_it` Drag a region; Ctrl+V pastes it at the pointer. |
 | mark-045 | Copy Page to Snapshot | P3 | missing | have |  |
 | mark-046 | Snapshot Content (cut/copy region of page) | P2 | missing | partial |  |
-| mark-047 | Hyperlink | P1 | partial | missing | `links_to_pages_urls_and_files` Links made headlessly (link_add); no drawing tool. |
+| mark-047 | Hyperlink | P1 | have | missing | `links_to_pages_urls_and_files` `hyperlink_tool_adds_a_page_link_listed_in_the_links_panel` Markup > Hyperlink (Shift+H): drag the link area, choose page, web address or file. |
 | mark-048 | Edit Action | P2 | missing | missing |  |
 | mark-049 | File Attachment | P2 | missing | missing |  |
 | mark-050 | Capture (camera) | P2 | missing | missing |  |
@@ -406,7 +406,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| mark-135 | Layers panel | P1 | partial | missing | `layers_create_assign_hide_filter_rename_delete` Layer data and tools (layer_list, layer_set, layer_assign...) over PDF optional content groups; no panel UI yet. |
+| mark-135 | Layers panel | P1 | have | missing | `layers_create_assign_hide_filter_rename_delete` `layers_panel_creates_assigns_hides_and_isolates` Layers panel (Alt+Y): view, print and lock toggles, counts, new, rename, delete, isolate, show all, assign selected, select markups, flatten; hidden layers are not drawn. |
 | mark-136 | Toggle layer visibility | P1 | have | missing | `layers_create_assign_hide_filter_rename_delete` `layers_create_assign_state_save_and_reopen` layer_set visible: the default configuration's /OFF list. Headless; no panel UI. |
 | mark-137 | Add New Layer | P2 | have | missing | `layers_create_assign_hide_filter_rename_delete` layer_create adds an /OCG to /OCProperties (/OCGs, /D /Order). |
 | mark-138 | Layer hierarchy by drag | P3 | missing | missing |  |
@@ -453,7 +453,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-174 | Copy rows | P1 | missing | have |  |
 | mark-175 | Summary: CSV | P0 | have | have | `csv_summary_with_groups_and_totals` `cli_list_and_summary_end_to_end` `cli: summary` Visible columns, filters, grouping, totals; spreadsheet-safe. |
 | mark-176 | Summary: XML | P2 | have | have | `csv_summary_with_groups_and_totals` `cli: summary` |
-| mark-177 | Summary: PDF report | P1 | missing | partial |  |
+| mark-177 | Summary: PDF report | P1 | have | partial | `markup_summary_writes_excel_pdf_and_csv` Markup Summary as a PDF report. |
 | mark-178 | Summary appended with links | P2 | missing | missing |  |
 | mark-179 | Import markups | P1 | partial | have | `xfdf_export_import_round_trip` XFDF / FDF import (pdfcraft-xfdf), merging by markup id; Revu-only keys (measurements) are not carried by XFDF. |
 | mark-180 | Export markups | P2 | partial | missing | `xfdf_export_import_round_trip` XFDF / FDF export of every markup (pdfcraft-xfdf); Revu-only keys are not carried. |
@@ -583,7 +583,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| doc-073 | Bookmarks panel | P0 | partial | have | `bookmarks_add_rename_move_delete_and_create_from_labels` bookmark_list returns the tree (path, title, page, open, children); no panel. |
+| doc-073 | Bookmarks panel | P0 | have | have | `bookmarks_add_rename_move_delete_and_create_from_labels` `bookmarks_panel_adds_renames_nests_and_deletes` Bookmarks panel: go to, add (Ctrl+B), rename, set page, delete, up/down, indent/outdent, expand/collapse, from page labels, clear. |
 | doc-074 | Add bookmark | P1 | have | partial | `bookmarks_add_rename_move_delete_and_create_from_labels` Headless (engine + automation tool); no UI yet. bookmark_add: page, title (default the page label), parent and position. |
 | doc-075 | Rename / delete | P1 | have | have | `bookmarks_add_rename_move_delete_and_create_from_labels` Headless (engine + automation tool); no UI yet. bookmark_edit (title, page, expand) and bookmark_delete (one with its children, or all); undoable. |
 | doc-076 | Reorder, nest and copy | P1 | partial | partial | `bookmarks_add_rename_move_delete_and_create_from_labels` bookmark_move reorders and nests (with children); no copy. |
@@ -593,7 +593,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-080 | Bookmark structures | P3 | missing | missing |  |
 | doc-081 | Audit bookmarks | P3 | missing | missing |  |
 | doc-082 | Export bookmarks | P2 | missing | missing |  |
-| doc-083 | Save collapse state | P3 | missing | missing |  |
+| doc-083 | Save collapse state | P3 | have | missing | `bookmarks_panel_adds_renames_nests_and_deletes` Expanding or collapsing in the Bookmarks panel is written to the outline and saved with the file. |
 | doc-084 | Bookmarks from source apps | P3 | missing | missing |  |
 
 ### Page operations
@@ -657,7 +657,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | doc-126 | Create / open / save Set | P1 | have | missing | `batch_link_summary_sets_and_apply` `sets_sort_naturally_and_round_trip` set_save writes our own JSON set (.pcset, relative paths); set_sheets reads it and can open every file. |
-| doc-127 | Navigate a Set | P1 | partial | missing | `batch_link_summary_sets_and_apply` set_sheets lists every sheet (file, page, label) and opens the files; no Sets panel. |
+| doc-127 | Navigate a Set | P1 | have | missing | `batch_link_summary_sets_and_apply` `sets_panel_lists_every_sheet_and_opens_one` Sets panel (Alt+2): new, open, save (.pcset), add files; sheets by label (file order or sheet number), filter; click opens the file at the page. |
 | doc-128 | Set sorting | P2 | have | missing | `batch_link_summary_sets_and_apply` `sets_sort_naturally_and_round_trip` File order, label (natural order) or file then label. |
 | doc-129 | Revision handling | P2 | missing | missing |  |
 | doc-130 | Carry markups to new revision | P2 | have | missing | `slip_sheet_replaces_matching_sheets_and_keeps_markups` Slip Sheet keeps the old sheets' markups on the revised pages. |
@@ -670,12 +670,12 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| doc-135 | Summary output types | P0 | partial | partial | `csv_summary_with_groups_and_totals` `cli: summary` CSV and XML; no PDF. |
-| doc-136 | Summary columns | P1 | missing | missing |  |
-| doc-137 | Summary filter and sort | P1 | missing | missing |  |
-| doc-138 | Summary output options | P1 | partial | partial | `cli_list_and_summary_end_to_end` Columns, filters, grouping and totals; no page range or PDF layout options. |
-| doc-139 | Summary PDF layout | P1 | missing | missing |  |
-| doc-140 | Print dialog: printer | P1 | missing | missing |  |
+| doc-135 | Summary output types | P0 | have | partial | `csv_summary_with_groups_and_totals` `cli: summary` `markup_summary_writes_excel_pdf_and_csv` `summary_export_writes_csv_xml_xlsx_and_pdf` CSV, XML, Excel (.xlsx) and a PDF report (Markup > Markup Summary, tool summary_export). |
+| doc-136 | Summary columns | P1 | have | missing | `markup_summary_writes_excel_pdf_and_csv` `summary_pages_and_columns_filter` Any Markups List columns, custom columns included. |
+| doc-137 | Summary filter and sort | P1 | partial | missing | `summary_matches_the_list_and_writes_every_format` Sort (ascending or descending) and group with subtotals; filters only through the engine options. |
+| doc-138 | Summary output options | P1 | partial | partial | `cli_list_and_summary_end_to_end` `summary_pages_and_columns_filter` `markup_summary_writes_excel_pdf_and_csv` Columns, grouping, sort, page range, measurements only, title; no PDF layout choices. |
+| doc-139 | Summary PDF layout | P1 | partial | missing | `summary_matches_the_list_and_writes_every_format` A fixed landscape table with group headings and totals; no layout options. |
+| doc-140 | Print dialog: printer | P1 | partial | missing | `print_writes_a_print_ready_pdf` File > Print (Ctrl+P) writes a print-ready PDF (pages, paper, orientation, scaling, markups); sending it to a printer is left to the PDF viewer. |
 | doc-141 | Print: pages | P1 | partial | missing | `print_pdf_fit_nup_and_tile` print_pdf takes pages in print order; no current view or Get Window; writes a print-ready PDF, no printer. |
 | doc-142 | Print: what to print | P1 | partial | missing | `print_pdf_fit_nup_and_tile` print_pdf markups: true/false (document with or without markups). |
 | doc-143 | Print: paper and copies | P1 | partial | missing | `print_pdf_fit_nup_and_tile` print_pdf paper by name (ANSI, ARCH, ISO) or size, orientation auto/portrait/landscape; no copies (no printer). |
@@ -704,9 +704,9 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-156 | OCR options | P3 | partial | partial | `ocr_pages_adds_a_searchable_text_layer` dpi and skip pages that already have text; English (Latin) models only; no skew, orientation or vertical-text options. |
 | doc-157 | Text search | P0 | have | have | `text_search_finds_hits_with_rectangles` Headless (engine + automation tool); no UI yet. text_search over the page text layer (pdfcraft-render): hits with page, text, context and per-line rectangles in user space. |
 | doc-158 | Search scope | P1 | partial | partial | `text_search_finds_hits_with_rectangles` Current document, all or chosen pages; no other files, Sets or folders. |
-| doc-159 | Search options | P1 | partial | partial | `text_search_finds_hits_with_rectangles` Page text, case sensitive, whole words, hit limit; not file names, properties, fields or markup text. |
+| doc-159 | Search options | P1 | partial | partial | `text_search_finds_hits_with_rectangles` `search_panel_finds_text_then_counts_and_highlights_the_results` Page text and markup text, case sensitive, whole words, hit limit; not file names, properties or form fields. |
 | doc-160 | Search selected text | P2 | missing | missing |  |
-| doc-161 | Act on search results | P1 | missing | partial |  |
+| doc-161 | Act on search results | P1 | have | partial | `search_panel_finds_text_then_counts_and_highlights_the_results` Highlight, Count or Redact the checked results. |
 | doc-162 | Search and replace | P3 | missing | missing |  |
 | doc-163 | Visual Search | P0 | partial | missing | `visual_search_finds_symbols_and_counts_them` Sensitivity, quarter-turn rotations and Count results; no 45-degree steps, colour filter or limit-to-selection yet. |
 
@@ -777,11 +777,11 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| doc-197 | Follow PDF links | P0 | missing | have |  |
-| doc-198 | Hyperlink tool | P1 | partial | missing | `links_to_pages_urls_and_files` link_add makes a link over a rectangle; no drawing tool or link-from-text. |
+| doc-197 | Follow PDF links | P0 | have | have | `hyperlink_tool_adds_a_page_link_listed_in_the_links_panel` Links panel Follow (or double-click): page links go to the page, file links open the file, web links open the browser. |
+| doc-198 | Hyperlink tool | P1 | partial | missing | `links_to_pages_urls_and_files` `hyperlink_tool_adds_a_page_link_listed_in_the_links_panel` Hyperlink tool draws a link box (page, web address or file); no link-from-text. |
 | doc-199 | Link actions | P1 | partial | missing | `links_to_pages_urls_and_files` Go to a page, open a URL, open a file (GoToR with page for PDFs, Launch otherwise); no Place, Space or snapshot views. |
 | doc-200 | Hyperlinks from URLs | P3 | missing | missing |  |
-| doc-201 | Links panel | P2 | partial | missing | `links_to_pages_urls_and_files` link_list lists every link with its target; link_delete; no panel. |
+| doc-201 | Links panel | P2 | have | missing | `links_to_pages_urls_and_files` `hyperlink_tool_adds_a_page_link_listed_in_the_links_panel` link_list lists every link with its target; link_delete; no panel. |
 | doc-202 | Places | P2 | missing | missing |  |
 
 ### Recent files and File Access panel
@@ -821,7 +821,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | ui-001 | Compare Documents | P1 | have | missing | `compare_documents_clouds_changes_on_the_newer_revision` `compare_documents_clouds_text_and_graphic_changes` Engine Session::compare_with + tool compare_documents: raster diff of rendered pages clustered into regions, plus a word diff (pdfcraft-compare); clouds on the newer document. No dialog yet. |
-| ui-002 | Document A / Document B pickers | P1 | partial | missing | `compare_documents_clouds_changes_on_the_newer_revision` The older revision is a file path or an open document (old / old_doc); no picker UI yet. |
+| ui-002 | Document A / Document B pickers | P1 | have | missing | `compare_documents_clouds_changes_on_the_newer_revision` `compare_documents_clouds_the_changes_and_reviews_them` Compare Documents dialog: older (A) from an open tab or Browse, newer (B) from the open tabs; results in the Compare panel (accept, reject, step through). |
 | ui-003 | Page range per side | P1 | have | missing | `compare_documents_clouds_changes_on_the_newer_revision` pairs: [[old page, new page], ...]; default pairs every page in order. |
 | ui-004 | Alignment method | P1 | partial | missing | `compare_documents_clouds_text_and_graphic_changes` Page Align only for Compare (1-pixel shift tolerance); two-point alignment exists for Overlay. |
 | ui-005 | Compare a selected window | P2 | have | missing | `compare_documents_clouds_text_and_graphic_changes` window: a rectangle of the new page. |
@@ -849,7 +849,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | ui-024 | Overlay Pages | P1 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` `overlay_recolours_layers_and_keeps_them_toggleable` overlay::overlay_pages + tool overlay_pages: vector layers recoloured with Lighten in isolated groups, stacked with Multiply. |
-| ui-025 | Add overlay sources | P1 | partial | missing | `overlay_pages_writes_coloured_toggleable_layers` Layers are files (any number up to 16); no add-open-tabs UI. |
+| ui-025 | Add overlay sources | P1 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` `overlay_pages_writes_the_overlay_and_opens_it` Overlay Pages dialog lists the open documents and added files (check, page, colour, opacity per layer); the result opens in a new tab. |
 | ui-026 | Per-layer color | P1 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` `overlay_recolours_layers_and_keeps_them_toggleable` Default red, blue, green, magenta, orange, cyan; colour per layer. |
 | ui-027 | Per-layer background color | P3 | missing | missing |  |
 | ui-028 | Per-layer opacity | P2 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` opacity per layer. |
@@ -871,19 +871,19 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| ui-042 | Search panel | P0 | missing | have |  |
-| ui-043 | Search scope | P1 | missing | partial |  |
-| ui-044 | Search in page text | P0 | missing | have |  |
-| ui-045 | Search in markups | P1 | missing | missing |  |
+| ui-042 | Search panel | P0 | have | have | `search_panel_finds_text_then_counts_and_highlights_the_results` Search panel (Alt+1, Ctrl+F): text and Visual Search tabs, results list, hits highlighted on the pages. |
+| ui-043 | Search scope | P1 | partial | partial | `search_panel_finds_text_then_counts_and_highlights_the_results` All pages, current page or a page range; not other files, Sets or folders. |
+| ui-044 | Search in page text | P0 | have | have | `search_panel_finds_text_then_counts_and_highlights_the_results` `text_search_finds_hits_with_rectangles` |
+| ui-045 | Search in markups | P1 | have | missing | `search_panel_finds_text_then_counts_and_highlights_the_results` `markup_text_matches` Comments, subjects, labels and authors of markups; a result selects its markup. |
 | ui-046 | Search file names / properties / form fields | P2 | missing | missing |  |
-| ui-047 | Case sensitive / whole words | P1 | missing | have |  |
-| ui-048 | Results list | P0 | missing | have |  |
-| ui-049 | Next / previous result | P0 | missing | have |  |
+| ui-047 | Case sensitive / whole words | P1 | have | have | `markup_text_matches` `text_search_finds_hits_with_rectangles` Match case and Whole words in the Search panel. |
+| ui-048 | Results list | P0 | have | have | `search_panel_finds_text_then_counts_and_highlights_the_results` Results grouped by page with their context; click to centre a result. |
+| ui-049 | Next / previous result | P0 | have | have | `search_panel_finds_text_then_counts_and_highlights_the_results` Prev / Next buttons, wrapping around. |
 | ui-050 | Search selected text | P2 | missing | missing |  |
-| ui-051 | Check results + bulk actions | P2 | missing | missing |  |
-| ui-052 | Apply Count to checked | P1 | missing | missing |  |
+| ui-051 | Check results + bulk actions | P2 | have | missing | `search_panel_finds_text_then_counts_and_highlights_the_results` Check boxes per result, Check all; Highlight, Count or Redact the checked results. |
+| ui-052 | Apply Count to checked | P1 | have | missing | `search_panel_finds_text_then_counts_and_highlights_the_results` `visual_search_picks_a_region_and_finds_the_symbol` One Count per page at the checked results, subject = the search text. |
 | ui-053 | Replace checked | P3 | missing | missing |  |
-| ui-054 | Clear results | P2 | missing | missing |  |
+| ui-054 | Clear results | P2 | have | missing | `search_panel_finds_text_then_counts_and_highlights_the_results` |
 | ui-055 | Visual Search | P1 | have | missing | `visual_search_finds_symbols_and_counts_them` `finds_the_symbol_turned_and_on_other_pages` Session::visual_search + tool visual_search: NCC template matching on downsampled grayscale, refined at full resolution, over the chosen pages. |
 | ui-056 | Visual: sensitivity | P1 | have | missing | `visual_search_finds_symbols_and_counts_them` sensitivity 0 to 1 sets the correlation threshold. |
 | ui-057 | Visual: multiple rotations | P1 | partial | missing | `finds_the_symbol_turned_and_on_other_pages` 0/90/180/270 degrees; not 45-degree steps. |
@@ -896,16 +896,16 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| ui-062 | Spaces panel | P1 | partial | missing | `spaces_add_column_tally_export_import` Spaces data and tools; no panel UI yet. |
+| ui-062 | Spaces panel | P1 | have | missing | `spaces_add_column_tally_export_import` `spaces_panel_fills_a_room_lists_it_and_tallies_markups` Spaces panel (Alt+S): list with markup counts per subject, Draw (corners) or Fill (inside a room), rename, delete, select markups, export/import. |
 | ui-063 | Add Space | P1 | have | missing | `spaces_add_column_tally_export_import` space_add (outline points, name, colour, opacity). Headless. |
-| ui-064 | Highlight / edit spaces | P1 | partial | missing | `spaces_add_column_tally_export_import` space_edit renames and reshapes; highlighting is UI work still to do. |
+| ui-064 | Highlight / edit spaces | P1 | have | missing | `spaces_add_column_tally_export_import` `spaces_panel_fills_a_room_lists_it_and_tallies_markups` Spaces highlighted on the pages (Highlight toggle; the selected one emphasised); rename in the panel. |
 | ui-065 | Space column in Markups List | P1 | have | missing | `spaces_name_markups_split_counts_and_round_trip` Space column in the Markups List table (crates/model). |
 | ui-066 | Split counts by space | P2 | have | missing | `spaces_add_column_tally_export_import` space_tally splits counts by space. |
 | ui-067 | Snapshot from space | P3 | missing | missing |  |
 | ui-068 | Links panel: Places | P2 | missing | missing |  |
-| ui-069 | Links panel: Hyperlinks list | P2 | missing | missing |  |
-| ui-070 | Hyperlink tool / Edit Action | P2 | missing | missing |  |
-| ui-071 | Signatures panel | P3 | partial | missing | `signatures_sign_validate_and_track_changes` The data (signature_list) is there; no panel yet. |
+| ui-069 | Links panel: Hyperlinks list | P2 | have | missing | `hyperlink_tool_adds_a_page_link_listed_in_the_links_panel` Links panel (Alt+N): every link with its target; go to, follow, delete, highlight. |
+| ui-070 | Hyperlink tool / Edit Action | P2 | partial | missing | `hyperlink_tool_adds_a_page_link_listed_in_the_links_panel` Hyperlink tool (Shift+H): drag the area, then page, web address or file; no Edit Action on an existing link. |
+| ui-071 | Signatures panel | P3 | have | missing | `signatures_sign_validate_and_track_changes` `sign_with_a_new_digital_id_and_validate` Signatures panel (Alt+4): status icon (valid, invalid, unknown, not signed), signer, date, reason, changes after signing; Validate, Trust Certificate, Sign. |
 | ui-072 | Sign / add field / certify / validate | P3 | have | missing | `signatures_sign_validate_and_track_changes` `forms_create_fill_and_flatten` Tools signature_sign (sign, certify), form_add_field type signature (add field), signature_list (validate). |
 
 ### 5. Application layout: menus, toolbars, panels, tabs
@@ -1121,7 +1121,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-011 | Bring to Front (Ctrl + Shift + ]) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-012 | Callout (Q) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-013 | Camera (Ctrl + Alt + I) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-014 | Spell Check (F7) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-014 | Spell Check (F7) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-015 | Cloud (C) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-016 | Cloud+ (K) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-017 | Dimension (Shift + L) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
@@ -1135,7 +1135,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-025 | Flip Vertical (Ctrl + Alt + V) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-026 | Group (Ctrl + G) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-027 | Highlight (H) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-028 | Hyperlink (Shift + H) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-028 | Hyperlink (Shift + H) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-029 | Image (I) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-030 | Image From Scanner (Shift + I) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-031 | Import (Ctrl + F3) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
@@ -1148,7 +1148,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-033 | Area (Shift + Alt + A) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-034 | Count (Shift + Alt + C) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-035 | Diameter (Shift + Alt + D) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-036 | Dynamic Fill (J) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-036 | Dynamic Fill (J) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-037 | Length (Shift + Alt + L) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-038 | Measure Tool (M) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-039 | Perimeter (Shift + Alt + P) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
@@ -1190,7 +1190,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-060 | Close (Ctrl + F4) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-061 | Create PDF (Ctrl + N) |  | partial | missing | `revu_window_view_document_file_shortcuts_are_bound` `new_blank_pdf_and_refresh_from_disk` Ctrl+N makes a new blank PDF; creating a PDF from another file type is not built. |
 | key-062 | Open (Ctrl + O) |  | have | have | `revu_default_shortcuts_are_bound` |
-| key-063 | Print (Ctrl + P) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-063 | Print (Ctrl + P) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-064 | Publish as Compressed 1.5 (Ctrl + Shift + P) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-065 | Save (Ctrl + S) |  | have | have | `revu_default_shortcuts_are_bound` |
 | key-066 | Save All (Shift + F2) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `document_tabs_cycle_close_others_close_all_and_save_all` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
@@ -1265,34 +1265,34 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 |---|---|---|---|---|---|
 | key-116 | Next Result (F3) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-117 | Previous Result (Shift + F3) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-118 | Search (Ctrl + F) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-118 | Search (Ctrl + F) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 
 ### Document
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | key-119 | Add & Edit 3D Content (Ctrl + Alt + 3) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-120 | Add Bookmark (Ctrl + B) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-121 | Apply Redactions (Shift + A) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-120 | Add Bookmark (Ctrl + B) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-121 | Apply Redactions (Shift + A) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-122 | Crop Pages (Shift + Alt + O) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `page_dialogs_insert_rotate_crop_setup_delete` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-123 | Delete Pages (Ctrl + Shift + D) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-124 | Deskew (Ctrl + Alt + D) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-125 | Document Properties (Ctrl + D) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-126 | Email (Ctrl + E) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-127 | Extract Pages (Ctrl + Shift + X) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-128 | Flatten (Ctrl + Shift + M) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-128 | Flatten (Ctrl + Shift + M) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-129 | Flattened (Ctrl + Alt + F) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-130 | Insert Blank Page (Ctrl + Shift + N) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-131 | Insert Pages (Ctrl + Shift + I) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-132 | Mark for Redaction (Shift + R) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-132 | Mark for Redaction (Shift + R) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-133 | Mark Text for Redaction (Shift + K) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-134 | OCR (Ctrl + Shift + O) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-134 | OCR (Ctrl + Shift + O) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-135 | Refresh Document (Shift + F5) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `new_blank_pdf_and_refresh_from_disk` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-136 | Replace Pages (Ctrl + Shift + Y) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `extract_and_replace_pages_through_dialogs` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-137 | Rotate Clockwise (Shift + Alt + Plus) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-138 | Rotate Counterclockwise (Shift + Alt + Minus) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-139 | Rotate Pages (Ctrl + Shift + R) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `page_dialogs_insert_rotate_crop_setup_delete` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-140 | Security (Ctrl + L) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-140 | Security (Ctrl + L) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-141 | Snapshot Content (Shift + G) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-142 | Squiggly (Shift + U) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-143 | Strikethrough (D) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
@@ -1312,8 +1312,8 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-152 | Full Screen (F11) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `full_screen_presentation_always_on_top_and_bars` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-153 | Hide Panels (Shift + F4) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `full_screen_presentation_always_on_top_and_bars` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-154 | JavaScript Console (Alt + J) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-155 | Layers (Alt + Y) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-156 | Links (Alt + N) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-155 | Layers (Alt + Y) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-156 | Links (Alt + N) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-157 | Markups (Alt + L) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-158 | Measurements (Alt + U) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-159 | Menu Bar (F9) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `full_screen_presentation_always_on_top_and_bars` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
@@ -1321,11 +1321,11 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-161 | Preferences (Ctrl + K) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `preferences_dialog_applies_and_persists` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-162 | Presentation (Ctrl + Enter) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `full_screen_presentation_always_on_top_and_bars` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-163 | Properties (Alt + P) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-164 | Search (Alt + 1) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-165 | Sets (Alt + 2) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-164 | Search (Alt + 1) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-165 | Sets (Alt + 2) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-166 | Show Context Menu (Shift + F10) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-167 | Signatures (Alt + 4) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-168 | Spaces (Alt + S) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-167 | Signatures (Alt + 4) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-168 | Spaces (Alt + S) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-169 | Status Bar (F8) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `full_screen_presentation_always_on_top_and_bars` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-170 | Studio (Alt + C) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-171 | Thumbnails (Alt + T) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |

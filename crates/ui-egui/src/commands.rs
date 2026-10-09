@@ -122,6 +122,7 @@ const fn cmd(
     }
 }
 
+#[allow(dead_code)] // for rows listed before they are built
 const fn later(
     id: &'static str,
     label: &'static str,
@@ -158,7 +159,7 @@ pub static COMMANDS: &[Command] = &[
     cmd("file.save_all", "Save All", "File", 2, shift(Key::F2), ""),
     cmd("file.refresh", "Refresh Document", "File", 2, shift(Key::F5), ""),
     cmd("file.clear_recent", "Clear Recent Files", "", 0, None, ""),
-    later("file.print", "Print...", "File", 3, ctrl(Key::P), "printer"),
+    cmd("file.print", "Print...", "File", 3, ctrl(Key::P), "printer"),
     cmd("file.exit", "Exit", "File", 4, None, ""),
     // Edit
     cmd("edit.undo", "Undo", "Edit", 1, ctrl(Key::Z), "undo-2"),
@@ -238,10 +239,10 @@ pub static COMMANDS: &[Command] = &[
     cmd("document.rotate_pages", "Rotate Pages...", "Document", 4, ctrl_shift(Key::R), ""),
     cmd("document.crop_pages", "Crop Pages...", "Document", 4, shift_alt(Key::O), ""),
     cmd("document.page_setup", "Page Setup...", "Document", 4, None, ""),
-    later("document.flatten", "Flatten...", "Document", 3, ctrl_shift(Key::M), ""),
+    cmd("document.flatten", "Flatten...", "Document", 3, ctrl_shift(Key::M), ""),
     // Batch
-    later("batch.summary", "Summary...", "Batch", 1, None, "list-checks"),
-    later("batch.flatten", "Flatten...", "Batch", 1, None, ""),
+    cmd("batch.summary", "Summary...", "Batch", 1, None, "list-checks"),
+    cmd("batch.flatten", "Flatten...", "Batch", 1, None, ""),
     // Window (panels come from the panel registry)
     cmd("window.hide_panels", "Hide Panels", "Window", 8, shift(Key::F4), "panel-left"),
     cmd("window.menu_bar", "Menu Bar", "Window", 8, key(Key::F9), ""),
@@ -292,13 +293,13 @@ pub const MAIN_TOOLBAR: &[&str] = &[
 ];
 
 pub fn find(id: &str) -> Option<&'static Command> {
-    COMMANDS.iter().find(|c| c.id == id)
+    COMMANDS.iter().chain(crate::features::COMMANDS).find(|c| c.id == id)
 }
 
 /// Every key binding (commands, tools, panels), most specific first, for the dispatcher.
 pub fn bindings() -> Vec<(Keys, String)> {
     let mut out: Vec<(Keys, String)> = Vec::new();
-    for c in COMMANDS.iter().filter(|c| c.built) {
+    for c in COMMANDS.iter().chain(crate::features::COMMANDS).filter(|c| c.built) {
         for k in [c.keys, c.alias].into_iter().flatten() {
             out.push((k, c.id.to_string()));
         }

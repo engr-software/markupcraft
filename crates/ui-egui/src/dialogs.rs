@@ -30,6 +30,8 @@ pub enum Purpose {
     Shell {
         tag: String,
     },
+    /// A document feature's file (`features::Ask`).
+    Feature(crate::features::Ask),
 }
 
 struct Pending {

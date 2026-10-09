@@ -3,10 +3,17 @@
 //! default layout; Window menu entries and shortcuts come from the same row.
 
 pub mod bookmarks;
+pub mod compare;
 pub mod file_access;
+pub mod layers;
+pub mod links;
 pub mod markups_list;
 pub mod measurements;
 pub mod properties;
+pub mod search;
+pub mod sets;
+pub mod signatures;
+pub mod spaces;
 pub mod thumbnails;
 pub mod toolchest;
 
@@ -40,6 +47,13 @@ pub static PANELS: &[&PanelDef] = &[
     &toolchest::PANEL,
     &measurements::PANEL,
     &markups_list::PANEL,
+    &search::PANEL,
+    &layers::PANEL,
+    &spaces::PANEL,
+    &links::PANEL,
+    &signatures::PANEL,
+    &sets::PANEL,
+    &compare::PANEL,
 ];
 
 pub fn find(id: &str) -> Option<&'static PanelDef> {

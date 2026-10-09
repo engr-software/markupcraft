@@ -32,6 +32,7 @@ mod sign;
 mod spaces;
 mod spell;
 mod stamps;
+mod summary;
 mod takeoff;
 mod visual;
 mod xfdf;
@@ -175,6 +176,7 @@ pub static TOOLS: &[&Tool] = &[
     &stamps::CREATE,
     &stamps::REMOVE,
     &stamps::ADD,
+    &summary::EXPORT,
     &prefs::GET,
     &prefs::SET,
     &prefs::PROFILES,

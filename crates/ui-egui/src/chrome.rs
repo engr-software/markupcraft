@@ -98,7 +98,11 @@ fn menu_items(app: &mut AppState, ui: &mut egui::Ui, menu: &str) {
     }
     let mut group = None;
     let mut first = tools.is_empty() && menu != "Window";
-    for c in COMMANDS.iter().filter(|c| c.menu == menu) {
+    for c in COMMANDS
+        .iter()
+        .chain(crate::features::COMMANDS)
+        .filter(|c| c.menu == menu)
+    {
         if group != Some(c.group) {
             if !first {
                 ui.separator();

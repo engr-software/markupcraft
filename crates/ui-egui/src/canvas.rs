@@ -978,8 +978,9 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
     // ---- markups -----------------------------------------------------------------------
     let editing = view.editor.as_ref().and_then(TextEditor::existing_id);
     if !cx.hide_markups {
+        let hidden = crate::features::canvas::hidden_layers(ui.ctx(), doc.uid);
         for (i, xf) in &xfs {
-            for m in doc.session.doc().markups_on(*i) {
+            for m in doc.session.doc().markups_on(*i).filter(|m| !hidden.contains(&m.layer)) {
                 let m = view.preview.get(&m.id).unwrap_or(m);
                 if editing.as_deref() == Some(m.id.as_str()) {
                     // The editor shows its text; draw the frame only.
@@ -1014,6 +1015,7 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
             .map(|(i, xf)| (*i, xf))
     };
     doc.view.pointer = pointer.and_then(|s| page_at(s).map(|(i, xf)| (i, xf.to_user(s))));
+    let picking = crate::features::canvas::layer(ui, &resp, &painter, &xfs, doc.uid);
     let mut ix = interact::Input {
         ui,
         resp: &resp,
@@ -1022,7 +1024,9 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
         tokens: &t,
         panning: panning || space,
     };
-    interact::run(&mut ix, doc, cx, &mut out);
+    if !picking {
+        interact::run(&mut ix, doc, cx, &mut out);
+    }
     out
 }
 

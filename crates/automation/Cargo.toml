@@ -16,4 +16,5 @@ serde_json = { workspace = true }
 
 [dev-dependencies]
 markupcraft-revu = { workspace = true }
+markupcraft-render = { workspace = true }
 image = { workspace = true }

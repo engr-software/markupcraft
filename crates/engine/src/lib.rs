@@ -65,6 +65,7 @@ pub mod signatures;
 pub mod spaces;
 pub mod spell;
 pub mod stamps;
+pub mod summary;
 pub mod synthetic;
 pub mod vectors;
 pub mod visual;
