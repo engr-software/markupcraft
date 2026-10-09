@@ -141,6 +141,10 @@ fn row(app: &mut AppState, ui: &mut egui::Ui, path: &Path, detail: &str, view: &
                 ui.ctx().copy_text(path.display().to_string());
                 ui.close();
             }
+            if app.has_doc() && ui.button("Create Link to This File").clicked() {
+                crate::features::more6::docs::start_link_file(app, path.to_path_buf());
+                ui.close();
+            }
             if explorer {
                 ui.separator();
                 if ui.button("Rename").clicked() {

@@ -13,7 +13,7 @@ use super::compare::compare_options;
 use super::{Tool, path_arg, rect_arg, schema_nodoc};
 use crate::{Args, Automation, Result, bad_args};
 
-fn job_props() -> Value {
+pub(crate) fn job_props() -> Value {
     let paths = |d: &str| json!({ "type": "array", "items": { "type": "string" }, "description": d });
     json!({
         "job": path_arg("A saved batch file (.pcbatch) to start from"),
@@ -33,7 +33,7 @@ fn sheet_json(s: &SheetRef) -> Value {
 }
 
 /// The batch job from the arguments (a saved job first, arguments override).
-fn job_from(a: &Automation, args: &Args) -> Result<BatchJob> {
+pub(crate) fn job_from(a: &Automation, args: &Args) -> Result<BatchJob> {
     let mut job = match args.opt_str("job")? {
         Some(p) => load_job(&a.resolve(p, false)?)?,
         None => BatchJob::default(),
@@ -113,9 +113,9 @@ fn job_from(a: &Automation, args: &Args) -> Result<BatchJob> {
 
 /// Pair the job, save it when asked; returns the pairs and the unmatched sheets.
 /// A job, its pairs, and the current and revised sheets that matched nothing.
-type Paired = (BatchJob, Vec<SheetPair>, Vec<SheetRef>, Vec<SheetRef>);
+pub(crate) type Paired = (BatchJob, Vec<SheetPair>, Vec<SheetRef>, Vec<SheetRef>);
 
-fn paired(a: &Automation, args: &Args) -> Result<Paired> {
+pub(crate) fn paired(a: &Automation, args: &Args) -> Result<Paired> {
     let mut job = job_from(a, args)?;
     let (pairs, lc, lr) = match_sheets(&job)?;
     job.pairs = pairs.clone();
@@ -169,7 +169,7 @@ fn report_json(a: &Automation, args: &Args, r: &BatchReport) -> Result<Value> {
     }))
 }
 
-fn run_props(extra: Value) -> Value {
+pub(crate) fn run_props(extra: Value) -> Value {
     let mut p = job_props();
     if let (Some(o), Some(e)) = (p.as_object_mut(), extra.as_object()) {
         for (k, v) in e {

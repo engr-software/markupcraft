@@ -15,12 +15,14 @@
 //!   markupcraft-cli run --script steps.json [--root DIR]   run tool steps [{"tool", "params"}]
 //!   markupcraft-cli run <tool> key=value ... [--root DIR]  run one tool
 //!   markupcraft-cli mcp [--root DIR]                 MCP server on stdio (opt-in, no network)
+//!   markupcraft-cli shell combine|convert <files...>  what the file manager entries run
 
 mod automate;
 mod listing;
 mod markupdemo;
 mod pages;
 mod scorecard;
+mod shell;
 
 use std::process::ExitCode;
 
@@ -36,7 +38,8 @@ fn usage() -> ExitCode {
          markupcraft-cli tools [--json]\n  \
          markupcraft-cli run --script steps.json [--root DIR] [--author NAME]\n  \
          markupcraft-cli run <tool> key=value ... [--root DIR]\n  \
-         markupcraft-cli mcp [--root DIR] [--author NAME]"
+         markupcraft-cli mcp [--root DIR] [--author NAME]\n  \
+         markupcraft-cli shell combine|convert <files...>"
     );
     ExitCode::from(2)
 }
@@ -54,6 +57,7 @@ fn main() -> ExitCode {
         ("run", _, _) => automate::run(rest),
         ("mcp", _, _) => automate::serve_mcp(rest),
         ("pages", _, _) => pages::run(rest),
+        ("shell", _, _) => shell::run(rest),
         ("list", Some(a1), _) => listing::list(a1, &args),
         ("summary", Some(a1), _) => listing::summary(a1, &args),
         ("check", Some(a1), _) => scorecard::check(a1),

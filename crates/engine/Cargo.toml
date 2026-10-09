@@ -34,3 +34,4 @@ serde_json = { workspace = true }
 pdfcraft-content = { workspace = true }
 pdfcraft-export = { workspace = true }
 pdfcraft-preflight = { workspace = true }
+pdfcraft-js = { workspace = true }

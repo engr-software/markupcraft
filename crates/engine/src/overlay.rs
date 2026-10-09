@@ -410,6 +410,14 @@ fn fmt(v: f64) -> String {
 
 /// Compose the overlay and write it to `out` (atomic). The first layer gives the page boxes.
 pub fn overlay_pages(layers: &[OverlayLayer], out: &Path) -> Result<OverlayReport> {
+    overlay_pages_shaded(layers, out, false)
+}
+
+/// [`overlay_pages`] with Advanced Color Shading: each layer's colour is laid over its page
+/// with blend mode Screen instead of Lighten, so grey linework keeps its tone (a lighter tint
+/// of the layer colour) instead of flattening to the colour, and fills and hatching keep
+/// their detail.
+pub fn overlay_pages_shaded(layers: &[OverlayLayer], out: &Path, advanced: bool) -> Result<OverlayReport> {
     if layers.len() < 2 {
         return Err(invalid("an overlay needs at least two layers"));
     }
@@ -616,7 +624,7 @@ pub fn overlay_pages(layers: &[OverlayLayer], out: &Path) -> Result<OverlayRepor
             xo.set(b"P".to_vec(), Object::Ref(page_form));
             res.set(b"XObject".to_vec(), Object::Dict(xo));
             let mut lighten = Dict::new();
-            lighten.set(b"BM".to_vec(), name("Lighten"));
+            lighten.set(b"BM".to_vec(), name(if advanced { "Screen" } else { "Lighten" }));
             let mut gs = Dict::new();
             gs.set(b"L".to_vec(), Object::Dict(lighten));
             let mut bg_mul = Dict::new();

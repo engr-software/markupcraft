@@ -14,6 +14,7 @@ mod doc;
 mod docfile;
 mod docprops;
 mod docs5b;
+mod docs6a;
 mod edit;
 mod export;
 mod files;
@@ -276,6 +277,22 @@ pub static TOOLS: &[&Tool] = &[
     &markup_ops::REPLY,
     &markup_ops::SUMMARY_APPEND,
     &markup_ops::SCALE_TEMPORARY,
+    // wave 6A
+    &docs6a::PACKAGE,
+    &docs6a::BOOKMARKS_FROM_SOURCE,
+    &docs6a::INSERT_WITH,
+    &docs6a::INSERT_LAYERED,
+    &docs6a::STITCH,
+    &docs6a::BATCH_SIGN,
+    &docs6a::SHELL_INTEGRATION,
+    &docs6a::SMART_OVERLAY,
+    &docs6a::JAVASCRIPT,
+    &docs6a::WEBTAB,
+    &docs6a::SCAN,
+    &docs6a::CAMERA,
+    &docs6a::STAMP_INTERACTIVE,
+    &docs6a::STAMP_SETTINGS,
+    &docs6a::REDACT_TEXT,
 ];
 
 pub fn find(name: &str) -> Option<&'static Tool> {

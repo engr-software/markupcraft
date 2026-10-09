@@ -25,6 +25,11 @@ log = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 rfd = { workspace = true }
+nokhwa = { workspace = true, optional = true }
+
+[features]
+# The system camera for Markup > Camera and Create from Scanner or Camera.
+camera = ["dep:nokhwa"]
 
 [dev-dependencies]
 egui_kittest = { workspace = true, features = ["eframe", "wgpu"] }

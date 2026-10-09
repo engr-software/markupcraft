@@ -40,6 +40,7 @@ pub fn apply_live(app: &mut AppState) {
     crate::snapping::set_reach(p.snapping.sensitivity_px as f32);
     app.tool_locked = app.shell.ui.reuse_tools;
     app.shell.applied_theme = None;
+    crate::features::more6::prefs::apply(app);
 }
 
 /// Load everything from the store into the app (startup and profile switches).
@@ -122,6 +123,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
     let mut page = app.shell.prefs_page;
     let mut action: Option<&'static str> = None;
     let mut profile_cmd: Option<(&'static str, String)> = None;
+    let mut open_url: Option<String> = None;
     egui::Window::new("Preferences")
         .open(&mut open)
         .default_size([640.0, 440.0])
@@ -133,6 +135,23 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                     for p in PAGES {
                         if ui.selectable_label(page == *p, *p).clicked() {
                             page = p;
+                        }
+                        // The pages of wave 6A, under their parent page.
+                        for (sub, _) in crate::features::more6::prefs::PAGES
+                            .iter()
+                            .filter(|(_, parent)| parent == p)
+                        {
+                            if ui.selectable_label(page == *sub, format!("    {sub}")).clicked() {
+                                page = sub;
+                            }
+                        }
+                    }
+                    for (sub, _) in crate::features::more6::prefs::PAGES
+                        .iter()
+                        .filter(|(_, parent)| parent.is_empty())
+                    {
+                        if ui.selectable_label(page == *sub, *sub).clicked() {
+                            page = sub;
                         }
                     }
                 });
@@ -164,6 +183,9 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                         }
                         if let Some(a) = crate::shell::prefs_more::section(ui, page, &mut ui_prefs) {
                             action = Some(a);
+                        }
+                        if let Some(u) = crate::features::more6::prefs::section(ui, page, &mut prefs) {
+                            open_url = Some(u);
                         }
                     });
                     if !app.shell.prefs_error.is_empty() {
@@ -233,6 +255,9 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
     }
     if let Some((cmd, name)) = profile_cmd {
         profile(app, cmd, &name);
+    }
+    if let Some(u) = open_url {
+        crate::features::more6::web::open_in_browser(app, ctx, &u);
     }
 }
 

@@ -41,6 +41,8 @@ pdfcraft-sign = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a4
 # Export to Word/HTML/RTF and PDF/A preflight from PdfCraft, same pin.
 pdfcraft-export = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
 pdfcraft-preflight = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
+# Document JavaScript and the JavaScript console (PdfCraft's sandboxed boa interpreter), same pin.
+pdfcraft-js = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
 
 # foundation
 thiserror = "2"
@@ -56,6 +58,8 @@ egui_kittest = "0.36"
 rfd = "0.17"
 egui_dock = "0.21"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "tiff", "bmp"] }
+# The system camera (Markup > Camera), behind the app's `camera` feature (Apache-2.0).
+nokhwa = { version = "0.10.11", default-features = false, features = ["input-native", "decoding"] }
 winresource = "0.1"
 
 [workspace.lints.rust]

@@ -11,8 +11,23 @@ use crate::canvas::{CanvasCx, CanvasOut};
 use crate::interact::{Draft, Input, Stage, add_markup, open_new_editor, styled, text_quads};
 use crate::tools::{self, more::Special};
 
-/// The eraser's reach, screen points.
+/// The eraser's reach, screen points (Preferences > Tablet changes it).
 pub const ERASER_PX: f32 = 8.0;
+
+static ERASER: std::sync::Mutex<(bool, f32)> = std::sync::Mutex::new((false, ERASER_PX));
+
+/// Preferences > Tablet: whether the eraser's size follows the zoom, and its size.
+pub fn set_eraser(scales_with_zoom: bool, px: f32) {
+    if let Ok(mut e) = ERASER.lock() {
+        *e = (scales_with_zoom, px.clamp(2.0, 100.0));
+    }
+}
+
+/// The eraser's radius on screen at the page scale `k` (screen points per PDF point).
+pub fn eraser_px(k: f32) -> f32 {
+    let (scales, px) = ERASER.lock().map_or((false, ERASER_PX), |e| *e);
+    if scales { (px * k).clamp(1.0, 2_000.0) } else { px }
+}
 
 /// press, click, release, current pointer
 pub type Frame = (Option<Pos2>, Option<Pos2>, Option<Pos2>, Option<Pos2>);
@@ -88,22 +103,23 @@ fn freehand(ix: &Input<'_>, doc: &mut DocTab, tool: &'static str, frame: Frame) 
 fn eraser(ix: &mut Input<'_>, doc: &mut DocTab, out: &mut CanvasOut, frame: Frame) {
     let (_, click, _, cur) = frame;
     if let Some(c) = cur.or(ix.resp.hover_pos())
-        && ix.page_at(c).is_some()
+        && let Some((_, xf)) = ix.page_at(c)
     {
         ix.painter
-            .circle_stroke(c, ERASER_PX, Stroke::new(1.2, Color32::from_rgb(200, 40, 120)));
+            .circle_stroke(c, eraser_px(xf.k), Stroke::new(1.2, Color32::from_rgb(200, 40, 120)));
     }
     let single = click.and_then(|s| ix.page_at(s).map(|(p, xf)| (p, vec![xf.to_user(s)], true)));
     let Some((page, path, done)) = single.or_else(|| freehand(ix, doc, "eraser", frame)) else {
         return;
     };
     let Some(xf) = ix.xf(page) else { return };
-    let radius = f64::from(ERASER_PX / xf.k.max(1e-6));
+    let reach = eraser_px(xf.k);
+    let radius = f64::from(reach / xf.k.max(1e-6));
     if !done {
         let line: Vec<Pos2> = path.iter().map(|p| xf.to_screen(*p)).collect();
         ix.painter.add(egui::Shape::line(
             line,
-            Stroke::new(ERASER_PX * 2.0, Color32::from_rgba_unmultiplied(200, 40, 120, 40)),
+            Stroke::new(reach * 2.0, Color32::from_rgba_unmultiplied(200, 40, 120, 40)),
         ));
         return;
     }

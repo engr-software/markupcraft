@@ -150,6 +150,48 @@ pub static STAMP_DESIGNS: &[StampDesign] = &[
         color: BLUE,
         pdf_name: "ForPublicRelease",
     },
+    StampDesign {
+        id: "Confidential",
+        text: "CONFIDENTIAL",
+        color: RED,
+        pdf_name: "Confidential",
+    },
+    StampDesign {
+        id: "Final",
+        text: "FINAL",
+        color: GREEN,
+        pdf_name: "Final",
+    },
+    StampDesign {
+        id: "ForComment",
+        text: "FOR COMMENT",
+        color: BLUE,
+        pdf_name: "ForComment",
+    },
+    StampDesign {
+        id: "NotApproved",
+        text: "NOT APPROVED",
+        color: RED,
+        pdf_name: "NotApproved",
+    },
+    StampDesign {
+        id: "Preliminary",
+        text: "PRELIMINARY",
+        color: Color::rgb(0.85, 0.4, 0.0),
+        pdf_name: "Experimental",
+    },
+    StampDesign {
+        id: "AsBuilt",
+        text: "AS BUILT",
+        color: GREEN,
+        pdf_name: "Final",
+    },
+    StampDesign {
+        id: "Completed",
+        text: "COMPLETED",
+        color: GREEN,
+        pdf_name: "Final",
+    },
 ];
 
 pub fn find_stamp(id: &str) -> Option<&'static StampDesign> {

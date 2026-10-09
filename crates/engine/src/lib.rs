@@ -88,6 +88,21 @@ pub mod vectors;
 pub mod viewports;
 pub mod visual;
 pub mod xfdf;
+// Packages, stitching, insert options, source bookmarks, devices, web capture, scripting,
+// shell integration, batch signing, Smart Overlay, interactive stamps.
+pub mod batch_sign;
+pub mod devices;
+pub mod extras6;
+pub mod insert_more;
+pub mod package;
+pub mod prefs_pages;
+pub mod scripting;
+pub mod shell_integration;
+pub mod smart_overlay;
+pub mod source_bookmarks;
+pub mod stamp_fields;
+pub mod stitch;
+pub mod webtab;
 
 use std::collections::{BTreeSet, HashSet, VecDeque};
 use std::path::{Path, PathBuf};

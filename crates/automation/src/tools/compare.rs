@@ -4,7 +4,7 @@ use markupcraft_engine::compare::{
     CompareAlign, CompareMode, CompareOptions, CustomPreset, load_presets, save_presets,
 };
 use markupcraft_engine::overlay::{
-    LayerAdjust, OverlayAlign, OverlayBlend, OverlayLayer, default_color, overlay_pages,
+    LayerAdjust, OverlayAlign, OverlayBlend, OverlayLayer, default_color, overlay_pages_shaded,
 };
 use markupcraft_engine::{Color, Point, props};
 use serde_json::{Value, json};
@@ -348,7 +348,8 @@ pub static OVERLAY: Tool = Tool {
                 },
                 "out": path_arg("The overlay PDF to write"),
                 "defaults": { "type": "object", "description": "Edit Defaults: blend, rotation, scale, dx, dy for every layer that does not set its own." },
-                "include_flattened": { "type": "boolean", "description": "Include recoverable flattened markups (default false)." }
+                "include_flattened": { "type": "boolean", "description": "Include recoverable flattened markups (default false)." },
+                "advanced_shading": { "type": "boolean", "description": "Advanced Color Shading: layer colours laid on with Screen instead of Lighten, so grey linework, fills and hatching keep their tone (default false)." }
             }),
             &["layers", "out"],
         )
@@ -486,7 +487,8 @@ pub static OVERLAY: Tool = Tool {
                 ..OverlayLayer::new(bytes)
             });
         }
-        let r = overlay_pages(&layers, &out)?;
+        let shaded = args.bool_or("advanced_shading", false)?;
+        let r = overlay_pages_shaded(&layers, &out, shaded)?;
         Ok(json!({ "out": out.display().to_string(), "pages": r.pages, "layers": r.layers }))
     },
 };

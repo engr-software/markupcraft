@@ -102,6 +102,7 @@ pub fn publish(app: &AppState, ctx: &egui::Context) {
         f.redact.marks(d, &mut marks);
     }
     f.signatures.marks(d, &mut marks);
+    super::more6::prefs::form_marks(app, d, &mut marks);
     let pick = f.pick.filter(|(uid, _)| *uid == d.uid).map(|(_, p)| p.kind());
     if pick.is_none() {
         ctx.data_mut(|m| m.remove::<Draft>(draft_id()));

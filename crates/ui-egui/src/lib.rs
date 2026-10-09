@@ -17,6 +17,8 @@
 )]
 
 pub mod actions;
+#[cfg(all(feature = "camera", not(target_arch = "wasm32")))]
+pub mod camera;
 pub mod canvas;
 pub mod chest;
 pub mod chest_more;
@@ -33,6 +35,7 @@ pub mod icon_data;
 pub mod icons;
 pub mod interact;
 pub mod keyprefs;
+pub mod modkeys;
 pub mod more;
 pub mod painter;
 pub mod panels;
@@ -586,6 +589,9 @@ impl AppState {
         if let Some(c) = more::checked(self, id) {
             return Some(c);
         }
+        if let Some(c) = features::more6::checked(self, id) {
+            return Some(c);
+        }
         if let Some(t) = id.strip_prefix("tool.") {
             return Some(self.tool == t);
         }
@@ -1135,6 +1141,9 @@ impl MarkupCraftApp {
             return;
         }
         for (k, id) in self.state.keys.bindings() {
+            if !features::more6::prefs::key_allowed(&self.state, &k, &id) {
+                continue;
+            }
             if ctx.input_mut(|i| i.consume_shortcut(&k.shortcut())) {
                 self.state.queue(&id);
             }

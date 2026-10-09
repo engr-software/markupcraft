@@ -19,6 +19,7 @@ pub mod export;
 pub mod fill;
 pub mod forms;
 pub mod links;
+pub mod more6;
 pub mod ocr;
 pub mod overlay;
 pub mod print;
@@ -138,6 +139,7 @@ pub static COMMANDS: &[Command] = &[
 /// Panels these features add (for the Window menu keys see the panel rows).
 pub fn handles(id: &str) -> bool {
     COMMANDS.iter().any(|c| c.id == id)
+        || more6::handles(id)
         || matches!(
             id,
             "file.print" | "document.flatten" | "batch.summary" | "batch.flatten"
@@ -146,6 +148,9 @@ pub fn handles(id: &str) -> bool {
 
 /// Whether a feature command can run now.
 pub fn enabled(app: &AppState, id: &str) -> bool {
+    if more6::handles(id) {
+        return more6::enabled(app, id);
+    }
     match id {
         "file.combine"
         | "file.overlay"
@@ -170,7 +175,7 @@ pub fn enabled(app: &AppState, id: &str) -> bool {
 
 /// Run a feature command.
 pub fn run(app: &mut AppState, id: &str, _ctx: &egui::Context) {
-    if export::run(app, id) || batch_compare::run(app, id) || docs5b::run(app, id) {
+    if export::run(app, id) || batch_compare::run(app, id) || docs5b::run(app, id) || more6::run(app, id) {
         return;
     }
     let f = &mut app.features;
@@ -405,6 +410,7 @@ pub enum Ask {
     QuantityLinksSave,
     QuantityLinksOpen,
     BatchFolder,
+    More6(more6::Ask6),
 }
 
 pub const IMAGES: crate::dialogs::Filter = ("Images", &["png", "jpg", "jpeg"]);
@@ -463,6 +469,7 @@ pub fn answer(app: &mut AppState, ask: Ask, paths: Vec<PathBuf>) {
         Ask::SetPublishPdf | Ask::SetPackageDir | Ask::SetPrintOut => sets::publish_file(app, &ask, &first),
         Ask::FormDataOut | Ask::FormDataIn => docs5b::form_data_file(app, &ask, &first),
         Ask::QuantityOut | Ask::QuantityLinksSave | Ask::QuantityLinksOpen => docs5b::quantity_file(app, &ask, &first),
+        Ask::More6(a) => more6::answer(app, a, paths),
         Ask::BatchFolder => match markupcraft_engine::search_more::folder_pdfs(&first, true) {
             Ok(files) => app.features.batch.add_files(&files),
             Err(e) => app.features.batch.message = e.to_string(),
@@ -507,11 +514,14 @@ pub enum Pick {
     FillDrag,
     /// Dynamic Fill > Add Boundary: a polyline.
     FillBoundary,
+    /// Wave 6A's picks.
+    More6(more6::Pick6),
 }
 
 impl Pick {
     pub fn kind(self) -> PickKind {
         match self {
+            Pick::More6(p) => p.kind(),
             Pick::Fill | Pick::SpaceFill | Pick::Legend | Pick::AttachmentAt => PickKind::Point,
             Pick::Space | Pick::FillBoundary => PickKind::Polygon,
             Pick::Stamp => PickKind::PointOrRect,
@@ -521,7 +531,7 @@ impl Pick {
 
     /// Picks that stay on after each answer (Esc ends them).
     pub fn repeats(self) -> bool {
-        matches!(self, Pick::Fill | Pick::Redact | Pick::FillDrag)
+        matches!(self, Pick::Fill | Pick::Redact | Pick::FillDrag) || matches!(self, Pick::More6(p) if p.repeats())
     }
 }
 
@@ -555,6 +565,7 @@ pub struct FeatureState {
     pub layers: crate::panels::layers::Fields,
     pub bookmarks: crate::panels::bookmarks::Fields,
     pub quantity: docs5b::QuantityState,
+    pub more6: more6::More6State,
 }
 
 /// Ask the user to pick on the active document's canvas.
@@ -615,6 +626,7 @@ pub fn frame(app: &mut AppState, ctx: &egui::Context) {
     spaces::window(app, ctx);
     export::window(app, ctx);
     batch_compare::window(app, ctx);
+    more6::window(app, ctx);
     canvas::publish(app, ctx);
 }
 
@@ -636,6 +648,7 @@ fn picked(app: &mut AppState, what: Pick, page: usize, pts: Vec<Point>) {
         Pick::AutoMark => automark_picked(app, &pts),
         Pick::AttachmentAt => attachment_picked(app, page, &pts),
         Pick::PrintRegion => print::region_picked(app, page, &pts),
+        Pick::More6(p) => more6::picked(app, p, page, &pts),
     }
 }
 

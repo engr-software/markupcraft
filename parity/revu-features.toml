@@ -2256,9 +2256,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Interactive stamps"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:84"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["interactive_stamps_stamp_settings_symbols_and_file_links", "interactive_stamps_stamp_settings_and_mark_text_for_redaction", "interactive_stamp_fields_fill_on_placing_and_stay_editable"]
+notes = "Stamp templates with {check:Label}, {field:Label=Default} and {choice:Label=A|B|C} fields (plus the dynamic fields): Markup > Interactive Stamp places one; Edit Stamp Fields fills them in later (values kept in the markup, the stamp redrawn); stamp_interactive tool."
 
 [[feature]]
 id = "mark-041"
@@ -2294,9 +2295,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Image From Scanner"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:87"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["scanner_and_camera_into_markups_pages_and_new_pdfs", "scanner_and_camera_pages_markups_and_new_pdfs", "an_escl_scanner_scans_pages_into_a_document"]
+notes = "Markup > Image From Scanner (Shift+I): network scanners over eSCL (AirScan / Mopria, plain http) - Connect reads the capabilities, Scan / Scan Next runs on a worker, Finish places the image. Scanners reachable only through TWAIN, WIA or SANE drivers are not supported."
 
 [[feature]]
 id = "mark-044"
@@ -2384,9 +2386,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Capture (camera)"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:94"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["scanner_and_camera_into_markups_pages_and_new_pdfs", "scanner_and_camera_pages_markups_and_new_pdfs", "a_camera_frame_becomes_a_pdf"]
+notes = "Markup > Camera (Ctrl+Alt+I) takes still pictures into an image markup, pages or a new PDF. The system camera comes from nokhwa behind the app's `camera` cargo feature (off by default; tested with a test camera, never a real one); no video or audio capture."
 
 [[feature]]
 id = "mark-051"
@@ -2409,9 +2412,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Symbols (Tool Chest items as symbols)"
 priority = "P0"
 source = "docs/revu_features/02_markups.md:96"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["tool_chest_symbol_view_scale_export_and_import", "interactive_stamps_stamp_settings_symbols_and_file_links"]
+notes = "Drawing-mode Tool Chest items are symbols: placed by click, resized to the page scale, shown as tiles in Symbol view; Markup > Add Selection to Tool Chest as Symbol saves the selected markup into a Symbols tool set at its page scale. A symbol is one markup."
 
 [[feature]]
 id = "mark-053"
@@ -2421,9 +2425,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Sketch tools"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:97"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["sketch_to_scale_places_typed_lengths", "mark_text_for_redaction_snapshot_content_and_sketch_commands"]
+notes = "The Sketch to Scale bar while drawing, plus Tools > Sketch commands (Place Typed Segment, Finish Shape, Relative Angles) whose shortcuts can be customized."
 
 [[feature]]
 id = "mark-054"
@@ -4431,9 +4436,10 @@ section = "Opening, tabs and multiple documents"
 name = "PDF Package"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:105"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["packages_insert_options_layered_pages_stitching_and_source_bookmarks", "packages_source_bookmarks_insert_options_layers_and_stitching", "a_package_embeds_its_files_and_says_it_is_one"]
+notes = "File > Create PDF Package: a cover page plus the member files embedded, catalog /Collection (ISO 32000-1 12.3.5) so viewers list them; an empty package when no files are given; pdf_package tool."
 
 [[feature]]
 id = "doc-018"
@@ -4508,9 +4514,10 @@ section = "Opening, tabs and multiple documents"
 name = "Web Tab"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:111"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["web_tab_favorites_browser_and_capture", "web_tab_link_pages_and_page_capture", "capture_runs_a_browser_and_checks_its_output"]
+notes = "No embedded browser: View > Web Tab (Ctrl+T) opens a Web Tab document listing the favourites as links, with an address bar; pages open in the system browser, or are captured to PDF by Edge, Chrome or Chromium run headless (when installed) and opened to mark up. Links to web pages follow Preferences > WebTab."
 
 [[feature]]
 id = "doc-024"
@@ -5300,9 +5307,10 @@ section = "Bookmarks"
 name = "Bookmarks from source apps"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:197"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["packages_insert_options_layered_pages_stitching_and_source_bookmarks", "packages_source_bookmarks_insert_options_layers_and_stitching", "headings_from_text_sizes_nest_by_size", "a_tagged_pdf_gives_its_heading_elements"]
+notes = "Document > Bookmarks from Structure: there are no Office/CAD plugins, so the PDF itself is read - a tagged PDF's heading elements (H, H1-H6, Title), else text set larger than the body text (three levels; a slide or sheet title is its largest line)."
 
 [[feature]]
 id = "doc-085"
@@ -5325,9 +5333,10 @@ section = "Page operations"
 name = "Insert options"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:204"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["packages_insert_options_layered_pages_stitching_and_source_bookmarks", "packages_source_bookmarks_insert_options_layers_and_stitching", "insert_options_interleave_bookmarks_labels_and_layers"]
+notes = "Document > Insert Pages with Options: carry over bookmarks and attachments, merge document properties, keep layers, label pages from the file name, interleave odd/even scans (optionally reversed); one undo step."
 
 [[feature]]
 id = "doc-087"
@@ -5350,9 +5359,10 @@ section = "Page operations"
 name = "Insert layered pages"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:206"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["packages_insert_options_layered_pages_stitching_and_source_bookmarks", "packages_source_bookmarks_insert_options_layers_and_stitching"]
+notes = "Document > Insert Layered Pages: each page of another PDF is drawn on a page here as a new layer (named after the file or as typed); one undo step."
 
 [[feature]]
 id = "doc-089"
@@ -5362,9 +5372,10 @@ section = "Page operations"
 name = "Insert from scanner/camera"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:207"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["scanner_and_camera_into_markups_pages_and_new_pdfs", "scanner_and_camera_pages_markups_and_new_pdfs"]
+notes = "Document > Insert from Scanner or Camera: acquired pages go in after the current page (eSCL scanners; the camera with the app's camera feature). OCR is Tools > OCR afterwards."
 
 [[feature]]
 id = "doc-090"
@@ -5582,9 +5593,10 @@ section = "Creating and combining PDFs"
 name = "Explorer right-click combine/convert"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:229"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["batch_sign_and_seal_smart_overlay_and_shell_integration", "batch_sign_and_seal_shell_integration_and_smart_overlay", "integration_files_for_each_system_name_the_cli", "combine_and_convert_write_beside_the_files"]
+notes = "File > File Manager Integration writes the files a user installs (current-user .reg and Send To commands on Windows, Quick Actions on macOS, a KDE service menu and Nautilus scripts on Linux, each with a README); MarkupCraft never changes the system. They run `markupcraft-cli shell combine|convert`."
 
 [[feature]]
 id = "doc-107"
@@ -5594,9 +5606,10 @@ section = "Creating and combining PDFs"
 name = "Create from scanner or camera"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:230"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["scanner_and_camera_into_markups_pages_and_new_pdfs", "scanner_and_camera_pages_markups_and_new_pdfs"]
+notes = "File > Create from Scanner or Camera: Scan / Scan Next or Take Picture, then Finish writes a new PDF; Run OCR opens the OCR dialog (deskew, orientation, vertical text) on it. eSCL scanners only; the camera needs the app's camera feature."
 
 [[feature]]
 id = "doc-108"
@@ -5751,9 +5764,10 @@ section = "Batch tools"
 name = "Batch Sign & Seal"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:247"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["batch_sign_and_seal_smart_overlay_and_shell_integration", "batch_sign_and_seal_shell_integration_and_smart_overlay", "many_files_get_a_seal_a_date_and_a_signature"]
+notes = "Batch > Sign & Seal: a date, a seal image, then a digital signature in the named empty signature field or at a typed page and box (no preview to drag it on), or certify; signed copies to a folder or in place; failures reported per file."
 
 [[feature]]
 id = "doc-120"
@@ -6192,9 +6206,10 @@ section = "Headers, footers, stamps and watermarks"
 name = "Stamps as document feature"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:296"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["interactive_stamps_stamp_settings_symbols_and_file_links", "interactive_stamps_stamp_settings_and_mark_text_for_redaction", "stamp_settings_round_trip_and_style_placed_stamps"]
+notes = "Seventeen built-in designs of our own, custom text and image stamps with dynamic date/time/user fields, Markup > Stamp Settings: stamp folder (also the Stamp Library's), default stamp, opacity, blend mode and lock applied to placed stamps. Blend modes are Normal and Multiply only."
 
 [[feature]]
 id = "doc-154"
@@ -6737,9 +6752,10 @@ section = "Properties, metadata and attachments"
 name = "Attachment icon markup"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:373"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["file_attachment_snapshots_and_capture_summary", "file_attachments_round_trip_and_export"]
+notes = "Markup > File Attachment: a paperclip-style icon carrying one embedded file; icon, colour, opacity and note in Properties; Save Attached File extracts it."
 
 [[feature]]
 id = "doc-196"
@@ -6931,9 +6947,10 @@ section = "Recent files and File Access panel"
 name = "Link from file list"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:398"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["interactive_stamps_stamp_settings_symbols_and_file_links"]
+notes = "File Access: a file row's menu > Create Link to This File, then drag the link area on the page (a link that opens the file); not a drag out of the row itself."
 
 [[feature]]
 id = "doc-211"
@@ -7012,9 +7029,10 @@ section = "Pointers to related features covered elsewhere"
 name = "Stitching"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:414"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["packages_insert_options_layered_pages_stitching_and_source_bookmarks", "packages_source_bookmarks_insert_options_layers_and_stitching", "pages_join_edge_to_edge_with_their_markups"]
+notes = "Document > Stitching: pages joined edge to edge into one large page in a new PDF (vector form XObjects), pages per row, overlap at match lines; markups come along."
 
 [[feature]]
 id = "doc-217"
@@ -7414,9 +7432,10 @@ section = "2. Overlay Pages"
 name = "Advanced color shading"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:102"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["overlay_advanced_color_shading", "batch_sign_and_seal_shell_integration_and_smart_overlay"]
+notes = "Overlay Pages > Edit Defaults > Advanced color shading: layer colours laid on with Screen instead of Lighten, so grey linework, fills and hatching keep their tone; also in Smart Overlay and the overlay_pages tool."
 
 [[feature]]
 id = "ui-031"
@@ -7556,9 +7575,10 @@ section = "2. Overlay Pages"
 name = "Smart Overlay (Max plan)"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:113"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["batch_sign_and_seal_smart_overlay_and_shell_integration", "batch_sign_and_seal_shell_integration_and_smart_overlay", "sheets_register_by_content_and_score"]
+notes = "Batch > Smart Overlay: whole sets paired sheet by sheet, each registered by matching its drawing (not its page box), with a match score per sheet and per discipline (from the sheet number letters); CSV report from the tool."
 
 [[feature]]
 id = "ui-042"
@@ -8281,9 +8301,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "WebTab"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:184"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["web_tab_favorites_browser_and_capture", "web_tab_link_pages_and_page_capture"]
+notes = "See doc-023: a Web Tab document of favourites plus an address bar; pages open in the system browser or are captured to PDF (no browser embedded, no GPU option)."
 
 [[feature]]
 id = "ui-098"
@@ -9008,9 +9029,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Interface > Markups List"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:265"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
+notes = "Preferences > Markups List: selecting a row goes to the markup (or only selects it). Group values on the dominant markup, rich-text and wrapped comments, export filtering and dimming are not offered."
 
 [[feature]]
 id = "ui-154"
@@ -9020,9 +9042,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Interface > Layers"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:266"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
+notes = "Preferences > Layers: hiding or showing a layer does the same to its child layers; list only the current page's layers. (No Surface Dial.)"
 
 [[feature]]
 id = "ui-155"
@@ -9045,9 +9068,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Tools > Measure"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:268"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
+notes = "Preferences > Measure: Dynamic Fill gap closing (edge sensitivity) and cutouts for islands. Split counts by space, fill DPI, cursor sizes, speed and colours are not offered."
 
 [[feature]]
 id = "ui-157"
@@ -9070,9 +9094,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Tools > Forms"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:270"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
+notes = "Preferences > Forms: field highlight on/off, colour and opacity (drawn over the pages); single-key form tool shortcuts on/off."
 
 [[feature]]
 id = "ui-159"
@@ -9082,9 +9107,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Tools > Signature"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:271"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
+notes = "Preferences > Signature: digital ID folder (its first ID is offered when signing) and trusted certificates folder (trusted when validating). No password timeout or blocking of changes that break signatures."
 
 [[feature]]
 id = "ui-160"
@@ -9094,9 +9120,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Window > Tablet"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:272"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
+notes = "Preferences > Tablet: eraser size and whether it follows the zoom. Pen pressure, commit delay, lasso, handwriting and touch modes are not offered."
 
 [[feature]]
 id = "ui-161"
@@ -9119,9 +9146,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Window > WebTab"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:274"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["web_tab_favorites_browser_and_capture", "preferences_pages_are_shown_and_read_by_the_features"]
+notes = "Preferences > WebTab: switch to new Web Tabs, links to web pages open in the browser or are captured, the capture browser and time limit, favourites. GPU and script-error options do not apply (no embedded browser)."
 
 [[feature]]
 id = "ui-163"
@@ -9131,9 +9159,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Sets"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:275"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
+notes = "Preferences > Sets: open a sheet in place of the Set sheet in the current tab; latest revision only. Paths, display, categories, sort rules and revision stamping options are not offered here."
 
 [[feature]]
 id = "ui-164"
@@ -9157,9 +9186,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Import/Export"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:277"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_pages_are_shown_and_read_by_the_features", "scanner_and_camera_into_markups_pages_and_new_pdfs"]
+notes = "Preferences > Import/Export: image export DPI, scan DPI, the scanner address, and the largest camera/scanner picture size. Office reconstruction, colour space and TIFF options are not offered."
 
 [[feature]]
 id = "ui-166"
@@ -9248,9 +9278,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Integrations"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:284"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
+notes = "Preferences > Integrations: third-party services by name and region, each with a sign-in page opened in the browser."
 
 [[feature]]
 id = "ui-173"
@@ -9377,9 +9408,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Alt: draw from center / 3-point arc"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:299"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["modifier_keys_draw_from_centre_arcs_vertices_aspect_and_callouts", "alt_clicked_points_become_three_point_arcs", "alt_draws_from_the_centre"]
+notes = "Alt while dragging a box tool draws from the centre; Alt+click while drawing a polyline, polygon or measurement makes a three-point arc through that point."
 
 [[feature]]
 id = "ui-183"
@@ -9428,9 +9460,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Shift-click vertex add/delete"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:303"
-status = "missing"
+status = "have"
 cpp = "have"
-evidence = []
+evidence = ["modifier_keys_draw_from_centre_arcs_vertices_aspect_and_callouts"]
+notes = "Shift+click a vertex of the selected polyline, polygon or measurement deletes it; Shift+click a segment adds one."
 
 [[feature]]
 id = "ui-187"
@@ -9440,9 +9473,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Ctrl-click vertex to curve"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:304"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["modifier_keys_draw_from_centre_arcs_vertices_aspect_and_callouts"]
+notes = "Ctrl+click a vertex: its segment becomes an arc, or an arc goes back to straight; Ctrl+drag a segment bends it. Handles already move on their own."
 
 [[feature]]
 id = "ui-188"
@@ -9478,9 +9512,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Shift breaks aspect ratio"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:307"
-status = "missing"
+status = "partial"
 cpp = "missing"
-evidence = []
+evidence = ["modifier_keys_draw_from_centre_arcs_vertices_aspect_and_callouts", "corner_resizes_keep_the_aspect_ratio"]
+notes = "Stamps resized from a corner keep their aspect ratio; Shift breaks it. Polylines and polygons have no corner box (they reshape by vertex) and image stamps are not resized."
 
 [[feature]]
 id = "ui-191"
@@ -9490,9 +9525,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Alt-drag callout as whole"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:308"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["modifier_keys_draw_from_centre_arcs_vertices_aspect_and_callouts"]
+notes = "Alt+drag a callout's handle moves the whole callout (box, leader and tip)."
 
 [[feature]]
 id = "ui-192"
@@ -9973,9 +10009,10 @@ section = "12. Studio Projects, Bluebeam Cloud, plugins, scripting"
 name = "Scripting (high level)"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:353"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["javascript_console_runs_scripts_on_the_form", "javascript_console_and_document_scripts", "the_console_reads_and_sets_fields"]
+notes = "Automation scripts: `markupcraft-cli run --script steps.json` runs the tool table on files (`markupcraft-cli tools` is the reference); document JavaScript runs in PdfCraft's sandboxed interpreter (Window > JavaScript Console, Tools > Run Document JavaScript, javascript tool)."
 
 [[feature]]
 id = "key-001"
@@ -10128,10 +10165,10 @@ area = "shortcuts"
 section = "Markup"
 name = "Camera (Ctrl + Alt + I)"
 source = "docs/revu_features/05_shortcuts.md:42"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "Camera capture needs a camera device API; not built for the desktop build yet (Image places a picture file)."
+evidence = ["wave6a_shortcuts_are_bound", "scanner_and_camera_into_markups_pages_and_new_pdfs"]
+notes = "Ctrl+Alt+I opens the Camera tab (the system camera needs the app's camera feature)."
 
 [[feature]]
 id = "key-014"
@@ -10332,9 +10369,9 @@ area = "shortcuts"
 section = "Markup"
 name = "Image From Scanner (Shift + I)"
 source = "docs/revu_features/05_shortcuts.md:59"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["wave6a_shortcuts_are_bound", "scanner_and_camera_into_markups_pages_and_new_pdfs"]
 notes = "Scanning needs a scanner (TWAIN / WIA) API; not built yet (Image places a picture file)."
 
 [[feature]]
@@ -11249,9 +11286,9 @@ area = "shortcuts"
 section = "View"
 name = "Web Tab (Ctrl + T)"
 source = "docs/revu_features/05_shortcuts.md:136"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["wave6a_shortcuts_are_bound", "web_tab_favorites_browser_and_capture"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11559,10 +11596,10 @@ area = "shortcuts"
 section = "Document"
 name = "Mark Text for Redaction (Shift + K)"
 source = "docs/revu_features/05_shortcuts.md:162"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+evidence = ["wave6a_shortcuts_are_bound", "mark_text_for_redaction_snapshot_content_and_sketch_commands", "mark_text_for_redaction_marks_the_words_under_a_box"]
+notes = "Shift+K: drag over text; every word the box touches is marked for redaction. C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
 id = "key-134"
@@ -11655,10 +11692,10 @@ area = "shortcuts"
 section = "Document"
 name = "Snapshot Content (Shift + G)"
 source = "docs/revu_features/05_shortcuts.md:170"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
+evidence = ["wave6a_shortcuts_are_bound", "mark_text_for_redaction_snapshot_content_and_sketch_commands"]
+notes = "Shift+G: drag a box; its content becomes a snapshot markup in place. C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
 id = "key-142"
@@ -11667,9 +11704,9 @@ area = "shortcuts"
 section = "Document"
 name = "Squiggly (Shift + U)"
 source = "docs/revu_features/05_shortcuts.md:171"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["wave6a_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11703,9 +11740,9 @@ area = "shortcuts"
 section = "Document"
 name = "Unflatten (Ctrl + Shift + U)"
 source = "docs/revu_features/05_shortcuts.md:174"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["wave6a_shortcuts_are_bound"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]
@@ -11812,9 +11849,9 @@ area = "shortcuts"
 section = "Window"
 name = "JavaScript Console (Alt + J)"
 source = "docs/revu_features/05_shortcuts.md:183"
-status = "missing"
+status = "have"
 cpp = "missing"
-evidence = []
+evidence = ["wave6a_shortcuts_are_bound", "javascript_console_runs_scripts_on_the_form"]
 notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md)."
 
 [[feature]]

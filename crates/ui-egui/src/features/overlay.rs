@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use egui::RichText;
 use markupcraft_engine::overlay::{
-    LayerAdjust, OverlayAlign, OverlayBlend, OverlayLayer, default_color, overlay_pages,
+    LayerAdjust, OverlayAlign, OverlayBlend, OverlayLayer, default_color, overlay_pages_shaded,
 };
 use markupcraft_geom::{Point, Rect};
 use markupcraft_model::Color;
@@ -59,6 +59,8 @@ pub struct OverlayState {
     pub blend: OverlayBlend,
     pub adjust: LayerAdjust,
     pub include_flattened: bool,
+    /// Advanced Color Shading: layer colours keep grey tones, fills and hatching.
+    pub advanced_shading: bool,
 }
 
 fn row(source: Source, name: String, i: usize) -> Row {
@@ -203,6 +205,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                 ui.add(egui::DragValue::new(&mut o.adjust.dy));
             });
             ui.checkbox(&mut o.include_flattened, "Include flattened markups");
+            ui.checkbox(&mut o.advanced_shading, "Advanced color shading");
         });
         if !o.message.is_empty() {
             ui.label(RichText::new(&o.message).small());
@@ -287,7 +290,8 @@ pub fn layers(app: &AppState) -> Result<Vec<OverlayLayer>, String> {
 
 /// Write the overlay to `out` and open it.
 pub fn write(app: &mut AppState, out: &Path) {
-    let r = layers(app).and_then(|l| overlay_pages(&l, out).map_err(|e| e.to_string()));
+    let shaded = app.features.overlay.advanced_shading;
+    let r = layers(app).and_then(|l| overlay_pages_shaded(&l, out, shaded).map_err(|e| e.to_string()));
     match r {
         Ok(rep) => {
             app.features.overlay.open = false;

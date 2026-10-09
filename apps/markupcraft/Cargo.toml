@@ -13,6 +13,10 @@ markupcraft-ui-egui = { workspace = true }
 eframe = { workspace = true, features = ["default_fonts", "wgpu", "accesskit", "wayland", "x11"] }
 log = { workspace = true }
 
+[features]
+# The system camera (Markup > Camera, Create from Scanner or Camera).
+camera = ["markupcraft-ui-egui/camera"]
+
 [build-dependencies]
 # Icon + VERSIONINFO for markupcraft.exe; build.rs only uses it when targeting Windows.
 winresource = { workspace = true }

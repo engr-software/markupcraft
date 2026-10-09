@@ -169,6 +169,8 @@ pub struct DocView {
     pub opts: ViewOpts,
     /// Zoom tool: where a zoom-box drag started (screen).
     pub zoom_box: Option<Pos2>,
+    /// Points of the draft clicked with Alt: three-point arcs pass through them.
+    pub arc_through: Vec<usize>,
 }
 
 impl Default for DocView {
@@ -198,6 +200,7 @@ impl Default for DocView {
             rotation: 0,
             cover: false,
             opts: ViewOpts::default(),
+            arc_through: Vec::new(),
             zoom_box: None,
         }
     }

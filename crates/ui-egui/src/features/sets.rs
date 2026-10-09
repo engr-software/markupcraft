@@ -115,12 +115,26 @@ pub fn open_sheet(app: &mut AppState, sheet: &SetSheet) {
     let Some(file) = app.features.sets.set.files.get(sheet.file).cloned() else {
         return;
     };
+    // Preferences > Sets: the sheet replaces the Set sheet in the current tab (when it has no
+    // unsaved changes).
+    let replace = app
+        .doc()
+        .filter(|d| app.shell.prefs.more.sets.open_in_place && !d.session.is_dirty())
+        .filter(|d| {
+            d.path
+                .as_ref()
+                .is_some_and(|p| *p != file && app.features.sets.set.files.contains(p))
+        })
+        .map(|d| d.uid);
     app.open_path(&file);
     if let Some(d) = app.doc_mut()
         && d.path.as_deref() == Some(file.as_path())
     {
         let n = d.session.page_count();
         d.view.go_to_page(sheet.page, n);
+        if let Some(uid) = replace {
+            app.force_close(uid);
+        }
     }
 }
 

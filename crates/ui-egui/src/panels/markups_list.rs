@@ -703,6 +703,9 @@ fn select_row(doc: &mut DocTab, i: usize, add: bool) {
         actions::select(&mut doc.session, vec![m.id.clone()]);
     }
     let b = markup_bbox(&m);
+    if !crate::features::more6::prefs::zoom_to_selected() {
+        return;
+    }
     if let Some(render) = doc.render.as_ref() {
         doc.view.center_on(
             m.page,

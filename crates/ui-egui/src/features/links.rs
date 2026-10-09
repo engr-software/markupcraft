@@ -251,7 +251,7 @@ pub fn follow_target(app: &mut AppState, t: &LinkTarget, ctx: &egui::Context) {
                 None => app.status = format!("The Place {name:?} is not in this document"),
             }
         }
-        LinkTarget::Url(u) => ctx.open_url(egui::OpenUrl::new_tab(u)),
+        LinkTarget::Url(u) => super::more6::web::follow_url(app, ctx, u),
         LinkTarget::File { path, page } => open_file(app, path, *page, None, ctx),
         LinkTarget::FileView { path, page, rect } => open_file(app, path, Some(*page), Some(*rect), ctx),
         LinkTarget::Other(s) => app.status = format!("This link runs {s}"),

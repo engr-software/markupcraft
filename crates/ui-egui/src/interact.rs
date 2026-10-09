@@ -402,6 +402,8 @@ fn draw_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mut 
             let Some(cur) = release.or(cur) else { return };
             let a = d.pts.first().copied().unwrap_or_default();
             let b = tool_point(ix, doc, cx, d.page, xf.to_user(cur), Some(a), true);
+            // Alt: the first point is the centre.
+            let (a, b) = crate::modkeys::from_center(ix.ui.input(|i| i.modifiers.alt), a, b);
             let m = tools::new_markup(kind, d.page, &[a, b]);
             if release.is_some() {
                 doc.view.draft = None;
@@ -647,8 +649,15 @@ fn points_tool(
     }
     if let Some(s) = click {
         let before = doc.view.draft.as_ref().map_or(0, |d| d.pts.len());
+        if before == 0 {
+            doc.view.arc_through.clear();
+        }
         add_point(ix, doc, cx, tool, s);
         let after = doc.view.draft.as_ref().map_or(0, |d| d.pts.len());
+        if after > before && finish_at == 0 && ix.ui.input(|i| i.modifiers.alt) {
+            // Alt+click: an arc passes through this point to the next one.
+            doc.view.arc_through.push(after - 1);
+        }
         if finish_at > 0 && after >= finish_at && after > before {
             finish(doc, cx, out, spec);
             return;
@@ -858,8 +867,12 @@ fn finish(doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mut CanvasOut, spec: (Kind,
         }
         Role::Viewport => {}
         Role::Markup | Role::Radius3 | Role::Arc3 => {
+            let through = std::mem::take(&mut doc.view.arc_through);
             match tools::new_markup(kind, d.page, &tools::role_points(role, &d.pts)) {
-                Some(m) => {
+                Some(mut m) => {
+                    if role == Role::Markup && m.pts.len() == d.pts.len() {
+                        markupcraft_engine::extras6::arcs_through(&mut m, &through);
+                    }
                     add_markup(doc, tool, styled(m, cx), None, out);
                 }
                 None => out.status = Some(format!("{}: not enough points", tool.label)),
@@ -1762,6 +1775,22 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
                         start: at,
                         from,
                     });
+                } else if let Some((id, _)) = handle
+                    .as_ref()
+                    .filter(|_| mods.alt)
+                    .filter(|(id, _)| doc.session.doc().find(id).is_some_and(|m| m.kind == Kind::Callout))
+                {
+                    // Alt+drag a callout: it moves as a whole (box, leader and tip).
+                    let id = id.clone();
+                    if !selection.contains(&id) {
+                        actions::select(&mut doc.session, vec![id]);
+                    }
+                    doc.view.gesture = Some(Gesture::Move {
+                        page,
+                        start: at,
+                        copy: false,
+                        straight: mods.shift,
+                    });
                 } else if let Some((id, index)) = handle {
                     doc.view.gesture = Some(Gesture::Handle { id, index, page });
                 } else if mods.command
@@ -1794,6 +1823,24 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
         }
     }
 
+    // Shift+click a vertex (delete) or a segment (add a vertex), Ctrl+click a vertex (arc or
+    // straight) of the selected markup.
+    let click = match click {
+        Some(s) if doc.view.gesture.is_none() && (mods.shift || mods.command) => match ix.page_at(s) {
+            Some((page, xf)) => {
+                let reach = f64::from((HANDLE_REACH + 2.0) / xf.k.max(1e-6));
+                match crate::modkeys::vertex_click(doc, page, xf.to_user(s), reach, mods.shift) {
+                    Some(msg) => {
+                        out.status = Some(msg);
+                        None
+                    }
+                    None => click,
+                }
+            }
+            None => click,
+        },
+        c => c,
+    };
     // Click (no drag): select, add or toggle.
     if let Some(s) = click
         && doc.view.gesture.is_none()
@@ -1911,7 +1958,11 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
                     Some(a) if shift => tools::constrain(a, raw),
                     _ => snap_at(ix, doc, cx, page, raw, Some(&id)).pt,
                 };
-                let pts = reshape(&m, index, to);
+                let mut pts = reshape(&m, index, to);
+                if crate::modkeys::keeps_aspect(&m) && !shift {
+                    // Images resize in proportion; Shift breaks the aspect ratio.
+                    pts = crate::modkeys::keep_aspect(&m.pts, &pts);
+                }
                 if release.is_some() {
                     doc.view.preview.clear();
                     let r = if uses_rect(m.kind) {

@@ -87,6 +87,9 @@ pub struct Preferences {
     pub recent_files: u32,
     /// UI theme: `light`, `dark` or `system`
     pub theme: String,
+    /// More pages: Markups List, Layers, Measure, Forms, Signature, Tablet, WebTab, Sets,
+    /// Import/Export, Integrations (`prefs_pages.rs`).
+    pub more: crate::prefs_pages::MorePrefs,
 }
 
 impl Default for Preferences {
@@ -101,6 +104,7 @@ impl Default for Preferences {
             save_mode: "incremental".into(),
             recent_files: 20,
             theme: "system".into(),
+            more: Default::default(),
         }
     }
 }
@@ -152,6 +156,7 @@ impl Preferences {
         if !matches!(self.theme.as_str(), "light" | "dark" | "system") {
             return Err(invalid("theme: light, dark or system"));
         }
+        self.more.validate()?;
         Ok(())
     }
 

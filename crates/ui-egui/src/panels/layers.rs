@@ -60,6 +60,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
         super::empty(ui, "No document open.");
         return;
     };
+    let page_only_pref = app.shell.prefs.more.layers.current_page_only;
     let mut layers = d.session.layers();
     let tree = d.session.layer_tree();
     let configs = d.session.layer_configs();
@@ -145,7 +146,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     } else {
         layers.sort_by_key(|l| tree.iter().position(|t| t.name == l.name).unwrap_or(usize::MAX));
     }
-    if f.page_only {
+    if f.page_only || page_only_pref {
         layers.retain(|l| on_page.contains(&l.name));
     }
     ui.separator();
@@ -293,9 +294,19 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
         }
         _ => {}
     }
+    // Preferences > Layers: hiding or showing a layer does the same to its child layers.
+    let children: Vec<String> = match &act {
+        Act::State(n, st) if st.visible.is_some() => crate::features::more6::prefs::layer_children(app, n),
+        _ => Vec::new(),
+    };
     let threads = app.threads;
     let Some(d) = app.doc_mut() else { return };
     let s = &mut d.session;
+    if let Act::State(_, st) = &act {
+        for c in &children {
+            let _ = s.set_layer_state(c, *st);
+        }
+    }
     let rerender = !matches!(act, Act::Create(_) | Act::Select(_) | Act::Assign(_));
     let status = match act {
         Act::Nest(n, p) => actions::report(s.nest_layer(&n, p.as_deref(), None), |_| match &p {

@@ -10,20 +10,20 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | Area | Rows | Proven | Have | Partial | Missing | Excluded | C++ have | C++ partial |
 |---|---|---|---|---|---|---|---|---|
 | Measurement and takeoff | 134 | 2 | 122 | 10 | 0 | 0 | 47 | 17 |
-| Markup tools, Properties, Tool Chest, layers, Markups List | 192 | 0 | 181 | 6 | 5 | 0 | 86 | 23 |
-| Documents, pages, batch, print, search, security | 217 | 0 | 168 | 30 | 13 | 6 | 38 | 23 |
-| Compare/overlay, interface, preferences, mouse, Studio | 226 | 0 | 157 | 19 | 19 | 31 | 24 | 22 |
-| Default keyboard shortcuts | 177 | 0 | 164 | 1 | 8 | 4 | 11 | 18 |
-| **All** | 946 | 2 | 792 | 66 | 45 | 41 | 206 | 103 |
+| Markup tools, Properties, Tool Chest, layers, Markups List | 192 | 0 | 185 | 7 | 0 | 0 | 86 | 23 |
+| Documents, pages, batch, print, search, security | 217 | 0 | 180 | 31 | 0 | 6 | 38 | 23 |
+| Compare/overlay, interface, preferences, mouse, Studio | 226 | 0 | 168 | 27 | 0 | 31 | 24 | 22 |
+| Default keyboard shortcuts | 177 | 0 | 172 | 1 | 0 | 4 | 11 | 18 |
+| **All** | 946 | 2 | 827 | 76 | 0 | 41 | 206 | 103 |
 
 ### By priority (rows in scope)
 
 | Priority | Proven | Have | Partial | Missing |
 |---|---|---|---|---|
-| P0 | 2 | 134 | 4 | 1 |
-| P1 | 0 | 198 | 16 | 3 |
-| P2 | 0 | 182 | 20 | 7 |
-| P3 | 0 | 114 | 25 | 26 |
+| P0 | 2 | 135 | 4 | 0 |
+| P1 | 0 | 199 | 18 | 0 |
+| P2 | 0 | 187 | 22 | 0 |
+| P3 | 0 | 134 | 31 | 0 |
 
 ## Measurement and takeoff
 
@@ -291,20 +291,20 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | mark-037 | Stamp library management | P2 | have | missing | `stamps_builtin_custom_dynamic_fields_and_images` Stamp library in the config folder (stamps/library.json): stamp_list, stamp_create, stamp_remove; built-in designs are our own. |
 | mark-038 | Create Stamp | P2 | have | missing | `stamps_builtin_custom_dynamic_fields_and_images` stamp_create: text stamps (first line big, colour) or image stamps. |
 | mark-039 | Dynamic stamp text | P1 | have | missing | `stamps_builtin_custom_dynamic_fields_and_images` `fields_expand_dates_pages_files_and_prompts` {user} {date[:FMT]} {time[:FMT]} {datetime:FMT} {page} {pagenum} {pages} {file} {filename} {path} {prompt:Label=Default}, filled when placed. Times are UTC unless a time is given. |
-| mark-040 | Interactive stamps | P2 | missing | missing |  |
+| mark-040 | Interactive stamps | P2 | have | missing | `interactive_stamps_stamp_settings_symbols_and_file_links` `interactive_stamps_stamp_settings_and_mark_text_for_redaction` `interactive_stamp_fields_fill_on_placing_and_stay_editable` Stamp templates with {check:Label}, {field:Label=Default} and {choice:Label=A\|B\|C} fields (plus the dynamic fields): Markup > Interactive Stamp places one; Edit Stamp Fields fills them in later (values kept in the markup, the stamp redrawn); stamp_interactive tool. |
 | mark-041 | Stamp from image/PDF | P2 | have | missing | `stamps_builtin_custom_dynamic_fields_and_images` Image stamps from a PNG (alpha as a soft mask) or a PDF page (copied as a form XObject), placed directly or from the library. |
 | mark-042 | Image markup | P2 | partial | missing | `stamps_builtin_custom_dynamic_fields_and_images` `stamp_library_places_a_stamp_and_an_image` Markup > Image places a PNG or JPEG (click or box) as an image stamp annotation; no separate Image markup kind. |
-| mark-043 | Image From Scanner | P3 | missing | missing |  |
+| mark-043 | Image From Scanner | P3 | have | missing | `scanner_and_camera_into_markups_pages_and_new_pdfs` `scanner_and_camera_pages_markups_and_new_pdfs` `an_escl_scanner_scans_pages_into_a_document` Markup > Image From Scanner (Shift+I): network scanners over eSCL (AirScan / Mopria, plain http) - Connect reads the capabilities, Scan / Scan Next runs on a worker, Finish places the image. Scanners reachable only through TWAIN, WIA or SANE drivers are not supported. |
 | mark-044 | Snapshot | P1 | have | have | `cli: markupcheck` `snapshot_copies_a_region_and_ctrl_v_pastes_it` Drag a region; Ctrl+V pastes it at the pointer. |
 | mark-045 | Copy Page to Snapshot | P3 | have | have | `snapshots_of_a_region_a_page_and_a_space` `snapshots_and_file_attachment_markups_with_capture_summary` `file_attachment_snapshots_and_capture_summary` Edit > Copy Page to Snapshot (Ctrl+Alt+C): the whole page as a snapshot on the clipboard; Ctrl+V pastes it. |
 | mark-046 | Snapshot Content (cut/copy region of page) | P2 | partial | partial | `snapshots_of_a_region_a_page_and_a_space` `snapshots_and_file_attachment_markups_with_capture_summary` Snapshot tool (G) and snapshot_copy: a region kept in vector form, copied and pasted; no cut. |
 | mark-047 | Hyperlink | P1 | have | missing | `links_to_pages_urls_and_files` `hyperlink_tool_adds_a_page_link_listed_in_the_links_panel` Markup > Hyperlink (Shift+H): drag the link area, choose page, web address or file. |
 | mark-048 | Edit Action | P2 | have | missing | `urls_text_links_and_markup_actions` `places_hyperlink_actions_and_markup_edit_action` `places_link_actions_text_and_url_links_and_markup_actions` Edit Action (Ctrl+Shift+E) on the selected markup: page with zoom, Place, view, Space, URL, file; kept on save; markup_action tool. |
 | mark-049 | File Attachment | P2 | have | missing | `file_attachments_round_trip_and_export` `snapshots_and_file_attachment_markups_with_capture_summary` `file_attachment_snapshots_and_capture_summary` Markup > File Attachment (F): embed a file shown as a paperclip (or pin) icon; a File Attachment markup in the list; kept on save. |
-| mark-050 | Capture (camera) | P2 | missing | missing |  |
+| mark-050 | Capture (camera) | P2 | partial | missing | `scanner_and_camera_into_markups_pages_and_new_pdfs` `scanner_and_camera_pages_markups_and_new_pdfs` `a_camera_frame_becomes_a_pdf` Markup > Camera (Ctrl+Alt+I) takes still pictures into an image markup, pages or a new PDF. The system camera comes from nokhwa behind the app's `camera` cargo feature (off by default; tested with a test camera, never a real one); no video or audio capture. |
 | mark-051 | Capture Summary / Export Capture Media | P3 | have | missing | `file_attachments_round_trip_and_export` `snapshots_and_file_attachment_markups_with_capture_summary` `file_attachment_snapshots_and_capture_summary` Capture Summary: every File Attachment markup's file saved to a folder with a CSV summary (page, file, size, description, author); no camera capture. |
-| mark-052 | Symbols (Tool Chest items as symbols) | P0 | missing | have |  |
-| mark-053 | Sketch tools | P2 | missing | missing |  |
+| mark-052 | Symbols (Tool Chest items as symbols) | P0 | have | have | `tool_chest_symbol_view_scale_export_and_import` `interactive_stamps_stamp_settings_symbols_and_file_links` Drawing-mode Tool Chest items are symbols: placed by click, resized to the page scale, shown as tiles in Symbol view; Markup > Add Selection to Tool Chest as Symbol saves the selected markup into a Symbols tool set at its page scale. A symbol is one markup. |
+| mark-053 | Sketch tools | P2 | have | missing | `sketch_to_scale_places_typed_lengths` `mark_text_for_redaction_snapshot_content_and_sketch_commands` The Sketch to Scale bar while drawing, plus Tools > Sketch commands (Place Typed Segment, Finish Shape, Relative Angles) whose shortcuts can be customized. |
 | mark-054 | Legend | P1 | have | missing | `legends_list_subjects_and_follow_edits` `legend_lists_subjects_counts_totals_and_follows_edits` A FreeText legend (/PCLegend) with our own table appearance and the table as /Contents; legend_update recomputes it after edits. |
 | mark-055 | Spaces (markup-related) | P2 | have | missing | `spaces_add_column_tally_export_import` Markups take the name of the space they are in (Space column). |
 | mark-056 | Dynamic Fill | P1 | have | missing | `dynamic_fill_makes_areas_spaces_and_hatch` Headless dynamic_fill (vector linework); no canvas tool yet. |
@@ -502,13 +502,13 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-014 | Locked-file prompt | P2 | have | missing | `locked_files_offer_a_read_only_copy` A file in use or read-only offers a read-only copy (it saves elsewhere); Preferences > Document turns the prompt off. |
 | doc-015 | Open Recent | P0 | have | have | `recent_files_reopen_at_the_last_page_and_pin` File > Open Recent (and the start page) list recent files; Clear Recent Files. |
 | doc-016 | New blank PDF / from template | P2 | partial | missing | `new_blank_pdf_and_refresh_from_disk` File > New Blank PDF (Ctrl+N): an untitled Letter page; no templates. |
-| doc-017 | PDF Package | P3 | missing | missing |  |
+| doc-017 | PDF Package | P3 | have | missing | `packages_insert_options_layered_pages_stitching_and_source_bookmarks` `packages_source_bookmarks_insert_options_layers_and_stitching` `a_package_embeds_its_files_and_says_it_is_one` File > Create PDF Package: a cover page plus the member files embedded, catalog /Collection (ISO 32000-1 12.3.5) so viewers list them; an empty package when no files are given; pdf_package tool. |
 | doc-018 | Email PDF | P2 | partial | missing | `email_attaches_the_document_to_a_draft` `email_draft_attaches_the_pdf` File > Email (Ctrl+E): an unsent message with the document attached opens in the mail program; no email templates. |
 | doc-019 | Save modes and revisions | P3 | partial | missing | `save_modes_publish_and_revert_as` `revisions_publish_and_deskew` Preferences > Document: keep revisions (incremental) or publish (full rewrite); publish compressed is File > Publish As Compressed, not a save mode. |
 | doc-020 | Revert As | P3 | have | missing | `save_modes_publish_and_revert_as` `revisions_revert_publish_deskew_and_standards` File > Revert As: pick a stored revision (each incremental save keeps one) and save it as a new file; tool doc_revisions. |
 | doc-021 | Publish As | P2 | have | missing | `save_modes_publish_and_revert_as` `revisions_revert_publish_deskew_and_standards` File > Publish As Compressed (Ctrl+Shift+P), Flattened (Ctrl+Alt+F), Uncompressed: a copy without revision history; tool doc_publish. |
 | doc-022 | Refresh | P3 | have | missing | `new_blank_pdf_and_refresh_from_disk` View > Refresh (F5) redraws; File > Refresh Document (Shift+F5) reloads the file from disk. |
-| doc-023 | Web Tab | P3 | missing | missing |  |
+| doc-023 | Web Tab | P3 | partial | missing | `web_tab_favorites_browser_and_capture` `web_tab_link_pages_and_page_capture` `capture_runs_a_browser_and_checks_its_output` No embedded browser: View > Web Tab (Ctrl+T) opens a Web Tab document listing the favourites as links, with an address bar; pages open in the system browser, or are captured to PDF by Edge, Chrome or Chromium run headless (when installed) and opened to mark up. Links to web pages follow Preferences > WebTab. |
 | doc-024 | PDF/A awareness | P3 | partial | missing | `certified_pdfa_and_signed_documents_guard_page_edits` PDF/A conformance read from the XMP metadata; page edits locked (Preferences > Advanced unlocks); Document Properties shows it; no tab icon or Verify. |
 
 ### Page navigation and zoom
@@ -594,17 +594,17 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-081 | Audit bookmarks | P3 | have | missing | `automark_structure_style_action_copy_and_audit` `bookmarks_automark_properties_copy_action_and_audit` `bookmark_properties_actions_copy_automark_structures_audit_and_export` Audit marks bookmarks whose page is gone, whose Place is missing, or that go nowhere (a ! in the panel). |
 | doc-082 | Export bookmarks | P2 | have | missing | `export_bookmarks_csv_and_pdf` `bookmark_properties_actions_copy_automark_structures_audit_and_export` CSV or PDF report for one or many PDFs: tree or flat, top level only, links to each page, date stamp, page size. |
 | doc-083 | Save collapse state | P3 | have | missing | `bookmarks_panel_adds_renames_nests_and_deletes` Expanding or collapsing in the Bookmarks panel is written to the outline and saved with the file. |
-| doc-084 | Bookmarks from source apps | P3 | missing | missing |  |
+| doc-084 | Bookmarks from source apps | P3 | have | missing | `packages_insert_options_layered_pages_stitching_and_source_bookmarks` `packages_source_bookmarks_insert_options_layers_and_stitching` `headings_from_text_sizes_nest_by_size` `a_tagged_pdf_gives_its_heading_elements` Document > Bookmarks from Structure: there are no Office/CAD plugins, so the PDF itself is read - a tagged PDF's heading elements (H, H1-H6, Title), else text set larger than the body text (three levels; a slide or sheet title is its largest line). |
 
 ### Page operations
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | doc-085 | Insert pages from PDF | P1 | partial | partial | `page_dialogs_insert_rotate_crop_setup_delete` Document > Insert Pages: one PDF, a page range, before or after a page; several files only by dropping them on Thumbnails. |
-| doc-086 | Insert options | P2 | missing | missing |  |
+| doc-086 | Insert options | P2 | have | missing | `packages_insert_options_layered_pages_stitching_and_source_bookmarks` `packages_source_bookmarks_insert_options_layers_and_stitching` `insert_options_interleave_bookmarks_labels_and_layers` Document > Insert Pages with Options: carry over bookmarks and attachments, merge document properties, keep layers, label pages from the file name, interleave odd/even scans (optionally reversed); one undo step. |
 | doc-087 | Insert blank page | P2 | partial | partial | `page_dialogs_insert_rotate_crop_setup_delete` Document > Insert Blank Pages: count, standard or custom size, orientation, before / after a page; no grid or template. |
-| doc-088 | Insert layered pages | P3 | missing | missing |  |
-| doc-089 | Insert from scanner/camera | P3 | missing | missing |  |
+| doc-088 | Insert layered pages | P3 | have | missing | `packages_insert_options_layered_pages_stitching_and_source_bookmarks` `packages_source_bookmarks_insert_options_layers_and_stitching` Document > Insert Layered Pages: each page of another PDF is drawn on a page here as a new layer (named after the file or as typed); one undo step. |
+| doc-089 | Insert from scanner/camera | P3 | have | missing | `scanner_and_camera_into_markups_pages_and_new_pdfs` `scanner_and_camera_pages_markups_and_new_pdfs` Document > Insert from Scanner or Camera: acquired pages go in after the current page (eSCL scanners; the camera with the app's camera feature). OCR is Tools > OCR afterwards. |
 | doc-090 | Extract pages | P1 | partial | partial | `extract_and_replace_pages_through_dialogs` Document > Extract Pages: page range, delete after extracting, open the new file; one file only. |
 | doc-091 | Replace pages | P1 | have | have | `replace_pages_keeps_markups` Headless (engine + automation tool); no UI yet. page_replace swaps content, resources and boxes (pdfcraft-organize) and keeps the page's markups, links and bookmarks. |
 | doc-092 | Delete pages | P1 | have | have | `page_dialogs_insert_rotate_crop_setup_delete` `thumbnails_select_reorder_and_page_commands` Document > Delete Pages with the page range picker, or the thumbnail menu; a document keeps one page. |
@@ -626,8 +626,8 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-103 | Combine options | P2 | have | missing | `create_combine_and_layered` `combine_create_and_layered` `batch_create_layered_merge_combine_options_and_link_terms` Bookmark per file, every file's attachments, merged document properties, every file's layers, page labels from file names (doc_combine_files; the Combine dialog). Signatures do not survive (warned). |
 | doc-104 | Create PDF from a file | P3 | partial | missing | `create_combine_and_layered` `combine_create_and_layered` `batch_create_layered_merge_combine_options_and_link_terms` Images (PNG, JPEG, TIFF, BMP) and text files to PDF (doc_create_from_files; File > Create PDF from Files). No Office or CAD documents (those need authoring plugins). |
 | doc-105 | Create from multiple files (Stapler) | P3 | partial | missing | `create_combine_and_layered` `combine_create_and_layered` `batch_create_layered_merge_combine_options_and_link_terms` Stapler: images, text files and PDFs in one PDF in list order. No Office or CAD documents (authoring plugins). |
-| doc-106 | Explorer right-click combine/convert | P3 | missing | missing |  |
-| doc-107 | Create from scanner or camera | P3 | missing | missing |  |
+| doc-106 | Explorer right-click combine/convert | P3 | have | missing | `batch_sign_and_seal_smart_overlay_and_shell_integration` `batch_sign_and_seal_shell_integration_and_smart_overlay` `integration_files_for_each_system_name_the_cli` `combine_and_convert_write_beside_the_files` File > File Manager Integration writes the files a user installs (current-user .reg and Send To commands on Windows, Quick Actions on macOS, a KDE service menu and Nautilus scripts on Linux, each with a README); MarkupCraft never changes the system. They run `markupcraft-cli shell combine\|convert`. |
+| doc-107 | Create from scanner or camera | P3 | have | missing | `scanner_and_camera_into_markups_pages_and_new_pdfs` `scanner_and_camera_pages_markups_and_new_pdfs` File > Create from Scanner or Camera: Scan / Scan Next or Take Picture, then Finish writes a new PDF; Run OCR opens the OCR dialog (deskew, orientation, vertical text) on it. eSCL scanners only; the camera needs the app's camera feature. |
 | doc-108 | Layered PDF from PDFs | P3 | have | missing | `create_combine_and_layered` `combine_create_and_layered` `batch_create_layered_merge_combine_options_and_link_terms` Create Layered PDF: each file's first page drawn on one page in its own layer named after the file (doc_layered; File menu). |
 | doc-109 | Authoring plugins (high level) | P3 | excluded | missing | Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF. |
 | doc-110 | 3D PDF basics | P3 | excluded | missing | Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF. |
@@ -644,7 +644,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-116 | Batch Slip Sheet: matching | P1 | have | missing | `slip_sheet_replaces_matching_sheets_and_keeps_markups` slip_sheet matches page labels, whole or the part before a filter (e.g. ' - '), case-insensitive by default. |
 | doc-117 | Batch Slip Sheet: apply | P1 | have | missing | `slip_sheet_replaces_matching_sheets_and_keeps_markups` Matching pages are replaced with the revised content; their markups, links and bookmarks stay. Undoable. |
 | doc-118 | Batch Slip Sheet: leftovers and report | P2 | have | missing | `slip_sheet_replaces_matching_sheets_and_keeps_markups` Unmatched new sheets are appended with their labels (or left out); the report lists matched, unmatched old and unmatched new sheets. |
-| doc-119 | Batch Sign & Seal | P3 | missing | missing |  |
+| doc-119 | Batch Sign & Seal | P3 | have | missing | `batch_sign_and_seal_smart_overlay_and_shell_integration` `batch_sign_and_seal_shell_integration_and_smart_overlay` `many_files_get_a_seal_a_date_and_a_signature` Batch > Sign & Seal: a date, a seal image, then a digital signature in the named empty signature field or at a typed page and box (no preview to drag it on), or certify; signed copies to a folder or in place; failures reported per file. |
 | doc-120 | Batch Apply Stamp | P2 | have | missing | `batch_link_summary_sets_and_apply` batch_apply with stamp_add over many files (in place or to an output folder). |
 | doc-121 | Batch Flatten / Unflatten | P2 | have | missing | `batch_unflatten_repair_rotate_and_recolour` `batch_combine_summary_and_slip_sheet` `print_dialog_copies_window_markups_only_emphasis_and_batch_print` batch_apply runs markup_flatten (recoverable, layer) or markup_unflatten on chosen pages of many files; Batch > Flatten and Batch > Unflatten in the app. |
 | doc-122 | Batch Summary | P0 | have | partial | `batch_link_summary_sets_and_apply` batch_summary: one CSV of the Markups Lists of many files with a File column. |
@@ -693,7 +693,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-150 | Fit content inside margins | P3 | have | missing | `presets_templates_kept_header_footer_and_fit` `security_presets_status_header_footer_templates_and_fit` `security_presets_status_and_kept_header_footer_templates` Header & Footer: shrink page content to fit inside the margins (page_fit_content, or the fit option of a header/footer); an earlier fit is replaced. |
 | doc-151 | Header/footer templates | P3 | have | missing | `presets_templates_kept_header_footer_and_fit` `security_presets_status_header_footer_templates_and_fit` `security_presets_status_and_kept_header_footer_templates` Header/footer templates saved by name (header_footer_template; Save Template and the template buttons in the dialog), applied to any page range. |
 | doc-152 | Edit / update / delete | P3 | have | missing | `presets_templates_kept_header_footer_and_fit` `security_presets_status_header_footer_templates_and_fit` `security_presets_status_and_kept_header_footer_templates` The applied header/footer is kept with the document: Edit loads it back into the dialog, Update re-applies it to the pages as they are now (Document > Update Header & Footer), Remove deletes headers/footers. |
-| doc-153 | Stamps as document feature | P2 | missing | missing |  |
+| doc-153 | Stamps as document feature | P2 | have | missing | `interactive_stamps_stamp_settings_symbols_and_file_links` `interactive_stamps_stamp_settings_and_mark_text_for_redaction` `stamp_settings_round_trip_and_style_placed_stamps` Seventeen built-in designs of our own, custom text and image stamps with dynamic date/time/user fields, Markup > Stamp Settings: stamp folder (also the Stamp Library's), default stamp, opacity, blend mode and lock applied to placed stamps. Blend modes are Normal and Multiply only. |
 | doc-154 | Watermark | P3 | have | missing | `headers_footers_watermarks_and_bates` Headless (engine + automation tool); no UI yet. watermark_add: text, size (or fit), colour, opacity, rotation, offset, behind or on top; marks_remove removes. |
 
 ### OCR and search
@@ -770,7 +770,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-192 | File properties metadata | P3 | have | missing | `document_properties_and_xmp` Headless (engine + automation tool); no UI yet. doc_properties_set edits Title, Author, Subject, Keywords, Creator, Producer; the XMP packet is rewritten to match. |
 | doc-193 | Custom properties | P3 | have | missing | `document_properties_and_xmp` Headless (engine + automation tool); no UI yet. Custom /Info entries added, changed and removed through doc_properties_set. |
 | doc-194 | Embedded file attachments | P2 | have | missing | `attachments_add_list_extract_delete` Headless (engine + automation tool); no UI yet. attachment_add / list / extract / delete on the /EmbeddedFiles name tree. |
-| doc-195 | Attachment icon markup | P3 | missing | missing |  |
+| doc-195 | Attachment icon markup | P3 | have | missing | `file_attachment_snapshots_and_capture_summary` `file_attachments_round_trip_and_export` Markup > File Attachment: a paperclip-style icon carrying one embedded file; icon, colour, opacity and note in Properties; Save Attached File extracts it. |
 | doc-196 | Page tags / standards info | P3 | partial | missing | `certified_pdfa_and_signed_documents_guard_page_edits` Document Properties: Standards (PDF/A claim) and signatures (certified); no page tags. |
 
 ### Links and places
@@ -795,7 +795,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-207 | Recents preferences | P3 | partial | missing | `recent_files_reopen_at_the_last_page_and_pin` `preferences_dialog_applies_and_persists` Preferences > Interface: how many recent files and days kept, clear; no preview option. |
 | doc-208 | File Access: Explorer | P2 | have | missing | `explorer_sorts_filters_makes_folders_and_renames` `file_access_history_by_day_and_categories` Explorer: path box (Enter goes there, folder completion), drives, back / forward / up, sort by name / type / size / date, PDFs or PDFs and images, new folder, pin the folder's files; no separate path favourites. |
 | doc-209 | Explorer context menu | P3 | have | missing | `explorer_sorts_filters_makes_folders_and_renames` Right-click a file: Open, Open in Background, Open Folder, Copy Path, Rename, Delete from Disk (asks first), Properties. |
-| doc-210 | Link from file list | P3 | missing | missing |  |
+| doc-210 | Link from file list | P3 | have | missing | `interactive_stamps_stamp_settings_symbols_and_file_links` File Access: a file row's menu > Create Link to This File, then drag the link area on the page (a link that opens the file); not a drag out of the row itself. |
 | doc-211 | DMS / SharePoint | P3 | excluded | missing | Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF. |
 
 ### Studio (summary only)
@@ -811,7 +811,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | doc-215 | Compare / Overlay / Smart Overlay | P1 | have | missing | `compare_documents_clouds_the_changes_and_reviews_them` `overlay_pages_writes_the_overlay_and_opens_it` Tools > Compare Documents and File > Overlay Pages (see part 4). |
-| doc-216 | Stitching | P3 | missing | missing |  |
+| doc-216 | Stitching | P3 | have | missing | `packages_insert_options_layered_pages_stitching_and_source_bookmarks` `packages_source_bookmarks_insert_options_layers_and_stitching` `pages_join_edge_to_edge_with_their_markups` Document > Stitching: pages joined edge to edge into one large page in a new PDF (vector form XObjects), pages per row, overlap at match lines; markups come along. |
 | doc-217 | Script / Translate Markups | P3 | partial | missing | Script: markupcraft-cli run --script runs tool steps; no markup translation. |
 
 ## Compare/overlay, interface, preferences, mouse, Studio
@@ -854,7 +854,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-027 | Per-layer background color | P3 | have | missing | `three_points_auto_region_background_and_blend` `overlay_three_points_auto_region_background_and_defaults` Per-layer background colour for the layer's whitespace (transparent by default). |
 | ui-028 | Per-layer opacity | P2 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` opacity per layer. |
 | ui-029 | Blend mode | P2 | have | missing | `three_points_auto_region_background_and_blend` `overlay_three_points_auto_region_background_and_defaults` Multiply (default), Darken, Normal, Screen or Difference, per layer or as the default. |
-| ui-030 | Advanced color shading | P3 | missing | missing |  |
+| ui-030 | Advanced color shading | P3 | have | missing | `overlay_advanced_color_shading` `batch_sign_and_seal_shell_integration_and_smart_overlay` Overlay Pages > Edit Defaults > Advanced color shading: layer colours laid on with Screen instead of Lighten, so grey linework, fills and hatching keep their tone; also in Smart Overlay and the overlay_pages tool. |
 | ui-031 | Page Align | P1 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` align page (as positioned) and bounds (stretched to the first page). |
 | ui-032 | Auto Align | P2 | have | missing | `three_points_auto_region_background_and_blend` `overlay_three_points_auto_align_and_defaults` Auto Align fits the layer's linework extents onto the first layer's (uniform scale and offset) for sheets of different size or scale; no Auto Align Limit. |
 | ui-033 | Manual Align (3 points) | P1 | have | missing | `three_points_auto_region_background_and_blend` `overlay_three_points_auto_region_background_and_defaults` `overlay_three_points_auto_align_and_defaults` Three matching points per layer (full affine map); two points also accepted. |
@@ -865,7 +865,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-038 | Include flattened markups | P3 | have | missing | `recoverable_flatten_unflattens_and_hides_from_compare` `overlay_three_points_auto_region_background_and_defaults` include_flattened (recoverable flattened markups left out by default). |
 | ui-039 | Layer visibility in result | P2 | have | missing | `overlay_pages_writes_coloured_toggleable_layers` Each layer is an optional content group listed in /OCProperties, all on. |
 | ui-040 | Batch Overlay | P2 | have | missing | `batch_compare_and_overlay_with_saved_batch_file_and_reports` Batch > Overlay Pages / batch_overlay: same matching, saved batch and reports; one overlay PDF per pair. |
-| ui-041 | Smart Overlay (Max plan) | P3 | missing | missing |  |
+| ui-041 | Smart Overlay (Max plan) | P3 | have | missing | `batch_sign_and_seal_smart_overlay_and_shell_integration` `batch_sign_and_seal_shell_integration_and_smart_overlay` `sheets_register_by_content_and_score` Batch > Smart Overlay: whole sets paired sheet by sheet, each registered by matching its drawing (not its page box), with a match score per sheet and per discipline (from the sheet number letters); CSV report from the tool. |
 
 ### 3. Search panel (text) and Visual Search
 
@@ -936,7 +936,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-094 | Close / Close All | P0 | have | partial | `document_tabs_cycle_close_others_close_all_and_save_all` Close (Ctrl+F4), Close Others, Close All (Ctrl+Shift+W). |
 | ui-095 | Context menu key | P3 | have | missing | `alt_menus_shift_f10_and_the_markupcraft_menu` Shift+F10 opens the selection's (or the page's) context menu; Esc closes it. |
 | ui-096 | Always on Top | P3 | have | missing | `full_screen_presentation_always_on_top_and_bars` Window > Always on Top (Ctrl+F12). |
-| ui-097 | WebTab | P3 | missing | missing |  |
+| ui-097 | WebTab | P3 | partial | missing | `web_tab_favorites_browser_and_capture` `web_tab_link_pages_and_page_capture` See doc-023: a Web Tab document of favourites plus an address bar; pages open in the system browser or are captured to PDF (no browser embedded, no GPU option). |
 | ui-098 | File Access panel | P1 | have | partial | `recent_files_reopen_at_the_last_page_and_pin` `file_access_history_by_day_and_categories` File Access panel (Alt+A): recents, pinned categories, history, Explorer. DMS integration is out of scope. |
 | ui-099 | Revu menu | P1 | have | missing | `alt_menus_shift_f10_and_the_markupcraft_menu` The MarkupCraft menu: About, Preferences, Customize Keyboard, Keyboard Shortcuts, Profiles, Exit (Admin is a Preferences page). |
 
@@ -1012,26 +1012,26 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-150 | General > Grid & Snap | P1 | have | missing | `preferences_dialog_applies_and_persists` `preferences_profiles_set_switch_export_import` Grid & Snap: units, grid spacing, snap to grid / content / markup, sensitivity; no snap-target filters or colour. |
 | ui-151 | General > Spelling | P3 | partial | missing | `spell_check_flags_markup_text_with_suggestions` Language (dictionary name), ignore ALL-CAPS and accepted words are tool options; no preferences page or user dictionary file yet. |
 | ui-152 | Interface > File Access | P3 | partial | missing | `preferences_dialog_applies_and_persists` Interface: recent files count, days kept, clear; no preview or DMS settings. |
-| ui-153 | Interface > Markups List | P1 | missing | missing |  |
-| ui-154 | Interface > Layers | P3 | missing | missing |  |
+| ui-153 | Interface > Markups List | P1 | partial | missing | `preferences_pages_are_shown_and_read_by_the_features` Preferences > Markups List: selecting a row goes to the markup (or only selects it). Group values on the dominant markup, rich-text and wrapped comments, export filtering and dimming are not offered. |
+| ui-154 | Interface > Layers | P3 | have | missing | `preferences_pages_are_shown_and_read_by_the_features` Preferences > Layers: hiding or showing a layer does the same to its child layers; list only the current page's layers. (No Surface Dial.) |
 | ui-155 | Tools > Markup | P1 | partial | missing | `preferences_dialog_applies_and_persists` `reuse_tool_keeps_drawing` Tools: reuse markup tools, measurement units and precision, colours of new markups (stored in the profile). |
-| ui-156 | Tools > Measure | P1 | missing | missing |  |
+| ui-156 | Tools > Measure | P1 | partial | missing | `preferences_pages_are_shown_and_read_by_the_features` Preferences > Measure: Dynamic Fill gap closing (edge sensitivity) and cutouts for islands. Split counts by space, fill DPI, cursor sizes, speed and colours are not offered. |
 | ui-157 | Tools > Sketch | P3 | partial | missing | `scrollbars_snap_targets_and_startup_preferences` Tools: Sketch to Scale angles absolute or relative; no ellipse width x height / radius choice. |
-| ui-158 | Tools > Forms | P3 | missing | missing |  |
-| ui-159 | Tools > Signature | P3 | missing | missing |  |
-| ui-160 | Window > Tablet | P3 | missing | missing |  |
+| ui-158 | Tools > Forms | P3 | have | missing | `preferences_pages_are_shown_and_read_by_the_features` Preferences > Forms: field highlight on/off, colour and opacity (drawn over the pages); single-key form tool shortcuts on/off. |
+| ui-159 | Tools > Signature | P3 | partial | missing | `preferences_pages_are_shown_and_read_by_the_features` Preferences > Signature: digital ID folder (its first ID is offered when signing) and trusted certificates folder (trusted when validating). No password timeout or blocking of changes that break signatures. |
+| ui-160 | Window > Tablet | P3 | partial | missing | `preferences_pages_are_shown_and_read_by_the_features` Preferences > Tablet: eraser size and whether it follows the zoom. Pen pressure, commit delay, lasso, handwriting and touch modes are not offered. |
 | ui-161 | Window > Presentation | P3 | have | missing | `full_screen_presentation_always_on_top_and_bars` Window: presentation loop and auto-advance interval. |
-| ui-162 | Window > WebTab | P3 | missing | missing |  |
-| ui-163 | Sets | P2 | missing | missing |  |
+| ui-162 | Window > WebTab | P3 | have | missing | `web_tab_favorites_browser_and_capture` `preferences_pages_are_shown_and_read_by_the_features` Preferences > WebTab: switch to new Web Tabs, links to web pages open in the browser or are captured, the capture browser and time limit, favourites. GPU and script-error options do not apply (no embedded browser). |
+| ui-163 | Sets | P2 | partial | missing | `preferences_pages_are_shown_and_read_by_the_features` Preferences > Sets: open a sheet in place of the Set sheet in the current tab; latest revision only. Paths, display, categories, sort rules and revision stamping options are not offered here. |
 | ui-164 | Studio | P3 | excluded | missing | Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF. |
-| ui-165 | Import/Export | P3 | missing | missing |  |
+| ui-165 | Import/Export | P3 | partial | missing | `preferences_pages_are_shown_and_read_by_the_features` `scanner_and_camera_into_markups_pages_and_new_pdfs` Preferences > Import/Export: image export DPI, scan DPI, the scanner address, and the largest camera/scanner picture size. Office reconstruction, colour space and TIFF options are not offered. |
 | ui-166 | Advanced > 2D Rendering | P2 | partial | missing | Advanced: dimmer amount, crosshair, disable line weights; no rendering engine or DPI options. |
 | ui-167 | Advanced > 3D Rendering | P3 | excluded | missing | Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF. |
 | ui-168 | Advanced > JavaScript / PDF/A | P3 | partial | missing | `certified_pdfa_and_signed_documents_guard_page_edits` Advanced: PDF/A documents open locked for page edits (on by default); document JavaScript never runs; no conversion options. |
 | ui-169 | Admin | P2 | partial | missing | `preferences_dialog_applies_and_persists` Admin: back up, restore and reset settings, profiles; no viewer, log or browser options. |
 | ui-170 | Admin > settings backup/restore | P2 | have | missing | `preferences_dialog_applies_and_persists` Admin: Back Up Settings writes the active profile to a file; Restore reads one back. |
 | ui-171 | Admin > AI assistant (MCP) connectors | P3 | have | missing | `scrollbars_snap_targets_and_startup_preferences` Admin > AI assistants (MCP): Copy MCP Configuration puts the markupcraft-cli mcp server entry on the clipboard for an assistant (opt-in, stdio, --root folder only). |
-| ui-172 | Integrations | P3 | missing | missing |  |
+| ui-172 | Integrations | P3 | have | missing | `preferences_pages_are_shown_and_read_by_the_features` Preferences > Integrations: third-party services by name and region, each with a sign-in page opened in the browser. |
 
 ### 10. Mouse, gestures and modifier keys
 
@@ -1046,16 +1046,16 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-179 | Shift+drag multi-select; Shift+click add | P0 | have | have | `box_select_and_view_commands` `click_selects_drag_moves_delete_and_undo` Drag a box to select several; Shift / Ctrl+click adds. |
 | ui-180 | Shift ortho / 45-degree lock | P0 | have | partial | `shift_constrains_a_line_and_a_drag_makes_an_arrow` Shift constrains to 0 / 45 / 90 degrees from the last point. |
 | ui-181 | Shift: square / circle | P1 | have | have | `right_drag_selects_ctrl_drag_copies_and_shift_drag_moves_straight` `shift_constrains_a_line_and_a_drag_makes_an_arrow` Shift makes a rectangle square and an ellipse a circle; lines keep to 45 degree steps. |
-| ui-182 | Alt: draw from center / 3-point arc | P2 | missing | missing |  |
+| ui-182 | Alt: draw from center / 3-point arc | P2 | have | missing | `modifier_keys_draw_from_centre_arcs_vertices_aspect_and_callouts` `alt_clicked_points_become_three_point_arcs` `alt_draws_from_the_centre` Alt while dragging a box tool draws from the centre; Alt+click while drawing a polyline, polygon or measurement makes a three-point arc through that point. |
 | ui-183 | Shift-drag move in straight line | P1 | have | have | `right_drag_selects_ctrl_drag_copies_and_shift_drag_moves_straight` Shift+drag moves the selection along one axis. |
 | ui-184 | Ctrl-drag copy; Ctrl+Shift-drag copy straight | P1 | have | have | `right_drag_selects_ctrl_drag_copies_and_shift_drag_moves_straight` Ctrl+drag drops a copy; Ctrl+Shift+drag copies along one axis. |
 | ui-185 | Paste in place | P1 | have | have | `engine_commands_and_page_operations` Edit > Paste in Place (Ctrl+Shift+V). |
-| ui-186 | Shift-click vertex add/delete | P1 | missing | have |  |
-| ui-187 | Ctrl-click vertex to curve | P3 | missing | missing |  |
+| ui-186 | Shift-click vertex add/delete | P1 | have | have | `modifier_keys_draw_from_centre_arcs_vertices_aspect_and_callouts` Shift+click a vertex of the selected polyline, polygon or measurement deletes it; Shift+click a segment adds one. |
+| ui-187 | Ctrl-click vertex to curve | P3 | have | missing | `modifier_keys_draw_from_centre_arcs_vertices_aspect_and_callouts` Ctrl+click a vertex: its segment becomes an arc, or an arc goes back to straight; Ctrl+drag a segment bends it. Handles already move on their own. |
 | ui-188 | Rotation snap 15 degrees | P2 | have | missing | `right_drag_selects_ctrl_drag_copies_and_shift_drag_moves_straight` `rotation_handle_turns_a_markup` The rotation handle turns in 15 degree steps; Shift frees it to whole degrees; boxes by quarter turns. |
 | ui-189 | Shift-drag measurement caption | P1 | have | have | `shift_drag_moves_a_caption_alone` Shift+drag a measurement's caption. |
-| ui-190 | Shift breaks aspect ratio | P3 | missing | missing |  |
-| ui-191 | Alt-drag callout as whole | P3 | missing | missing |  |
+| ui-190 | Shift breaks aspect ratio | P3 | partial | missing | `modifier_keys_draw_from_centre_arcs_vertices_aspect_and_callouts` `corner_resizes_keep_the_aspect_ratio` Stamps resized from a corner keep their aspect ratio; Shift breaks it. Polylines and polygons have no corner box (they reshape by vertex) and image stamps are not resized. |
+| ui-191 | Alt-drag callout as whole | P3 | have | missing | `modifier_keys_draw_from_centre_arcs_vertices_aspect_and_callouts` Alt+drag a callout's handle moves the whole callout (box, leader and tip). |
 | ui-192 | Ctrl-click link opens in background | P3 | partial | missing | Ctrl+click a File Access entry opens it behind the current tab; links on the page do not yet. |
 | ui-193 | Esc behavior | P0 | have | have | `escape_cancels_a_drawing` `full_screen_presentation_always_on_top_and_bars` Esc cancels the drawing, ends multi-click tools, leaves full screen and presentation. |
 | ui-194 | Enter / double-click to finish | P0 | have | have | `polyline_takes_clicks_backspace_and_enter` `area_shows_its_value_and_finishes_on_double_click` Enter or a double-click finishes. |
@@ -1100,7 +1100,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-223 | Bluebeam Cloud integration (high level) | P2 | excluded | missing | Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF. |
 | ui-224 | DMS / SharePoint integration | P3 | excluded | missing | Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF. |
 | ui-225 | CAD and Office plugins (high level) | P3 | excluded | missing | Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF. |
-| ui-226 | Scripting (high level) | P3 | missing | missing |  |
+| ui-226 | Scripting (high level) | P3 | have | missing | `javascript_console_runs_scripts_on_the_form` `javascript_console_and_document_scripts` `the_console_reads_and_sets_fields` Automation scripts: `markupcraft-cli run --script steps.json` runs the tool table on files (`markupcraft-cli tools` is the reference); document JavaScript runs in PdfCraft's sandboxed interpreter (Window > JavaScript Console, Tools > Run Document JavaScript, javascript tool). |
 
 ## Default keyboard shortcuts
 
@@ -1120,7 +1120,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-010 | Bring Forward (Ctrl + ]) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-011 | Bring to Front (Ctrl + Shift + ]) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-012 | Callout (Q) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-013 | Camera (Ctrl + Alt + I) |  | missing | missing | Camera capture needs a camera device API; not built for the desktop build yet (Image places a picture file). |
+| key-013 | Camera (Ctrl + Alt + I) |  | have | missing | `wave6a_shortcuts_are_bound` `scanner_and_camera_into_markups_pages_and_new_pdfs` Ctrl+Alt+I opens the Camera tab (the system camera needs the app's camera feature). |
 | key-014 | Spell Check (F7) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-015 | Cloud (C) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-016 | Cloud+ (K) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
@@ -1137,7 +1137,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-027 | Highlight (H) |  | have | partial | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-028 | Hyperlink (Shift + H) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-029 | Image (I) |  | have | missing | `revu_markup_measure_and_selection_shortcuts_are_bound` `stamp_library_places_a_stamp_and_an_image` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-030 | Image From Scanner (Shift + I) |  | missing | missing | Scanning needs a scanner (TWAIN / WIA) API; not built yet (Image places a picture file). |
+| key-030 | Image From Scanner (Shift + I) |  | have | missing | `wave6a_shortcuts_are_bound` `scanner_and_camera_into_markups_pages_and_new_pdfs` Scanning needs a scanner (TWAIN / WIA) API; not built yet (Image places a picture file). |
 | key-031 | Import (Ctrl + F3) |  | have | missing | `revu_markup_measure_and_selection_shortcuts_are_bound` `import_and_export_markups_as_xfdf` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 
 ### Measure
@@ -1244,7 +1244,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-104 | Switch (Ctrl + 1) |  | have | partial | `revu_window_view_document_file_shortcuts_are_bound` `split_views_sync_switch_balance_unsplit` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-105 | Toggle Split (Ctrl + I) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `split_views_sync_switch_balance_unsplit` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-106 | Unsplit (Ctrl + Shift + 2) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `split_views_sync_switch_balance_unsplit` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-107 | Web Tab (Ctrl + T) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-107 | Web Tab (Ctrl + T) |  | have | missing | `wave6a_shortcuts_are_bound` `web_tab_favorites_browser_and_capture` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 
 ### Selection
 
@@ -1285,7 +1285,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-130 | Insert Blank Page (Ctrl + Shift + N) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-131 | Insert Pages (Ctrl + Shift + I) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-132 | Mark for Redaction (Shift + R) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-133 | Mark Text for Redaction (Shift + K) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-133 | Mark Text for Redaction (Shift + K) |  | have | missing | `wave6a_shortcuts_are_bound` `mark_text_for_redaction_snapshot_content_and_sketch_commands` `mark_text_for_redaction_marks_the_words_under_a_box` Shift+K: drag over text; every word the box touches is marked for redaction. C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-134 | OCR (Ctrl + Shift + O) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-135 | Refresh Document (Shift + F5) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `new_blank_pdf_and_refresh_from_disk` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-136 | Replace Pages (Ctrl + Shift + Y) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `extract_and_replace_pages_through_dialogs` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
@@ -1293,11 +1293,11 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-138 | Rotate Counterclockwise (Shift + Alt + Minus) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-139 | Rotate Pages (Ctrl + Shift + R) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `page_dialogs_insert_rotate_crop_setup_delete` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-140 | Security (Ctrl + L) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-141 | Snapshot Content (Shift + G) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-142 | Squiggly (Shift + U) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-141 | Snapshot Content (Shift + G) |  | have | missing | `wave6a_shortcuts_are_bound` `mark_text_for_redaction_snapshot_content_and_sketch_commands` Shift+G: drag a box; its content becomes a snapshot markup in place. C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-142 | Squiggly (Shift + U) |  | have | missing | `wave6a_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-143 | Strikethrough (D) |  | have | missing | `copy_page_to_snapshot_select_all_text_and_format_painter_keys` Strikethrough tool (D). |
 | key-144 | Underline (U) |  | have | missing | `copy_page_to_snapshot_select_all_text_and_format_painter_keys` Underline tool (U). |
-| key-145 | Unflatten (Ctrl + Shift + U) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-145 | Unflatten (Ctrl + Shift + U) |  | have | missing | `wave6a_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 
 ### Window
 
@@ -1311,7 +1311,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-151 | Forms (Alt + Q) |  | have | missing | `revu_window_and_markupcraft_keys_are_bound` Window > Forms (Alt+Q) opens Tools > Form Fields. |
 | key-152 | Full Screen (F11) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `full_screen_presentation_always_on_top_and_bars` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-153 | Hide Panels (Shift + F4) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `full_screen_presentation_always_on_top_and_bars` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-154 | JavaScript Console (Alt + J) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-154 | JavaScript Console (Alt + J) |  | have | missing | `wave6a_shortcuts_are_bound` `javascript_console_runs_scripts_on_the_form` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-155 | Layers (Alt + Y) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-156 | Links (Alt + N) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-157 | Markups (Alt + L) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
