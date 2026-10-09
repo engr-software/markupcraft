@@ -99,7 +99,24 @@ impl Session {
         } else {
             opts.max_hits.min(MAX_HITS)
         };
-        let mut renderer = PageRenderer::new(self.current_bytes()?, RenderConfig::default());
+        // Page text only: markup appearances (Search Markups) and form field values (Search
+        // Form Fields) are separate targets, so neither is read here.
+        let config = RenderConfig {
+            hide_comments: true,
+            ..RenderConfig::default()
+        };
+        let mut renderer = PageRenderer::new(self.current_bytes()?, config);
+        let fields: Vec<(usize, Rect)> = self
+            .form_fields()
+            .into_iter()
+            .filter_map(|f| Some((f.page?, f.rect?.normalized())))
+            .collect();
+        let in_field = |page: usize, r: &Rect| {
+            let (cx, cy) = ((r.x0 + r.x1) / 2.0, (r.y0 + r.y1) / 2.0);
+            fields
+                .iter()
+                .any(|(p, f)| *p == page && f.x0 <= cx && cx <= f.x1 && f.y0 <= cy && cy <= f.y1)
+        };
         let mut report = SearchReport::default();
         for page in pages {
             let Some(info) = self.doc.pages.get(page) else { continue };
@@ -124,7 +141,10 @@ impl Session {
                         let u = geom.view_rect_to_user(r);
                         Rect::new(u[0] as f64, u[1] as f64, u[2] as f64, u[3] as f64)
                     })
-                    .collect();
+                    .collect::<Vec<Rect>>();
+                if !rects.is_empty() && rects.iter().all(|r| in_field(page, r)) {
+                    continue;
+                }
                 let from = range.start.saturating_sub(CONTEXT);
                 let to = range.end.saturating_add(CONTEXT).min(text.glyphs.len());
                 report.hits.push(SearchHit {

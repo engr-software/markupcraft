@@ -183,7 +183,7 @@ fn sign_window(app: &mut AppState, ctx: &egui::Context) {
             });
             ui.end_row();
             ui.label("Certify");
-            ui.checkbox(&mut s.certify, "Certify (no changes allowed after)");
+            ui.checkbox(&mut s.certify, "Certify (only form fill-in and signing allowed after)");
             ui.end_row();
         });
         if !s.message.is_empty() {

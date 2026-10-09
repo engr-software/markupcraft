@@ -90,7 +90,10 @@ pub static SEARCH: Tool = Tool {
             }
             return Ok(json!({ "files": out }));
         }
-        if !files.is_empty() {
+        // Other files were asked for (a list, a folder or a Set): search those only, even when
+        // there are none (an empty folder finds nothing, not the open document's text).
+        let elsewhere = args.has("files") || args.has("folder") || args.has("set");
+        if elsewhere {
             let r = search_files(&files, text, &opts0, &targets);
             let total: usize = r.iter().map(|f| f.hits.len()).sum();
             return Ok(json!({

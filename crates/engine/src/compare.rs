@@ -754,7 +754,21 @@ pub fn compare_bytes(old: &Renderable, new: &Renderable, opts: &CompareOptions) 
             }
         }
         if opts.mode.text() {
+            // The ignore margin applies to text changes too: a word lying wholly in the band
+            // along the crop box edge is not a change.
+            let inner = if opts.margin_pt > 0.0 {
+                let c = new.geom(n)?.crop;
+                let m = opts.margin_pt;
+                let (x0, x1) = (c[0].min(c[2]) as f64, c[0].max(c[2]) as f64);
+                let (y0, y1) = (c[1].min(c[3]) as f64, c[1].max(c[3]) as f64);
+                Some(Rect::new(x0 + m, y0 + m, (x1 - m).max(x0 + m), (y1 - m).max(y0 + m)))
+            } else {
+                None
+            };
             for r in text_regions(old, new, o, n)? {
+                if inner.is_some_and(|i| !overlaps(&r.rect, &i)) {
+                    continue;
+                }
                 text_n += 1;
                 page_regions.push(r);
             }

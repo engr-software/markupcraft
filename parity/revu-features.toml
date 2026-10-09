@@ -7058,6 +7058,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:68"
 status = "have"
 cpp = "missing"
 evidence = ["compare_documents_clouds_changes_on_the_newer_revision", "compare_documents_clouds_text_and_graphic_changes"]
+accepted = ["compare_clouds_every_change_and_nothing_else"]
+acceptance = "pass"
 notes = "Engine Session::compare_with + tool compare_documents: raster diff of rendered pages clustered into regions, plus a word diff (pdfcraft-compare); clouds on the newer document. No dialog yet."
 
 [[feature]]
@@ -7071,6 +7073,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:69"
 status = "have"
 cpp = "missing"
 evidence = ["compare_documents_clouds_changes_on_the_newer_revision", "compare_documents_clouds_the_changes_and_reviews_them"]
+accepted = ["compare_clouds_every_change_and_nothing_else"]
+acceptance = "pass"
 notes = "Compare Documents dialog: older (A) from an open tab or Browse, newer (B) from the open tabs; results in the Compare panel (accept, reject, step through)."
 
 [[feature]]
@@ -7084,6 +7088,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:70"
 status = "have"
 cpp = "missing"
 evidence = ["compare_documents_clouds_changes_on_the_newer_revision"]
+accepted = ["compare_page_range_per_side"]
+acceptance = "pass"
 notes = "pairs: [[old page, new page], ...]; default pairs every page in order."
 
 [[feature]]
@@ -7097,6 +7103,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:71"
 status = "have"
 cpp = "missing"
 evidence = ["alignment_registers_a_shifted_sheet", "compare_alignment_appearance_and_presets"]
+accepted = ["compare_alignment_methods_register_a_shifted_sheet"]
+acceptance = "pass"
 notes = "Page align (stacked), Auto align (best shift of the linework), a known offset, or two matching points (scale, rotation, offset)."
 
 [[feature]]
@@ -7110,6 +7118,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:72"
 status = "have"
 cpp = "missing"
 evidence = ["compare_documents_clouds_text_and_graphic_changes"]
+accepted = ["compare_selected_window_only"]
+acceptance = "pass"
 notes = "window: a rectangle of the new page."
 
 [[feature]]
@@ -7123,7 +7133,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:73"
 status = "have"
 cpp = "missing"
 evidence = ["compare_documents_clouds_changes_on_the_newer_revision"]
-notes = "Clouds (orange by default) on the open newer document as one undo step; save-as keeps the original untouched."
+accepted = ["compare_clouds_every_change_and_nothing_else"]
+acceptance = "gap"
+notes = "Clouds (orange by default) on the open newer document as one undo step; save-as keeps the original untouched. Acceptance gap: the clouds go on the open revised document (one undo step) rather than on a separate _Diff result copy; the files on disk only change if it is saved (Save As keeps the originals). Batch Compare does write result copies."
 
 [[feature]]
 id = "ui-007"
@@ -7136,6 +7148,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:74"
 status = "have"
 cpp = "missing"
 evidence = ["alignment_registers_a_shifted_sheet", "compare_alignment_appearance_and_presets", "compare_advanced_options_and_review_in_split_view_with_the_dimmer"]
+accepted = ["compare_difference_markup_appearance"]
+acceptance = "pass"
 notes = "Subject, colour, fill, fill opacity, line opacity, width, cloud on/off and lock on place."
 
 [[feature]]
@@ -7149,6 +7163,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:75"
 status = "have"
 cpp = "missing"
 evidence = ["compare_alignment_appearance_and_presets", "alignment_registers_a_shifted_sheet"]
+accepted = ["compare_presets_builtin_custom_and_restore"]
+acceptance = "pass"
 notes = "Built-in same_printer, different_printer, scanned; custom presets saved in the config folder (compare_preset save/delete/list, restore defaults)."
 
 [[feature]]
@@ -7162,6 +7178,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:76"
 status = "have"
 cpp = "missing"
 evidence = ["compare_documents_clouds_text_and_graphic_changes", "nearby_changes_merge_and_margins_are_ignored"]
+accepted = ["compare_grid_density_sensitivity_and_dpi"]
+acceptance = "pass"
 notes = "cell (grid size) and density (changed pixels per cell)."
 
 [[feature]]
@@ -7175,6 +7193,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:77"
 status = "have"
 cpp = "missing"
 evidence = ["compare_documents_clouds_text_and_graphic_changes"]
+accepted = ["compare_grid_density_sensitivity_and_dpi"]
+acceptance = "pass"
 notes = "sensitivity 0 to 1 sets the ink-difference threshold."
 
 [[feature]]
@@ -7188,6 +7208,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:78"
 status = "have"
 cpp = "missing"
 evidence = ["compare_documents_clouds_text_and_graphic_changes"]
+accepted = ["compare_grid_density_sensitivity_and_dpi"]
+acceptance = "pass"
 notes = "dpi (default 100, 18 to 600)."
 
 [[feature]]
@@ -7201,7 +7223,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:79"
 status = "have"
 cpp = "missing"
 evidence = ["nearby_changes_merge_and_margins_are_ignored"]
-notes = "margin in points."
+accepted = ["compare_ignore_margin"]
+acceptance = "fixed"
+notes = "margin in points. Acceptance: text changes inside the ignore margin were still clouded (only graphics honoured it); fixed."
 
 [[feature]]
 id = "ui-013"
@@ -7214,6 +7238,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:80"
 status = "have"
 cpp = "missing"
 evidence = ["recoverable_flatten_unflattens_and_hides_from_compare", "compare_alignment_appearance_and_presets"]
+accepted = ["compare_include_markups_and_flattened"]
+acceptance = "pass"
 notes = "include_markups and include_flattened (recoverable flattened markups are left out by default)."
 
 [[feature]]
@@ -7227,6 +7253,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:81"
 status = "have"
 cpp = "missing"
 evidence = ["alignment_registers_a_shifted_sheet", "compare_alignment_appearance_and_presets"]
+accepted = ["compare_alignment_methods_register_a_shifted_sheet"]
+acceptance = "pass"
 notes = "Auto align (translation search of the linework, reported) or a known X/Y offset in points."
 
 [[feature]]
@@ -7240,6 +7268,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:82"
 status = "have"
 cpp = "partial"
 evidence = ["compare_documents_clouds_changes_on_the_newer_revision"]
+accepted = ["compare_clouds_every_change_and_nothing_else"]
+acceptance = "pass"
 notes = "Every change is a Cloud markup with subject Compare and the change in its comment."
 
 [[feature]]
@@ -7253,6 +7283,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:83"
 status = "have"
 cpp = "missing"
 evidence = ["compare_advanced_options_and_review_in_split_view_with_the_dimmer"]
+accepted = ["compare_review_split_view_and_dimmer"]
+acceptance = "pass"
 notes = "Compare > Review in split view with the dimmer (or Split + Dimmer in the Compare panel): the older revision beside the newer, synchronised page for page, the drawing dimmed."
 
 [[feature]]
@@ -7266,6 +7298,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:84"
 status = "have"
 cpp = "missing"
 evidence = ["batch_compare_and_overlay_with_saved_batch_file_and_reports", "batch_compare_wizard_matches_drags_to_repair_and_reports"]
+accepted = ["batch_compare_folders_with_filter_and_report"]
+acceptance = "pass"
 notes = "Batch > Compare Documents wizard / batch_compare: every pair compared, one clouded copy per revised file."
 
 [[feature]]
@@ -7279,6 +7313,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:85"
 status = "have"
 cpp = "missing"
 evidence = ["batch_compare_and_overlay_with_saved_batch_file_and_reports", "batch_compare_wizard_matches_drags_to_repair_and_reports"]
+accepted = ["batch_compare_folders_with_filter_and_report"]
+acceptance = "pass"
 notes = "Add files, the open files, a folder, or a folder with subfolders."
 
 [[feature]]
@@ -7292,6 +7328,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:86"
 status = "have"
 cpp = "missing"
 evidence = ["batch_compare_and_overlay_with_saved_batch_file_and_reports", "batch_compare_wizard_matches_drags_to_repair_and_reports"]
+accepted = ["batch_match_modes_repair_and_saved_job"]
+acceptance = "pass"
 notes = "Match by file name + page index, page label, the text of a title-block region, or manual pairs."
 
 [[feature]]
@@ -7305,6 +7343,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:87"
 status = "have"
 cpp = "missing"
 evidence = ["wildcard_filters_cut_the_sheet_key", "batch_compare_and_overlay_with_saved_batch_file_and_reports"]
+accepted = ["batch_compare_folders_with_filter_and_report"]
+acceptance = "pass"
 notes = "Our filter syntax: # digit run, @ letter run, * non-digit run, ? separator, \\ escape."
 
 [[feature]]
@@ -7318,6 +7358,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:88"
 status = "have"
 cpp = "missing"
 evidence = ["batch_compare_wizard_matches_drags_to_repair_and_reports"]
+accepted = ["batch_match_modes_repair_and_saved_job"]
+acceptance = "pass"
 notes = "Drag a revised sheet onto another row to swap the pairing; x removes a pair."
 
 [[feature]]
@@ -7331,6 +7373,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:89"
 status = "have"
 cpp = "missing"
 evidence = ["batch_compare_and_overlay_with_saved_batch_file_and_reports", "batch_compare_wizard_matches_drags_to_repair_and_reports"]
+accepted = ["batch_match_modes_repair_and_saved_job"]
+acceptance = "pass"
 notes = "Save Batch / Open Batch: the lists, matching and pairs as a .pcbatch JSON shared by batch compare and batch overlay."
 
 [[feature]]
@@ -7344,6 +7388,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:90"
 status = "have"
 cpp = "missing"
 evidence = ["batch_compare_and_overlay_with_saved_batch_file_and_reports", "batch_compare_wizard_matches_drags_to_repair_and_reports"]
+accepted = ["batch_compare_folders_with_filter_and_report"]
+acceptance = "pass"
 notes = "Pairs with their difference counts; CSV or PDF report (date stamp, page size, a link to each result)."
 
 [[feature]]
@@ -7357,6 +7403,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:96"
 status = "have"
 cpp = "missing"
 evidence = ["overlay_pages_writes_coloured_toggleable_layers", "overlay_recolours_layers_and_keeps_them_toggleable"]
+accepted = ["overlay_recolors_and_stacks_revisions_as_layers"]
+acceptance = "pass"
 notes = "overlay::overlay_pages + tool overlay_pages: vector layers recoloured with Lighten in isolated groups, stacked with Multiply."
 
 [[feature]]
@@ -7370,6 +7418,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:97"
 status = "have"
 cpp = "missing"
 evidence = ["overlay_pages_writes_coloured_toggleable_layers", "overlay_pages_writes_the_overlay_and_opens_it"]
+accepted = ["overlay_recolors_and_stacks_revisions_as_layers"]
+acceptance = "pass"
 notes = "Overlay Pages dialog lists the open documents and added files (check, page, colour, opacity per layer); the result opens in a new tab."
 
 [[feature]]
@@ -7383,6 +7433,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:98"
 status = "have"
 cpp = "missing"
 evidence = ["overlay_pages_writes_coloured_toggleable_layers", "overlay_recolours_layers_and_keeps_them_toggleable"]
+accepted = ["overlay_recolors_and_stacks_revisions_as_layers"]
+acceptance = "pass"
 notes = "Default red, blue, green, magenta, orange, cyan; colour per layer."
 
 [[feature]]
@@ -7396,6 +7448,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:99"
 status = "have"
 cpp = "missing"
 evidence = ["three_points_auto_region_background_and_blend", "overlay_three_points_auto_region_background_and_defaults"]
+accepted = ["overlay_layer_background_and_opacity"]
+acceptance = "pass"
 notes = "Per-layer background colour for the layer's whitespace (transparent by default)."
 
 [[feature]]
@@ -7409,6 +7463,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:100"
 status = "have"
 cpp = "missing"
 evidence = ["overlay_pages_writes_coloured_toggleable_layers"]
+accepted = ["overlay_layer_background_and_opacity"]
+acceptance = "pass"
 notes = "opacity per layer."
 
 [[feature]]
@@ -7422,6 +7478,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:101"
 status = "have"
 cpp = "missing"
 evidence = ["three_points_auto_region_background_and_blend", "overlay_three_points_auto_region_background_and_defaults"]
+accepted = ["overlay_recolors_and_stacks_revisions_as_layers", "overlay_blend_mode_and_advanced_shading"]
+acceptance = "pass"
 notes = "Multiply (default), Darken, Normal, Screen or Difference, per layer or as the default."
 
 [[feature]]
@@ -7435,6 +7493,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:102"
 status = "have"
 cpp = "missing"
 evidence = ["overlay_advanced_color_shading", "batch_sign_and_seal_shell_integration_and_smart_overlay"]
+accepted = ["overlay_blend_mode_and_advanced_shading"]
+acceptance = "pass"
 notes = "Overlay Pages > Edit Defaults > Advanced color shading: layer colours laid on with Screen instead of Lighten, so grey linework, fills and hatching keep their tone; also in Smart Overlay and the overlay_pages tool."
 
 [[feature]]
@@ -7448,6 +7508,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:103"
 status = "have"
 cpp = "missing"
 evidence = ["overlay_pages_writes_coloured_toggleable_layers"]
+accepted = ["overlay_recolors_and_stacks_revisions_as_layers", "overlay_alignment_page_auto_points_and_position_defaults"]
+acceptance = "pass"
 notes = "align page (as positioned) and bounds (stretched to the first page)."
 
 [[feature]]
@@ -7461,6 +7523,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:104"
 status = "have"
 cpp = "missing"
 evidence = ["three_points_auto_region_background_and_blend", "overlay_three_points_auto_align_and_defaults"]
+accepted = ["overlay_alignment_page_auto_points_and_position_defaults"]
+acceptance = "pass"
 notes = "Auto Align fits the layer's linework extents onto the first layer's (uniform scale and offset) for sheets of different size or scale; no Auto Align Limit."
 
 [[feature]]
@@ -7474,6 +7538,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:105"
 status = "have"
 cpp = "missing"
 evidence = ["three_points_auto_region_background_and_blend", "overlay_three_points_auto_region_background_and_defaults", "overlay_three_points_auto_align_and_defaults"]
+accepted = ["overlay_alignment_page_auto_points_and_position_defaults"]
+acceptance = "pass"
 notes = "Three matching points per layer (full affine map); two points also accepted."
 
 [[feature]]
@@ -7487,6 +7553,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:106"
 status = "have"
 cpp = "missing"
 evidence = ["three_points_auto_region_background_and_blend", "overlay_three_points_auto_region_background_and_defaults"]
+accepted = ["overlay_region_and_pages_per_layer"]
+acceptance = "pass"
 notes = "Per-layer region: only that box of the sheet is overlaid."
 
 [[feature]]
@@ -7500,6 +7568,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:107"
 status = "have"
 cpp = "missing"
 evidence = ["overlay_pages_writes_coloured_toggleable_layers"]
+accepted = ["overlay_region_and_pages_per_layer"]
+acceptance = "pass"
 notes = "pages per layer."
 
 [[feature]]
@@ -7513,6 +7583,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:108"
 status = "have"
 cpp = "missing"
 evidence = ["overlay_pages_writes_coloured_toggleable_layers"]
+accepted = ["overlay_recolors_and_stacks_revisions_as_layers"]
+acceptance = "pass"
 notes = "name per layer (default Layer n)."
 
 [[feature]]
@@ -7526,6 +7598,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:109"
 status = "have"
 cpp = "missing"
 evidence = ["overlay_three_points_auto_region_background_and_defaults", "overlay_three_points_auto_align_and_defaults"]
+accepted = ["overlay_alignment_page_auto_points_and_position_defaults"]
+acceptance = "pass"
 notes = "Edit Defaults: rotation, scale and X/Y offset (and blend) for the layers."
 
 [[feature]]
@@ -7539,6 +7613,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:110"
 status = "have"
 cpp = "missing"
 evidence = ["recoverable_flatten_unflattens_and_hides_from_compare", "overlay_three_points_auto_region_background_and_defaults"]
+accepted = ["overlay_include_flattened_markups"]
+acceptance = "pass"
 notes = "include_flattened (recoverable flattened markups left out by default)."
 
 [[feature]]
@@ -7552,6 +7628,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:111"
 status = "have"
 cpp = "missing"
 evidence = ["overlay_pages_writes_coloured_toggleable_layers"]
+accepted = ["overlay_recolors_and_stacks_revisions_as_layers"]
+acceptance = "pass"
 notes = "Each layer is an optional content group listed in /OCProperties, all on."
 
 [[feature]]
@@ -7565,6 +7643,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:112"
 status = "have"
 cpp = "missing"
 evidence = ["batch_compare_and_overlay_with_saved_batch_file_and_reports"]
+accepted = ["batch_overlay_and_smart_overlay"]
+acceptance = "pass"
 notes = "Batch > Overlay Pages / batch_overlay: same matching, saved batch and reports; one overlay PDF per pair."
 
 [[feature]]
@@ -7578,6 +7658,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:113"
 status = "have"
 cpp = "missing"
 evidence = ["batch_sign_and_seal_smart_overlay_and_shell_integration", "batch_sign_and_seal_shell_integration_and_smart_overlay", "sheets_register_by_content_and_score"]
+accepted = ["batch_overlay_and_smart_overlay"]
+acceptance = "pass"
 notes = "Batch > Smart Overlay: whole sets paired sheet by sheet, each registered by matching its drawing (not its page box), with a match score per sheet and per discipline (from the sheet number letters); CSV report from the tool."
 
 [[feature]]
@@ -7591,6 +7673,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:119"
 status = "have"
 cpp = "have"
 evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results"]
+accepted = ["text_search_page_text_modifiers_and_hit_positions", "search_panel_results_stepping_and_clear"]
+acceptance = "pass"
 notes = "Search panel (Alt+1, Ctrl+F): text and Visual Search tabs, results list, hits highlighted on the pages."
 
 [[feature]]
@@ -7604,7 +7688,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:120"
 status = "have"
 cpp = "partial"
 evidence = ["search_across_files_folders_sets_and_open_documents", "search_scopes_targets_f3_replace_and_selected_text"]
-notes = "Current page, page range, document, all open documents, current Set, recent files, folder (subfolders optional); hits in other files open them."
+accepted = ["text_search_scopes"]
+acceptance = "fixed"
+notes = "Current page, page range, document, all open documents, current Set, recent files, folder (subfolders optional); hits in other files open them. Acceptance: a folder (or file list) holding no PDFs searched the open document instead and reported its hits; fixed (it finds nothing). The Studio Project scope is not offered."
 
 [[feature]]
 id = "ui-044"
@@ -7617,6 +7703,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:121"
 status = "have"
 cpp = "have"
 evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results", "text_search_finds_hits_with_rectangles"]
+accepted = ["text_search_page_text_modifiers_and_hit_positions", "text_search_markups_file_names_properties_and_fields"]
+acceptance = "fixed"
+notes = "Acceptance: the page text search also matched markup appearances and form field values, which have their own options; fixed (page text only)."
 
 [[feature]]
 id = "ui-045"
@@ -7629,6 +7718,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:122"
 status = "have"
 cpp = "missing"
 evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results", "markup_text_matches"]
+accepted = ["text_search_markups_file_names_properties_and_fields"]
+acceptance = "pass"
 notes = "Comments, subjects, labels and authors of markups; a result selects its markup."
 
 [[feature]]
@@ -7642,6 +7733,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:123"
 status = "have"
 cpp = "missing"
 evidence = ["search_across_files_folders_sets_and_open_documents", "search_all_looks_in_names_properties_and_markups"]
+accepted = ["text_search_markups_file_names_properties_and_fields"]
+acceptance = "pass"
 notes = "File names (folder, Set, recent files), document properties (standard and custom) and form field values."
 
 [[feature]]
@@ -7655,6 +7748,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:124"
 status = "have"
 cpp = "have"
 evidence = ["markup_text_matches", "text_search_finds_hits_with_rectangles"]
+accepted = ["text_search_page_text_modifiers_and_hit_positions"]
+acceptance = "pass"
 notes = "Match case and Whole words in the Search panel."
 
 [[feature]]
@@ -7668,6 +7763,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:125"
 status = "have"
 cpp = "have"
 evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results"]
+accepted = ["text_search_page_text_modifiers_and_hit_positions", "search_panel_results_stepping_and_clear"]
+acceptance = "pass"
 notes = "Results grouped by page with their context; click to centre a result."
 
 [[feature]]
@@ -7681,6 +7778,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:126"
 status = "have"
 cpp = "have"
 evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results"]
+accepted = ["search_panel_results_stepping_and_clear"]
+acceptance = "pass"
 notes = "Prev / Next buttons, wrapping around."
 
 [[feature]]
@@ -7694,6 +7793,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:127"
 status = "have"
 cpp = "missing"
 evidence = ["search_scopes_targets_f3_replace_and_selected_text", "replace_checked_text_and_read_a_selection"]
+accepted = ["search_selected_text"]
+acceptance = "pass"
 notes = "Search Selected Text: the dragged text is searched in the current PDF."
 
 [[feature]]
@@ -7707,7 +7808,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:128"
 status = "have"
 cpp = "missing"
 evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results"]
-notes = "Check boxes per result, Check all; Highlight, Count or Redact the checked results."
+accepted = ["search_check_results_and_bulk_actions"]
+acceptance = "gap"
+notes = "Check boxes per result, Check all; Highlight, Count or Redact the checked results. Acceptance gap: checked results can be highlighted, counted or marked for redaction; Revu's underline, squiggly, strikethrough and hyperlink check options are not offered."
 
 [[feature]]
 id = "ui-052"
@@ -7720,6 +7823,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:129"
 status = "have"
 cpp = "missing"
 evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results", "visual_search_picks_a_region_and_finds_the_symbol"]
+accepted = ["search_check_results_and_bulk_actions"]
+acceptance = "pass"
 notes = "One Count per page at the checked results, subject = the search text."
 
 [[feature]]
@@ -7733,6 +7838,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:130"
 status = "have"
 cpp = "missing"
 evidence = ["replace_checked_text_and_read_a_selection", "search_scopes_targets_f3_replace_and_selected_text"]
+accepted = ["search_replace_checked"]
+acceptance = "pass"
 notes = "Replace Checked with a font fallback choice (Helvetica, or skip the line)."
 
 [[feature]]
@@ -7746,6 +7853,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:131"
 status = "have"
 cpp = "missing"
 evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results"]
+accepted = ["search_panel_results_stepping_and_clear"]
+acceptance = "pass"
 
 [[feature]]
 id = "ui-055"
@@ -7758,6 +7867,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:132"
 status = "have"
 cpp = "missing"
 evidence = ["visual_search_finds_symbols_and_counts_them", "finds_the_symbol_turned_and_on_other_pages"]
+accepted = ["visual_search_finds_every_instance_with_rotations_and_sensitivity"]
+acceptance = "pass"
 notes = "Session::visual_search + tool visual_search: NCC template matching on downsampled grayscale, refined at full resolution, over the chosen pages."
 
 [[feature]]
@@ -7771,6 +7882,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:133"
 status = "have"
 cpp = "missing"
 evidence = ["visual_search_finds_symbols_and_counts_them"]
+accepted = ["visual_search_finds_every_instance_with_rotations_and_sensitivity"]
+acceptance = "pass"
 notes = "sensitivity 0 to 1 sets the correlation threshold."
 
 [[feature]]
@@ -7784,6 +7897,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:134"
 status = "have"
 cpp = "missing"
 evidence = ["eighth_turns_colour_filter_and_limit_to_selection", "visual_search_eighth_turns_colour_limit_and_thumbnails"]
+accepted = ["visual_search_finds_every_instance_with_rotations_and_sensitivity"]
+acceptance = "pass"
 notes = "Quarter turns, or 45-degree steps (eight turns)."
 
 [[feature]]
@@ -7797,6 +7912,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:135"
 status = "have"
 cpp = "missing"
 evidence = ["eighth_turns_colour_filter_and_limit_to_selection", "visual_search_eighth_turns_colour_limit_and_thumbnails"]
+accepted = ["visual_search_color_filter_and_limit_to_selection"]
+acceptance = "pass"
 notes = "Only hits whose ink colour matches the selection's (mean ink colour within a tolerance)."
 
 [[feature]]
@@ -7810,7 +7927,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:136"
 status = "have"
 cpp = "missing"
 evidence = ["eighth_turns_colour_filter_and_limit_to_selection", "visual_search_options_and_result_thumbnails"]
-notes = "Linework that runs out of the selection box is dropped from the symbol (on the rendered page; vector objects are not split)."
+accepted = ["visual_search_color_filter_and_limit_to_selection"]
+acceptance = "gap"
+notes = "Linework that runs out of the selection box is dropped from the symbol (on the rendered page; vector objects are not split). Acceptance gap: the limit works on pixels (ink connected to the box edge is dropped), so a line that touches the symbol removes the symbol from the template too; Revu drops only the vector objects that leave the box."
 
 [[feature]]
 id = "ui-060"
@@ -7823,6 +7942,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:137"
 status = "have"
 cpp = "missing"
 evidence = ["visual_search_options_and_result_thumbnails", "visual_search_eighth_turns_colour_limit_and_thumbnails"]
+accepted = ["visual_search_thumbnails_and_count"]
+acceptance = "pass"
 notes = "Each visual result shows a thumbnail of the match; click it to zoom there (visual_search thumbnails: PNG)."
 
 [[feature]]
@@ -7836,7 +7957,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:138"
 status = "have"
 cpp = "missing"
 evidence = ["visual_search_finds_symbols_and_counts_them"]
-notes = "action count (one Count per page) or highlight (a rectangle per hit), one undo step; no hyperlink or bookmark actions."
+accepted = ["visual_search_thumbnails_and_count"]
+acceptance = "gap"
+notes = "action count (one Count per page) or highlight (a rectangle per hit), one undo step; no hyperlink or bookmark actions. Acceptance gap: the panel offers Count and Redact on checked visual hits (Highlight only through the visual_search tool); no hyperlink or bookmark actions."
 
 [[feature]]
 id = "ui-062"
@@ -7849,6 +7972,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:144"
 status = "have"
 cpp = "missing"
 evidence = ["spaces_add_column_tally_export_import", "spaces_panel_fills_a_room_lists_it_and_tallies_markups"]
+accepted = ["spaces_tag_markups_and_split_counts", "spaces_panel_and_space_column"]
+acceptance = "pass"
 notes = "Spaces panel (Alt+S): list with markup counts per subject, Draw (corners) or Fill (inside a room), rename, delete, select markups, export/import."
 
 [[feature]]
@@ -7862,6 +7987,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:145"
 status = "have"
 cpp = "missing"
 evidence = ["spaces_add_column_tally_export_import"]
+accepted = ["spaces_tag_markups_and_split_counts"]
+acceptance = "pass"
 notes = "space_add (outline points, name, colour, opacity). Headless."
 
 [[feature]]
@@ -7875,6 +8002,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:146"
 status = "have"
 cpp = "missing"
 evidence = ["spaces_add_column_tally_export_import", "spaces_panel_fills_a_room_lists_it_and_tallies_markups"]
+accepted = ["spaces_tag_markups_and_split_counts", "spaces_panel_and_space_column"]
+acceptance = "pass"
 notes = "Spaces highlighted on the pages (Highlight toggle; the selected one emphasised); rename in the panel."
 
 [[feature]]
@@ -7888,6 +8017,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:147"
 status = "have"
 cpp = "missing"
 evidence = ["spaces_name_markups_split_counts_and_round_trip"]
+accepted = ["spaces_panel_and_space_column", "spaces_tag_markups_and_split_counts"]
+acceptance = "pass"
 notes = "Space column in the Markups List table (crates/model)."
 
 [[feature]]
@@ -7901,7 +8032,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:148"
 status = "have"
 cpp = "missing"
 evidence = ["spaces_add_column_tally_export_import"]
-notes = "space_tally splits counts by space."
+accepted = ["spaces_tag_markups_and_split_counts"]
+acceptance = "gap"
+notes = "space_tally splits counts by space. Acceptance gap: there is no preference and nothing is split: a Count's points are tallied per space (space_tally, Spaces panel), but a Count across several spaces stays one markup instead of becoming one per space."
 
 [[feature]]
 id = "ui-067"
@@ -7914,6 +8047,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:149"
 status = "have"
 cpp = "missing"
 evidence = ["snapshots_of_a_region_a_page_and_a_space", "file_attachment_snapshots_and_capture_summary"]
+accepted = ["snapshot_from_a_space"]
+acceptance = "pass"
 notes = "Spaces panel > Snapshot: the space's box copied as a snapshot (page content; markups are not included)."
 
 [[feature]]
@@ -7927,6 +8062,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:150"
 status = "have"
 cpp = "missing"
 evidence = ["places_hyperlink_actions_and_markup_edit_action", "places_link_actions_text_and_url_links_and_markup_actions"]
+accepted = ["links_places_and_hyperlinks"]
+acceptance = "pass"
 notes = "Links panel Places list grouped by page with a filter; click to jump, Add Here, delete (place_list, place_set, place_delete)."
 
 [[feature]]
@@ -7940,7 +8077,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:151"
 status = "have"
 cpp = "missing"
 evidence = ["hyperlink_tool_adds_a_page_link_listed_in_the_links_panel"]
-notes = "Links panel (Alt+N): every link with its target; go to, follow, delete, highlight."
+accepted = ["links_places_and_hyperlinks"]
+acceptance = "gap"
+notes = "Links panel (Alt+N): every link with its target; go to, follow, delete, highlight. Acceptance gap: the hyperlinks list has no filter box and no multi-select to edit several links (one at a time: Follow, Edit Action, Delete)."
 
 [[feature]]
 id = "ui-070"
@@ -7953,6 +8092,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:152"
 status = "have"
 cpp = "missing"
 evidence = ["places_hyperlink_actions_and_markup_edit_action", "places_link_actions_text_and_url_links_and_markup_actions"]
+accepted = ["links_places_and_hyperlinks"]
+acceptance = "pass"
 notes = "Hyperlink tool and Edit Action on an existing link (target, box, look)."
 
 [[feature]]
@@ -7966,6 +8107,8 @@ source = "docs/revu_features/04_compare_ui_collab.md:153"
 status = "have"
 cpp = "missing"
 evidence = ["signatures_sign_validate_and_track_changes", "sign_with_a_new_digital_id_and_validate"]
+accepted = ["signatures_sign_certify_field_and_validate"]
+acceptance = "pass"
 notes = "Signatures panel (Alt+4): status icon (valid, invalid, unknown, not signed), signer, date, reason, changes after signing; Validate, Trust Certificate, Sign."
 
 [[feature]]
@@ -7979,7 +8122,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:154"
 status = "have"
 cpp = "missing"
 evidence = ["signatures_sign_validate_and_track_changes", "forms_create_fill_and_flatten"]
-notes = "Tools signature_sign (sign, certify), form_add_field type signature (add field), signature_list (validate)."
+accepted = ["signatures_sign_certify_field_and_validate"]
+acceptance = "fixed"
+notes = "Tools signature_sign (sign, certify), form_add_field type signature (add field), signature_list (validate). Acceptance: the Sign dialog's Certify option said no changes were allowed but certified with form fill-in and signing allowed; label fixed. Empty signature fields are added with the Forms tools, not from the Signatures panel toolbar."
 
 [[feature]]
 id = "ui-073"
