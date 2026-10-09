@@ -350,8 +350,20 @@ pub fn ocr_recognize(
 }
 
 impl Session {
+    /// OCR rewrites page content, which would break signatures, so (as in Revu) it does not run
+    /// on signed documents.
+    fn ocr_allowed(&self) -> Result<()> {
+        if self.standards().signatures > 0 {
+            return Err(invalid(
+                "OCR cannot run on a signed document (it would invalidate the signatures)",
+            ));
+        }
+        Ok(())
+    }
+
     /// The pages an OCR run reads (all when `opts.pages` is empty), checked.
     pub fn ocr_pages(&self, opts: &OcrOptions) -> Result<Vec<usize>> {
+        self.ocr_allowed()?;
         let pages: Vec<usize> = if opts.pages.is_empty() {
             (0..self.page_count()).collect()
         } else {
@@ -368,6 +380,7 @@ impl Session {
         if found.is_empty() {
             return Ok(());
         }
+        self.ocr_allowed()?;
         self.edit("OCR", |s| {
             for (page, words) in found {
                 pdfcraft_edit::stamp(&mut s.file.cos, *page, "OCR", pdfcraft_ocr::text_layer(words))

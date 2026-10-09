@@ -5663,6 +5663,8 @@ source = "docs/revu_features/03_documents.md:239"
 status = "have"
 cpp = "missing"
 evidence = ["batch_link_terms_filters_and_options", "batch_link_terms_highlight_and_filters", "batch_create_layered_merge_combine_options_and_link_terms"]
+accepted = ["batch_link_terms_from_labels_file_names_region_and_csv"]
+acceptance = "pass"
 notes = "Search terms from page labels, file names, a page region (AutoMark style) or custom terms typed or imported from CSV (term, file, page). No regular expressions."
 
 [[feature]]
@@ -5676,6 +5678,8 @@ source = "docs/revu_features/03_documents.md:240"
 status = "have"
 cpp = "missing"
 evidence = ["batch_link_terms_filters_and_options", "batch_link_terms_highlight_and_filters", "batch_create_layered_merge_combine_options_and_link_terms"]
+accepted = ["batch_link_term_filter_keeps_start_or_end"]
+acceptance = "pass"
 notes = "Term filter: cut each term at a character and keep the text before or after it; match case."
 
 [[feature]]
@@ -5689,7 +5693,9 @@ source = "docs/revu_features/03_documents.md:241"
 status = "have"
 cpp = "missing"
 evidence = ["batch_link_summary_sets_and_apply"]
-notes = "Links go to the labelled page: a page link in the same file, a GoToR link (relative file name) to a page of another file."
+accepted = ["batch_link_destinations_file_page"]
+acceptance = "gap"
+notes = "Links go to the labelled page: a page link in the same file, a GoToR link (relative file name) to a page of another file. Acceptance: terms target a page of this or another file only; a term cannot target a named Place in a file or a web URL as Revu allows."
 
 [[feature]]
 id = "doc-114"
@@ -5702,7 +5708,9 @@ source = "docs/revu_features/03_documents.md:242"
 status = "have"
 cpp = "missing"
 evidence = ["batch_link_terms_filters_and_options", "batch_link_terms_highlight_and_filters", "batch_create_layered_merge_combine_options_and_link_terms"]
-notes = "Border width, colour and padding, full or relative paths, a highlight over each new link, replace existing links (else skipped)."
+accepted = ["batch_link_options_paths_highlight_border_and_overlap"]
+acceptance = "gap"
+notes = "Border width, colour and padding, full or relative paths, a highlight over each new link, replace existing links (else skipped). Acceptance: no choice of highlight style (outline / fill / highlight) and no flatten-highlight option; overlapping links are only skipped or replaced."
 
 [[feature]]
 id = "doc-115"
@@ -5715,7 +5723,9 @@ source = "docs/revu_features/03_documents.md:243"
 status = "have"
 cpp = "missing"
 evidence = ["batch_link_summary_sets_and_apply"]
-notes = "Each file is saved in place; the report lists links per file, places skipped and errors."
+accepted = ["batch_link_report_counts_and_failures"]
+acceptance = "gap"
+notes = "Each file is saved in place; the report lists links per file, places skipped and errors. Acceptance: the summary (links created, files not opened) works, but terms cannot be exported to CSV and a run cannot be saved as an XML configuration or into a Set file."
 
 [[feature]]
 id = "doc-116"
@@ -5728,7 +5738,9 @@ source = "docs/revu_features/03_documents.md:244"
 status = "have"
 cpp = "missing"
 evidence = ["slip_sheet_replaces_matching_sheets_and_keeps_markups"]
-notes = "slip_sheet matches page labels, whole or the part before a filter (e.g. ' - '), case-insensitive by default."
+accepted = ["slip_sheet_matches_by_label_replaces_and_carries_markups"]
+acceptance = "gap"
+notes = "slip_sheet matches page labels, whole or the part before a filter (e.g. ' - '), case-insensitive by default. Acceptance: sheets pair only by page label (whole or before a filter); no matching by file name + page index, by AutoMark region or manually, and no wildcard match filter."
 
 [[feature]]
 id = "doc-117"
@@ -5741,7 +5753,9 @@ source = "docs/revu_features/03_documents.md:245"
 status = "have"
 cpp = "missing"
 evidence = ["slip_sheet_replaces_matching_sheets_and_keeps_markups"]
-notes = "Matching pages are replaced with the revised content; their markups, links and bookmarks stay. Undoable."
+accepted = ["slip_sheet_matches_by_label_replaces_and_carries_markups"]
+acceptance = "gap"
+notes = "Matching pages are replaced with the revised content; their markups, links and bookmarks stay. Undoable. Acceptance: matched pages are always replaced in place (markups kept); no option to insert the revised pages ahead of the current ones, the old pages are not kept or stamped Superseded, and there is no unflatten-first / flatten-after option."
 
 [[feature]]
 id = "doc-118"
@@ -5754,7 +5768,9 @@ source = "docs/revu_features/03_documents.md:246"
 status = "have"
 cpp = "missing"
 evidence = ["slip_sheet_replaces_matching_sheets_and_keeps_markups"]
-notes = "Unmatched new sheets are appended with their labels (or left out); the report lists matched, unmatched old and unmatched new sheets."
+accepted = ["slip_sheet_matches_by_label_replaces_and_carries_markups"]
+acceptance = "gap"
+notes = "Unmatched new sheets are appended with their labels (or left out); the report lists matched, unmatched old and unmatched new sheets. Acceptance: unmatched new sheets are appended or left out, not extracted to files; the report is the tool result (page numbers), not a PDF or CSV report with links."
 
 [[feature]]
 id = "doc-119"
@@ -5767,6 +5783,8 @@ source = "docs/revu_features/03_documents.md:247"
 status = "have"
 cpp = "missing"
 evidence = ["batch_sign_and_seal_smart_overlay_and_shell_integration", "batch_sign_and_seal_shell_integration_and_smart_overlay", "many_files_get_a_seal_a_date_and_a_signature"]
+accepted = ["batch_sign_and_seal_dates_seals_and_signs_many_files"]
+acceptance = "fixed"
 notes = "Batch > Sign & Seal: a date, a seal image, then a digital signature in the named empty signature field or at a typed page and box (no preview to drag it on), or certify; signed copies to a folder or in place; failures reported per file."
 
 [[feature]]
@@ -5780,7 +5798,9 @@ source = "docs/revu_features/03_documents.md:248"
 status = "have"
 cpp = "missing"
 evidence = ["batch_link_summary_sets_and_apply"]
-notes = "batch_apply with stamp_add over many files (in place or to an output folder)."
+accepted = ["batch_apply_stamp_places_one_stamp_on_many_files"]
+acceptance = "gap"
+notes = "batch_apply with stamp_add over many files (in place or to an output folder). Acceptance: fixed stamp_add (so Batch Apply Stamp) ignoring the Stamp Settings opacity, blend mode and lock; it also takes opacity / blend / lock now. Still no rotation, scale, anchor grid + X/Y offset or page filter: one stamp_add per page and position."
 
 [[feature]]
 id = "doc-121"
@@ -5793,6 +5813,8 @@ source = "docs/revu_features/03_documents.md:249"
 status = "have"
 cpp = "missing"
 evidence = ["batch_unflatten_repair_rotate_and_recolour", "batch_combine_summary_and_slip_sheet", "print_dialog_copies_window_markups_only_emphasis_and_batch_print"]
+accepted = ["batch_flatten_then_unflatten_on_chosen_pages"]
+acceptance = "pass"
 notes = "batch_apply runs markup_flatten (recoverable, layer) or markup_unflatten on chosen pages of many files; Batch > Flatten and Batch > Unflatten in the app."
 
 [[feature]]
@@ -5806,6 +5828,8 @@ source = "docs/revu_features/03_documents.md:250"
 status = "have"
 cpp = "partial"
 evidence = ["batch_link_summary_sets_and_apply"]
+accepted = ["batch_summary_reports_markups_of_many_files"]
+acceptance = "pass"
 notes = "batch_summary: one CSV of the Markups Lists of many files with a File column."
 
 [[feature]]
@@ -5819,6 +5843,8 @@ source = "docs/revu_features/03_documents.md:251"
 status = "have"
 cpp = "missing"
 evidence = ["jobs_print_regions_markups_only_margins_and_emphasis", "summary_options_and_print_jobs", "print_dialog_copies_window_markups_only_emphasis_and_batch_print"]
+accepted = ["batch_print_writes_each_file_in_list_order"]
+acceptance = "pass"
 notes = "Batch > Print: many PDFs in list order with one job, each a print-ready PDF and optionally sent to the printer."
 
 [[feature]]
@@ -5832,6 +5858,8 @@ source = "docs/revu_features/03_documents.md:252"
 status = "have"
 cpp = "missing"
 evidence = ["batch_link_summary_sets_and_apply"]
+accepted = ["batch_headers_footers_add_and_remove"]
+acceptance = "pass"
 notes = "batch_apply with header_footer_add / watermark_add / bates_add."
 
 [[feature]]
@@ -5845,6 +5873,8 @@ source = "docs/revu_features/03_documents.md:253"
 status = "have"
 cpp = "missing"
 evidence = ["batch_split_and_batch_script", "batch_list_sources_save_load_split_script_and_one_pdf_per_file"]
+accepted = ["other_batch_processes_security_rotate_split_compare_overlay_script"]
+acceptance = "fixed"
 notes = "batch_apply runs security, OCR, reduce file size, repair, colour processing, PDF/A, rotate, crop, page size, redaction and form flattening; Batch > Compare and Overlay; Batch > Split (every N pages or at bookmarks, tool batch_split) and Batch > Run Script (a markupcraft-cli script's tool steps on every file, tool batch_script)."
 
 [[feature]]
@@ -5858,6 +5888,8 @@ source = "docs/revu_features/03_documents.md:259"
 status = "have"
 cpp = "missing"
 evidence = ["batch_link_summary_sets_and_apply", "sets_sort_naturally_and_round_trip"]
+accepted = ["set_create_navigate_and_sort"]
+acceptance = "pass"
 notes = "set_save writes our own JSON set (.pcset, relative paths); set_sheets reads it and can open every file."
 
 [[feature]]
@@ -5871,6 +5903,8 @@ source = "docs/revu_features/03_documents.md:260"
 status = "have"
 cpp = "missing"
 evidence = ["batch_link_summary_sets_and_apply", "sets_panel_lists_every_sheet_and_opens_one"]
+accepted = ["set_create_navigate_and_sort", "sets_panel_opens_in_the_app"]
+acceptance = "pass"
 notes = "Sets panel (Alt+2): new, open, save (.pcset), add files; sheets by label (file order or sheet number), filter; click opens the file at the page."
 
 [[feature]]
@@ -5884,6 +5918,8 @@ source = "docs/revu_features/03_documents.md:261"
 status = "have"
 cpp = "missing"
 evidence = ["batch_link_summary_sets_and_apply", "sets_sort_naturally_and_round_trip"]
+accepted = ["set_create_navigate_and_sort"]
+acceptance = "pass"
 notes = "File order, label (natural order) or file then label."
 
 [[feature]]
@@ -5897,6 +5933,8 @@ source = "docs/revu_features/03_documents.md:262"
 status = "have"
 cpp = "missing"
 evidence = ["revisions_publish_package_and_print", "sets_tags_categories_revisions_publish_and_print", "sets_categories_revisions_tags_publish_and_print"]
+accepted = ["set_revisions_categories_and_tags"]
+acceptance = "pass"
 notes = "Versions of each sheet by sheet number or a wildcard filter; latest by revision then date; earlier ones shown, hidden, greyed or crossed out; publish the latest only."
 
 [[feature]]
@@ -5910,7 +5948,9 @@ source = "docs/revu_features/03_documents.md:263"
 status = "have"
 cpp = "missing"
 evidence = ["slip_sheet_replaces_matching_sheets_and_keeps_markups"]
-notes = "Slip Sheet keeps the old sheets' markups on the revised pages."
+accepted = ["slip_sheet_matches_by_label_replaces_and_carries_markups"]
+acceptance = "gap"
+notes = "Slip Sheet keeps the old sheets' markups on the revised pages. Acceptance: markups come forward onto the revised sheet, but the old sheet is not kept and stamped Superseded, and there are no unflatten / flatten options."
 
 [[feature]]
 id = "doc-131"
@@ -5923,6 +5963,8 @@ source = "docs/revu_features/03_documents.md:264"
 status = "have"
 cpp = "missing"
 evidence = ["tags_categories_and_types", "revisions_publish_package_and_print", "sets_categories_revisions_tags_publish_and_print"]
+accepted = ["set_revisions_categories_and_tags"]
+acceptance = "pass"
 notes = "Categories off, by file name or by sheet number, from discipline templates (NCS designators)."
 
 [[feature]]
@@ -5936,6 +5978,8 @@ source = "docs/revu_features/03_documents.md:265"
 status = "have"
 cpp = "missing"
 evidence = ["revisions_publish_package_and_print", "sets_tags_categories_revisions_publish_and_print", "sets_categories_revisions_tags_publish_and_print"]
+accepted = ["set_revisions_categories_and_tags"]
+acceptance = "pass"
 notes = "Sheet Number, Revision (file name), Discipline, Sheet Type (NCS) derived; custom tags per sheet kept in the set file."
 
 [[feature]]
@@ -5949,6 +5993,8 @@ source = "docs/revu_features/03_documents.md:266"
 status = "have"
 cpp = "missing"
 evidence = ["revisions_publish_package_and_print", "sets_tags_categories_revisions_publish_and_print", "sets_categories_revisions_tags_publish_and_print"]
+accepted = ["set_publish_print_and_search"]
+acceptance = "pass"
 notes = "Publish: one combined PDF with a bookmark per sheet (latest only optional), a package folder with the set file, and a drawing log CSV."
 
 [[feature]]
@@ -5962,6 +6008,8 @@ source = "docs/revu_features/03_documents.md:267"
 status = "have"
 cpp = "missing"
 evidence = ["revisions_publish_package_and_print", "sets_tags_categories_revisions_publish_and_print", "sets_categories_revisions_tags_publish_and_print", "search_across_files_folders_sets_and_open_documents"]
+accepted = ["set_publish_print_and_search"]
+acceptance = "pass"
 notes = "Print Set lays every sheet out with one print job; Search covers the current Set."
 
 [[feature]]
@@ -5975,7 +6023,9 @@ source = "docs/revu_features/03_documents.md:273"
 status = "have"
 cpp = "partial"
 evidence = ["csv_summary_with_groups_and_totals", "cli: summary", "markup_summary_writes_excel_pdf_and_csv", "summary_export_writes_csv_xml_xlsx_and_pdf"]
-notes = "CSV, XML, Excel (.xlsx) and a PDF report (Markup > Markup Summary, tool summary_export)."
+accepted = ["summary_output_types_csv_xml_pdf_and_appended"]
+acceptance = "gap"
+notes = "CSV, XML, Excel (.xlsx) and a PDF report (Markup > Markup Summary, tool summary_export). Acceptance: CSV, XML, PDF and appended-with-links work; there is no straight-to-printer summary output."
 
 [[feature]]
 id = "doc-136"
@@ -5988,7 +6038,9 @@ source = "docs/revu_features/03_documents.md:274"
 status = "have"
 cpp = "missing"
 evidence = ["markup_summary_writes_excel_pdf_and_csv", "summary_pages_and_columns_filter"]
-notes = "Any Markups List columns, custom columns included."
+accepted = ["summary_columns_filter_sort_and_output_options"]
+acceptance = "gap"
+notes = "Any Markups List columns, custom columns included. Acceptance: columns are chosen and ordered per call; there are no saved column configurations to load."
 
 [[feature]]
 id = "doc-137"
@@ -6001,6 +6053,8 @@ source = "docs/revu_features/03_documents.md:275"
 status = "have"
 cpp = "missing"
 evidence = ["multi_sort_content_layouts_links_and_one_report_per_value", "summary_options_and_print_jobs", "summary_filters_then_sort_output_and_pdf_layout"]
+accepted = ["summary_columns_filter_sort_and_output_options"]
+acceptance = "pass"
 notes = "Filter by any column's values; multi-level sort (sort, then by ...), ascending or descending."
 
 [[feature]]
@@ -6014,6 +6068,8 @@ source = "docs/revu_features/03_documents.md:276"
 status = "have"
 cpp = "partial"
 evidence = ["multi_sort_content_layouts_links_and_one_report_per_value", "summary_options_and_print_jobs", "summary_filters_then_sort_output_and_pdf_layout"]
+accepted = ["summary_columns_filter_sort_and_output_options"]
+acceptance = "pass"
 notes = "Title with the date appended, one report per value of the first column, CSV/XML markups, totals or both, headers on or off; output where the save dialog says."
 
 [[feature]]
@@ -6027,6 +6083,8 @@ source = "docs/revu_features/03_documents.md:277"
 status = "have"
 cpp = "missing"
 evidence = ["summary_pdf_extras_in_the_dialog", "summary_pdf_extras_and_extract_with_links", "cover_history_thumbnails_and_pages"]
+accepted = ["summary_pdf_layout_options"]
+acceptance = "pass"
 notes = "Table or flow style, page size, a page per group, padding, totals, links to the source pages, a PNG logo, and extras: a Spaces cover sheet, each markup's status history, markup thumbnails at a chosen size (contact sheets with an index) and the summarized pages themselves."
 
 [[feature]]
@@ -6040,7 +6098,9 @@ source = "docs/revu_features/03_documents.md:278"
 status = "partial"
 cpp = "missing"
 evidence = ["commands_name_the_printer_and_copies", "print_dialog_copies_window_markups_only_emphasis_and_batch_print", "summary_options_and_print_jobs"]
-notes = "Printer chosen from the system's list (read-only queries: lpstat, PowerShell Get-Printer); Print lays the sheets out as a print-ready PDF (Save Print PDF keeps it) and hands it to the system print command; Advanced grayscale and print as image. Printer-language .prn files, the driver's properties dialog and live printer status need the printer driver, which MarkupCraft does not drive."
+accepted = ["print_printer_choice_and_print_ready_output"]
+acceptance = "gap"
+notes = "Printer chosen from the system's list (read-only queries: lpstat, PowerShell Get-Printer); Print lays the sheets out as a print-ready PDF (Save Print PDF keeps it) and hands it to the system print command; Advanced grayscale and print as image. Printer-language .prn files, the driver's properties dialog and live printer status need the printer driver, which MarkupCraft does not drive. Acceptance: printer list and print-ready PDF only; no .prn output, driver properties, live status or margin preview."
 
 [[feature]]
 id = "doc-141"
@@ -6053,6 +6113,8 @@ source = "docs/revu_features/03_documents.md:279"
 status = "have"
 cpp = "missing"
 evidence = ["jobs_print_regions_markups_only_margins_and_emphasis", "print_dialog_copies_window_markups_only_emphasis_and_batch_print", "summary_options_and_print_jobs"]
+accepted = ["print_pages_region_and_what_to_print"]
+acceptance = "pass"
 notes = "All, current page, a range, Current View, or Get Window (drag the region to print)."
 
 [[feature]]
@@ -6066,6 +6128,8 @@ source = "docs/revu_features/03_documents.md:280"
 status = "have"
 cpp = "missing"
 evidence = ["jobs_print_regions_markups_only_margins_and_emphasis", "print_dialog_copies_window_markups_only_emphasis_and_batch_print"]
+accepted = ["print_pages_region_and_what_to_print"]
+acceptance = "pass"
 notes = "Document and markups, document only, or markups only."
 
 [[feature]]
@@ -6079,6 +6143,8 @@ source = "docs/revu_features/03_documents.md:281"
 status = "have"
 cpp = "missing"
 evidence = ["order_copies_collate_reverse", "jobs_print_regions_markups_only_margins_and_emphasis", "print_dialog_copies_window_markups_only_emphasis_and_batch_print"]
+accepted = ["print_paper_copies_and_scaling"]
+acceptance = "pass"
 notes = "Paper by name or size, orientation auto/portrait/landscape (auto-rotate), copies, collate, reverse order."
 
 [[feature]]
@@ -6092,6 +6158,8 @@ source = "docs/revu_features/03_documents.md:282"
 status = "have"
 cpp = "missing"
 evidence = ["jobs_print_regions_markups_only_margins_and_emphasis", "summary_options_and_print_jobs"]
+accepted = ["print_paper_copies_and_scaling"]
+acceptance = "pass"
 notes = "None (actual), fit, shrink (reduce), custom percent; margins make fit/reduce to margins; centred or moved by a manual X/Y offset."
 
 [[feature]]
@@ -6105,6 +6173,8 @@ source = "docs/revu_features/03_documents.md:283"
 status = "have"
 cpp = "missing"
 evidence = ["print_pdf_fit_nup_and_tile"]
+accepted = ["print_n_up_and_tiling"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. print_pdf layout nup: columns x rows per sheet, left to right, optional border; output is a print-ready PDF."
 
 [[feature]]
@@ -6118,6 +6188,8 @@ source = "docs/revu_features/03_documents.md:284"
 status = "have"
 cpp = "missing"
 evidence = ["print_advanced_reset_and_flatten_extras", "grayscale_and_as_image", "print_dialog_copies_window_markups_only_emphasis_and_batch_print"]
+accepted = ["print_emphasis_options"]
+acceptance = "pass"
 notes = "Dim page content, dim filtered-out markups, print Spaces, print visible hyperlinks; Advanced (print in grayscale, print as image at 72-600 dpi) and Reset to Defaults."
 
 [[feature]]
@@ -6131,6 +6203,8 @@ source = "docs/revu_features/03_documents.md:285"
 status = "have"
 cpp = "missing"
 evidence = ["print_pdf_fit_nup_and_tile"]
+accepted = ["print_n_up_and_tiling"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. print_pdf layout tile: each page enlarged over several sheets with overlap and cut marks."
 
 [[feature]]
@@ -6144,6 +6218,8 @@ source = "docs/revu_features/03_documents.md:291"
 status = "have"
 cpp = "missing"
 evidence = ["headers_footers_watermarks_and_bates"]
+accepted = ["header_footer_six_places_and_tokens"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. header_footer_add: six places, font size, colour, underline, margins (pdfcraft-edit marks)."
 
 [[feature]]
@@ -6157,7 +6233,9 @@ source = "docs/revu_features/03_documents.md:292"
 status = "have"
 cpp = "missing"
 evidence = ["headers_footers_watermarks_and_bates"]
-notes = "Headless (engine + automation tool); no UI yet. Tokens: page number, page count, Page 1 of n, dates, Bates number (digits, start, prefix, suffix); bates_add builds the Bates token. No file-name tokens."
+accepted = ["header_footer_six_places_and_tokens"]
+acceptance = "gap"
+notes = "Headless (engine + automation tool); no UI yet. Tokens: page number, page count, Page 1 of n, dates, Bates number (digits, start, prefix, suffix); bates_add builds the Bates token. No file-name tokens. Acceptance: page number, page count, dates and Bates tokens work; Revu's file data tokens (file name, path, author ...) are not offered."
 
 [[feature]]
 id = "doc-150"
@@ -6170,6 +6248,8 @@ source = "docs/revu_features/03_documents.md:293"
 status = "have"
 cpp = "missing"
 evidence = ["presets_templates_kept_header_footer_and_fit", "security_presets_status_header_footer_templates_and_fit", "security_presets_status_and_kept_header_footer_templates"]
+accepted = ["header_footer_fit_content_inside_margins"]
+acceptance = "pass"
 notes = "Header & Footer: shrink page content to fit inside the margins (page_fit_content, or the fit option of a header/footer); an earlier fit is replaced."
 
 [[feature]]
@@ -6183,6 +6263,8 @@ source = "docs/revu_features/03_documents.md:294"
 status = "have"
 cpp = "missing"
 evidence = ["presets_templates_kept_header_footer_and_fit", "security_presets_status_header_footer_templates_and_fit", "security_presets_status_and_kept_header_footer_templates"]
+accepted = ["header_footer_templates_edit_update_delete"]
+acceptance = "pass"
 notes = "Header/footer templates saved by name (header_footer_template; Save Template and the template buttons in the dialog), applied to any page range."
 
 [[feature]]
@@ -6196,6 +6278,8 @@ source = "docs/revu_features/03_documents.md:295"
 status = "have"
 cpp = "missing"
 evidence = ["presets_templates_kept_header_footer_and_fit", "security_presets_status_header_footer_templates_and_fit", "security_presets_status_and_kept_header_footer_templates"]
+accepted = ["header_footer_templates_edit_update_delete"]
+acceptance = "pass"
 notes = "The applied header/footer is kept with the document: Edit loads it back into the dialog, Update re-applies it to the pages as they are now (Document > Update Header & Footer), Remove deletes headers/footers."
 
 [[feature]]
@@ -6209,6 +6293,8 @@ source = "docs/revu_features/03_documents.md:296"
 status = "have"
 cpp = "missing"
 evidence = ["interactive_stamps_stamp_settings_symbols_and_file_links", "interactive_stamps_stamp_settings_and_mark_text_for_redaction", "stamp_settings_round_trip_and_style_placed_stamps"]
+accepted = ["stamps_library_custom_dynamic_and_settings", "batch_apply_stamp_places_one_stamp_on_many_files"]
+acceptance = "fixed"
 notes = "Seventeen built-in designs of our own, custom text and image stamps with dynamic date/time/user fields, Markup > Stamp Settings: stamp folder (also the Stamp Library's), default stamp, opacity, blend mode and lock applied to placed stamps. Blend modes are Normal and Multiply only."
 
 [[feature]]
@@ -6222,6 +6308,8 @@ source = "docs/revu_features/03_documents.md:297"
 status = "have"
 cpp = "missing"
 evidence = ["headers_footers_watermarks_and_bates"]
+accepted = ["watermark_on_many_pages_flattened"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. watermark_add: text, size (or fit), colour, opacity, rotation, offset, behind or on top; marks_remove removes."
 
 [[feature]]
@@ -6235,6 +6323,8 @@ source = "docs/revu_features/03_documents.md:303"
 status = "have"
 cpp = "have"
 evidence = ["ocr_pages_adds_a_searchable_text_layer", "ocr_adds_a_searchable_layer_over_the_ink"]
+accepted = ["ocr_makes_scanned_pages_searchable"]
+acceptance = "fixed"
 notes = "Session::ocr + tool ocr_pages: pdfcraft-ocr (ocrs) words placed as an invisible text layer over the page image, one undo step, any page list. Models fetched by `cargo xtask models` (never committed). No batch across files yet."
 
 [[feature]]
@@ -6248,7 +6338,9 @@ source = "docs/revu_features/03_documents.md:304"
 status = "partial"
 cpp = "partial"
 evidence = ["real_ocr_reads_rendered_text_turned_and_skewed", "ocr_adds_a_searchable_layer_over_the_ink", "ocr_runs_on_a_worker_with_deskew_and_orientation"]
-notes = "Page range, dpi, skip pages that already have text, skip vector pages, deskew, orientation and vertical text; runs on a worker thread; verified with the real ocrs models. The OCR engine (ocrs) ships Latin-script (English) recognition models only, so there is no language choice until other models exist."
+accepted = ["ocr_makes_scanned_pages_searchable"]
+acceptance = "gap"
+notes = "Page range, dpi, skip pages that already have text, skip vector pages, deskew, orientation and vertical text; runs on a worker thread; verified with the real ocrs models. The OCR engine (ocrs) ships Latin-script (English) recognition models only, so there is no language choice until other models exist. Acceptance: no language choice, no accuracy-vs-speed setting, no page chunk size or max vector size options."
 
 [[feature]]
 id = "doc-157"
@@ -6261,6 +6353,8 @@ source = "docs/revu_features/03_documents.md:305"
 status = "have"
 cpp = "have"
 evidence = ["text_search_finds_hits_with_rectangles"]
+accepted = ["text_search_scopes_and_options", "search_panel_and_search_selected_text"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. text_search over the page text layer (pdfcraft-render): hits with page, text, context and per-line rectangles in user space."
 
 [[feature]]
@@ -6274,6 +6368,8 @@ source = "docs/revu_features/03_documents.md:306"
 status = "have"
 cpp = "partial"
 evidence = ["search_across_files_folders_sets_and_open_documents", "search_scopes_targets_f3_replace_and_selected_text"]
+accepted = ["text_search_scopes_and_options"]
+acceptance = "pass"
 notes = "Current page, page range, current document, all open documents, the current Set, recent files, a folder with or without subfolders (Studio Projects excluded)."
 
 [[feature]]
@@ -6287,6 +6383,8 @@ source = "docs/revu_features/03_documents.md:307"
 status = "have"
 cpp = "partial"
 evidence = ["search_across_files_folders_sets_and_open_documents", "search_all_looks_in_names_properties_and_markups"]
+accepted = ["text_search_scopes_and_options"]
+acceptance = "pass"
 notes = "Page text, markup text, file names, document properties and form field values; case sensitive; whole words."
 
 [[feature]]
@@ -6300,6 +6398,8 @@ source = "docs/revu_features/03_documents.md:308"
 status = "have"
 cpp = "missing"
 evidence = ["search_scopes_targets_f3_replace_and_selected_text", "replace_checked_text_and_read_a_selection"]
+accepted = ["search_panel_and_search_selected_text"]
+acceptance = "pass"
 notes = "Tools > Search Selected Text: drag over the text on the page; it becomes the search (region_text reads a box)."
 
 [[feature]]
@@ -6313,7 +6413,9 @@ source = "docs/revu_features/03_documents.md:309"
 status = "have"
 cpp = "partial"
 evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results"]
-notes = "Highlight, Count or Redact the checked results."
+accepted = ["act_on_search_results"]
+acceptance = "gap"
+notes = "Highlight, Count or Redact the checked results. Acceptance: highlight / underline / strikethrough / squiggly, Count and Redact act on results; making hyperlinks from the checked results is not a results action (link_add per hit instead)."
 
 [[feature]]
 id = "doc-162"
@@ -6326,6 +6428,8 @@ source = "docs/revu_features/03_documents.md:310"
 status = "have"
 cpp = "missing"
 evidence = ["replace_checked_text_and_read_a_selection", "replace_rewrites_the_page_text_and_undoes", "search_scopes_targets_f3_replace_and_selected_text"]
+accepted = ["search_and_replace_in_page_content"]
+acceptance = "pass"
 notes = "Replace Checked rewrites the found text in the page content (not markups), in the line's font when it can show the text, else Helvetica (font fallback on) or the line is skipped; one undo step."
 
 [[feature]]
@@ -6339,6 +6443,8 @@ source = "docs/revu_features/03_documents.md:311"
 status = "have"
 cpp = "missing"
 evidence = ["eighth_turns_colour_filter_and_limit_to_selection", "visual_search_eighth_turns_colour_limit_and_thumbnails", "visual_search_options_and_result_thumbnails", "visual_search_picks_a_region_and_finds_the_symbol"]
+accepted = ["visual_search_finds_symbols_and_counts_them"]
+acceptance = "pass"
 notes = "Sensitivity, rotations in quarter or 45-degree steps, colour filter, limit to selection (raster: ink running out of the box is ignored), results to Count."
 
 [[feature]]
@@ -6352,6 +6458,8 @@ source = "docs/revu_features/03_documents.md:317"
 status = "have"
 cpp = "missing"
 evidence = ["form_highlight_properties_actions_and_xfa_layout", "form_field_properties_actions_and_xfa_layout", "properties_actions_and_xfa"]
+accepted = ["form_fields_created_filled_and_reset", "form_highlight_fields_command_in_app"]
+acceptance = "pass"
 notes = "Tools form_list, form_fill (text, check box, radio, combo, list; appearances regenerated by pdfcraft-forms) and form_reset; static XFA forms fill through their AcroForm fields and dynamic XFA forms are laid out as pages and fields (Form Fields > Lay Out XFA Form, form_xfa_layout, pdfcraft-xfa); Form Fields > Highlight fields tints every field on the page."
 
 [[feature]]
@@ -6365,6 +6473,8 @@ source = "docs/revu_features/03_documents.md:318"
 status = "have"
 cpp = "missing"
 evidence = ["form_highlight_properties_actions_and_xfa_layout", "form_field_properties_actions_and_xfa_layout", "properties_actions_and_xfa"]
+accepted = ["form_fields_created_filled_and_reset"]
+acceptance = "pass"
 notes = "Tool form_add_field: text (multiline), check box, radio groups, dropdown, list box, button and signature fields with Acrobat-style names and looks; Form Fields > Field properties (name, tooltip, required, read-only, multiline, most characters, default value; form_field_props also font size, alignment, lock, options) and Actions by trigger (web link, page, menu command, reset, show / hide, JavaScript; form_field_action). Fields flatten into page content with form_flatten."
 
 [[feature]]
@@ -6378,6 +6488,8 @@ source = "docs/revu_features/03_documents.md:319"
 status = "have"
 cpp = "missing"
 evidence = ["form_data_auto_fields_and_typewriter", "form_data_auto_fields_typewriter_and_merge", "redaction_properties_scrub_form_data_and_legend_distribution"]
+accepted = ["form_auto_create_fields_from_blanks"]
+acceptance = "pass"
 notes = "Automatically Create Form Fields: runs of underscores and wide empty boxes become text fields, small squares check boxes, named after the word to their left (form_auto_fields; Tools menu)."
 
 [[feature]]
@@ -6391,6 +6503,8 @@ source = "docs/revu_features/03_documents.md:320"
 status = "have"
 cpp = "missing"
 evidence = ["form_data_auto_fields_and_typewriter", "form_data_auto_fields_typewriter_and_merge", "redaction_properties_scrub_form_data_and_legend_distribution", "batch_create_layered_merge_combine_options_and_link_terms"]
+accepted = ["form_data_import_export_merge_typewriter_and_javascript"]
+acceptance = "pass"
 notes = "Export and import form data as XFDF, CSV or JSON; Merge Form Data of many PDFs into one CSV; Typewriter text migrated into the fields under it."
 
 [[feature]]
@@ -6404,6 +6518,8 @@ source = "docs/revu_features/03_documents.md:326"
 status = "have"
 cpp = "missing"
 evidence = ["signatures_sign_validate_and_track_changes", "create_an_id_sign_validate_and_detect_tampering"]
+accepted = ["sign_certify_validate_and_clear"]
+acceptance = "pass"
 notes = "Tool signature_list (pdfcraft-sign): every signature and certification, visible or not, with status valid / unknown / invalid, details and changes made after signing, against trusted certificates. No panel UI yet."
 
 [[feature]]
@@ -6417,6 +6533,8 @@ source = "docs/revu_features/03_documents.md:327"
 status = "have"
 cpp = "missing"
 evidence = ["signatures_sign_validate_and_track_changes", "create_an_id_sign_validate_and_detect_tampering"]
+accepted = ["sign_certify_validate_and_clear"]
+acceptance = "pass"
 notes = "Tool signature_sign: PAdES B-B with a .p12 digital ID, an existing field or a new visible / invisible one, reason, location, contact, optional PNG image in the appearance; written as a new file (incremental update)."
 
 [[feature]]
@@ -6430,6 +6548,8 @@ source = "docs/revu_features/03_documents.md:328"
 status = "have"
 cpp = "missing"
 evidence = ["digital_id_manager_and_clearing_a_certification"]
+accepted = ["sign_certify_validate_and_clear"]
+acceptance = "pass"
 notes = "Certify 1/2/3 (DocMDP) as first signer, visibly or invisibly, and later changes are judged against it; Tools > Clear Certification (certification_clear) lets the certifier, with the certifying ID, remove the certification (the signature goes, its field stays)."
 
 [[feature]]
@@ -6443,6 +6563,8 @@ source = "docs/revu_features/03_documents.md:329"
 status = "have"
 cpp = "missing"
 evidence = ["digital_id_manager_and_clearing_a_certification", "store_create_import_export_password_and_delete", "security_icon_pdfa_badge_verify_page_tags_ids_numbering_and_compressed_saves"]
+accepted = ["digital_id_manager"]
+acceptance = "pass"
 notes = "Tools > Digital IDs: a store of password-protected .p12 IDs in the settings folder: create self-signed (P-256), import .p12/.pfx, view who each names and its fingerprint, export the public certificate (PEM), change the password, log in / log out, delete (tool digital_id_store). The Windows certificate store is not used."
 
 [[feature]]
@@ -6456,6 +6578,8 @@ source = "docs/revu_features/03_documents.md:335"
 status = "have"
 cpp = "missing"
 evidence = ["security_passwords_encrypt_open_and_remove"]
+accepted = ["security_passwords_permissions_and_opening"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. doc_open_protected opens with the open or permissions password (RC4, AES-128, AES-256 via pdfcraft-cos); a protected document saves again."
 
 [[feature]]
@@ -6469,6 +6593,8 @@ source = "docs/revu_features/03_documents.md:336"
 status = "have"
 cpp = "missing"
 evidence = ["security_icon_pdfa_badge_verify_page_tags_ids_numbering_and_compressed_saves", "security_presets_status_and_kept_header_footer_templates"]
+accepted = ["security_status_icon_in_the_app"]
+acceptance = "pass"
 notes = "The status bar shows a lock icon by the security as it will be saved (open lock: none; closed: open password, printing or editing limited, or both); hover for the status, click for the Security dialog; security_info reports it too."
 
 [[feature]]
@@ -6482,6 +6608,8 @@ source = "docs/revu_features/03_documents.md:337"
 status = "have"
 cpp = "missing"
 evidence = ["security_passwords_encrypt_open_and_remove"]
+accepted = ["security_passwords_permissions_and_opening"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. security_set: open and/or permissions password, eight permissions, AES-256/AES-128/RC4; security_remove with the permissions password; applied by a full save."
 
 [[feature]]
@@ -6495,6 +6623,8 @@ source = "docs/revu_features/03_documents.md:338"
 status = "have"
 cpp = "missing"
 evidence = ["presets_templates_kept_header_footer_and_fit", "security_presets_status_header_footer_templates_and_fit", "security_presets_status_and_kept_header_footer_templates"]
+accepted = ["security_presets_save_and_apply"]
+acceptance = "pass"
 notes = "Security presets saved by name in the settings folder (security_preset; Save Preset and the preset buttons in the Security dialog) and applied to any document."
 
 [[feature]]
@@ -6508,6 +6638,8 @@ source = "docs/revu_features/03_documents.md:339"
 status = "have"
 cpp = "missing"
 evidence = ["redaction_marks_applies_and_verifies", "marks_search_hits_and_areas_then_applies_and_verifies"]
+accepted = ["redaction_marks_apply_and_appearance"]
+acceptance = "pass"
 notes = "Tool redact_mark: areas (page + rects) or every occurrence of a text (case / whole words), as Redact annotations (pdfcraft-annot); redact_list lists them."
 
 [[feature]]
@@ -6521,6 +6653,8 @@ source = "docs/revu_features/03_documents.md:340"
 status = "have"
 cpp = "missing"
 evidence = ["text_only_keeps_the_graphics_and_images_only_keeps_the_text", "raster_dynamic_fill_redaction_kinds_snapshot_cut_and_image_markups", "viewport_calibrate_raster_fill_redaction_kinds_and_snapshot_cut"]
+accepted = ["redaction_marks_apply_and_appearance"]
+acceptance = "pass"
 notes = "Apply Redactions (pdfcraft-redact): on all or chosen pages, removing text, images and graphics, text only, or images only (tool redact_apply_kinds; content inside form XObjects is not split by kind), verified afterwards (residue), optional scrub of document properties, metadata, attachments and scripts; next save is a full rewrite."
 
 [[feature]]
@@ -6534,6 +6668,8 @@ source = "docs/revu_features/03_documents.md:341"
 status = "have"
 cpp = "missing"
 evidence = ["overlay_look_codes_and_metadata_scrub", "redaction_look_codes_and_scrub", "redaction_properties_scrub_form_data_and_legend_distribution"]
+accepted = ["redaction_marks_apply_and_appearance"]
+acceptance = "pass"
 notes = "Redaction Properties: fill colour or none, overlay text or a FOIA/DOD redaction code, font, size (0 = fit), text colour, alignment and repeat to fill."
 
 [[feature]]
@@ -6547,6 +6683,8 @@ source = "docs/revu_features/03_documents.md:347"
 status = "have"
 cpp = "missing"
 evidence = ["flatten_markups_by_filter"]
+accepted = ["flatten_by_type_recoverable_and_unflatten"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. markup_flatten burns appearances into page content by ids, pages, kinds, layers or authors (pop-ups and replies go too); undoable until saved, then a full save. Not recoverable (no unflatten)."
 
 [[feature]]
@@ -6560,6 +6698,8 @@ source = "docs/revu_features/03_documents.md:348"
 status = "have"
 cpp = "missing"
 evidence = ["overlay_kept_properties_and_capture_summary", "flatten_extras_overlay_popups_and_capture_summary", "print_advanced_reset_and_flatten_extras"]
+accepted = ["flatten_extras_layer_overlay_popup_and_capture_summary"]
+acceptance = "pass"
 notes = "Flatten into a named layer, recoverable flatten, overlay text on each flattened page (Helvetica, Times-Roman or Courier, size, six positions), chosen properties (subject, author, comments, label, status, date) kept in a pop-up note at each flattened markup, and a capture summary of flattened File Attachments attached to the document (tool markup_flatten_extras)."
 
 [[feature]]
@@ -6573,6 +6713,8 @@ source = "docs/revu_features/03_documents.md:349"
 status = "have"
 cpp = "missing"
 evidence = ["recoverable_flatten_unflattens_and_hides_from_compare", "recoverable_flatten_onto_a_layer_and_unflatten", "repair_pdfa_color_processing_and_unflatten"]
+accepted = ["flatten_by_type_recoverable_and_unflatten"]
+acceptance = "pass"
 notes = "Flatten with recoverable: true keeps the annotations; Document > Unflatten (Ctrl+Shift+U) restores them on chosen pages; survives save and reopen."
 
 [[feature]]
@@ -6586,6 +6728,8 @@ source = "docs/revu_features/03_documents.md:350"
 status = "have"
 cpp = "missing"
 evidence = ["reduce_file_size_reports_sizes"]
+accepted = ["reduce_file_size_with_custom_settings"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. doc_reduce_size (pdfcraft-optimize): resample/recompress images, drop thumbnails, compress streams, remove dead links; reports full-save sizes."
 
 [[feature]]
@@ -6599,6 +6743,8 @@ source = "docs/revu_features/03_documents.md:351"
 status = "have"
 cpp = "missing"
 evidence = ["reduce_on_another_thread_and_the_clean_ups", "legend_options_copy_freeze_and_reduce_options", "security_presets_status_and_kept_header_footer_templates"]
+accepted = ["reduce_file_size_with_custom_settings"]
+acceptance = "pass"
 notes = "Colour and gray image targets and thresholds, JPEG quality or lossless, thumbnails, alternate images, tags, print settings, stream compression, invalid links, unreferenced destinations, metadata, private data, crop to crop box; runs on a worker thread."
 
 [[feature]]
@@ -6612,6 +6758,8 @@ source = "docs/revu_features/03_documents.md:352"
 status = "have"
 cpp = "missing"
 evidence = ["repair_archive_pdfa_and_color_processing", "repair_drops_broken_entries_and_archive_round_trips", "repair_pdfa_color_processing_and_unflatten"]
+accepted = ["repair_archive_pdfa_and_color_processing"]
+acceptance = "pass"
 notes = "Document > Repair PDF: full rewrite from the object graph (xref rebuilt, broken annotation and content entries dropped), reports the object layer's read fixes."
 
 [[feature]]
@@ -6625,7 +6773,9 @@ source = "docs/revu_features/03_documents.md:353"
 status = "have"
 cpp = "missing"
 evidence = ["repair_archive_pdfa_and_color_processing", "repair_drops_broken_entries_and_archive_round_trips", "repair_pdfa_color_processing_and_unflatten"]
-notes = "Archive as PDF/A (pdfcraft-preflight): PDF/A-2b or 3b, not 1b; Verify lists the problems left; Unlock removes the PDF/A identification."
+accepted = ["repair_archive_pdfa_and_color_processing"]
+acceptance = "gap"
+notes = "Archive as PDF/A (pdfcraft-preflight): PDF/A-2b or 3b, not 1b; Verify lists the problems left; Unlock removes the PDF/A identification. Acceptance: archives as PDF/A-2b or 3b, not the PDF/A-1b Revu exports."
 
 [[feature]]
 id = "doc-186"
@@ -6638,6 +6788,8 @@ source = "docs/revu_features/03_documents.md:354"
 status = "have"
 cpp = "missing"
 evidence = ["grayscale_turns_red_gray_and_comes_off_again", "repair_archive_pdfa_and_color_processing", "repair_pdfa_color_processing_and_unflatten"]
+accepted = ["repair_archive_pdfa_and_color_processing"]
+acceptance = "pass"
 notes = "Document > Color Processing: grayscale, one tint or lighten toward white, vector and raster alike (a blend-mode overlay), per page range; removable."
 
 [[feature]]
@@ -6651,6 +6803,8 @@ source = "docs/revu_features/03_documents.md:360"
 status = "have"
 cpp = "missing"
 evidence = ["gif_and_multi_page_tiff_open_and_export", "gif_multi_page_tiff_office_dxf_and_one_pdf_per_source", "export_images_office_formats_and_page_region"]
+accepted = ["export_pages_to_images_all_formats"]
+acceptance = "fixed"
 notes = "File > Export Pages as Images: PNG, JPEG (quality), TIFF, BMP or GIF (256 colours) at 18-1200 dpi, chosen pages, with or without markups, auto-numbered <name><suffix><page> (tool export_images)."
 
 [[feature]]
@@ -6664,6 +6818,8 @@ source = "docs/revu_features/03_documents.md:361"
 status = "have"
 cpp = "missing"
 evidence = ["export_images_office_formats_and_page_region", "export_dialogs_write_images_office_files_and_a_region"]
+accepted = ["export_document_to_text_rtf_html_and_office"]
+acceptance = "pass"
 notes = "export_document to .txt, .html, .rtf (paragraphs in reading order, headings by size, via pdfcraft-export)."
 
 [[feature]]
@@ -6677,6 +6833,8 @@ source = "docs/revu_features/03_documents.md:362"
 status = "have"
 cpp = "missing"
 evidence = ["export_images_office_formats_and_page_region", "export_dialogs_write_images_office_files_and_a_region"]
+accepted = ["export_document_to_text_rtf_html_and_office"]
+acceptance = "pass"
 notes = "Word (.docx, paragraphs and tables), Excel (.xlsx, one sheet per page, words laid out in rows and columns, numbers as numbers), PowerPoint (.pptx, one slide per page as a picture). Scans need OCR first (ocr_pages) for text."
 
 [[feature]]
@@ -6690,6 +6848,8 @@ source = "docs/revu_features/03_documents.md:363"
 status = "have"
 cpp = "missing"
 evidence = ["export_images_office_formats_and_page_region", "export_dialogs_write_images_office_files_and_a_region", "region_reads_a_schedule_as_rows_and_columns"]
+accepted = ["export_page_region_to_excel"]
+acceptance = "pass"
 notes = "File > Export Page Region to Excel: drag a box; its text becomes rows and columns by position, saved as .xlsx or .csv."
 
 [[feature]]
@@ -6703,6 +6863,8 @@ source = "docs/revu_features/03_documents.md:369"
 status = "have"
 cpp = "missing"
 evidence = ["document_properties_and_xmp"]
+accepted = ["document_properties_standard_and_custom"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. doc_properties: standard entries, custom entries, PDF version, pages, encryption, XMP presence (Security in security_info)."
 
 [[feature]]
@@ -6716,6 +6878,8 @@ source = "docs/revu_features/03_documents.md:370"
 status = "have"
 cpp = "missing"
 evidence = ["document_properties_and_xmp"]
+accepted = ["document_properties_standard_and_custom"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. doc_properties_set edits Title, Author, Subject, Keywords, Creator, Producer; the XMP packet is rewritten to match."
 
 [[feature]]
@@ -6729,6 +6893,8 @@ source = "docs/revu_features/03_documents.md:371"
 status = "have"
 cpp = "missing"
 evidence = ["document_properties_and_xmp"]
+accepted = ["document_properties_standard_and_custom"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. Custom /Info entries added, changed and removed through doc_properties_set."
 
 [[feature]]
@@ -6742,6 +6908,8 @@ source = "docs/revu_features/03_documents.md:372"
 status = "have"
 cpp = "missing"
 evidence = ["attachments_add_list_extract_delete"]
+accepted = ["embedded_file_attachments"]
+acceptance = "pass"
 notes = "Headless (engine + automation tool); no UI yet. attachment_add / list / extract / delete on the /EmbeddedFiles name tree."
 
 [[feature]]
@@ -6755,6 +6923,8 @@ source = "docs/revu_features/03_documents.md:373"
 status = "have"
 cpp = "missing"
 evidence = ["file_attachment_snapshots_and_capture_summary", "file_attachments_round_trip_and_export"]
+accepted = ["attachment_icon_markup"]
+acceptance = "pass"
 notes = "Markup > File Attachment: a paperclip-style icon carrying one embedded file; icon, colour, opacity and note in Properties; Save Attached File extracts it."
 
 [[feature]]
@@ -6768,6 +6938,8 @@ source = "docs/revu_features/03_documents.md:374"
 status = "have"
 cpp = "missing"
 evidence = ["security_icon_pdfa_badge_verify_page_tags_ids_numbering_and_compressed_saves"]
+accepted = ["standards_info_and_page_tags"]
+acceptance = "pass"
 notes = "Document Properties: Standards (PDF/A claim, Verify, Unlock), signatures (certified) and the current page's tags (the Set's custom tags for the sheet), read-only."
 
 [[feature]]
@@ -6781,6 +6953,8 @@ source = "docs/revu_features/03_documents.md:380"
 status = "have"
 cpp = "have"
 evidence = ["hyperlink_tool_adds_a_page_link_listed_in_the_links_panel"]
+accepted = ["follow_links_and_hyperlink_tool_in_app"]
+acceptance = "pass"
 notes = "Links panel Follow (or double-click): page links go to the page, file links open the file, web links open the browser."
 
 [[feature]]
@@ -6794,6 +6968,8 @@ source = "docs/revu_features/03_documents.md:381"
 status = "have"
 cpp = "missing"
 evidence = ["urls_text_links_and_markup_actions", "places_link_actions_text_and_url_links_and_markup_actions", "places_hyperlink_actions_and_markup_edit_action", "hyperlink_tool_adds_a_page_link_listed_in_the_links_panel"]
+accepted = ["follow_links_and_hyperlink_tool_in_app"]
+acceptance = "pass"
 notes = "Hyperlink tool (Shift+H): drag a box, or fit the link to the text in the box; Highlight in the Links panel shows every link in blue."
 
 [[feature]]
@@ -6807,6 +6983,8 @@ source = "docs/revu_features/03_documents.md:382"
 status = "have"
 cpp = "missing"
 evidence = ["places_add_move_rename_delete_and_links_follow_them", "places_link_actions_text_and_url_links_and_markup_actions"]
+accepted = ["link_actions_list_edit_and_places"]
+acceptance = "pass"
 notes = "Page (fit page, fit width, actual, inherit), Place, Space (its box), view rectangle (also in another PDF), URL, open a file with relative or full path."
 
 [[feature]]
@@ -6820,6 +6998,8 @@ source = "docs/revu_features/03_documents.md:383"
 status = "have"
 cpp = "missing"
 evidence = ["urls_text_links_and_markup_actions", "places_link_actions_text_and_url_links_and_markup_actions"]
+accepted = ["hyperlinks_from_urls"]
+acceptance = "pass"
 notes = "Create Hyperlinks from URLs: http://, https:// and www. addresses written on chosen pages become links (already linked text skipped)."
 
 [[feature]]
@@ -6833,6 +7013,8 @@ source = "docs/revu_features/03_documents.md:384"
 status = "have"
 cpp = "missing"
 evidence = ["links_to_pages_urls_and_files", "hyperlink_tool_adds_a_page_link_listed_in_the_links_panel"]
+accepted = ["link_actions_list_edit_and_places"]
+acceptance = "pass"
 notes = "link_list lists every link with its target; link_delete; no panel."
 
 [[feature]]
@@ -6846,6 +7028,8 @@ source = "docs/revu_features/03_documents.md:385"
 status = "have"
 cpp = "missing"
 evidence = ["places_add_move_rename_delete_and_links_follow_them", "places_link_actions_text_and_url_links_and_markup_actions", "places_hyperlink_actions_and_markup_edit_action"]
+accepted = ["link_actions_list_edit_and_places"]
+acceptance = "pass"
 notes = "Places are named destinations (/Names /Dests): add, move (links follow), rename (links break, as in Revu), delete; links and bookmarks can go to them."
 
 [[feature]]
@@ -6859,6 +7043,8 @@ source = "docs/revu_features/03_documents.md:391"
 status = "have"
 cpp = "have"
 evidence = ["recent_files_reopen_at_the_last_page_and_pin"]
+accepted = ["file_access_recents_open_remove_clear"]
+acceptance = "pass"
 notes = "File Access panel (Alt+A): recents with path on hover; click opens, Ctrl+click opens behind; Remove from List and Clear."
 
 [[feature]]
@@ -6872,6 +7058,8 @@ source = "docs/revu_features/03_documents.md:392"
 status = "have"
 cpp = "missing"
 evidence = ["file_access_history_by_day_and_categories"]
+accepted = ["file_access_recents_sorting"]
+acceptance = "pass"
 notes = "Sort by date, folder, most used, name, or history grouped by day (Today, Yesterday, dates)."
 
 [[feature]]
@@ -6885,6 +7073,8 @@ source = "docs/revu_features/03_documents.md:393"
 status = "have"
 cpp = "have"
 evidence = ["recent_files_reopen_at_the_last_page_and_pin"]
+accepted = ["file_access_pinned_files_and_categories"]
+acceptance = "pass"
 notes = "Pin a file (pin button) so it stays at the top of File Access."
 
 [[feature]]
@@ -6898,6 +7088,8 @@ source = "docs/revu_features/03_documents.md:394"
 status = "have"
 cpp = "missing"
 evidence = ["file_access_history_by_day_and_categories"]
+accepted = ["file_access_pinned_files_and_categories"]
+acceptance = "pass"
 notes = "Pinned files in user-named categories that collapse; right-click a category to rename it or unpin all."
 
 [[feature]]
@@ -6911,6 +7103,8 @@ source = "docs/revu_features/03_documents.md:395"
 status = "have"
 cpp = "missing"
 evidence = ["security_icon_pdfa_badge_verify_page_tags_ids_numbering_and_compressed_saves", "previews_the_first_page_small"]
+accepted = ["file_access_recents_preferences"]
+acceptance = "pass"
 notes = "Preferences > Interface: how many recent files (0 turns the list off), days kept, preview on hover (the first page), clear."
 
 [[feature]]
@@ -6924,7 +7118,9 @@ source = "docs/revu_features/03_documents.md:396"
 status = "have"
 cpp = "missing"
 evidence = ["explorer_sorts_filters_makes_folders_and_renames", "file_access_history_by_day_and_categories"]
-notes = "Explorer: path box (Enter goes there, folder completion), drives, back / forward / up, sort by name / type / size / date, PDFs or PDFs and images, new folder, pin the folder's files; no separate path favourites."
+accepted = ["file_access_explorer_and_context_menu"]
+acceptance = "gap"
+notes = "Explorer: path box (Enter goes there, folder completion), drives, back / forward / up, sort by name / type / size / date, PDFs or PDFs and images, new folder, pin the folder's files; no separate path favourites. Acceptance: no path favourites in the Explorer."
 
 [[feature]]
 id = "doc-209"
@@ -6937,6 +7133,8 @@ source = "docs/revu_features/03_documents.md:397"
 status = "have"
 cpp = "missing"
 evidence = ["explorer_sorts_filters_makes_folders_and_renames"]
+accepted = ["file_access_explorer_and_context_menu"]
+acceptance = "pass"
 notes = "Right-click a file: Open, Open in Background, Open Folder, Copy Path, Rename, Delete from Disk (asks first), Properties."
 
 [[feature]]
@@ -6950,7 +7148,9 @@ source = "docs/revu_features/03_documents.md:398"
 status = "have"
 cpp = "missing"
 evidence = ["interactive_stamps_stamp_settings_symbols_and_file_links"]
-notes = "File Access: a file row's menu > Create Link to This File, then drag the link area on the page (a link that opens the file); not a drag out of the row itself."
+accepted = ["file_access_link_from_file_list"]
+acceptance = "gap"
+notes = "File Access: a file row's menu > Create Link to This File, then drag the link area on the page (a link that opens the file); not a drag out of the row itself. Acceptance: the link comes from the file row's menu (Create Link to This File, then drag the area), not by dragging out of the row."
 
 [[feature]]
 id = "doc-211"
@@ -7019,6 +7219,8 @@ source = "docs/revu_features/03_documents.md:413"
 status = "have"
 cpp = "missing"
 evidence = ["compare_documents_clouds_the_changes_and_reviews_them", "overlay_pages_writes_the_overlay_and_opens_it"]
+accepted = ["compare_overlay_stitch_and_script_pointers"]
+acceptance = "pass"
 notes = "Tools > Compare Documents and File > Overlay Pages (see part 4)."
 
 [[feature]]
@@ -7032,6 +7234,8 @@ source = "docs/revu_features/03_documents.md:414"
 status = "have"
 cpp = "missing"
 evidence = ["packages_insert_options_layered_pages_stitching_and_source_bookmarks", "packages_source_bookmarks_insert_options_layers_and_stitching", "pages_join_edge_to_edge_with_their_markups"]
+accepted = ["compare_overlay_stitch_and_script_pointers"]
+acceptance = "pass"
 notes = "Document > Stitching: pages joined edge to edge into one large page in a new PDF (vector form XObjects), pages per row, overlap at match lines; markups come along."
 
 [[feature]]
@@ -7045,7 +7249,9 @@ source = "docs/revu_features/03_documents.md:415"
 status = "partial"
 cpp = "missing"
 evidence = []
-notes = "Script: markupcraft-cli run --script runs tool steps, and Batch > Run Script runs a script on many files. Machine translation of markup text needs a translation service or model, which MarkupCraft does not include."
+accepted = ["compare_overlay_stitch_and_script_pointers", "other_batch_processes_security_rotate_split_compare_overlay_script"]
+acceptance = "gap"
+notes = "Script: markupcraft-cli run --script runs tool steps, and Batch > Run Script runs a script on many files. Machine translation of markup text needs a translation service or model, which MarkupCraft does not include. Acceptance: scripts run (batch_script, markupcraft-cli run --script); no machine translation of markup text."
 
 [[feature]]
 id = "ui-001"

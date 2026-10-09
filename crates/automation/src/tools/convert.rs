@@ -31,6 +31,7 @@ pub static EXPORT_IMAGES: Tool = Tool {
     },
     run: |a, args| {
         let dir = a.resolve(args.str("dir")?, true)?;
+        std::fs::create_dir_all(&dir).map_err(crate::failed)?;
         let (doc, s) = a.session_ref(args)?;
         let mut o = ImageExport::default();
         if let Some(f) = args.opt_str("format")? {

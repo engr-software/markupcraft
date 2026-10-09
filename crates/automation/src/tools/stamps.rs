@@ -2,8 +2,9 @@
 
 use std::collections::BTreeMap;
 
-use markupcraft_engine::Color;
+use markupcraft_engine::extras6::StampSettings;
 use markupcraft_engine::stamps::{StampLibrary, StampPlace, StampSource, stamp_prompts};
+use markupcraft_engine::{Color, MarkupPatch};
 use serde_json::{Value, json};
 
 use super::{Tool, markup_json, page_arg, path_arg, point_arg, rect_arg, schema, schema_nodoc};
@@ -104,7 +105,10 @@ pub static ADD: Tool = Tool {
                 "image": path_arg("A .png or .pdf file"),
                 "image_page": page_arg("of the PDF to use (default 1)"),
                 "answers": { "type": "object", "description": "{prompt label: text}" },
-                "time": { "type": "integer" }
+                "time": { "type": "integer" },
+                "opacity": { "type": "number", "description": "0.05 to 1 (default: the stamp settings')." },
+                "blend": { "type": "string", "enum": ["normal", "multiply"], "description": "Default: the stamp settings'." },
+                "lock": { "type": "boolean", "description": "Default: the stamp settings'." }
             }),
             &["page"],
         )
@@ -141,9 +145,42 @@ pub static ADD: Tool = Tool {
             }
         }
         let when = args.opt_int("time")?;
-        let lib = a.config_dir().ok().map(|d| StampLibrary::in_config(&d));
+        // The stamp settings (Tools > Stamp settings) give every placed stamp its library,
+        // opacity, blend mode and lock; the arguments override them for this stamp.
+        let config = a.config_dir().ok();
+        let mut st = config
+            .as_deref()
+            .and_then(|d| StampSettings::load(d).ok())
+            .unwrap_or_default();
+        let lib = config.as_deref().map(|d| st.library(d));
+        if let Some(v) = args.opt_num("opacity")? {
+            st.opacity = v;
+        }
+        if let Some(v) = args.opt_string("blend")? {
+            st.blend = v;
+        }
+        if let Some(v) = args.opt_bool("lock")? {
+            st.lock = v;
+        }
+        st.validate()?;
         let (doc, s) = a.session(args)?;
-        let id = s.place_stamp(page, at, &source, lib.as_ref(), &answers, when)?;
+        s.set_merge_key(Some("stamp-add"));
+        let placed = (|| -> markupcraft_engine::Result<String> {
+            let id = s.place_stamp(page, at, &source, lib.as_ref(), &answers, when)?;
+            if st.opacity < 1.0 || st.blend == "multiply" || st.lock {
+                let patch = MarkupPatch {
+                    opacity: Some(st.opacity),
+                    multiply: Some(st.blend == "multiply"),
+                    locked: Some(st.lock),
+                    ..Default::default()
+                };
+                s.set_properties(std::slice::from_ref(&id), &patch)?;
+            }
+            Ok(id)
+        })();
+        s.set_merge_key(None);
+        s.seal();
+        let id = placed?;
         Ok(json!({ "id": id, "markup": markup_json(s.markup(&id)?), "document": summary(doc, s) }))
     },
 };

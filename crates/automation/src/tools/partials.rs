@@ -407,6 +407,7 @@ pub static BATCH_SPLIT: Tool = Tool {
             }
             _ => return Err(bad_args("batch_split: give pages_per_file or by: \"bookmarks\"")),
         };
+        std::fs::create_dir_all(&dir).map_err(crate::failed)?;
         let mut out = Vec::new();
         for f in &files {
             let r = Session::open(f).and_then(|s| s.split_document(&dir, &by));

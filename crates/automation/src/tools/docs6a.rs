@@ -283,6 +283,9 @@ pub static BATCH_SIGN: Tool = Tool {
             out_dir: args.opt_str("out_dir")?.map(|s| a.resolve(s, true)).transpose()?,
             suffix: args.opt_string("suffix")?.unwrap_or_default(),
         };
+        if let Some(d) = &job.out_dir {
+            std::fs::create_dir_all(d).map_err(crate::failed)?;
+        }
         let r = batch_sign(&files, &job)?;
         let ok = r.iter().filter(|o| o.error.is_empty()).count();
         Ok(json!({ "signed": ok, "failed": r.len() - ok, "files": r }))

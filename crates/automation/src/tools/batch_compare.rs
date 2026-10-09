@@ -215,6 +215,7 @@ pub static COMPARE: Tool = Tool {
     },
     run: |a, args| {
         let out_dir = a.resolve(args.str("out_dir")?, true)?;
+        std::fs::create_dir_all(&out_dir).map_err(crate::failed)?;
         let opts = compare_options(a, args)?;
         let (_, pairs, _, _) = paired(a, args)?;
         let suffix = args.opt_string("suffix")?.unwrap_or_else(|| "_compared".into());
@@ -239,6 +240,7 @@ pub static OVERLAY: Tool = Tool {
     },
     run: |a, args| {
         let out_dir = a.resolve(args.str("out_dir")?, true)?;
+        std::fs::create_dir_all(&out_dir).map_err(crate::failed)?;
         let align = match args.opt_str("align")?.unwrap_or("page") {
             "page" => OverlayAlign::Page,
             "auto" => OverlayAlign::Auto,
