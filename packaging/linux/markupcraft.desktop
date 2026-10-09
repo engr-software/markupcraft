@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=MarkupCraft
+GenericName=PDF Markup and Takeoff
+Comment=Mark up, measure and take off quantities on PDF drawings
+Exec=markupcraft %F
+TryExec=markupcraft
+Icon=markupcraft
+Terminal=false
+StartupNotify=true
+StartupWMClass=markupcraft
+Categories=Office;Graphics;Viewer;
+Keywords=pdf;markup;takeoff;measure;drawing;construction;annotate;
+MimeType=application/pdf;

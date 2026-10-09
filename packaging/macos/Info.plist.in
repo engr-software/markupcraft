@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Template: packaging/macos/package.sh substitutes @VERSION@ (full, e.g. 0.4.0-rc.1) and
+     @SHORT_VERSION@ (numeric X.Y.Z). -->
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>en</string>
+  <key>CFBundleDisplayName</key>
+  <string>MarkupCraft</string>
+  <key>CFBundleName</key>
+  <string>MarkupCraft</string>
+  <key>CFBundleExecutable</key>
+  <string>MarkupCraft</string>
+  <key>CFBundleIdentifier</key>
+  <string>io.github.engr-software.markupcraft</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleSignature</key>
+  <string>????</string>
+  <key>CFBundleShortVersionString</key>
+  <string>@SHORT_VERSION@</string>
+  <key>CFBundleVersion</key>
+  <string>@SHORT_VERSION@</string>
+  <key>MarkupCraftVersion</key>
+  <string>@VERSION@</string>
+  <key>CFBundleIconFile</key>
+  <string>MarkupCraft</string>
+  <key>LSApplicationCategoryType</key>
+  <string>public.app-category.productivity</string>
+  <!-- Must match MACOSX_DEPLOYMENT_TARGET in package.sh: the first macOS on Apple silicon, with
+       the Metal feature set wgpu targets. -->
+  <key>LSMinimumSystemVersion</key>
+  <string>11.0</string>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+  <key>NSSupportsAutomaticGraphicsSwitching</key>
+  <true/>
+  <key>NSRequiresAquaSystemAppearance</key>
+  <false/>
+  <key>NSHumanReadableCopyright</key>
+  <string>Copyright the MarkupCraft authors. MIT OR Apache-2.0.</string>
+  <!-- Offered under Open With for PDFs, without taking over the system viewer ("Alternate"). -->
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeName</key>
+      <string>PDF Document</string>
+      <key>CFBundleTypeRole</key>
+      <string>Editor</string>
+      <key>LSHandlerRank</key>
+      <string>Alternate</string>
+      <key>LSItemContentTypes</key>
+      <array><string>com.adobe.pdf</string></array>
+      <key>CFBundleTypeExtensions</key>
+      <array><string>pdf</string></array>
+      <key>CFBundleTypeMIMETypes</key>
+      <array><string>application/pdf</string></array>
+    </dict>
+  </array>
+</dict>
+</plist>

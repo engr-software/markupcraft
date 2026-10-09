@@ -1,0 +1,114 @@
+name: Package
+
+# Builds the per-OS packages with the scripts in packaging/ and uploads each OS's files as one
+# workflow artifact (markupcraft-windows, markupcraft-macos, markupcraft-linux). Called by
+# ci.yml (every push and pull request) and release.yml (version tags); never run on its own.
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+
+jobs:
+  windows:
+    name: package (Windows x64)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: package
+      - name: Make sure NSIS is installed
+        shell: pwsh
+        run: |
+          $nsis = Join-Path ${env:ProgramFiles(x86)} 'NSIS\makensis.exe'
+          if (-not (Test-Path $nsis) -and -not (Get-Command makensis -ErrorAction SilentlyContinue)) {
+            choco install nsis -y --no-progress
+          }
+      - name: Package (portable zip + installer)
+        shell: pwsh
+        run: ./packaging/windows/package.ps1 -Arch x64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: markupcraft-windows
+          path: |
+            dist/*-windows-x64.zip
+            dist/*-windows-x64-setup.exe
+          if-no-files-found: error
+          retention-days: 30
+
+  macos:
+    name: package (macOS arm64)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: package
+      - name: Package (.app in a .dmg)
+        run: bash packaging/macos/package.sh
+      - name: Check the .dmg
+        run: |
+          dmg=$(ls dist/*-macos-arm64.dmg)
+          mnt=$(mktemp -d)
+          hdiutil attach "$dmg" -nobrowse -readonly -mountpoint "$mnt"
+          app="$mnt/MarkupCraft.app"
+          codesign --verify --deep --strict "$app"
+          plutil -p "$app/Contents/Info.plist" | grep -E "CFBundleIdentifier|CFBundleIconFile|CFBundleShortVersionString"
+          test -s "$app/Contents/Resources/MarkupCraft.icns"
+          test -x "$app/Contents/MacOS/MarkupCraft"
+          hdiutil detach "$mnt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: markupcraft-macos
+          path: dist/*-macos-arm64.dmg
+          if-no-files-found: error
+          retention-days: 30
+
+  linux:
+    name: package (Linux x86_64)
+    # The oldest supported Ubuntu image: binaries built against its glibc (2.35) run on newer distros.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libxkbcommon-dev libwayland-dev libx11-dev libxcursor-dev libxrandr-dev libxi-dev \
+            libgl1-mesa-dev libgtk-3-dev desktop-file-utils file
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: package
+      - name: Package (AppImage + tar.gz)
+        run: bash packaging/linux/package.sh
+      - name: Check the AppImage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
+        run: |
+          appimage=$(ls dist/*-linux-x86_64.AppImage)
+          cd "$RUNNER_TEMP"
+          "$GITHUB_WORKSPACE/$appimage" --appimage-extract >/dev/null
+          test -x squashfs-root/usr/bin/markupcraft
+          test -x squashfs-root/usr/bin/markupcraft-cli
+          test -f squashfs-root/markupcraft.desktop
+          test -f squashfs-root/usr/share/icons/hicolor/256x256/apps/markupcraft.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: markupcraft-linux
+          path: |
+            dist/*-linux-x86_64.AppImage
+            dist/*-linux-x86_64.tar.gz
+          if-no-files-found: error
+          retention-days: 30

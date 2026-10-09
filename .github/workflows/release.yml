@@ -1,0 +1,74 @@
+name: Release
+
+# A pushed version tag vX.Y.Z builds the packages (package.yml) and publishes three GitHub
+# releases, one per OS: vX.Y.Z-windows, vX.Y.Z-macos and vX.Y.Z-linux. Each carries that OS's
+# files, a SHA256SUMS.txt and the notes in packaging/release-notes/<os>.md. The per-OS tags the
+# releases create do not match the filter below, so they never start this workflow again.
+# See docs/releasing.md.
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: tag matches Cargo.toml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare the tag with [workspace.package] version
+        run: |
+          . packaging/env.sh
+          if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME but Cargo.toml says version $VERSION; bump [workspace.package] version first"
+            exit 1
+          fi
+
+  package:
+    name: package
+    needs: [version]
+    uses: ./.github/workflows/package.yml
+
+  publish:
+    name: publish the per-OS releases
+    needs: [package]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: markupcraft-*
+          path: dist
+          merge-multiple: true
+      - name: Create one release per OS
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la dist
+          version="$GITHUB_REF_NAME"
+          publish() {   # os title files...
+            os="$1"; title="$2"; shift 2
+            tag="$version-$os"
+            rm -rf "rel-$os" && mkdir -p "rel-$os" && cp "$@" "rel-$os/"
+            (cd "rel-$os" && sha256sum -- * > SHA256SUMS.txt && cat SHA256SUMS.txt)
+            if gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+              # A re-run replaces the assets of the release it made before.
+              gh release upload "$tag" rel-"$os"/* --clobber --repo "$GITHUB_REPOSITORY"
+            else
+              gh release create "$tag" rel-"$os"/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+                --title "MarkupCraft $version for $title" --notes-file "packaging/release-notes/$os.md"
+            fi
+          }
+          publish windows Windows dist/*-windows-x64.zip dist/*-windows-x64-setup.exe
+          publish macos macOS dist/*-macos-arm64.dmg
+          publish linux Linux dist/*-linux-x86_64.AppImage dist/*-linux-x86_64.tar.gz
