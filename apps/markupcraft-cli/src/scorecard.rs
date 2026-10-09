@@ -8,48 +8,6 @@ use markupcraft_revu::{SaveMode, open, save};
 
 type Res = Result<bool, Box<dyn std::error::Error>>;
 
-pub fn list(path: &str, csv: Option<&str>) -> Res {
-    let (_f, doc) = open(path)?;
-    let mut totals: BTreeMap<(String, String), (usize, f64)> = BTreeMap::new();
-    let mut kinds: BTreeMap<&str, usize> = BTreeMap::new();
-    for m in &doc.markups {
-        *kinds.entry(m.kind.name()).or_default() += 1;
-        if !m.kind.is_measurement() {
-            continue;
-        }
-        let t = totals.entry((m.subject.clone(), m.unit())).or_default();
-        t.0 += 1;
-        t.1 += m.quantity().unwrap_or(0.0);
-    }
-    println!("{path}\n{} pages, {} markups\n", doc.pages.len(), doc.markups.len());
-    for (k, n) in &kinds {
-        println!("  {k:<14} {n:>6}");
-    }
-    println!("\n{:<28} {:<6} {:>6} {:>16}", "SUBJECT", "UNIT", "COUNT", "TOTAL");
-    for ((subj, unit), (n, t)) in &totals {
-        println!("{subj:<28} {unit:<6} {n:>6} {t:>16.2}");
-    }
-    if let Some(csv) = csv {
-        let mut out = String::from("Page,Type,Subject,Label,Author,Measurement,Unit\n");
-        let q = |s: &str| format!("\"{}\"", s.replace('"', "\"\""));
-        for m in &doc.markups {
-            out += &format!(
-                "{},{},{},{},{},{},{}\n",
-                m.page + 1,
-                q(m.kind.name()),
-                q(&m.subject),
-                q(&m.label),
-                q(&m.author),
-                q(&m.quantity_text()),
-                q(&m.unit())
-            );
-        }
-        std::fs::write(csv, out)?;
-        println!("\nwrote {csv}");
-    }
-    Ok(true)
-}
-
 /// Compare our geometry-derived quantity with the label Revu stored in `/Contents`.
 pub fn check(path: &str) -> Res {
     let (_f, doc) = open(path)?;

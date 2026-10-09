@@ -15,14 +15,22 @@
 
 pub mod caption;
 pub mod columns;
+pub mod csv;
+pub mod formula;
 pub mod measure_extras;
+pub mod table;
 
 use std::collections::BTreeMap;
 
-pub use columns::{ChoiceItem, ColumnType, CustomColumn, Reply, review_statuses};
+pub use columns::{
+    CellEdit, ChoiceItem, ColumnType, CustomColumn, Reply, TableColumn, default_visible_columns, make_column_id,
+    review_statuses, standard_columns,
+};
+pub use formula::{Formula, eval_formula, formula_key};
 pub use markupcraft_geom::{Point, Rect};
 pub use markupcraft_measure::{FormatArray, NumberFormat, Scale, format_value};
 use serde::{Deserialize, Serialize};
+pub use table::{Cell, Group, MarkupTable, Scope, Totals, View};
 
 /// Revu `/MeasurementTypes` codes (seen in Revu files).
 pub mod code {
@@ -583,6 +591,8 @@ pub struct Document {
     /// Markups List custom columns
     pub columns: Vec<CustomColumn>,
     pub columns_changed: bool,
+    /// page labels (`PageInfo::label`) edited, not yet saved
+    pub page_labels_changed: bool,
     /// z-order edited, not yet saved
     pub order_changed: bool,
 }

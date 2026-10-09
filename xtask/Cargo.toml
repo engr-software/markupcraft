@@ -10,3 +10,5 @@ workspace = true
 
 [dependencies]
 anyhow = "1"
+serde = { workspace = true }
+toml = "1"
