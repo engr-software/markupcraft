@@ -335,7 +335,8 @@ mod tests {
     #[test]
     fn read_only_kinds_are_left_alone() {
         let mut s = session();
-        // A text box from a file has no writer entry yet: not moved, not deleted.
+        // An annotation kind MarkupCraft has no writer for: not moved, not deleted.
+        s.doc.markups[1].kind = Kind::Other;
         assert!(!editable(&s.doc.markups[1]));
         s.translate(&["T".into()], Point::new(1.0, 1.0));
         assert!(!s.doc.markups[1].dirty);

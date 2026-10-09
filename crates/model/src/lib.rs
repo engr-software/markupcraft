@@ -240,6 +240,17 @@ pub enum CountSymbol {
 /// A PDF object id `(number, generation)`; `(0, 0)` = not in the file yet.
 pub type ObjId = (u32, u16);
 
+/// Where a Snapshot's content comes from (all in the markup's own file).
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+pub struct SnapshotSource {
+    /// a snapshot annotation whose `/AP /N` is the content (read from the file, or copied)
+    pub annot: Option<ObjId>,
+    /// a page (0-based) whose content, cut to `region`, is captured on save
+    pub page: Option<usize>,
+    /// the captured region, source page user space
+    pub region: Rect,
+}
+
 /// Annotation flag bits (ISO 32000-1 §12.5.3).
 pub mod flags {
     pub const PRINT: i64 = 4;
@@ -300,7 +311,9 @@ pub struct Markup {
     pub text: TextStyle,
 
     // geometry, PDF user space (bottom-left origin)
-    /// `/Vertices`, `/L`, box corners, `/QuadPoints` or ink points
+    /// `/Vertices`, `/L`, box corners, `/QuadPoints` or ink points. Box kinds (Rectangle,
+    /// Ellipse, Text Box, Typewriter, Stamp, Caret, Note, Snapshot): the four corners; a Callout
+    /// adds `pts[4]` = leader tip and `pts[5]` = knee.
     pub pts: Vec<Point>,
     pub rect: Rect,
     /// Ink: index into pts where each stroke after the first starts
@@ -342,6 +355,8 @@ pub struct Markup {
     pub icon: String,
     pub popup_open: bool,
     pub popup: Option<Rect>,
+    /// Snapshot: its content
+    pub snapshot: Option<SnapshotSource>,
 
     // Markups List
     /// "" = None, else Accepted / Rejected / ...
@@ -409,6 +424,7 @@ impl Default for Markup {
             icon: String::new(),
             popup_open: false,
             popup: None,
+            snapshot: None,
             status: String::new(),
             checked: false,
             column_data: BTreeMap::new(),

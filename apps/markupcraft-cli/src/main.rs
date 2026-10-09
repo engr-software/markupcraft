@@ -10,6 +10,7 @@
 //!   markupcraft-cli markupcheck <in.pdf> <out.pdf>   rewrite every other markup, reload, compare
 //!   markupcraft-cli demo <in.pdf> <out.pdf>          add one of each measurement (to check in Revu)
 //!   markupcraft-cli pages <in> <out> <op> ...        one page operation (see pages.rs)
+//!   markupcraft-cli markupdemo <in.pdf> <out.pdf>    add one of every other markup kind to page 1
 //!   markupcraft-cli tools [--json]                   the automation tool table
 //!   markupcraft-cli run --script steps.json [--root DIR]   run tool steps [{"tool", "params"}]
 //!   markupcraft-cli run <tool> key=value ... [--root DIR]  run one tool
@@ -17,6 +18,7 @@
 
 mod automate;
 mod listing;
+mod markupdemo;
 mod pages;
 mod scorecard;
 
@@ -58,6 +60,7 @@ fn main() -> ExitCode {
         ("resave", Some(a1), Some(out)) => scorecard::resave(a1, out),
         ("markupcheck", Some(a1), Some(out)) => scorecard::markupcheck(a1, out),
         ("demo", Some(a1), Some(out)) => scorecard::demo(a1, out),
+        ("markupdemo", Some(a1), Some(out)) => markupdemo::markupdemo(a1, out),
         _ => return usage(),
     };
     match result {

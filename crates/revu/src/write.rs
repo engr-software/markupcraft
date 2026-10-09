@@ -14,31 +14,15 @@ use crate::{extras, new_markup_id, pdf_date_now, scale};
 
 /// The font resource name and base font for a text style.
 pub fn base_font(font: &str, bold: bool, italic: bool) -> String {
-    let f = font.to_ascii_lowercase();
-    let (family, styles) = if f.contains("times") || f.contains("serif") && !f.contains("sans") {
-        (
-            "Times",
-            ["Times-Roman", "Times-Bold", "Times-Italic", "Times-BoldItalic"],
-        )
-    } else if f.contains("courier") || f.contains("mono") {
-        (
-            "Courier",
-            ["Courier", "Courier-Bold", "Courier-Oblique", "Courier-BoldOblique"],
-        )
-    } else {
-        (
-            "Helvetica",
-            [
-                "Helvetica",
-                "Helvetica-Bold",
-                "Helvetica-Oblique",
-                "Helvetica-BoldOblique",
-            ],
-        )
-    };
-    let _ = family;
-    let i = usize::from(bold) + 2 * usize::from(italic);
-    styles.get(i).copied().unwrap_or("Helvetica").to_string()
+    use markupcraft_geom::text::{Font, FontFamily};
+    Font {
+        family: FontFamily::of(font),
+        bold,
+        italic,
+        size: 0.0,
+    }
+    .base_name()
+    .to_string()
 }
 
 fn type1_font(base: &str) -> Object {
@@ -112,8 +96,9 @@ fn appearance(cos: &mut CosDoc, m: &mut Markup, ak: &AnnotKind) -> Object {
     ]);
     let mut fonts = pdf::dict(&[("Helv", type1_font("Helvetica"))]);
     if m.kind.is_text() || !m.stamp.is_empty() {
-        let base = base_font(&m.text.font, m.text.bold, m.text.italic);
-        pdf::set(&mut fonts, &font_res_name(&base), type1_font(&base));
+        // the markup's own font, under the resource name the kind's drawing uses
+        let f = kinds::common::font_of(&m.text);
+        pdf::set(&mut fonts, f.res_name(), type1_font(f.base_name()));
     }
     let res = pdf::dict(&[
         ("ExtGState", Object::Dict(pdf::dict(&[("GS0", Object::Dict(gs))]))),
@@ -155,12 +140,17 @@ fn appearance(cos: &mut CosDoc, m: &mut Markup, ak: &AnnotKind) -> Object {
     Object::Stream(Stream::flate(outer, b"/GSM gs /MForm Do\n"))
 }
 
-/// `/Helv`, `/HeBo`, `/TiRo` ... resource names for the base-14 fonts.
+/// `Helv`, `HeBo`, `TiRo` ... resource names for the base-14 fonts (as `/DA` and our
+/// appearance streams use them).
 pub fn font_res_name(base: &str) -> String {
-    match base {
-        "Helvetica" => "Helv".into(),
-        other => other.chars().filter(|c| c.is_ascii_alphanumeric()).collect(),
-    }
+    use markupcraft_geom::text::{Font, FontFamily};
+    let f = Font {
+        family: FontFamily::of(base),
+        bold: base.contains("Bold"),
+        italic: base.contains("Italic") || base.contains("Oblique"),
+        size: 0.0,
+    };
+    f.res_name().to_string()
 }
 
 fn write_geometry_by_subtype(a: &mut Dict, m: &Markup) {
@@ -279,7 +269,7 @@ pub fn write_annot(cos: &mut CosDoc, a: &mut Dict, m: &mut Markup, page: ObjRef)
 }
 
 /// The page's `/Annots` array (resolving a reference) and where it lives.
-fn annots_of(cos: &CosDoc, page: ObjRef) -> (Vec<Object>, Option<ObjRef>) {
+pub(crate) fn annots_of(cos: &CosDoc, page: ObjRef) -> (Vec<Object>, Option<ObjRef>) {
     let p = cos.get(page);
     let Some(pd) = p.as_dict() else {
         return (Vec::new(), None);
@@ -291,7 +281,7 @@ fn annots_of(cos: &CosDoc, page: ObjRef) -> (Vec<Object>, Option<ObjRef>) {
     }
 }
 
-fn set_annots(cos: &mut CosDoc, page: ObjRef, arr: Vec<Object>, holder: Option<ObjRef>) {
+pub(crate) fn set_annots(cos: &mut CosDoc, page: ObjRef, arr: Vec<Object>, holder: Option<ObjRef>) {
     match holder {
         Some(r) => cos.set(r, Object::Array(arr)),
         None => {
@@ -353,7 +343,12 @@ pub fn apply(cos: &mut CosDoc, doc: &mut Document) {
         }
         let mut a = Dict::new();
         write_annot(cos, &mut a, m, page_id);
+        let popup = a.reference(b"Popup");
         let r = cos.add(Object::Dict(a));
+        // a new note's /Popup was made before the note had an object number
+        if let Some(p) = popup {
+            let _ = cos.update_dict(p, |d| d.set(b"Parent".to_vec(), Object::Ref(r)));
+        }
         let (mut arr, holder) = annots_of(cos, page_id);
         arr.push(Object::Ref(r));
         set_annots(cos, page_id, arr, holder);

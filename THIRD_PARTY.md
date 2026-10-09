@@ -14,3 +14,4 @@ MarkupCraft is written in Rust; dependencies keep their own licenses (`cargo tre
 | [Lucide](https://lucide.dev) icons (`crates/ui-egui/assets/icons/*.svg`) | toolbar, menu and panel icons | ISC; text in `crates/ui-egui/assets/icons/LICENSE-lucide.txt` |
 | Code adapted from PdfCraft's `ui-egui` (icon tinting in `icons.rs`, design tokens in `theme.rs`, the headless `shot` example, the tile scheduling in `canvas.rs`) and `apps/pdfcraft/build.rs` | interface | MIT OR Apache-2.0 |
 | [winresource](https://github.com/BenjaminRi/winresource) (build only) | Windows icon and version resource | MIT |
+| Advance widths of Helvetica, Helvetica-Bold and Times-Roman from the Adobe Core 14 AFM metrics | approximate text layout, `crates/geom/src/text.rs` | Adobe AFM license (free use, copying and distribution) |

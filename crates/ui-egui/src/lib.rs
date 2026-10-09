@@ -659,10 +659,9 @@ mod tests {
         let d = s.doc().unwrap();
         assert_eq!(d.render.as_ref().unwrap().page_count(), 2);
         assert_eq!(d.session.doc.markups.len(), 6);
-        // Square, circle, area, polyline are drawn live (editable); the text box and arrow have
-        // no appearance in the file, so they are drawn from the model too, read-only.
+        // Every sample markup has a writer, so all are drawn live from the model and editable.
         assert_eq!(d.render.as_ref().unwrap().hidden_count(), 6);
-        assert!(!crate::actions::editable(
+        assert!(crate::actions::editable(
             d.session.doc.find("SAMPLETEXTAAAAAA").unwrap()
         ));
         assert_eq!(s.scale_readout(), "Scale 1/8 in = 1 ft");
