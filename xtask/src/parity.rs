@@ -168,7 +168,7 @@ fn test_names(root: &Path) -> BTreeSet<String> {
             let p = e.path();
             let name = e.file_name().to_string_lossy().into_owned();
             if p.is_dir() {
-                if !matches!(name.as_str(), "target" | ".git" | ".claude" | "node_modules") && !name.starts_with('.') {
+                if !matches!(name.as_str(), "target" | ".git" | "node_modules") && !name.starts_with('.') {
                     stack.push(p);
                 }
                 continue;
