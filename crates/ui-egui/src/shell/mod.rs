@@ -7,14 +7,23 @@
 //! Commands with ids in [`COMMAND_PREFIXES`] land in [`run`]; `AppState::run`, `enabled` and
 //! `checked` ask this module first, so the shell adds commands without touching their bodies.
 
+pub mod deskew;
+pub mod detach;
+pub mod extra;
+pub mod files;
 pub mod history;
 pub mod layout;
 pub mod overlay;
 pub mod pages;
+pub mod panelbars;
+pub mod prefs_more;
+pub mod proptoolbar;
 pub mod recent;
+pub mod shortcutref;
 pub mod split;
 pub mod tabs;
 pub mod toolbars;
+pub mod workspace;
 
 use std::collections::HashMap;
 
@@ -122,6 +131,8 @@ pub struct UiPrefs {
     pub toolbars: toolbars::ToolbarPrefs,
     /// The dock layout (panels), as saved by [`layout::save`].
     pub layout: Option<serde_json::Value>,
+    /// Workspace, panels, startup, snapping and other preferences of `extra`.
+    pub extra: extra::ExtraPrefs,
 }
 
 impl Default for UiPrefs {
@@ -153,6 +164,7 @@ impl Default for UiPrefs {
             show_status_bar: true,
             toolbars: toolbars::ToolbarPrefs::default(),
             layout: None,
+            extra: extra::ExtraPrefs::default(),
         }
     }
 }
@@ -174,6 +186,7 @@ impl UiPrefs {
             self.default_fit = "page".into();
         }
         self.toolbars.sanitize();
+        self.extra.sanitize();
     }
 
     /// The page layout a newly opened document takes (`auto`: drawings one page at a time).
@@ -242,6 +255,8 @@ pub struct Shell {
     pub zoom_toggle_from: Option<&'static str>,
     /// Last applied theme (to re-style only on change).
     pub applied_theme: Option<bool>,
+    /// Dark workspace, files, detached windows, panel bars and the rest of `extra`.
+    pub extra: extra::ExtraState,
 }
 
 impl Default for Shell {
@@ -273,6 +288,7 @@ impl Default for Shell {
             untitled: 0,
             zoom_toggle_from: None,
             applied_theme: None,
+            extra: extra::ExtraState::default(),
         }
     }
 }
@@ -288,6 +304,7 @@ impl Shell {
             max_zoom: self.ui.max_zoom_pct / 100.0,
             lock_fit_width: self.ui.lock_fit_width,
             dim: if self.dimmer { self.ui.dimmer_pct / 100.0 } else { 0.0 },
+            dark: self.ui.extra.dark_workspace,
         }
     }
 
@@ -400,6 +417,9 @@ fn ours(id: &str) -> bool {
 
 /// Whether a shell command can run now (`None` = not a shell command).
 pub fn enabled(app: &AppState, id: &str) -> Option<bool> {
+    if let Some(e) = extra::enabled(app, id) {
+        return Some(e);
+    }
     if !ours(id) {
         return None;
     }
@@ -424,6 +444,9 @@ pub fn enabled(app: &AppState, id: &str) -> Option<bool> {
 
 /// Checkmarks for shell toggles (`None` = not a shell toggle).
 pub fn checked(app: &AppState, id: &str) -> Option<bool> {
+    if let Some(c) = extra::checked(app, id) {
+        return Some(c);
+    }
     let s = &app.shell;
     let mode = |m: PageMode| app.doc().is_some_and(|d| d.view.mode == m);
     let sync = |k: split::Sync| s.split.as_ref().is_some_and(|sp| sp.sync == k);
@@ -457,8 +480,14 @@ pub fn checked(app: &AppState, id: &str) -> Option<bool> {
 
 /// Run a shell command; `false` when `id` is not one.
 pub fn run(app: &mut AppState, id: &str, ctx: &egui::Context) -> bool {
+    if extra::run(app, id, ctx) {
+        return true;
+    }
     if !ours(id) {
         return false;
+    }
+    if extra::page_edit_blocked(app, id) {
+        return true;
     }
     let now = ctx.input(|i| i.time);
     match id {
@@ -666,6 +695,7 @@ pub fn begin_frame(app: &mut AppState, ctx: &egui::Context) {
         presentation_keys(app, ctx);
     }
     history::record(app);
+    extra::begin_frame(app, ctx);
 }
 
 fn presentation_keys(app: &mut AppState, ctx: &egui::Context) {
@@ -720,7 +750,9 @@ fn presentation_keys(app: &mut AppState, ctx: &egui::Context) {
 /// A file dialog answered with `Purpose::Shell { tag }`.
 pub fn dialog_answer(app: &mut AppState, tag: &str, paths: &[std::path::PathBuf]) {
     let Some(first) = paths.first() else { return };
-    if tag.starts_with("prefs-") {
+    if tag.starts_with("x-") {
+        extra::dialog_answer(app, tag, paths);
+    } else if tag.starts_with("prefs-") {
         crate::prefs_ui::answer(app, tag, first);
     } else {
         pages::answer(app, tag, first);
@@ -732,6 +764,7 @@ pub fn windows(app: &mut AppState, ctx: &egui::Context) {
     crate::prefs_ui::window(app, ctx);
     toolbars::customize_window(app, ctx);
     pages::window(app, ctx);
+    extra::windows(app, ctx);
 }
 
 /// The desktop app: preferences, interface settings, recent files and the last session from
@@ -741,13 +774,24 @@ pub fn load_user(app: &mut AppState) {
     app.shell.recent_path = Some(store.dir.join("recent.json"));
     app.shell.recent = recent::RecentStore::load(&store.dir.join("recent.json"));
     app.shell.store = Some(store);
+    files::enable_recovery(app, store_dir_recovery(app));
     crate::prefs_ui::load_from_store(app);
     recent::reopen_last_session(app);
+    extra::startup(app);
+}
+
+fn store_dir_recovery(app: &AppState) -> std::path::PathBuf {
+    app.shell
+        .store
+        .as_ref()
+        .map_or_else(std::env::temp_dir, |s| s.dir.clone())
+        .join("recovery")
 }
 
 /// Dock work the state cannot do itself: hide / show all panels, apply a loaded layout, and
 /// save the layout when it changes.
 pub fn dock_frame(app: &mut AppState, dock: &mut egui_dock::DockState<crate::dock::Tab>) {
+    panelbars::apply_ops(app, dock);
     if let Some(l) = app.shell.apply_layout.take() {
         *dock = layout::load(&l).unwrap_or_else(crate::dock::default_layout);
         app.shell.panels_hidden = false;

@@ -84,11 +84,15 @@ pub fn paint(app: &mut AppState, ui: &mut egui::Ui, rect: Rect) {
     let t = Tokens::get(ui.ctx());
     let pointer = ui.input(|i| i.pointer.hover_pos()).filter(|p| rect.contains(*p));
     let canvas = rulers_frame(app, ui, rect);
+    super::workspace::paint_replies(app, ui, canvas);
+    super::workspace::scrollbars(app, ui);
     if app.shell.ui.crosshair
         && let Some(p) = pointer.filter(|p| canvas.contains(*p))
     {
         let painter = ui.painter_at(canvas);
-        let c = t.select;
+        let c = app.shell.ui.extra.snap_color.map_or(t.select, |_| {
+            crate::snapping::indicator_color(app.shell.ui.extra.snap_color)
+        });
         painter.hline(canvas.x_range(), p.y, Stroke::new(1.0, c));
         painter.vline(p.x, canvas.y_range(), Stroke::new(1.0, c));
     }

@@ -34,6 +34,7 @@ pub mod boxes;
 pub mod combine;
 pub mod commands;
 pub mod compare;
+pub mod docfile;
 pub mod docprops;
 mod docutil;
 mod edit;

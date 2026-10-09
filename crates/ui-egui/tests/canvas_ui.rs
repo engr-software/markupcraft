@@ -10,6 +10,8 @@ use markupcraft_ui_egui::MarkupCraftApp;
 const SQUARE: &str = "SAMPLESQUAREAAAA";
 
 fn harness() -> Harness<'static, MarkupCraftApp> {
+    // The spelling dictionary loads before the first frame, not on a racing worker thread.
+    markupcraft_ui_egui::richedit::load_dictionary_blocking();
     let mut h = Harness::builder().with_size(vec2(1400.0, 900.0)).build_eframe(|_cc| {
         let mut app = MarkupCraftApp::new();
         app.state.threads = 0;

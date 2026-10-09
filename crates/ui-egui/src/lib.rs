@@ -143,6 +143,10 @@ pub struct Snaps {
     pub grid: bool,
     pub content: bool,
     pub markup: bool,
+    /// Snap targets turned off (`snapping::MASK_*` bits; Preferences > Grid & Snap > Snap to).
+    pub mask: u8,
+    /// The snap indicator's colour (`None` = the default).
+    pub color: Option<[u8; 3]>,
 }
 
 /// The Calibrate dialog.
@@ -347,6 +351,9 @@ impl AppState {
 
     /// Open a file from disk (argv, File > Open, a drop).
     pub fn open_path(&mut self, path: &Path) {
+        if shell::files::intercept_open(self, path) {
+            return;
+        }
         let name = path
             .file_name()
             .map_or_else(|| path.display().to_string(), |n| n.to_string_lossy().into_owned());
@@ -411,13 +418,16 @@ impl AppState {
 
     fn save_to(&mut self, uid: u64, path: &Path, then_close: bool) {
         let threads = self.threads;
+        let full_saves = self.shell.prefs.save_mode == "full";
         let Some(d) = self.doc_by_uid(uid) else { return };
         interact::commit_editor(d, &mut CanvasOut::default());
         let same = d.path.as_deref() == Some(path);
+        // Preferences > Document: keep revisions (incremental) or publish (a full rewrite).
+        let full = full_saves;
         let r = if same {
-            d.session.save(false)
+            d.session.save(full)
         } else {
-            d.session.save_as(path, false)
+            d.session.save_as(path, full)
         };
         match r {
             Ok(()) => {
@@ -704,7 +714,8 @@ impl AppState {
     }
 
     /// Handle what the canvas reported.
-    pub fn apply_canvas_out(&mut self, out: CanvasOut) {
+    pub fn apply_canvas_out(&mut self, mut out: CanvasOut) {
+        shell::extra::canvas_out(self, &mut out);
         if let Some(s) = out.status {
             self.status = s;
         }
@@ -756,7 +767,7 @@ impl AppState {
 
     /// Run one command (see `commands::COMMANDS`, plus `tool.<id>` and `panel.<id>`).
     pub fn run(&mut self, id: &str, ctx: &egui::Context) {
-        if !self.enabled(id) || shell::run(self, id, ctx) {
+        if !self.enabled(id) || shell::run(self, id, ctx) || shell::extra::page_edit_blocked(self, id) {
             return;
         }
         if let Some(t) = id.strip_prefix("tool.").and_then(tools::find) {
@@ -769,7 +780,7 @@ impl AppState {
         }
         let threads = self.threads;
         match id {
-            "file.open" => self.dialogs.open(Purpose::Open, dialogs::PDF, true),
+            "file.open" => self.dialogs.open(Purpose::Open, dialogs::PDF_OR_IMAGE, true),
             "file.close" => self.close_doc(self.active),
             "file.save" | "file.save_as" => {
                 if let Some(uid) = self.doc().map(|d| d.uid) {
@@ -1122,6 +1133,9 @@ impl MarkupCraftApp {
     }
 
     fn take_dropped(&mut self, ctx: &egui::Context) {
+        if shell::files::drop_on_thumbnails(&mut self.state, ctx) {
+            return;
+        }
         let dropped = ctx.input(|i| i.raw.dropped_files.clone());
         for f in dropped {
             let path = f.path().to_path_buf();
@@ -1192,12 +1206,14 @@ impl eframe::App for MarkupCraftApp {
 
         chrome::menu_bar(&mut self.state, ui);
         chrome::toolbar(&mut self.state, ui);
+        shell::proptoolbar::bar(&mut self.state, ui);
         chrome::status_bar(&mut self.state, ui);
+        shell::panelbars::bars(&mut self.state, ui);
         egui::CentralPanel::default().frame(egui::Frame::NONE).show(ui, |ui| {
             let style = egui_dock::Style::from_egui(ui.style().as_ref());
             DockArea::new(&mut self.dock)
                 .style(style)
-                .show_leaf_collapse_buttons(false)
+                .show_leaf_collapse_buttons(true)
                 .show_leaf_close_all_buttons(false)
                 .show_inside(ui, &mut dock::Viewer { app: &mut self.state });
         });

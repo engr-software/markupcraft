@@ -238,6 +238,9 @@ pub fn open(app: &mut AppState, id: &str) {
     };
     let current = app.doc().map_or(0, |d| d.view.current);
     let mut d = PageDialog::new(kind, current);
+    if kind == Kind::Rotate && app.shell.ui.extra.rotate_all_pages {
+        d.pages.range = Range::All;
+    }
     if !app.shell.thumbs.selected.is_empty() {
         d.pages.range = Range::Selected;
     }

@@ -50,6 +50,14 @@ pub fn load_from_store(app: &mut AppState) {
         Err(e) => app.shell.prefs_error = e.to_string(),
     }
     app.shell.ui = crate::shell::load_ui(&store);
+    // Keyboard shortcuts belong to the profile: `<config>/keys/<profile>.json`. A profile
+    // without its own file starts from the keys in use and saves them there.
+    let keys = store.dir.join("keys").join(format!("{}.json", store.active()));
+    if keys.is_file() {
+        app.keys = crate::keyprefs::KeyPrefs::load(&keys);
+    } else {
+        app.keys.path = Some(keys);
+    }
     if let Some(l) = app.shell.ui.layout.clone() {
         app.shell.apply_layout = Some(l);
     }
@@ -133,9 +141,8 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                     ui.set_min_width(420.0);
                     ui.heading(page);
                     ui.add_space(4.0);
-                    egui::ScrollArea::vertical()
-                        .max_height(360.0)
-                        .show(ui, |ui| match page {
+                    egui::ScrollArea::vertical().max_height(360.0).show(ui, |ui| {
+                        match page {
                             "General" => general(ui, &mut prefs, &mut ui_prefs),
                             "Document" => document(ui, &mut prefs, &mut ui_prefs),
                             "Navigation" => navigation(ui, &mut ui_prefs),
@@ -154,7 +161,11 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                                 }
                             }
                             _ => {}
-                        });
+                        }
+                        if let Some(a) = crate::shell::prefs_more::section(ui, page, &mut ui_prefs) {
+                            action = Some(a);
+                        }
+                    });
                     if !app.shell.prefs_error.is_empty() {
                         ui.colored_label(egui::Color32::from_rgb(0xB0, 0x20, 0x20), &app.shell.prefs_error);
                     }
@@ -199,6 +210,17 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
             ("Settings", &["json"]),
             false,
         ),
+        Some("startup-file") => app.dialogs.open(
+            Purpose::Shell {
+                tag: "x-startup-file".into(),
+            },
+            crate::dialogs::PDF,
+            false,
+        ),
+        Some("copy-mcp") => {
+            ctx.copy_text(crate::shell::prefs_more::MCP_CONFIG.to_string());
+            app.status = "MCP configuration copied: paste it into your AI assistant's settings".into();
+        }
         Some("reset") => {
             app.shell.prefs = Preferences::default();
             app.shell.ui = UiPrefs::default();

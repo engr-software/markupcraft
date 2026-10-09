@@ -27,6 +27,22 @@ pub fn load_dictionary() {
     });
 }
 
+/// Load the spelling dictionary on this thread and wait until it is there (tests and the
+/// headless screenshots: the spell-check underline and suggestions then show from the first
+/// frame instead of whenever the worker thread finishes).
+pub fn load_dictionary_blocking() {
+    STARTED.call_once(|| {
+        let _ = DICT.set(markupcraft_engine::spell::dictionary("en_US").ok());
+    });
+    // A worker started earlier may still be loading: wait for it (bounded).
+    for _ in 0..12_000 {
+        if DICT.get().is_some() {
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+}
+
 /// The dictionary, once loaded.
 pub fn dictionary() -> Option<Arc<Dictionary>> {
     DICT.get().cloned().flatten()

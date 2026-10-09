@@ -16,8 +16,9 @@ use crate::actions::{box_of, uses_rect};
 
 /// Grid spacing in PDF points (a quarter inch).
 pub const GRID: f64 = 18.0;
-/// How far the pointer reaches for a snap, in screen points.
-pub const REACH: f32 = 10.0;
+/// How far the pointer reaches for a snap, in screen points: the Grid & Snap preference's default,
+/// so a test or window that loads default preferences does not change it under another one.
+pub const REACH: f32 = 8.0;
 
 // Preferences > Grid & Snap: spacing and sensitivity (process-wide, like the preference).
 static GRID_BITS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
@@ -45,6 +46,32 @@ pub fn set_reach(px: f32) {
     if px.is_finite() && (1.0..=100.0).contains(&px) {
         REACH_BITS.store(px.to_bits(), std::sync::atomic::Ordering::Relaxed);
     }
+}
+
+pub const MASK_ENDPOINT: u8 = 1;
+pub const MASK_MIDPOINT: u8 = 2;
+pub const MASK_INTERSECTION: u8 = 4;
+pub const MASK_NEAREST: u8 = 8;
+pub const MASK_CENTER: u8 = 16;
+
+/// Whether glyph `g` is a snap target with the targets in `mask` turned off (`Snaps::mask`).
+pub fn target_on(mask: u8, g: Glyph) -> bool {
+    let bit = match g {
+        Glyph::Endpoint => MASK_ENDPOINT,
+        Glyph::Midpoint => MASK_MIDPOINT,
+        Glyph::Intersection => MASK_INTERSECTION,
+        Glyph::Nearest => MASK_NEAREST,
+        Glyph::Center => MASK_CENTER,
+        Glyph::Grid => 0,
+    };
+    mask & bit == 0
+}
+
+/// The snap indicator's colour: the preference's, else magenta.
+pub fn indicator_color(pref: Option<[u8; 3]>) -> Color32 {
+    pref.map_or(Color32::from_rgb(0xE0, 0x10, 0xC0), |[r, g, b]| {
+        Color32::from_rgb(r, g, b)
+    })
 }
 
 /// What a snapped point is, for its indicator glyph.
@@ -200,6 +227,9 @@ fn build(bytes: Arc<Vec<u8>>, page: usize) -> SnapIndex {
 pub fn snap_point(raw: Point, snaps: Snaps, reach: f64, content: Option<&SnapIndex>, markups: &[&Markup]) -> Snapped {
     let mut best: Option<(Glyph, f64, Point)> = None;
     let mut offer = |g: Glyph, p: Point| {
+        if !target_on(snaps.mask, g) {
+            return;
+        }
         let d = p.dist(raw);
         if d > reach || !d.is_finite() {
             return;
@@ -288,9 +318,8 @@ fn nearest_on(p: Point, a: Point, b: Point) -> Point {
     Point::new(a.x + t * dx, a.y + t * dy)
 }
 
-/// Draw the indicator for a snap at `at` (screen).
-pub fn paint_glyph(p: &Painter, at: Pos2, g: Glyph) {
-    let col = Color32::from_rgb(0xE0, 0x10, 0xC0);
+/// Draw the indicator for a snap at `at` (screen) in `col` ([`indicator_color`]).
+pub fn paint_glyph(p: &Painter, at: Pos2, g: Glyph, col: Color32) {
     let st = Stroke::new(1.6, col);
     let r = 6.0;
     match g {
@@ -359,7 +388,12 @@ mod tests {
     use markupcraft_geom::snap::SnapSegment;
 
     fn snaps(grid: bool, content: bool, markup: bool) -> Snaps {
-        Snaps { grid, content, markup }
+        Snaps {
+            grid,
+            content,
+            markup,
+            ..Default::default()
+        }
     }
 
     #[test]

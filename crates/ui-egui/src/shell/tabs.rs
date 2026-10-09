@@ -1,6 +1,7 @@
 //! Document tabs: one per open file, names truncated at the end or the start (preference),
-//! drag a tab to reorder, right-click for Close / Close Others / Close All / Save / Open in
-//! Split View / Copy Path, Ctrl+Tab cycles. File > Close All and Save All.
+//! drag a tab to reorder (or onto the split view's second pane to show it there), right-click for
+//! Close / Close Others / Close All / Save / Open in Split View / Detach to New Window / Copy
+//! Path, Ctrl+Tab cycles. File > Close All and Save All.
 
 use egui::{RichText, vec2};
 
@@ -77,6 +78,9 @@ pub fn tab_bar(app: &mut AppState, ui: &mut egui::Ui) {
     let mut cmd: Option<(usize, &'static str)> = None;
     let mut drag_to: Option<(usize, usize)> = None;
     let mut drag_x: Option<(usize, f32)> = None;
+    let mut to_pane: Option<u64> = None;
+    let mut dragging = false;
+    let pane_rect = app.shell.extra.pane_rect;
     let (max, from_start) = (app.shell.ui.tab_max_chars, app.shell.ui.tab_truncate_start);
     egui::Frame::NONE
         .fill(t.chrome)
@@ -119,7 +123,18 @@ pub fn tab_bar(app: &mut AppState, ui: &mut egui::Ui) {
                             if dr.dragged()
                                 && let Some(p) = dr.interact_pointer_pos()
                             {
-                                drag_x = Some((i, p.x));
+                                dragging = true;
+                                if pane_rect.is_some_and(|r| r.contains(p)) {
+                                    // Over the second pane: it shows the document on release.
+                                } else {
+                                    drag_x = Some((i, p.x));
+                                }
+                            }
+                            if dr.drag_stopped()
+                                && let Some(p) = ui.input(|inp| inp.pointer.latest_pos())
+                                && pane_rect.is_some_and(|r| r.contains(p))
+                            {
+                                to_pane = Some(d.uid);
                             }
                             r.context_menu(|ui| {
                                 for (id, label) in [
@@ -128,6 +143,7 @@ pub fn tab_bar(app: &mut AppState, ui: &mut egui::Ui) {
                                     ("close_all", "Close All"),
                                     ("save", "Save"),
                                     ("split", "Open in Split View"),
+                                    ("detach", "Detach to New Window"),
                                     ("copy_path", "Copy Path"),
                                 ] {
                                     if ui.button(label).clicked() {
@@ -150,6 +166,10 @@ pub fn tab_bar(app: &mut AppState, ui: &mut egui::Ui) {
                     });
                 });
         });
+    app.shell.extra.dragging_tab = dragging;
+    if let Some(uid) = to_pane {
+        super::split::show_in_pane(app, uid);
+    }
     if let Some((from, to)) = drag_to
         && from != to
     {
@@ -173,6 +193,10 @@ pub fn tab_bar(app: &mut AppState, ui: &mut egui::Ui) {
             "split" => {
                 app.active = i;
                 super::split::split(app, true);
+            }
+            "detach" => {
+                app.active = i;
+                super::detach::detach(app);
             }
             "copy_path" => {
                 if let Some(p) = app.docs.get(i).and_then(|d| d.path.clone()) {

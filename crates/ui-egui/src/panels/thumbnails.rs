@@ -2,7 +2,10 @@
 //! Shift+click to select several, arrow keys to move between pages, drag a thumbnail to
 //! reorder the pages (bookmarks follow), the size slider grows or shrinks them, the label and
 //! the page scale show under each (toggles). Right-click for the page commands: rotate, insert
-//! blank, insert pages, extract, replace, delete, crop, page setup, cut / copy / paste pages.
+//! blank, insert pages, extract, replace, delete, crop, page setup, cut / copy / paste pages,
+//! copy to snapshot, set scale, rename the label, print, markup summary and flatten. Double-click
+//! a label (or F2) renames it in place; Tab / Shift+Tab move to the next / previous label. PDFs
+//! dropped on the panel are inserted before the page they land on.
 
 use egui::{Align2, Color32, FontId, Sense, Stroke, Vec2, vec2};
 
@@ -35,6 +38,8 @@ pub struct ThumbState {
     pub clipboard: Option<(std::path::PathBuf, usize)>,
     /// A thumbnail being dragged (page) and where it would drop (before this page).
     pub dragging: Option<(usize, usize)>,
+    /// Where files dropped now would go (before this page; past the end = after the last).
+    pub drop_before: Option<usize>,
 }
 
 impl Default for ThumbState {
@@ -47,6 +52,7 @@ impl Default for ThumbState {
             anchor: None,
             clipboard: None,
             dragging: None,
+            drop_before: None,
         }
     }
 }
@@ -88,7 +94,27 @@ pub fn command(app: &mut AppState, cmd: &str, pages: &[usize]) {
     let threads = app.threads;
     let first = pages.first().copied().unwrap_or(0);
     let last = pages.last().copied().unwrap_or(0);
+    let edits_pages = !matches!(
+        cmd,
+        "copy" | "extract" | "snapshot" | "set_scale" | "rename" | "print" | "summary" | "flatten"
+    );
+    if edits_pages && let Some(msg) = crate::shell::extra::page_edits_refused(app) {
+        app.status = msg;
+        return;
+    }
     match cmd {
+        "snapshot" => {
+            if let Some(d) = app.doc_mut() {
+                let n = d.session.page_count();
+                d.view.go_to_page(first, n);
+            }
+            crate::shell::extra::copy_page_snapshot(app);
+        }
+        "set_scale" => crate::shell::extra::open_scale(app, pages.to_vec()),
+        "rename" => start_rename(app, first),
+        "print" => app.queue("file.print"),
+        "summary" => app.queue("markup.summary"),
+        "flatten" => app.queue("document.flatten"),
         "rotate_cw" | "rotate_ccw" | "delete" | "insert_blank" | "move_up" | "move_down" => {
             let Some(d) = app.doc_mut() else { return };
             let n = d.session.page_count();
@@ -112,10 +138,13 @@ pub fn command(app: &mut AppState, cmd: &str, pages: &[usize]) {
             app.shell.thumbs.selected.clear();
         }
         "copy" | "cut" => {
+            // pid + a per-process counter: two copies in the same second never share a file.
+            static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
             let tmp = std::env::temp_dir().join(format!(
-                "markupcraft-pages-{}-{}.pdf",
+                "markupcraft-pages-{}-{}-{}.pdf",
                 std::process::id(),
-                crate::shell::recent::now_secs()
+                crate::shell::recent::now_secs(),
+                N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
             ));
             let Some(d) = app.doc_mut() else { return };
             let r = d.session.extract_pages(pages, &tmp, cmd == "cut");
@@ -170,6 +199,24 @@ pub fn command(app: &mut AppState, cmd: &str, pages: &[usize]) {
     }
 }
 
+/// Start renaming page `page`'s label in place.
+pub fn start_rename(app: &mut AppState, page: usize) {
+    let label = app
+        .doc()
+        .and_then(|d| d.session.doc().pages.get(page).map(|p| p.label.clone()))
+        .unwrap_or_default();
+    app.shell.extra.label_edit = Some((page, label));
+}
+
+/// Give page `page` the label `text` ("" = its number again). Undoable.
+pub fn rename(app: &mut AppState, page: usize, text: &str) {
+    let threads = app.threads;
+    let Some(d) = app.doc_mut() else { return };
+    let r = d.session.set_page_labels(&[(page, text.trim().to_string())]);
+    d.rerender(threads);
+    app.status = crate::actions::report(r, |_| format!("Page {} label set", page + 1));
+}
+
 /// Move the dragged pages before page `before`.
 pub fn drop_pages(app: &mut AppState, pages: &[usize], before: usize) {
     let threads = app.threads;
@@ -182,6 +229,7 @@ pub fn drop_pages(app: &mut AppState, pages: &[usize], before: usize) {
 
 fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     app.thumbs_wanted = true;
+    app.shell.extra.thumbs_rect = Some(ui.max_rect());
     let t = Tokens::get(ui.ctx());
     if !app.has_doc() {
         super::empty(ui, "No document open.");
@@ -225,7 +273,11 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     let mut cmd: Option<(&'static str, Vec<usize>)> = None;
     let mut drag: Option<(usize, usize)> = st.dragging;
     let mut dropped: Option<(Vec<usize>, usize)> = None;
+    let mut drop_before: Option<usize> = None;
     let has_clip = st.clipboard.is_some();
+    let mut editing = app.shell.extra.label_edit.clone();
+    let mut rename_done: Option<(usize, String, i32)> = None;
+    let mut rename_start: Option<usize> = None;
     let Some(doc) = app.doc_mut() else { return };
     let Some(render) = doc.render.as_ref() else { return };
     let current = doc.view.current;
@@ -300,6 +352,12 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                         ("copy", "Copy Pages"),
                         ("paste", "Paste Pages After"),
                         ("delete", "Delete Pages"),
+                        ("snapshot", "Copy Page to Snapshot"),
+                        ("set_scale", "Set Scale..."),
+                        ("rename", "Rename Page Label"),
+                        ("print", "Print..."),
+                        ("summary", "Markup Summary..."),
+                        ("flatten", "Flatten Markups..."),
                     ] {
                         let enabled = id != "paste" || has_clip;
                         if ui.add_enabled(enabled, egui::Button::new(label)).clicked() {
@@ -315,18 +373,54 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                 if st.show_scale {
                     caption.push(scales.get(i).cloned().unwrap_or_default());
                 }
-                let r = ui
-                    .label(
-                        egui::RichText::new(caption.join("  |  "))
-                            .size(11.0)
-                            .color(t.text_muted),
-                    )
-                    .on_hover_text(format!("Page {} of {count}", i + 1));
-                let _ = r;
+                match &mut editing {
+                    Some((p, text)) if *p == i => {
+                        let id = egui::Id::new("thumb-label-edit");
+                        let r = ui.add(egui::TextEdit::singleline(text).id(id).desired_width(width));
+                        if !r.has_focus() {
+                            r.request_focus();
+                        }
+                        let (enter, esc, tab, shift) = ui.input_mut(|inp| {
+                            (
+                                inp.consume_key(egui::Modifiers::NONE, egui::Key::Enter),
+                                inp.consume_key(egui::Modifiers::NONE, egui::Key::Escape),
+                                inp.consume_key(egui::Modifiers::NONE, egui::Key::Tab)
+                                    || inp.consume_key(egui::Modifiers::SHIFT, egui::Key::Tab),
+                                inp.modifiers.shift,
+                            )
+                        });
+                        if esc {
+                            rename_done = Some((i, String::new(), i32::MIN));
+                        } else if tab {
+                            rename_done = Some((i, text.clone(), if shift { -1 } else { 1 }));
+                        } else if enter || (r.lost_focus() && !tab) {
+                            rename_done = Some((i, text.clone(), 0));
+                        }
+                    }
+                    _ => {
+                        let r = ui
+                            .add(
+                                egui::Label::new(
+                                    egui::RichText::new(caption.join("  |  "))
+                                        .size(11.0)
+                                        .color(t.text_muted),
+                                )
+                                .sense(Sense::click()),
+                            )
+                            .on_hover_text(format!("Page {} of {count} (double-click to rename)", i + 1));
+                        if r.double_clicked() {
+                            rename_start = Some(i);
+                        }
+                    }
+                }
             });
             ui.add_space(8.0);
         }
         ui.allocate_space(Vec2::ZERO);
+        // Files dragged over the panel would go before the page under the pointer.
+        if let Some(p) = ui.input(|i| i.pointer.latest_pos()) {
+            drop_before = Some(slots.iter().position(|r| p.y < r.center().y).unwrap_or(slots.len()));
+        }
         // Dragging: the drop point is the gap nearest the pointer.
         if let Some((from, _)) = drag {
             let ptr = ui.input(|i| i.pointer.latest_pos());
@@ -370,6 +464,33 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
         doc.view.go_to_page(i, count);
     }
     app.shell.thumbs.dragging = drag;
+    app.shell.thumbs.drop_before = drop_before;
+    let f2 = hovered
+        && !ui.ctx().egui_wants_keyboard_input()
+        && ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::F2));
+    if f2 {
+        rename_start = Some(current);
+    }
+    if let Some(p) = rename_start {
+        start_rename(app, p);
+    } else if let Some((p, text, step)) = rename_done {
+        app.shell.extra.label_edit = None;
+        if step != i32::MIN {
+            rename(app, p, &text);
+            let next = if step > 0 {
+                Some(p + 1).filter(|n| *n < count)
+            } else if step < 0 {
+                p.checked_sub(1)
+            } else {
+                None
+            };
+            if let Some(n) = next {
+                start_rename(app, n);
+            }
+        }
+    } else if editing.is_some() {
+        app.shell.extra.label_edit = editing;
+    }
     if let Some((i, ctrl, shift)) = clicked {
         click(&mut app.shell.thumbs, i, ctrl, shift);
     }

@@ -131,6 +131,10 @@ impl TabViewer for Viewer<'_> {
         }
     }
 
+    fn context_menu(&mut self, ui: &mut egui::Ui, tab: &mut Tab, _path: egui_dock::NodePath) {
+        crate::shell::panelbars::tab_menu(self.app, ui, tab);
+    }
+
     fn is_closeable(&self, tab: &Tab) -> bool {
         !matches!(tab, Tab::Document)
     }

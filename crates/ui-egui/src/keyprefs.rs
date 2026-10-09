@@ -62,8 +62,7 @@ pub fn parse_keys(text: &str) -> Option<Keys> {
 
 /// Every command, tool and panel id with a name, for the editor.
 pub fn all_ids() -> Vec<(String, String)> {
-    let mut out: Vec<(String, String)> = crate::commands::COMMANDS
-        .iter()
+    let mut out: Vec<(String, String)> = crate::commands::all()
         .filter(|c| c.built)
         .map(|c| (c.id.to_string(), c.label.to_string()))
         .collect();

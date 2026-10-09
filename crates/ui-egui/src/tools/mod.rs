@@ -188,6 +188,8 @@ pub static TOOLS: &[&ToolDef] = &[
     &measure::ANGLE,
     &measure::ELLIPSE_CUTOUT,
     &measure::VIEWPORT,
+    &crate::shell::deskew::TOOL,
+    &crate::shell::deskew::REGION_TOOL,
 ];
 
 pub fn find(id: &str) -> Option<&'static ToolDef> {

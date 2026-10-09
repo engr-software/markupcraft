@@ -70,7 +70,11 @@ pub fn split(app: &mut AppState, vertical: bool) {
             render: None,
             bytes: None,
         },
-        sync: Sync::Off,
+        sync: match app.shell.ui.extra.sync_default.as_str() {
+            "document" => Sync::Document,
+            "page" => Sync::Page,
+            _ => Sync::Off,
+        },
         last: None,
     });
 }
@@ -93,6 +97,20 @@ pub fn switch(app: &mut AppState) {
     s.pane.bytes = None;
     if let Some(i) = app.docs.iter().position(|d| d.uid == other) {
         app.active = i;
+    }
+}
+
+/// Show document `uid` in the second pane (a tab dropped on it).
+pub fn show_in_pane(app: &mut AppState, uid: u64) {
+    let Some(s) = &mut app.shell.split else { return };
+    if s.pane.uid != uid {
+        s.pane.uid = uid;
+        s.pane.render = None;
+        s.pane.bytes = None;
+        s.pane.view = DocView::default();
+    }
+    if let Some(name) = app.docs.iter().find(|d| d.uid == uid).map(|d| d.name.clone()) {
+        app.status = format!("{name} shows in the second pane");
     }
 }
 
@@ -134,8 +152,20 @@ fn focus_pane(app: &mut AppState) {
     }
 }
 
+impl Pane {
+    /// A pane showing document `uid` with `view` (its renderer is made on first draw).
+    pub fn new(uid: u64, view: DocView) -> Self {
+        Self {
+            uid,
+            view,
+            render: None,
+            bytes: None,
+        }
+    }
+}
+
 /// The second pane's renderer, rebuilt when the document's bytes changed.
-fn ensure_render(pane: &mut Pane, doc: &DocTab, threads: usize, ctx: &egui::Context) {
+pub(super) fn ensure_render(pane: &mut Pane, doc: &DocTab, threads: usize, ctx: &egui::Context) {
     let same = pane
         .bytes
         .as_ref()
@@ -157,6 +187,7 @@ fn ensure_render(pane: &mut Pane, doc: &DocTab, threads: usize, ctx: &egui::Cont
 
 /// Draw the document area: one canvas, or two panes.
 pub fn show(app: &mut AppState, ui: &mut egui::Ui) {
+    app.shell.extra.pane_rect = None;
     if app.shell.split.is_none() {
         let rect = ui.available_rect_before_wrap();
         pane_ui(app, ui, rect);
@@ -226,6 +257,27 @@ pub fn show(app: &mut AppState, ui: &mut egui::Ui) {
     let (primary, secondary) = if active_first { (a, b) } else { (b, a) };
     pane_ui(app, ui, primary);
     second_pane(app, ui, secondary);
+    app.shell.extra.pane_rect = Some(secondary);
+    // A document tab dragged over the second pane: mark the drop spot.
+    if app.shell.extra.dragging_tab
+        && ui
+            .input(|i| i.pointer.latest_pos())
+            .is_some_and(|p| secondary.contains(p))
+    {
+        ui.painter().rect_stroke(
+            secondary.shrink(2.0),
+            0.0,
+            egui::Stroke::new(3.0, t.accent),
+            egui::StrokeKind::Inside,
+        );
+        ui.painter().text(
+            secondary.center(),
+            egui::Align2::CENTER_CENTER,
+            "\u{2193} Show here",
+            egui::FontId::proportional(18.0),
+            t.accent,
+        );
+    }
     // Focus follows a press in the other pane.
     let pressed = ui.input(|i| {
         i.pointer

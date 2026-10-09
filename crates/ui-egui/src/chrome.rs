@@ -4,7 +4,7 @@
 use egui::{Align, Layout, RichText, Stroke, vec2};
 
 use crate::canvas::{Fit, PageMode};
-use crate::commands::{self, COMMANDS, MENUS};
+use crate::commands::{self, MENUS};
 use crate::panels::PANELS;
 use crate::theme::Tokens;
 use crate::tools::ToolDef;
@@ -26,10 +26,11 @@ pub fn menu_bar(app: &mut AppState, ui: &mut egui::Ui) {
         .show(ui, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 for menu in MENUS {
-                    ui.menu_button(*menu, |ui| {
+                    let r = ui.menu_button(*menu, |ui| {
                         ui.set_min_width(220.0);
                         menu_items(app, ui, menu);
                     });
+                    crate::shell::extra::menu_drawn(app, menu, &r.response);
                 }
             });
         });
@@ -57,6 +58,9 @@ fn item(
 }
 
 fn menu_items(app: &mut AppState, ui: &mut egui::Ui, menu: &str) {
+    if crate::shell::extra::app_menu(app, ui, menu) {
+        return;
+    }
     // Tools listed in this menu come first.
     let tools: Vec<_> = TOOLS.iter().filter(|tl| tl.menu == menu).collect();
     for tool in &tools {
@@ -99,11 +103,7 @@ fn menu_items(app: &mut AppState, ui: &mut egui::Ui, menu: &str) {
     }
     let mut group = None;
     let mut first = tools.is_empty() && menu != "Window";
-    for c in COMMANDS
-        .iter()
-        .chain(crate::features::COMMANDS)
-        .filter(|c| c.menu == menu)
-    {
+    for c in commands::all().filter(|c| c.menu == menu) {
         if group != Some(c.group) {
             if !first {
                 ui.separator();
@@ -384,10 +384,10 @@ fn page_nav(app: &mut AppState, ui: &mut egui::Ui) {
                 .horizontal_align(Align::Center),
         );
         if r.lost_focus()
-            && let Ok(n) = app.page_entry.trim().parse::<usize>()
+            && let Some(p) = crate::shell::extra::page_from_entry(app, &app.page_entry.clone())
             && let Some(d) = app.doc_mut()
         {
-            d.view.go_to_page(n.saturating_sub(1), count);
+            d.view.go_to_page(p, count);
         }
         let of = if label.is_empty() || label == format!("{}", current + 1) {
             format!("of {count}")
@@ -466,7 +466,9 @@ pub fn document_area(app: &mut AppState, ui: &mut egui::Ui) {
     nav_bar(app, ui);
     // Document tabs (not in presentation), then one canvas or the split panes.
     if app.shell.screen != crate::shell::Screen::Presentation {
-        crate::shell::tabs::tab_bar(app, ui);
+        if crate::shell::panelbars::tabs_visible(app, ui) {
+            crate::shell::tabs::tab_bar(app, ui);
+        }
         if app.docs.is_empty() {
             return;
         }
@@ -514,13 +516,14 @@ pub fn windows(app: &mut AppState, ctx: &egui::Context) {
             d.render.as_ref().map_or(0, |r| r.page_count()),
             d.session.doc().markups.len(),
             d.render.as_ref().map_or(0, |r| r.hidden_count()),
+            d.session.standards(),
         )
     });
     egui::Window::new("Document Properties")
         .open(&mut open)
         .collapsible(false)
         .show(ctx, |ui| match &info {
-            Some((name, path, pages, markups, drawn)) => {
+            Some((name, path, pages, markups, drawn, st)) => {
                 egui::Grid::new("docprops").num_columns(2).show(ui, |ui| {
                     ui.label("File");
                     ui.label(name);
@@ -533,6 +536,19 @@ pub fn windows(app: &mut AppState, ctx: &egui::Context) {
                     ui.end_row();
                     ui.label("Markups");
                     ui.label(format!("{markups} ({drawn} drawn live by MarkupCraft)"));
+                    ui.end_row();
+                    ui.label("Standards");
+                    ui.label(match &st.pdfa {
+                        Some(p) => format!("PDF/A-{p} (page edits locked)"),
+                        None => "None claimed".to_string(),
+                    });
+                    ui.end_row();
+                    ui.label("Signatures");
+                    ui.label(if st.certified {
+                        format!("{} (certified)", st.signatures)
+                    } else {
+                        st.signatures.to_string()
+                    });
                     ui.end_row();
                 });
             }

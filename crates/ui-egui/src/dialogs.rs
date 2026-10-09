@@ -54,6 +54,8 @@ pub struct Dialogs {
 pub type Filter = (&'static str, &'static [&'static str]);
 
 pub const PDF: Filter = ("PDF", &["pdf"]);
+/// File > Open: PDFs and the images it converts to PDF pages.
+pub const PDF_OR_IMAGE: Filter = ("PDF and images", &["pdf", "png", "jpg", "jpeg", "tif", "tiff", "bmp"]);
 pub const CSV: Filter = ("CSV", &["csv"]);
 pub const XML: Filter = ("XML", &["xml"]);
 pub const TOOLSET: Filter = ("MarkupCraft tool set", &["mctools", "json"]);

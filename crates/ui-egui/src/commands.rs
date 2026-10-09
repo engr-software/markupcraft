@@ -149,7 +149,17 @@ const fn with_alias(c: Command, alias: Option<Keys>) -> Command {
 
 /// The menu bar, in order.
 pub const MENUS: &[&str] = &[
-    "File", "Edit", "View", "Markup", "Measure", "Tools", "Document", "Batch", "Window", "Help",
+    "MarkupCraft",
+    "File",
+    "Edit",
+    "View",
+    "Markup",
+    "Measure",
+    "Tools",
+    "Document",
+    "Batch",
+    "Window",
+    "Help",
 ];
 
 #[rustfmt::skip]
@@ -237,7 +247,7 @@ pub static COMMANDS: &[Command] = &[
     cmd("arrange.flip_vertical", "Flip Vertical", "Markup", 14, ctrl_alt(Key::V), "flip-vertical-2"),
     cmd("markup.remove_from_group", "Remove From Group", "Markup", 10, ctrl_shift_alt(Key::G), ""),
     cmd("markup.apply_to_all_pages", "Apply to All Pages", "Markup", 14, None, "copy-plus"),
-    cmd("markup.format_painter", "Format Painter", "Markup", 14, None, "paintbrush"),
+    cmd("markup.format_painter", "Format Painter", "Markup", 14, ctrl_shift(Key::C), "paintbrush"),
     cmd("edit.nudge_left", "Nudge Left", "", 0, key(Key::ArrowLeft), ""),
     cmd("edit.nudge_right", "Nudge Right", "", 0, key(Key::ArrowRight), ""),
     cmd("edit.nudge_up", "Nudge Up", "", 0, key(Key::ArrowUp), ""),
@@ -321,14 +331,22 @@ pub const MAIN_TOOLBAR: &[&str] = &[
     "edit.delete",
 ];
 
+/// Every command row: the core table, the document features' and the shell's.
+pub fn all() -> impl Iterator<Item = &'static Command> {
+    COMMANDS
+        .iter()
+        .chain(crate::features::COMMANDS)
+        .chain(crate::shell::extra::COMMANDS)
+}
+
 pub fn find(id: &str) -> Option<&'static Command> {
-    COMMANDS.iter().chain(crate::features::COMMANDS).find(|c| c.id == id)
+    all().find(|c| c.id == id)
 }
 
 /// Every key binding (commands, tools, panels), most specific first, for the dispatcher.
 pub fn bindings() -> Vec<(Keys, String)> {
     let mut out: Vec<(Keys, String)> = Vec::new();
-    for c in COMMANDS.iter().chain(crate::features::COMMANDS).filter(|c| c.built) {
+    for c in all().filter(|c| c.built) {
         for k in [c.keys, c.alias].into_iter().flatten() {
             out.push((k, c.id.to_string()));
         }

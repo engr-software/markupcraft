@@ -4,7 +4,10 @@
 
 use markupcraft_model::Kind;
 
+use egui::Key;
+
 use super::{ToolDef, ToolKind};
+use crate::commands::key;
 
 pub static HIGHLIGHT_TEXT: ToolDef = ToolDef {
     id: "texthighlight",
@@ -20,7 +23,7 @@ pub static UNDERLINE: ToolDef = ToolDef {
     label: "Underline",
     icon: "underline",
     menu: "Markup",
-    keys: None,
+    keys: key(Key::U),
     kind: ToolKind::TextMarkup(Kind::Underline),
 };
 
@@ -29,6 +32,6 @@ pub static STRIKETHROUGH: ToolDef = ToolDef {
     label: "Strikethrough",
     icon: "strikethrough",
     menu: "Markup",
-    keys: None,
+    keys: key(Key::D),
     kind: ToolKind::TextMarkup(Kind::Strikeout),
 };

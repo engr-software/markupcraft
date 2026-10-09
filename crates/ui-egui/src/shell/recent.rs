@@ -55,6 +55,31 @@ pub enum Sort {
     Folder,
     MostUsed,
     Name,
+    /// Newest first, grouped by the day they were opened.
+    History,
+}
+
+/// The heading of the day `secs` falls on, seen from `now` (both Unix seconds, UTC days):
+/// Today, Yesterday, or the date.
+pub fn day_label(secs: u64, now: u64) -> String {
+    let (d, n) = (secs / 86_400, now / 86_400);
+    match n.checked_sub(d) {
+        Some(0) => "Today".into(),
+        Some(1) => "Yesterday".into(),
+        _ => {
+            // Days since 1970-01-01 to a date (H. Hinnant's algorithm).
+            let z = d as i64 + 719_468;
+            let era = z.div_euclid(146_097);
+            let doe = z.rem_euclid(146_097);
+            let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+            let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+            let mp = (5 * doy + 2) / 153;
+            let day = doy - (153 * mp + 2) / 5 + 1;
+            let m = if mp < 10 { mp + 3 } else { mp - 9 };
+            let y = yoe + era * 400 + i64::from(m <= 2);
+            format!("{y}-{m:02}-{day:02}")
+        }
+    }
 }
 
 pub fn now_secs() -> u64 {
@@ -87,12 +112,25 @@ impl RecentStore {
     pub fn sorted(&self, sort: Sort) -> Vec<RecentFile> {
         let mut v = self.files.clone();
         match sort {
-            Sort::Date => v.sort_by_key(|f| std::cmp::Reverse(f.opened)),
+            Sort::Date | Sort::History => v.sort_by_key(|f| std::cmp::Reverse(f.opened)),
             Sort::MostUsed => v.sort_by_key(|f| (std::cmp::Reverse(f.count), std::cmp::Reverse(f.opened))),
             Sort::Folder => v.sort_by(|a, b| a.path.parent().cmp(&b.path.parent()).then(a.path.cmp(&b.path))),
             Sort::Name => v.sort_by_key(|f| f.path.file_name().map(|n| n.to_string_lossy().to_lowercase())),
         }
         v
+    }
+
+    /// Give every pinned file of category `old` the category `new`.
+    pub fn rename_category(&mut self, old: &str, new: &str) {
+        let new: String = new.trim().chars().take(80).collect();
+        for p in self.pinned.iter_mut().filter(|p| p.category == old) {
+            p.category = new.clone();
+        }
+    }
+
+    /// Unpin every file of category `cat`.
+    pub fn remove_category(&mut self, cat: &str) {
+        self.pinned.retain(|p| p.category != cat);
     }
 
     pub fn is_pinned(&self, path: &Path) -> bool {

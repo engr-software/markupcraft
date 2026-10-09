@@ -1,7 +1,7 @@
 //! What the pointer and the keys do on the canvas with the active tool, Revu style:
 //!
-//! - Select: click, Shift/Ctrl+click, box select, drag to move (Ctrl+Shift+drag copies in a
-//!   straight line), drag a handle to reshape, Shift+drag a measurement's caption to move it
+//! - Select: click, Shift/Ctrl+click, box select (left or right button), drag to move (Shift
+//!   keeps it straight, Ctrl drops a copy, Ctrl+Shift copies in a straight line), drag a handle to reshape, Shift+drag a measurement's caption to move it
 //!   alone (saved as `/CO`), double-click a text markup to edit its text, right-click for the
 //!   markup menu.
 //! - Point tools: click to place points; Enter, a double-click or a right-click finishes,
@@ -43,7 +43,10 @@ pub enum Gesture {
     Move {
         page: usize,
         start: Point,
+        /// Ctrl: drop a copy instead of moving.
         copy: bool,
+        /// Shift: along the horizontal or vertical only.
+        straight: bool,
     },
     Handle {
         id: String,
@@ -212,7 +215,12 @@ pub fn run(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mut Ca
         && let (Some(g), Some(xf)) = (s.glyph, ix.xf(page))
         && (doc.view.draft.is_some() || doc.view.gesture.is_some() || cx.tool.draws())
     {
-        snapping::paint_glyph(ix.painter, xf.to_screen(s.pt), g);
+        snapping::paint_glyph(
+            ix.painter,
+            xf.to_screen(s.pt),
+            g,
+            snapping::indicator_color(cx.snaps.color),
+        );
     }
 }
 
@@ -1643,6 +1651,22 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
     let mods = ix.ui.input(|i| i.modifiers);
     let add = mods.shift || mods.command;
     doc.view.draft = None;
+    // A right-button drag draws a selection box too.
+    if ix.resp.drag_started_by(egui::PointerButton::Secondary)
+        && let Some(s) = ix.ui.input(|i| i.pointer.press_origin())
+        && let Some((page, _)) = ix.page_at(s)
+    {
+        if !add {
+            doc.session.clear_selection();
+        }
+        doc.view.gesture = Some(Gesture::Box { page, start: s });
+    }
+    let release = release.or_else(|| {
+        ix.resp
+            .drag_stopped_by(egui::PointerButton::Secondary)
+            .then(|| ix.ui.input(|i| i.pointer.latest_pos()))
+            .flatten()
+    });
 
     // Format Painter: a click copies the look onto the markup under the pointer.
     if let Some(template) = cx.edit.painter.as_ref() {
@@ -1724,7 +1748,8 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
                     doc.view.gesture = Some(Gesture::Move {
                         page,
                         start: at,
-                        copy: mods.command && mods.shift,
+                        copy: mods.command,
+                        straight: mods.shift,
                     });
                 } else {
                     if !add {
@@ -1775,12 +1800,17 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
     let gesture = doc.view.gesture.clone();
     let end = release.or(cur);
     match gesture {
-        Some(Gesture::Move { page, start, copy }) => {
+        Some(Gesture::Move {
+            page,
+            start,
+            copy,
+            straight,
+        }) => {
             if let (Some(xf), Some(c)) = (ix.xf(page), end) {
                 let now = xf.to_user(c);
                 let (mut dx, mut dy) = (now.x - start.x, now.y - start.y);
-                if copy {
-                    // Copy in a straight line.
+                if straight {
+                    // Move (or copy) in a straight line.
                     if dx.abs() >= dy.abs() {
                         dy = 0.0;
                     } else {
@@ -1994,8 +2024,8 @@ fn paint_rotate_handle(ix: &Input<'_>, doc: &DocTab) {
     }
 }
 
-/// Degrees to turn for a drag from angle `a0` to `a1` (radians, counter-clockwise): Shift
-/// snaps to 15 degrees, boxes to quarter turns.
+/// Degrees to turn for a drag from angle `a0` to `a1` (radians, counter-clockwise): steps of
+/// 15 degrees (Revu), Shift frees it to whole degrees; boxes turn by quarter turns.
 pub fn rotation_degrees(m: &Markup, a0: f64, a1: f64, shift: bool) -> f64 {
     let mut d = (a1 - a0).to_degrees();
     while d > 180.0 {
@@ -2007,9 +2037,9 @@ pub fn rotation_degrees(m: &Markup, a0: f64, a1: f64, shift: bool) -> f64 {
     let step = if markupcraft_engine::geometry::is_box(m.kind) {
         90.0
     } else if shift {
-        15.0
+        1.0
     } else {
-        0.0
+        15.0
     };
     if step > 0.0 { (d / step).round() * step } else { d }
 }

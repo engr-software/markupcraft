@@ -78,6 +78,8 @@ pub struct ViewOpts {
     pub lock_fit_width: bool,
     /// Fade the page content by this fraction (0 = off), so markups stand out.
     pub dim: f32,
+    /// Dark Mode: pages drawn light on dark.
+    pub dark: bool,
 }
 
 impl Default for ViewOpts {
@@ -90,6 +92,7 @@ impl Default for ViewOpts {
             max_zoom: MAX_ZOOM,
             lock_fit_width: false,
             dim: 0.0,
+            dark: false,
         }
     }
 }
@@ -471,6 +474,11 @@ impl DocView {
         self.viewport
     }
 
+    /// The size of everything the view can scroll over (pages and margins), screen points.
+    pub fn content_size(&self, pages: &[PageGeom]) -> Vec2 {
+        self.layout(pages).1
+    }
+
     /// Fill the view with a screen rectangle (Zoom tool box).
     pub fn zoom_to_rect(&mut self, r: Rect, pages: &[PageGeom], now: f64) {
         let r = Rect::from_two_pos(r.min, r.max);
@@ -526,10 +534,23 @@ impl DocView {
                 continue;
             }
             let (w, h) = (r.width as usize, r.height as usize);
+            // Never hand the GPU a texture larger than it accepts (egui panics on that).
+            let max_side = ctx.input(|i| i.max_texture_side);
+            if w > max_side || h > max_side {
+                log::warn!(
+                    "page {}: raster {w}x{h} exceeds the GPU texture limit {max_side}; skipped",
+                    page + 1
+                );
+                continue;
+            }
             if w == 0 || h == 0 || w.checked_mul(h).and_then(|n| n.checked_mul(4)) != Some(r.rgba.len()) {
                 continue;
             }
-            let img = egui::ColorImage::from_rgba_premultiplied([w, h], &r.rgba);
+            let img = if self.opts.dark {
+                egui::ColorImage::from_rgba_premultiplied([w, h], &crate::shell::workspace::darken(&r.rgba))
+            } else {
+                egui::ColorImage::from_rgba_premultiplied([w, h], &r.rgba)
+            };
             if let Some(t) = r.request.tile {
                 let tex = ctx.load_texture(format!("tile-{page}-{}-{}", t.x, t.y), img, TextureOptions::LINEAR);
                 self.tiles.insert((page, t.x / TILE, t.y / TILE), (r.request.tag, tex));
@@ -656,7 +677,19 @@ fn snapshot_preview(p: &egui::Painter, view: &DocView, pages: &[PageGeom], xf: &
 }
 
 /// Show the canvas for one document.
+/// Pages whose raster would be longer than this are drawn as tiles: the smaller of our own
+/// threshold and the GPU's largest texture side (a texture over that limit makes egui panic).
+fn tile_threshold(ctx: &egui::Context) -> f32 {
+    let gpu = ctx.input(|i| i.max_texture_side) as f32;
+    if gpu >= 256.0 {
+        TILE_THRESHOLD.min(gpu)
+    } else {
+        TILE_THRESHOLD
+    }
+}
+
 pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut {
+    let tile_limit = tile_threshold(ui.ctx());
     let mut out = CanvasOut::default();
     let t = Tokens::get(ui.ctx());
     let rect = ui.available_rect_before_wrap();
@@ -850,7 +883,12 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
             }
             .as_shape(sr, CornerRadius::ZERO),
         );
-        painter.rect_filled(sr, CornerRadius::ZERO, Color32::WHITE);
+        let paper = if view.opts.dark {
+            crate::shell::workspace::DARK_PAPER
+        } else {
+            Color32::WHITE
+        };
+        painter.rect_filled(sr, CornerRadius::ZERO, paper);
         if let Some(e) = view.errors.get(&i) {
             painter.text(
                 sr.center(),
@@ -865,7 +903,7 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
         let Some(g) = pages.get(i) else { continue };
         let rot = view.rotation;
         let longest = g.width.max(g.height) * scale;
-        let tiled = longest > TILE_THRESHOLD;
+        let tiled = longest > tile_limit;
         let (want_scale, want_tag) = if tiled {
             let s = g.scale_for_side(BACKDROP_SIDE);
             (s, scale_tag(s))
@@ -947,9 +985,7 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
     wanted.sort_by_key(|r| (r.page != view.current, r.tile.is_some()));
     for n in [view.current + 1, view.current.saturating_sub(1)] {
         if n < pages.len() && !view.pages.contains_key(&n) && !xfs.iter().any(|(i, _)| *i == n) {
-            let tiled = pages
-                .get(n)
-                .is_some_and(|g| g.width.max(g.height) * scale > TILE_THRESHOLD);
+            let tiled = pages.get(n).is_some_and(|g| g.width.max(g.height) * scale > tile_limit);
             let s = if tiled {
                 pages.get(n).map_or(scale, |g| g.scale_for_side(BACKDROP_SIDE))
             } else {

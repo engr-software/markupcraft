@@ -11,19 +11,19 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 |---|---|---|---|---|---|---|---|---|
 | Measurement and takeoff | 134 | 2 | 73 | 19 | 40 | 0 | 47 | 17 |
 | Markup tools, Properties, Tool Chest, layers, Markups List | 192 | 0 | 121 | 27 | 44 | 0 | 86 | 23 |
-| Documents, pages, batch, print, search, security | 217 | 0 | 97 | 44 | 70 | 6 | 38 | 23 |
-| Compare/overlay, interface, preferences, mouse, Studio | 226 | 0 | 99 | 25 | 71 | 31 | 24 | 22 |
-| Default keyboard shortcuts | 177 | 0 | 134 | 1 | 42 | 0 | 11 | 18 |
-| **All** | 946 | 2 | 524 | 116 | 267 | 37 | 206 | 103 |
+| Documents, pages, batch, print, search, security | 217 | 0 | 119 | 44 | 48 | 6 | 38 | 23 |
+| Compare/overlay, interface, preferences, mouse, Studio | 226 | 0 | 125 | 27 | 43 | 31 | 24 | 22 |
+| Default keyboard shortcuts | 177 | 0 | 145 | 1 | 27 | 4 | 11 | 18 |
+| **All** | 946 | 2 | 583 | 118 | 202 | 41 | 206 | 103 |
 
 ### By priority (rows in scope)
 
 | Priority | Proven | Have | Partial | Missing |
 |---|---|---|---|---|
-| P0 | 2 | 116 | 15 | 8 |
-| P1 | 0 | 134 | 50 | 33 |
-| P2 | 0 | 98 | 28 | 83 |
-| P3 | 0 | 42 | 22 | 101 |
+| P0 | 2 | 118 | 16 | 5 |
+| P1 | 0 | 145 | 48 | 24 |
+| P2 | 0 | 117 | 26 | 66 |
+| P3 | 0 | 58 | 27 | 80 |
 
 ## Measurement and takeoff
 
@@ -487,7 +487,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | doc-001 | Open PDF | P0 | have | have | `document_tabs_cycle_close_others_close_all_and_save_all` `recent_files_reopen_at_the_last_page_and_pin` `cli: list` File > Open takes several PDFs, each in its own tab; a file already open is brought forward. |
-| doc-002 | Open images as PDF | P2 | missing | missing |  |
+| doc-002 | Open images as PDF | P2 | partial | missing | File > Open (and drops) convert PNG, JPEG, TIFF (first image) and BMP to a one-page PDF at the declared resolution (engine docfile, tool doc_from_image); no GIF or multi-page TIFF. |
 | doc-003 | Drag-and-drop open | P0 | have | have | `dropped_files_open_in_tabs_pan_tool_and_fit_width_lock` Dropping PDFs on the window opens each in its own tab (an open one comes forward); dropping on Thumbnails is not built. |
 | doc-004 | Document tabs | P0 | have | have | `document_tabs_cycle_close_others_close_all_and_save_all` One tab per open file over the workspace; drag a tab to reorder; right-click for Close, Close Others, Close All, Save, Open in Split View, Copy Path. |
 | doc-005 | Next / previous document | P1 | have | have | `document_tabs_cycle_close_others_close_all_and_save_all` Ctrl+Tab / Ctrl+Shift+Tab. |
@@ -496,20 +496,20 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-008 | Save All | P1 | have | have | `document_tabs_cycle_close_others_close_all_and_save_all` File > Save All (Shift+F2): every edited file; Save As for untitled ones. |
 | doc-009 | Tab name truncation | P3 | have | missing | `tab_names_truncate_at_either_end` `preferences_dialog_applies_and_persists` Preferences > General: longest tab name and cut at the end or the start; full path on hover. |
 | doc-010 | Reopen last session | P1 | have | have | `recent_files_reopen_at_the_last_page_and_pin` Preferences > General: reopen the files that were open last time (on by default). |
-| doc-011 | Startup options | P3 | partial | missing | `recent_files_reopen_at_the_last_page_and_pin` Reopen last session and recent files on the start page; no startup mode or startup file. |
+| doc-011 | Startup options | P3 | have | missing | `scrollbars_snap_targets_and_startup_preferences` `recent_files_reopen_at_the_last_page_and_pin` Preferences > General: start in last used / markup / view mode, a PDF to open on start, full screen, reopen last session, recent files on the start page. |
 | doc-012 | Remember last page | P1 | have | have | `recent_files_reopen_at_the_last_page_and_pin` Each file reopens at its page, zoom and page layout (preference). |
-| doc-013 | Document recovery | P1 | missing | have |  |
-| doc-014 | Locked-file prompt | P2 | missing | missing |  |
+| doc-013 | Document recovery | P1 | have | have | `document_recovery_writes_copies_and_offers_them_back` Unsaved documents are copied to <config>/recovery every N minutes (Preferences > Document); after a crash the next start offers Recover / Discard; a recovered file saves to its original path. |
+| doc-014 | Locked-file prompt | P2 | have | missing | `locked_files_offer_a_read_only_copy` A file in use or read-only offers a read-only copy (it saves elsewhere); Preferences > Document turns the prompt off. |
 | doc-015 | Open Recent | P0 | have | have | `recent_files_reopen_at_the_last_page_and_pin` File > Open Recent (and the start page) list recent files; Clear Recent Files. |
 | doc-016 | New blank PDF / from template | P2 | partial | missing | `new_blank_pdf_and_refresh_from_disk` File > New Blank PDF (Ctrl+N): an untitled Letter page; no templates. |
 | doc-017 | PDF Package | P3 | missing | missing |  |
-| doc-018 | Email PDF | P2 | missing | missing |  |
-| doc-019 | Save modes and revisions | P3 | missing | missing |  |
-| doc-020 | Revert As | P3 | missing | missing |  |
-| doc-021 | Publish As | P2 | missing | missing |  |
+| doc-018 | Email PDF | P2 | partial | missing | `email_attaches_the_document_to_a_draft` `email_draft_attaches_the_pdf` File > Email (Ctrl+E): an unsent message with the document attached opens in the mail program; no email templates. |
+| doc-019 | Save modes and revisions | P3 | partial | missing | `save_modes_publish_and_revert_as` `revisions_publish_and_deskew` Preferences > Document: keep revisions (incremental) or publish (full rewrite); publish compressed is File > Publish As Compressed, not a save mode. |
+| doc-020 | Revert As | P3 | have | missing | `save_modes_publish_and_revert_as` `revisions_revert_publish_deskew_and_standards` File > Revert As: pick a stored revision (each incremental save keeps one) and save it as a new file; tool doc_revisions. |
+| doc-021 | Publish As | P2 | have | missing | `save_modes_publish_and_revert_as` `revisions_revert_publish_deskew_and_standards` File > Publish As Compressed (Ctrl+Shift+P), Flattened (Ctrl+Alt+F), Uncompressed: a copy without revision history; tool doc_publish. |
 | doc-022 | Refresh | P3 | have | missing | `new_blank_pdf_and_refresh_from_disk` View > Refresh (F5) redraws; File > Refresh Document (Shift+F5) reloads the file from disk. |
 | doc-023 | Web Tab | P3 | missing | missing |  |
-| doc-024 | PDF/A awareness | P3 | missing | missing |  |
+| doc-024 | PDF/A awareness | P3 | partial | missing | `certified_pdfa_and_signed_documents_guard_page_edits` PDF/A conformance read from the XMP metadata; page edits locked (Preferences > Advanced unlocks); Document Properties shows it; no tab icon or Verify. |
 
 ### Page navigation and zoom
 
@@ -517,7 +517,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 |---|---|---|---|---|---|
 | doc-025 | Next / previous page | P0 | have | have | `fit_zoom_and_page_navigation_keys` Ctrl+Right / Ctrl+Left, PgDn / PgUp, navigation bar buttons. |
 | doc-026 | First / last page | P0 | have | have | `fit_zoom_and_page_navigation_keys` Home / End and navigation bar buttons. |
-| doc-027 | Page number box | P0 | partial | have | `fit_zoom_and_page_navigation_keys` Navigation bar page box takes a page number and shows the label; typing a label is not supported yet. |
+| doc-027 | Page number box | P0 | have | have | `page_labels_from_a_title_block_region` The navigation bar page box takes a page number or a page label (exact, then any case). |
 | doc-028 | Previous / next view | P0 | have | have | `previous_and_next_view_walk_the_history` Alt+Left / Alt+Right and navigation bar buttons: page, zoom, layout, rotation and position per document. |
 | doc-029 | Fit Page / Fit Width / Actual Size | P0 | have | have | `fit_zoom_and_page_navigation_keys` Ctrl+9 / Ctrl+0 / Ctrl+8 and the zoom menu. |
 | doc-030 | Zoom in / out | P0 | have | have | `fit_zoom_and_page_navigation_keys` Plus / Minus (and =). |
@@ -526,7 +526,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-033 | Pan with mouse | P0 | have | partial | `middle_drag_pans_and_double_click_recentres` Middle drag pans, middle double-click re-centres, Space held pans with any tool. |
 | doc-034 | Pan tool | P0 | have | have | `dropped_files_open_in_tabs_pan_tool_and_fit_width_lock` Pan tool (Shift+V) on the toolbar and the navigation bar. |
 | doc-035 | Maximum zoom | P3 | have | missing | `fit_zoom_and_page_navigation_keys` Preferences > Document: maximum zoom. |
-| doc-036 | Horizontal wheel / scrollbars | P3 | missing | missing |  |
+| doc-036 | Horizontal wheel / scrollbars | P3 | have | missing | `scrollbars_snap_targets_and_startup_preferences` A horizontal (tilt) wheel pans; Preferences > Navigation shows scrollbars, the vertical one optionally on the left. |
 | doc-037 | Lock panning in Fit Width | P3 | have | missing | `dropped_files_open_in_tabs_pan_tool_and_fit_width_lock` Preferences > Navigation: lock panning to up and down in Fit Width. |
 | doc-038 | Page layout modes | P1 | have | partial | `page_layout_modes_side_by_side_and_cover` Single Page (Ctrl+4), Continuous (Ctrl+5), Side by Side (Ctrl+6), Continuous Side by Side (Ctrl+7), Show Cover Page Alone. |
 | doc-039 | Default layout rule | P3 | have | missing | `default_layout_rule_by_page_size` `recent_files_reopen_at_the_last_page_and_pin` Preferences > Document: default layout (any mode, or by page size: drawings one page at a time) and default fit. |
@@ -538,8 +538,8 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-045 | Rulers | P2 | have | missing | `rulers_crosshair_and_dimmer` `ruler_ticks_stay_readable` View > Rulers (Ctrl+R): zero at the page corner, inches / cm / mm / points / picas (right-click), page and selection extent, pointer mark. |
 | doc-046 | Full-screen crosshair | P2 | have | missing | `rulers_crosshair_and_dimmer` View > Full-Screen Crosshair (also in Preferences > Advanced). |
 | doc-047 | Dimmer | P2 | have | missing | `rulers_crosshair_and_dimmer` View > Dimmer (Ctrl+F5) and a navigation bar button; amount 5-95 % in Preferences > Advanced. |
-| doc-048 | Disable line weights | P2 | missing | missing |  |
-| doc-049 | Dark mode / theme | P3 | partial | missing | `preferences_dialog_applies_and_persists` `dark_theme_and_menus_render` Preferences > General: light, dark or system theme for the application; no dark workspace treatment of pages. |
+| doc-048 | Disable line weights | P2 | have | missing | `dark_mode_line_weights_and_reply_indicators` `line_widths_become_zero` View > Disable Line Weights: the renderer reads a copy whose linework draws one device pixel wide; the file is not changed. |
+| doc-049 | Dark mode / theme | P3 | have | missing | `dark_mode_line_weights_and_reply_indicators` `dark_theme_and_menus_render` View > Dark Mode draws the pages light on dark; Preferences > General: light, dark or system application theme. |
 
 ### Split views, sync and second monitor (MultiView)
 
@@ -550,8 +550,8 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-052 | Toggle split / Switch / Balance | P2 | have | missing | `split_views_sync_switch_balance_unsplit` Toggle Split (Ctrl+I), Switch (Ctrl+1), Balance (Shift+F12). |
 | doc-053 | Synchronize Document | P1 | have | missing | `split_views_sync_switch_balance_unsplit` View > Synchronize: Document, and the status bar Sync button. |
 | doc-054 | Synchronize Page | P1 | have | missing | `split_views_sync_switch_balance_unsplit` View > Synchronize: Page: pan and zoom move the other pane by as much. |
-| doc-055 | Move tab between splits | P2 | partial | missing | `split_views_sync_switch_balance_unsplit` The second pane's document picker (or a tab's Open in Split View) puts any tab in it; no tab drag between panes. |
-| doc-056 | Detach tab (dual screen) | P1 | missing | partial |  |
+| doc-055 | Move tab between splits | P2 | have | missing | `detach_a_tab_to_a_window_and_drop_a_tab_on_the_split_pane` Drag a document tab onto the split view's second pane (it is marked while dragging) to show it there; the pane's picker and a tab's Open in Split View too. |
+| doc-056 | Detach tab (dual screen) | P1 | partial | partial | `detach_a_tab_to_a_window_and_drop_a_tab_on_the_split_pane` Window > Detach Tab to New Window (or a tab's right-click Detach): the document in its own window with its own view; clicking in it makes it active; Reattach. No drag-out, no split or sync inside it. |
 
 ### Thumbnails panel
 
@@ -563,21 +563,21 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-060 | Multi-select pages | P1 | have | have | `thumbnails_select_reorder_and_page_commands` `thumbnail_clicks_select_like_a_file_list` Ctrl+click and Shift+click select pages; page commands apply to all of them. |
 | doc-061 | Reorder by drag | P1 | have | have | `thumbnails_select_reorder_and_page_commands` Drag thumbnails to move the pages (one undo step). |
 | doc-062 | Cut / copy / paste pages | P2 | have | missing | `thumbnails_select_reorder_and_page_commands` Cut / Copy / Paste Pages in the thumbnail menu, within or between documents. |
-| doc-063 | Copy page to snapshot | P3 | missing | missing |  |
-| doc-064 | Set scale from thumbnails | P0 | missing | partial |  |
-| doc-065 | Page commands from Thumbnails | P1 | partial | partial | `thumbnails_select_reorder_and_page_commands` Thumbnail menu: rotate, Rotate Pages, insert blank, Insert Pages, Extract, Replace, Crop, Page Setup, move up / down, cut / copy / paste, delete; no stamp, numbering, export, print or summary. |
-| doc-066 | Drop files to insert | P2 | missing | have |  |
+| doc-063 | Copy page to snapshot | P3 | have | missing | `copy_page_to_snapshot_select_all_text_and_format_painter_keys` `thumbnails_rename_set_scale_snapshot_and_dropped_files` Edit > Copy Page to Snapshot (Ctrl+Alt+C) and the Thumbnails menu: the page as a snapshot on the clipboard; Ctrl+V pastes it. |
+| doc-064 | Set scale from thumbnails | P0 | have | partial | `thumbnails_rename_set_scale_snapshot_and_dropped_files` Thumbnails right-click > Set Scale on one or many pages (paper length = real length). |
+| doc-065 | Page commands from Thumbnails | P1 | partial | partial | Thumbnail menu: rotate, Rotate Pages, insert blank, Insert Pages, Extract, Replace, Crop, Page Setup, move, cut / copy / paste, delete, Copy to Snapshot, Set Scale, Rename Label, Print, Markup Summary, Flatten; no stamp, numbering or export. |
+| doc-066 | Drop files to insert | P2 | have | have | `thumbnails_rename_set_scale_snapshot_and_dropped_files` PDFs (and images) dropped on Thumbnails are inserted before the page they land on (no Insert Pages dialog in between). |
 
 ### Page labels
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | doc-067 | Read page labels | P0 | have | have | `extras_page_labels_read_and_write` /PageLabels number tree (D, R, r, A, a, prefix, start) shown in the Page Label column. |
-| doc-068 | Rename label inline | P1 | partial | have | `extras_page_labels_read_and_write` `page_labels_number_set_clear_and_from_bookmarks` Labels set per page by tool (page_label_set, undoable); no inline UI. |
+| doc-068 | Rename label inline | P1 | have | have | `thumbnails_rename_set_scale_snapshot_and_dropped_files` Double-click a thumbnail label (or F2, or the menu) to rename it in place; Tab / Shift+Tab save and move to the next / previous label; Esc cancels. |
 | doc-069 | Number Pages | P2 | have | missing | `page_labels_number_set_clear_and_from_bookmarks` Headless (engine + automation tool); no UI yet. page_label_number: range, style (D, R, r, A, a, none), prefix, start; runs merged in /PageLabels. |
 | doc-070 | Text-only label / clear labels | P2 | have | missing | `page_labels_number_set_clear_and_from_bookmarks` Headless (engine + automation tool); no UI yet. page_label_set types a text-only label (style none + prefix); page_label_clear removes /PageLabels. |
 | doc-071 | Labels from bookmarks | P1 | have | have | `page_labels_number_set_clear_and_from_bookmarks` Headless (engine + automation tool); no UI yet. page_label_from_bookmarks: each page takes the title of the first bookmark going to it. |
-| doc-072 | Labels from page region (AutoMark) | P1 | missing | missing |  |
+| doc-072 | Labels from page region (AutoMark) | P1 | have | missing | `page_labels_from_a_title_block_region` `labels_come_from_the_title_block_region` Document > Page Labels from Region: drag boxes over the title block; text before, between and after; live preview; Apply. Tool page_labels_from_region. |
 
 ### Bookmarks
 
@@ -600,7 +600,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| doc-085 | Insert pages from PDF | P1 | missing | partial |  |
+| doc-085 | Insert pages from PDF | P1 | partial | partial | `page_dialogs_insert_rotate_crop_setup_delete` Document > Insert Pages: one PDF, a page range, before or after a page; several files only by dropping them on Thumbnails. |
 | doc-086 | Insert options | P2 | missing | missing |  |
 | doc-087 | Insert blank page | P2 | partial | partial | `page_dialogs_insert_rotate_crop_setup_delete` Document > Insert Blank Pages: count, standard or custom size, orientation, before / after a page; no grid or template. |
 | doc-088 | Insert layered pages | P3 | missing | missing |  |
@@ -613,10 +613,10 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-095 | Split document | P2 | have | missing | `split_and_combine_documents` Headless (engine + automation tool); no UI yet. doc_split: every N pages, at top-level bookmarks, or explicit ranges; markups and labels go with their pages. |
 | doc-096 | Crop pages | P2 | have | missing | `crop_boxes_and_page_resize` Headless (engine + automation tool); no UI yet. page_crop: crop (or bleed/trim/art) box by rectangle, margins or remove; page_boxes reads all five. |
 | doc-097 | Page setup / resize | P3 | partial | missing | `page_dialogs_insert_rotate_crop_setup_delete` `crop_boxes_and_page_resize` Document > Page Setup: standard or custom size, orientation, keep the drawing at an anchor; no content scaling, offsets or borders. |
-| doc-098 | Deskew | P3 | missing | missing |  |
+| doc-098 | Deskew | P3 | have | missing | `deskew_from_a_line_and_by_angle` `revisions_revert_publish_deskew_and_standards` Document > Deskew (Ctrl+Alt+D): an angle, or Get Line (two points that should be level); current or all pages; undoable. Tool page_deskew. |
 | doc-099 | Page range picker (shared) | P1 | have | have | `page_dialogs_insert_rotate_crop_setup_delete` Shared picker in the page dialogs: all, current, selected thumbnails, even, odd, landscape, portrait, first, last, or a list like 1-3, 7. |
 | doc-100 | Batch file list (shared) | P2 | partial | missing | `batch_link_summary_sets_and_apply` Batch tools take a file list or a set file. |
-| doc-101 | Signed / certified guard | P3 | missing | missing |  |
+| doc-101 | Signed / certified guard | P3 | have | missing | `certified_pdfa_and_signed_documents_guard_page_edits` Page edits are refused on certified and PDF/A documents; on signed ones the user is warned that the signatures stop being valid. Tool doc_standards. |
 
 ### Creating and combining PDFs
 
@@ -771,7 +771,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | doc-193 | Custom properties | P3 | have | missing | `document_properties_and_xmp` Headless (engine + automation tool); no UI yet. Custom /Info entries added, changed and removed through doc_properties_set. |
 | doc-194 | Embedded file attachments | P2 | have | missing | `attachments_add_list_extract_delete` Headless (engine + automation tool); no UI yet. attachment_add / list / extract / delete on the /EmbeddedFiles name tree. |
 | doc-195 | Attachment icon markup | P3 | missing | missing |  |
-| doc-196 | Page tags / standards info | P3 | missing | missing |  |
+| doc-196 | Page tags / standards info | P3 | partial | missing | `certified_pdfa_and_signed_documents_guard_page_edits` Document Properties: Standards (PDF/A claim) and signatures (certified); no page tags. |
 
 ### Links and places
 
@@ -789,12 +789,12 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | doc-203 | File Access: Recents | P1 | have | have | `recent_files_reopen_at_the_last_page_and_pin` File Access panel (Alt+A): recents with path on hover; click opens, Ctrl+click opens behind; Remove from List and Clear. |
-| doc-204 | Recents sorting | P2 | partial | missing | `recent_files_reopen_at_the_last_page_and_pin` Sort by date, folder, most used or name; no history grouped by day. |
+| doc-204 | Recents sorting | P2 | have | missing | `file_access_history_by_day_and_categories` Sort by date, folder, most used, name, or history grouped by day (Today, Yesterday, dates). |
 | doc-205 | Pinned files | P1 | have | have | `recent_files_reopen_at_the_last_page_and_pin` Pin a file (pin button) so it stays at the top of File Access. |
-| doc-206 | Pin categories | P2 | partial | missing | `recent_files_reopen_at_the_last_page_and_pin` A pinned file goes into the category typed in the panel; no rename or collapse. |
+| doc-206 | Pin categories | P2 | have | missing | `file_access_history_by_day_and_categories` Pinned files in user-named categories that collapse; right-click a category to rename it or unpin all. |
 | doc-207 | Recents preferences | P3 | partial | missing | `recent_files_reopen_at_the_last_page_and_pin` `preferences_dialog_applies_and_persists` Preferences > Interface: how many recent files and days kept, clear; no preview option. |
-| doc-208 | File Access: Explorer | P2 | partial | missing | File Access > Explorer: the folder's PDFs and subfolders, up, open, pin; no path box, drive list or sort options. |
-| doc-209 | Explorer context menu | P3 | missing | missing |  |
+| doc-208 | File Access: Explorer | P2 | have | missing | `explorer_sorts_filters_makes_folders_and_renames` `file_access_history_by_day_and_categories` Explorer: path box (Enter goes there, folder completion), drives, back / forward / up, sort by name / type / size / date, PDFs or PDFs and images, new folder, pin the folder's files; no separate path favourites. |
+| doc-209 | Explorer context menu | P3 | have | missing | `explorer_sorts_filters_makes_folders_and_renames` Right-click a file: Open, Open in Background, Open Folder, Copy Path, Rename, Delete from Disk (asks first), Properties. |
 | doc-210 | Link from file list | P3 | missing | missing |  |
 | doc-211 | DMS / SharePoint | P3 | excluded | missing | Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF. |
 
@@ -810,9 +810,9 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| doc-215 | Compare / Overlay / Smart Overlay | P1 | missing | missing |  |
+| doc-215 | Compare / Overlay / Smart Overlay | P1 | have | missing | `compare_documents_clouds_the_changes_and_reviews_them` `overlay_pages_writes_the_overlay_and_opens_it` Tools > Compare Documents and File > Overlay Pages (see part 4). |
 | doc-216 | Stitching | P3 | missing | missing |  |
-| doc-217 | Script / Translate Markups | P3 | missing | missing |  |
+| doc-217 | Script / Translate Markups | P3 | partial | missing | Script: markupcraft-cli run --script runs tool steps; no markup translation. |
 
 ## Compare/overlay, interface, preferences, mouse, Studio
 
@@ -913,32 +913,32 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | ui-073 | Menu bar (not a ribbon) | P0 | have | partial | `full_screen_presentation_always_on_top_and_bars` `dark_theme_and_menus_render` Classic menu bar (File, Edit, View, Markup, Measure, Tools, Document, Batch, Window, Help); F9 shows / hides it. |
-| ui-074 | Alt-key menu accelerators | P2 | missing | partial |  |
+| ui-074 | Alt-key menu accelerators | P2 | have | partial | `alt_menus_shift_f10_and_the_markupcraft_menu` Preferences > Navigation: Alt + a menu's first letter opens it. |
 | ui-075 | Toolbars in toolstrips | P1 | partial | partial | `toolbars_show_hide_customize_and_lock` Main, Markup and Measure toolbars in one strip; not dockable. |
 | ui-076 | Show/hide toolbars | P2 | have | missing | `toolbars_show_hide_customize_and_lock` Window > Toolbars: check each toolbar. |
 | ui-077 | Customize toolbars | P2 | partial | missing | `toolbars_show_hide_customize_and_lock` Window > Toolbars > Customize: add, remove, reorder commands and separators on the main toolbar; no new toolbars. |
 | ui-078 | Lock toolbars | P3 | have | missing | `toolbars_show_hide_customize_and_lock` Window > Toolbars > Lock Toolbars. |
-| ui-079 | Properties toolbar | P0 | missing | missing |  |
+| ui-079 | Properties toolbar | P0 | partial | missing | `properties_toolbar_edits_the_selection_and_the_tool` Window > Properties Toolbar: colour, fill, line width, opacity and font size of the selection, or of the active tool's next markup; no line style or scale. |
 | ui-080 | Navigation bar | P0 | have | partial | `full_screen_presentation_always_on_top_and_bars` `rulers_crosshair_and_dimmer` Navigation bar under the workspace (F4): page navigation, previous / next view, layout modes, rotate view, split, dimmer, scale, zoom. |
 | ui-081 | Status bar | P0 | have | partial | `full_screen_presentation_always_on_top_and_bars` `rulers_crosshair_and_dimmer` Status bar (F8): grid / content / markup snap, Reuse tool, view Sync, pointer position, page size, messages. |
 | ui-082 | Page scale on bar | P0 | have | partial | `rulers_crosshair_and_dimmer` The navigation bar shows the scale at the pointer or the page's, and clicking it starts Calibrate. |
 | ui-083 | Side and bottom panels | P0 | have | partial | `full_screen_presentation_always_on_top_and_bars` `default_layout_has_every_panel_and_toggles` Docking panels left, right and bottom; Window menu toggles; Hide Panels (Shift+F4). |
-| ui-084 | Panel access bars | P2 | missing | missing |  |
-| ui-085 | Panel tab context menu | P2 | missing | partial |  |
-| ui-086 | Split panels with position wheel | P2 | missing | partial |  |
-| ui-087 | Bottom panel overlap toggle | P2 | missing | missing |  |
-| ui-088 | Collapse panel by edge click | P2 | missing | missing |  |
+| ui-084 | Panel access bars | P2 | have | missing | `panel_access_bars_tab_menu_bottom_layout_and_auto_hide_tabs` Window > Panel Access Bars: icon strips at the left and right edges open and close panels; no auto-hide of the bars. |
+| ui-085 | Panel tab context menu | P2 | have | partial | `panel_access_bars_tab_menu_bottom_layout_and_auto_hide_tabs` Right-click a panel tab: Show Tab, Hide, Attach Left / Right / Bottom, Split Below, Float. |
+| ui-086 | Split panels with position wheel | P2 | have | partial | `panel_access_bars_tab_menu_bottom_layout_and_auto_hide_tabs` `bottom_panel_across_or_between_and_attach` Drag a panel tab onto another panel's edge (the dock shows the drop spots) or use Split Below: both panels show at once. |
+| ui-087 | Bottom panel overlap toggle | P2 | have | missing | `panel_access_bars_tab_menu_bottom_layout_and_auto_hide_tabs` `bottom_panel_across_or_between_and_attach` Window > Bottom Panel Across the Window: the bottom panel spans the window or sits between the side panels. |
+| ui-088 | Collapse panel by edge click | P2 | partial | missing | Each panel group has a collapse button on its tab bar; not by clicking the edge. |
 | ui-089 | Layout persistence | P0 | have | have | `layout_persists_and_a_new_session_restores_it` `layout_round_trips_and_rejects_junk` The panel layout is saved with the profile and restored at the next start. |
 | ui-090 | Document tabs | P0 | have | missing | `document_tabs_cycle_close_others_close_all_and_save_all` Document tabs; Ctrl+Tab cycles. |
 | ui-091 | Tab truncation | P3 | have | missing | `tab_names_truncate_at_either_end` Preference: tab length and which end is cut. |
-| ui-092 | Auto-hide tabs | P3 | missing | missing |  |
-| ui-093 | Detach tab to window / monitor | P1 | missing | partial |  |
+| ui-092 | Auto-hide tabs | P3 | have | missing | `panel_access_bars_tab_menu_bottom_layout_and_auto_hide_tabs` Window > Auto-Hide Tabs: document tabs show while the pointer is at the top of the document area. |
+| ui-093 | Detach tab to window / monitor | P1 | partial | partial | `detach_a_tab_to_a_window_and_drop_a_tab_on_the_split_pane` Tab right-click or Window > Detach Tab to New Window (its own window, another view of the file); Reattach; no split or sync inside it. |
 | ui-094 | Close / Close All | P0 | have | partial | `document_tabs_cycle_close_others_close_all_and_save_all` Close (Ctrl+F4), Close Others, Close All (Ctrl+Shift+W). |
-| ui-095 | Context menu key | P3 | missing | missing |  |
+| ui-095 | Context menu key | P3 | have | missing | `alt_menus_shift_f10_and_the_markupcraft_menu` Shift+F10 opens the selection's (or the page's) context menu; Esc closes it. |
 | ui-096 | Always on Top | P3 | have | missing | `full_screen_presentation_always_on_top_and_bars` Window > Always on Top (Ctrl+F12). |
 | ui-097 | WebTab | P3 | missing | missing |  |
-| ui-098 | File Access panel | P1 | partial | partial | `recent_files_reopen_at_the_last_page_and_pin` File Access panel (Alt+A): recents, pinned files in categories, explorer; no DMS integration. |
-| ui-099 | Revu menu | P1 | partial | missing | `preferences_dialog_applies_and_persists` `dark_theme_and_menus_render` About and Keyboard Shortcuts (Help), Preferences and profiles (Window > Preferences, Ctrl+K), Exit (File); no separate Revu menu. |
+| ui-098 | File Access panel | P1 | have | partial | `recent_files_reopen_at_the_last_page_and_pin` `file_access_history_by_day_and_categories` File Access panel (Alt+A): recents, pinned categories, history, Explorer. DMS integration is out of scope. |
+| ui-099 | Revu menu | P1 | have | missing | `alt_menus_shift_f10_and_the_markupcraft_menu` The MarkupCraft menu: About, Preferences, Customize Keyboard, Keyboard Shortcuts, Profiles, Exit (Admin is a Preferences page). |
 
 ### 6. Profiles and keyboard shortcut customization
 
@@ -949,9 +949,9 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-102 | Save profile | P2 | have | missing | `preferences_profiles_set_switch_export_import` prefs_set saves into the active (or named) profile at once. |
 | ui-103 | Manage profiles | P2 | have | missing | `preferences_profiles_set_switch_export_import` profile_list, profile_delete (not the active profile). |
 | ui-104 | Export / import profile | P2 | have | missing | `preferences_profiles_set_switch_export_import` prefs_export / prefs_import (JSON, validated on import). |
-| ui-105 | Keyboard Shortcuts dialog | P1 | partial | missing | `keyboard_shortcuts_can_be_changed` Tools > Customize Keyboard lists every command with its keys and edits them; profiles of shortcuts not yet. |
-| ui-106 | Single-key tool shortcuts | P0 | missing | partial |  |
-| ui-107 | Printable shortcut reference | P3 | missing | missing |  |
+| ui-105 | Keyboard Shortcuts dialog | P1 | have | missing | `keyboard_shortcuts_can_be_changed` `shortcuts_follow_the_profile_and_print_as_a_reference` Tools > Customize Keyboard lists every command with its keys; press new keys (another command's same keys move), clear, reset; kept per profile in <config>/keys/<profile>.json. |
+| ui-106 | Single-key tool shortcuts | P0 | partial | partial | Select V, Pan Shift+V, Zoom Z, markup tools by letter, measurements by Shift+Alt+letter, Underline U, Strikethrough D; no Lasso. |
+| ui-107 | Printable shortcut reference | P3 | have | missing | `shortcuts_follow_the_profile_and_print_as_a_reference` Help > Shortcut Reference writes a printable PDF of the shortcuts in use, the mouse and the modifier keys. |
 
 ### 7. View modes, navigation, MultiView
 
@@ -971,9 +971,9 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-119 | Full screen | P2 | have | missing | `full_screen_presentation_always_on_top_and_bars` F11; Esc leaves. |
 | ui-120 | Presentation mode | P3 | have | missing | `full_screen_presentation_always_on_top_and_bars` Ctrl+Enter: one page full screen, arrows and Space advance, loop and timed advance (Preferences > Window), Esc leaves. |
 | ui-121 | Dimmer | P1 | have | have | `rulers_crosshair_and_dimmer` Ctrl+F5; amount in Preferences > Advanced. |
-| ui-122 | Dark mode (workspace) | P2 | missing | missing |  |
+| ui-122 | Dark mode (workspace) | P2 | have | missing | `dark_mode_line_weights_and_reply_indicators` View > Dark Mode: pages drawn light on dark, separate from the application theme. |
 | ui-123 | Dark / light UI theme | P2 | have | missing | `preferences_dialog_applies_and_persists` `dark_theme_and_menus_render` Preferences > General > Theme: light, dark or system. |
-| ui-124 | Reply indicators | P3 | missing | missing |  |
+| ui-124 | Reply indicators | P3 | have | missing | `dark_mode_line_weights_and_reply_indicators` View > Always Show Reply Indicators: a bubble with the count on markups that have replies; hover lists them. |
 
 ### 8. Rulers, grid, snap, crosshair, line weights
 
@@ -986,13 +986,13 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-129 | Grid spacing + units | P2 | have | missing | `preferences_dialog_applies_and_persists` Preferences > Grid & Snap: grid spacing (points, shown in inches) and ruler units. |
 | ui-130 | Snap to content | P0 | have | have | `snap_to_content_lands_on_a_wall_corner` Snap to Content (Ctrl+Shift+F8). |
 | ui-131 | Snap to markup | P1 | partial | have | `snap_to_markup_and_grid` Snap to Markup (Ctrl+Shift+F7); no alignment guide lines. |
-| ui-132 | Snap-to element filters | P2 | missing | missing |  |
+| ui-132 | Snap-to element filters | P2 | have | missing | `scrollbars_snap_targets_and_startup_preferences` Preferences > Grid & Snap > Snap to: endpoints, midpoints, intersections, nearest point, centers. |
 | ui-133 | Snap sensitivity | P2 | have | missing | `preferences_dialog_applies_and_persists` Preferences > Grid & Snap: snap sensitivity in pixels. |
-| ui-134 | Snap indicator color | P3 | missing | missing |  |
+| ui-134 | Snap indicator color | P3 | have | missing | `scrollbars_snap_targets_and_startup_preferences` Preferences > Grid & Snap: the snap indicator colour, also the crosshair colour. |
 | ui-135 | Override snap with Ctrl | P1 | have | missing | `ctrl_places_a_point_without_snapping` Hold Ctrl while placing a point to ignore every snap. |
 | ui-136 | Full-screen crosshair | P2 | have | missing | `rulers_crosshair_and_dimmer` View > Full-Screen Crosshair. |
-| ui-137 | Disable line weights | P2 | missing | missing |  |
-| ui-138 | Enhance thin lines / fill anti-aliasing | P3 | missing | missing |  |
+| ui-137 | Disable line weights | P2 | have | missing | `dark_mode_line_weights_and_reply_indicators` `line_widths_become_zero` View > Disable Line Weights and Preferences > Advanced. |
+| ui-138 | Enhance thin lines / fill anti-aliasing | P3 | partial | missing | The renderer always keeps hairlines at least one device pixel wide and anti-aliases fills; no toggles. |
 
 ### 9. Preferences dialog (every page and its notable options)
 
@@ -1001,14 +1001,14 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-139 | Preferences dialog | P1 | have | missing | `preferences_dialog_applies_and_persists` `preferences_profiles_set_switch_export_import` Window > Preferences (Ctrl+K): General, Document, Navigation, Grid & Snap, Interface, Tools, Window, Advanced, Admin; changes apply at once and persist to the active profile. |
 | ui-140 | General > Options: user name | P0 | have | missing | `preferences_dialog_applies_and_persists` `preferences_profiles_set_switch_export_import` General: user name, the author of new markups in every open document. |
 | ui-141 | General > Options: language, theme | P2 | partial | missing | `preferences_dialog_applies_and_persists` `dark_theme_and_menus_render` General: theme (light, dark, system); no language choice. |
-| ui-142 | General > Options: startup | P2 | partial | missing | `recent_files_reopen_at_the_last_page_and_pin` General: reopen last session, recent files on the start page; no startup mode. |
-| ui-143 | General > Document: recovery and save mode | P1 | partial | partial | `profiles_save_switch_export_import` autosave_minutes and save_mode stored; not acted on yet. |
+| ui-142 | General > Options: startup | P2 | have | missing | `scrollbars_snap_targets_and_startup_preferences` General: start in last used / markup / view mode, open a PDF on start, full screen, reopen last session, recent files on the start page; no home WebTab or usage data. |
+| ui-143 | General > Document: recovery and save mode | P1 | have | partial | `document_recovery_writes_copies_and_offers_them_back` `save_modes_publish_and_revert_as` Document: recovery copies every N minutes (0 = off), offered back after a crash; save mode keep revisions or publish. |
 | ui-144 | General > Document: default layout and fit | P2 | have | missing | `default_layout_rule_by_page_size` `fit_zoom_and_page_navigation_keys` Document: default layout (four modes or by page size), default fit, maximum zoom. |
-| ui-145 | General > Document: misc | P2 | partial | missing | `recent_files_reopen_at_the_last_page_and_pin` Document: remember last page; the other options are not built. |
+| ui-145 | General > Document: misc | P2 | partial | missing | Document: remember last page, locked-file prompt, Rotate Pages on every page by default; no bookmark reordering, slip-sheet link redirect or URL detection. |
 | ui-146 | General > Navigation: wheel = zoom or scroll | P1 | have | partial | `wheel_zooms_or_scrolls_by_preference_and_ctrl_swaps` Navigation: wheel zooms or scrolls, separately for single and continuous modes. |
 | ui-147 | General > Navigation: wheel tuning | P2 | have | missing | `wheel_zooms_or_scrolls_by_preference_and_ctrl_swaps` Navigation: reverse zoom, zoom sensitivity; horizontal wheel pans sideways. |
-| ui-148 | General > Navigation: scrollbars | P3 | partial | missing | `dropped_files_open_in_tabs_pan_tool_and_fit_width_lock` Navigation: lock panning in Fit Width; no scrollbars. |
-| ui-149 | General > Navigation: sync, 3D mouse, accelerators | P3 | missing | missing |  |
+| ui-148 | General > Navigation: scrollbars | P3 | have | missing | `scrollbars_snap_targets_and_startup_preferences` Navigation: scrollbars on / off, the vertical one on the left, lock panning in Fit Width. |
+| ui-149 | General > Navigation: sync, 3D mouse, accelerators | P3 | have | missing | `scrollbars_snap_targets_and_startup_preferences` `alt_menus_shift_f10_and_the_markupcraft_menu` Navigation: default synchronization of new split views, Alt menu accelerators; 3D mouse is out of scope. |
 | ui-150 | General > Grid & Snap | P1 | have | missing | `preferences_dialog_applies_and_persists` `preferences_profiles_set_switch_export_import` Grid & Snap: units, grid spacing, snap to grid / content / markup, sensitivity; no snap-target filters or colour. |
 | ui-151 | General > Spelling | P3 | partial | missing | `spell_check_flags_markup_text_with_suggestions` Language (dictionary name), ignore ALL-CAPS and accepted words are tool options; no preferences page or user dictionary file yet. |
 | ui-152 | Interface > File Access | P3 | partial | missing | `preferences_dialog_applies_and_persists` Interface: recent files count, days kept, clear; no preview or DMS settings. |
@@ -1016,7 +1016,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-154 | Interface > Layers | P3 | missing | missing |  |
 | ui-155 | Tools > Markup | P1 | partial | missing | `preferences_dialog_applies_and_persists` `reuse_tool_keeps_drawing` Tools: reuse markup tools, measurement units and precision, colours of new markups (stored in the profile). |
 | ui-156 | Tools > Measure | P1 | missing | missing |  |
-| ui-157 | Tools > Sketch | P3 | missing | missing |  |
+| ui-157 | Tools > Sketch | P3 | partial | missing | `scrollbars_snap_targets_and_startup_preferences` Tools: Sketch to Scale angles absolute or relative; no ellipse width x height / radius choice. |
 | ui-158 | Tools > Forms | P3 | missing | missing |  |
 | ui-159 | Tools > Signature | P3 | missing | missing |  |
 | ui-160 | Window > Tablet | P3 | missing | missing |  |
@@ -1025,12 +1025,12 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-163 | Sets | P2 | missing | missing |  |
 | ui-164 | Studio | P3 | excluded | missing | Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF. |
 | ui-165 | Import/Export | P3 | missing | missing |  |
-| ui-166 | Advanced > 2D Rendering | P2 | partial | missing | `rulers_crosshair_and_dimmer` Advanced: dimmer amount and crosshair; no rendering engine options. |
+| ui-166 | Advanced > 2D Rendering | P2 | partial | missing | Advanced: dimmer amount, crosshair, disable line weights; no rendering engine or DPI options. |
 | ui-167 | Advanced > 3D Rendering | P3 | excluded | missing | Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF. |
-| ui-168 | Advanced > JavaScript / PDF/A | P3 | missing | missing |  |
+| ui-168 | Advanced > JavaScript / PDF/A | P3 | partial | missing | `certified_pdfa_and_signed_documents_guard_page_edits` Advanced: PDF/A documents open locked for page edits (on by default); document JavaScript never runs; no conversion options. |
 | ui-169 | Admin | P2 | partial | missing | `preferences_dialog_applies_and_persists` Admin: back up, restore and reset settings, profiles; no viewer, log or browser options. |
 | ui-170 | Admin > settings backup/restore | P2 | have | missing | `preferences_dialog_applies_and_persists` Admin: Back Up Settings writes the active profile to a file; Restore reads one back. |
-| ui-171 | Admin > AI assistant (MCP) connectors | P3 | missing | missing |  |
+| ui-171 | Admin > AI assistant (MCP) connectors | P3 | have | missing | `scrollbars_snap_targets_and_startup_preferences` Admin > AI assistants (MCP): Copy MCP Configuration puts the markupcraft-cli mcp server entry on the clipboard for an assistant (opt-in, stdio, --root folder only). |
 | ui-172 | Integrations | P3 | missing | missing |  |
 
 ### 10. Mouse, gestures and modifier keys
@@ -1041,22 +1041,22 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ui-174 | Middle double-click re-center | P2 | have | missing | `middle_drag_pans_and_double_click_recentres` Middle double-click re-centres on the point. |
 | ui-175 | Wheel zoom vs scroll | P0 | have | partial | `wheel_zooms_or_scrolls_by_preference_and_ctrl_swaps` Wheel zooms or scrolls by preference; Ctrl swaps. |
 | ui-176 | Spacebar temporary pan | P0 | have | have | `middle_drag_pans_and_double_click_recentres` Space held pans with any tool; the tool stays. |
-| ui-177 | Right-click context menus | P0 | partial | partial | `context_menu_saves_a_look_to_the_tool_chest` `document_tabs_cycle_close_others_close_all_and_save_all` `thumbnails_select_reorder_and_page_commands` Page and markup menus, document tab menu, thumbnail menu, ruler menu, Markups List menus; no text or other panel menus. |
-| ui-178 | Right-drag multi-select | P2 | missing | missing |  |
+| ui-177 | Right-click context menus | P0 | partial | partial | Page and markup menus, document tab menu, panel tab menu, thumbnail menu, ruler menu, Markups List and File Access menus, Shift+F10; no menus on page text. |
+| ui-178 | Right-drag multi-select | P2 | have | missing | `right_drag_selects_ctrl_drag_copies_and_shift_drag_moves_straight` Select tool: a right-button drag draws a selection box. |
 | ui-179 | Shift+drag multi-select; Shift+click add | P0 | have | have | `box_select_and_view_commands` `click_selects_drag_moves_delete_and_undo` Drag a box to select several; Shift / Ctrl+click adds. |
 | ui-180 | Shift ortho / 45-degree lock | P0 | have | partial | `shift_constrains_a_line_and_a_drag_makes_an_arrow` Shift constrains to 0 / 45 / 90 degrees from the last point. |
-| ui-181 | Shift: square / circle | P1 | missing | have |  |
+| ui-181 | Shift: square / circle | P1 | have | have | `right_drag_selects_ctrl_drag_copies_and_shift_drag_moves_straight` `shift_constrains_a_line_and_a_drag_makes_an_arrow` Shift makes a rectangle square and an ellipse a circle; lines keep to 45 degree steps. |
 | ui-182 | Alt: draw from center / 3-point arc | P2 | missing | missing |  |
-| ui-183 | Shift-drag move in straight line | P1 | missing | have |  |
-| ui-184 | Ctrl-drag copy; Ctrl+Shift-drag copy straight | P1 | missing | have |  |
+| ui-183 | Shift-drag move in straight line | P1 | have | have | `right_drag_selects_ctrl_drag_copies_and_shift_drag_moves_straight` Shift+drag moves the selection along one axis. |
+| ui-184 | Ctrl-drag copy; Ctrl+Shift-drag copy straight | P1 | have | have | `right_drag_selects_ctrl_drag_copies_and_shift_drag_moves_straight` Ctrl+drag drops a copy; Ctrl+Shift+drag copies along one axis. |
 | ui-185 | Paste in place | P1 | have | have | `engine_commands_and_page_operations` Edit > Paste in Place (Ctrl+Shift+V). |
 | ui-186 | Shift-click vertex add/delete | P1 | missing | have |  |
 | ui-187 | Ctrl-click vertex to curve | P3 | missing | missing |  |
-| ui-188 | Rotation snap 15 degrees | P2 | missing | missing |  |
+| ui-188 | Rotation snap 15 degrees | P2 | have | missing | `right_drag_selects_ctrl_drag_copies_and_shift_drag_moves_straight` `rotation_handle_turns_a_markup` The rotation handle turns in 15 degree steps; Shift frees it to whole degrees; boxes by quarter turns. |
 | ui-189 | Shift-drag measurement caption | P1 | have | have | `shift_drag_moves_a_caption_alone` Shift+drag a measurement's caption. |
 | ui-190 | Shift breaks aspect ratio | P3 | missing | missing |  |
 | ui-191 | Alt-drag callout as whole | P3 | missing | missing |  |
-| ui-192 | Ctrl-click link opens in background | P3 | missing | missing |  |
+| ui-192 | Ctrl-click link opens in background | P3 | partial | missing | Ctrl+click a File Access entry opens it behind the current tab; links on the page do not yet. |
 | ui-193 | Esc behavior | P0 | have | have | `escape_cancels_a_drawing` `full_screen_presentation_always_on_top_and_bars` Esc cancels the drawing, ends multi-click tools, leaves full screen and presentation. |
 | ui-194 | Enter / double-click to finish | P0 | have | have | `polyline_takes_clicks_backspace_and_enter` `area_shows_its_value_and_finishes_on_double_click` Enter or a double-click finishes. |
 | ui-195 | Reuse markup tool | P0 | have | partial | `reuse_tool_keeps_drawing` `preferences_dialog_applies_and_persists` Status bar Reuse toggle and Preferences > Tools: stay in the tool after placing a markup. |
@@ -1188,10 +1188,10 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | key-060 | Close (Ctrl + F4) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-061 | Create PDF (Ctrl + N) |  | partial | missing | `revu_window_view_document_file_shortcuts_are_bound` `new_blank_pdf_and_refresh_from_disk` Ctrl+N makes a new blank PDF; creating a PDF from another file type is not built. |
+| key-061 | Create PDF (Ctrl + N) |  | partial | missing | Ctrl+N makes a new blank PDF; images open as PDF through File > Open; no Create PDF from other file types. |
 | key-062 | Open (Ctrl + O) |  | have | have | `revu_default_shortcuts_are_bound` |
 | key-063 | Print (Ctrl + P) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-064 | Publish as Compressed 1.5 (Ctrl + Shift + P) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-064 | Publish as Compressed 1.5 (Ctrl + Shift + P) |  | have | missing | `save_modes_publish_and_revert_as` File > Publish As Compressed (Ctrl+Shift+P). |
 | key-065 | Save (Ctrl + S) |  | have | have | `revu_default_shortcuts_are_bound` |
 | key-066 | Save All (Shift + F2) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `document_tabs_cycle_close_others_close_all_and_save_all` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-067 | Save As (Ctrl + Shift + S) |  | have | have | `revu_default_shortcuts_are_bound` |
@@ -1201,15 +1201,15 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
 | key-068 | Copy (Ctrl + C) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-069 | Copy Page to Snapshot (Ctrl + Alt + C) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-069 | Copy Page to Snapshot (Ctrl + Alt + C) |  | have | missing | `copy_page_to_snapshot_select_all_text_and_format_painter_keys` Edit > Copy Page to Snapshot (Ctrl+Alt+C). |
 | key-070 | Cut (Ctrl + X) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-071 | Delete (Del) |  | have | have | `revu_default_shortcuts_are_bound` |
-| key-072 | Format Painter (Ctrl + Shift + C) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-072 | Format Painter (Ctrl + Shift + C) |  | have | missing | `copy_page_to_snapshot_select_all_text_and_format_painter_keys` Markup > Format Painter (Ctrl+Shift+C). |
 | key-073 | Paste (Ctrl + V) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-074 | Paste in Place (Ctrl + Shift + V) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-075 | Redo (Ctrl + Y) |  | have | have | `revu_default_shortcuts_are_bound` |
 | key-076 | Select All (Ctrl + A) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-077 | Select All Text (Ctrl + Shift + A) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-077 | Select All Text (Ctrl + Shift + A) |  | have | missing | `copy_page_to_snapshot_select_all_text_and_format_painter_keys` Edit > Select All Text (Ctrl+Shift+A): the current page's text, copied. |
 | key-078 | Snapshot (G) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-079 | Undo (Ctrl + Z) |  | have | have | `revu_default_shortcuts_are_bound` |
 
@@ -1229,7 +1229,7 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-089 | Previous Page (Ctrl + Left) |  | have | have | `revu_default_shortcuts_are_bound` |
 | key-090 | Previous View (Alt + Left) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `previous_and_next_view_walk_the_history` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-091 | Refresh (F5) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `new_blank_pdf_and_refresh_from_disk` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-092 | Remote Files (Alt + K) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-092 | Remote Files (Alt + K) |  | excluded | missing | Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF. |
 | key-093 | Rotate View Clockwise (Ctrl + Shift + Plus) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `rotate_view_turns_the_display_not_the_file` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-094 | Rotate View Counterclockwise (Ctrl + Shift + Minus) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `rotate_view_turns_the_display_not_the_file` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-095 | Rulers (Ctrl + R) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `rulers_crosshair_and_dimmer` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
@@ -1271,17 +1271,17 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| key-119 | Add & Edit 3D Content (Ctrl + Alt + 3) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-119 | Add & Edit 3D Content (Ctrl + Alt + 3) |  | excluded | missing | Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF. |
 | key-120 | Add Bookmark (Ctrl + B) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-121 | Apply Redactions (Shift + A) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-122 | Crop Pages (Shift + Alt + O) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `page_dialogs_insert_rotate_crop_setup_delete` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-123 | Delete Pages (Ctrl + Shift + D) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-124 | Deskew (Ctrl + Alt + D) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-124 | Deskew (Ctrl + Alt + D) |  | have | missing | `deskew_from_a_line_and_by_angle` Document > Deskew (Ctrl+Alt+D). |
 | key-125 | Document Properties (Ctrl + D) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-126 | Email (Ctrl + E) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-126 | Email (Ctrl + E) |  | have | missing | `email_attaches_the_document_to_a_draft` File > Email (Ctrl+E). |
 | key-127 | Extract Pages (Ctrl + Shift + X) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-128 | Flatten (Ctrl + Shift + M) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-129 | Flattened (Ctrl + Alt + F) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-129 | Flattened (Ctrl + Alt + F) |  | have | missing | `save_modes_publish_and_revert_as` File > Publish As Flattened (Ctrl+Alt+F). |
 | key-130 | Insert Blank Page (Ctrl + Shift + N) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-131 | Insert Pages (Ctrl + Shift + I) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-132 | Mark for Redaction (Shift + R) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
@@ -1295,20 +1295,20 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-140 | Security (Ctrl + L) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-141 | Snapshot Content (Shift + G) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-142 | Squiggly (Shift + U) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-143 | Strikethrough (D) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-144 | Underline (U) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-143 | Strikethrough (D) |  | have | missing | `copy_page_to_snapshot_select_all_text_and_format_painter_keys` Strikethrough tool (D). |
+| key-144 | Underline (U) |  | have | missing | `copy_page_to_snapshot_select_all_text_and_format_painter_keys` Underline tool (U). |
 | key-145 | Unflatten (Ctrl + Shift + U) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 
 ### Window
 
 | ID | Feature | Pri | Status | C++ | Evidence / notes |
 |---|---|---|---|---|---|
-| key-146 | 3D Model Tree (Alt + 3) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-146 | 3D Model Tree (Alt + 3) |  | excluded | missing | Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF. |
 | key-147 | Always on Top (Ctrl + F12) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `full_screen_presentation_always_on_top_and_bars` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-148 | Bookmarks (Alt + B) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-149 | Close All (Ctrl + Shift + W) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `document_tabs_cycle_close_others_close_all_and_save_all` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-150 | File Access (Alt + A) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `recent_files_reopen_at_the_last_page_and_pin` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-151 | Forms (Alt + Q) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-151 | Forms (Alt + Q) |  | have | missing | `revu_window_and_markupcraft_keys_are_bound` Window > Forms (Alt+Q) opens Tools > Form Fields. |
 | key-152 | Full Screen (F11) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `full_screen_presentation_always_on_top_and_bars` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-153 | Hide Panels (Shift + F4) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `full_screen_presentation_always_on_top_and_bars` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-154 | JavaScript Console (Alt + J) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
@@ -1323,11 +1323,11 @@ Status is the Rust workspace today: **proven** = matches a recording of real Rev
 | key-163 | Properties (Alt + P) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-164 | Search (Alt + 1) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-165 | Sets (Alt + 2) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-166 | Show Context Menu (Shift + F10) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-166 | Show Context Menu (Shift + F10) |  | have | missing | `alt_menus_shift_f10_and_the_markupcraft_menu` Window > Show Context Menu (Shift+F10). |
 | key-167 | Signatures (Alt + 4) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-168 | Spaces (Alt + S) |  | have | missing | `feature_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-169 | Status Bar (F8) |  | have | missing | `revu_window_view_document_file_shortcuts_are_bound` `full_screen_presentation_always_on_top_and_bars` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
-| key-170 | Studio (Alt + C) |  | missing | missing | C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
+| key-170 | Studio (Alt + C) |  | excluded | missing | Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF. |
 | key-171 | Thumbnails (Alt + T) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 | key-172 | Tool Chest (Alt + X) |  | have | missing | `revu_default_shortcuts_are_bound` C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). |
 

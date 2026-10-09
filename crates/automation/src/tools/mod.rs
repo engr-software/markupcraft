@@ -9,6 +9,7 @@ mod batch;
 mod bookmarks;
 mod compare;
 mod doc;
+mod docfile;
 mod docprops;
 mod edit;
 mod export;
@@ -194,6 +195,12 @@ pub static TOOLS: &[&Tool] = &[
     &batch::LINK,
     &batch::SLIP,
     &batch::APPLY,
+    &docfile::FROM_IMAGE,
+    &docfile::REVISIONS,
+    &docfile::PUBLISH,
+    &docfile::DESKEW,
+    &docfile::STANDARDS,
+    &docfile::REGION_LABELS,
 ];
 
 pub fn find(name: &str) -> Option<&'static Tool> {

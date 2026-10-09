@@ -11,6 +11,8 @@ use markupcraft_model::{Color, Kind, Markup, flags};
 use markupcraft_ui_egui::MarkupCraftApp;
 
 fn harness() -> Harness<'static, MarkupCraftApp> {
+    // The spelling dictionary loads before the first frame, not on a racing worker thread.
+    markupcraft_ui_egui::richedit::load_dictionary_blocking();
     let mut h = Harness::builder()
         .with_size(vec2(1500.0, 1100.0))
         .with_step_dt(1.0 / 60.0)

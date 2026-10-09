@@ -24,6 +24,7 @@
 pub mod snap;
 pub mod synthetic;
 pub mod text;
+pub mod thin;
 
 use std::sync::Arc;
 
