@@ -11,17 +11,24 @@
 
 pub mod batch;
 pub mod batch_compare;
+pub mod batch_list;
 pub mod canvas;
 pub mod compare;
 pub mod docops;
 pub mod docs5b;
 pub mod export;
 pub mod fill;
+pub mod flatten_ui;
 pub mod forms;
+pub mod forms_more;
 pub mod links;
 pub mod more6;
 pub mod ocr;
 pub mod overlay;
+pub mod partials;
+pub mod partials_more;
+pub mod partials_more2;
+pub mod partials_more3;
 pub mod print;
 pub mod redact;
 pub mod search;
@@ -134,6 +141,17 @@ pub static COMMANDS: &[Command] = &[
     c("measure.legend_copy", "Copy Legend to Pages", "Measure", 21, None, ""),
     c("measure.legend_freeze", "Snapshot Legend", "Measure", 21, None, ""),
     c("measure.quantity_link", "Quantity Link...", "Measure", 21, None, "file-spreadsheet"),
+    // wave 6B
+    c("file.new_from_template", "New PDF from Template...", "File", 23, None, ""),
+    c("file.email_templates", "Email Templates...", "File", 23, None, ""),
+    c("tools.add_shared_toolset", "Add Shared Tool Set...", "Tools", 25, None, ""),
+    c("markup.profile_columns", "Profile Columns...", "Markup", 22, None, ""),
+    c("measure.status_report", "Count Status Report...", "Measure", 21, None, ""),
+    c("edit.snapshot_cut", "Cut Snapshot", "Edit", 20, None, "scissors"),
+    c("tools.digital_ids", "Digital IDs...", "Tools", 22, None, ""),
+    c("tools.clear_certification", "Clear Certification", "Tools", 22, None, ""),
+    c("batch.split", "Split...", "Batch", 22, None, ""),
+    c("batch.script", "Run Script...", "Batch", 22, None, ""),
 ];
 
 /// Panels these features add (for the Window menu keys see the panel rows).
@@ -168,14 +186,26 @@ pub fn enabled(app: &AppState, id: &str) -> bool {
         | "file.create_from_files"
         | "file.layered"
         | "forms.merge_data"
-        | "document.redaction_properties" => true,
+        | "document.redaction_properties"
+        | "file.new_from_template"
+        | "batch.split"
+        | "tools.add_shared_toolset"
+        | "markup.profile_columns"
+        | "tools.digital_ids"
+        | "batch.script"
+        | "file.email_templates" => true,
         _ => app.has_doc(),
     }
 }
 
 /// Run a feature command.
 pub fn run(app: &mut AppState, id: &str, _ctx: &egui::Context) {
-    if export::run(app, id) || batch_compare::run(app, id) || docs5b::run(app, id) || more6::run(app, id) {
+    if export::run(app, id)
+        || batch_compare::run(app, id)
+        || docs5b::run(app, id)
+        || more6::run(app, id)
+        || partials::run(app, id)
+    {
         return;
     }
     let f = &mut app.features;
@@ -187,6 +217,8 @@ pub fn run(app: &mut AppState, id: &str, _ctx: &egui::Context) {
         "batch.flatten" => f.batch.open(batch::Kind::Flatten),
         "batch.unflatten" => f.batch.open(batch::Kind::Unflatten),
         "batch.print" => f.batch.open(batch::Kind::Print),
+        "batch.split" => f.batch.open(batch::Kind::Split),
+        "batch.script" => f.batch.open(batch::Kind::Script),
         "document.slip_sheet" => f.batch.open(batch::Kind::SlipSheet),
         "batch.sets" => app.show_panel("sets"),
         "file.overlay" => f.overlay.open = true,
@@ -411,6 +443,14 @@ pub enum Ask {
     QuantityLinksOpen,
     BatchFolder,
     More6(more6::Ask6),
+    BatchListSave,
+    BatchListLoad,
+    BatchScript,
+    SharedToolSet,
+    StatusReportPdf,
+    StatusReportCsv,
+    IdImport,
+    IdExportCert,
 }
 
 pub const IMAGES: crate::dialogs::Filter = ("Images", &["png", "jpg", "jpeg"]);
@@ -470,10 +510,35 @@ pub fn answer(app: &mut AppState, ask: Ask, paths: Vec<PathBuf>) {
         Ask::FormDataOut | Ask::FormDataIn => docs5b::form_data_file(app, &ask, &first),
         Ask::QuantityOut | Ask::QuantityLinksSave | Ask::QuantityLinksOpen => docs5b::quantity_file(app, &ask, &first),
         Ask::More6(a) => more6::answer(app, a, paths),
-        Ask::BatchFolder => match markupcraft_engine::search_more::folder_pdfs(&first, true) {
+        Ask::BatchFolder => {
+            match markupcraft_engine::search_more::folder_pdfs(&first, app.features.batch.more.recursive) {
+                Ok(files) => app.features.batch.add_files(&files),
+                Err(e) => app.features.batch.message = e.to_string(),
+            }
+        }
+        Ask::BatchListSave => {
+            let r = batch_list::save_list(&first, &app.features.batch.files);
+            app.features.batch.message = crate::actions::report(r, |_| format!("List saved to {}", first.display()));
+        }
+        Ask::BatchListLoad => match batch_list::load_list(&first) {
             Ok(files) => app.features.batch.add_files(&files),
             Err(e) => app.features.batch.message = e.to_string(),
         },
+        Ask::BatchScript => app.features.batch.more.script = Some(first),
+        Ask::IdImport => partials_more3::ids_file(app, true, &first),
+        Ask::IdExportCert => partials_more3::ids_file(app, false, &first),
+        Ask::StatusReportPdf => partials_more2::status_file(app, true, &first),
+        Ask::StatusReportCsv => partials_more2::status_file(app, false, &first),
+        Ask::SharedToolSet => {
+            app.status = match app.toolchest.add_shared(&first) {
+                Ok(_) => format!(
+                    "Shared tool set added from {}: read-only until checked out",
+                    first.display()
+                ),
+                Err(e) => e,
+            };
+            app.show_panel("toolchest");
+        }
     }
 }
 
@@ -516,6 +581,10 @@ pub enum Pick {
     FillBoundary,
     /// Wave 6A's picks.
     More6(more6::Pick6),
+    /// A viewport's calibration: drag between the ends of a known length.
+    ViewportCalibrate,
+    /// Snapshot > Cut: the region to cut.
+    SnapshotCut,
 }
 
 impl Pick {
@@ -566,6 +635,7 @@ pub struct FeatureState {
     pub bookmarks: crate::panels::bookmarks::Fields,
     pub quantity: docs5b::QuantityState,
     pub more6: more6::More6State,
+    pub partials: partials::PartialsState,
 }
 
 /// Ask the user to pick on the active document's canvas.
@@ -616,6 +686,7 @@ pub fn frame(app: &mut AppState, ctx: &egui::Context) {
     ocr::window(app, ctx);
     redact::window(app, ctx);
     docs5b::window(app, ctx);
+    partials::window(app, ctx);
     forms::window(app, ctx);
     spell::window(app, ctx);
     stamps::window(app, ctx);
@@ -649,6 +720,8 @@ fn picked(app: &mut AppState, what: Pick, page: usize, pts: Vec<Point>) {
         Pick::AttachmentAt => attachment_picked(app, page, &pts),
         Pick::PrintRegion => print::region_picked(app, page, &pts),
         Pick::More6(p) => more6::picked(app, p, page, &pts),
+        Pick::ViewportCalibrate => crate::viewports_more::picked(app, &pts),
+        Pick::SnapshotCut => partials_more2::cut_picked(app, page, &pts),
     }
 }
 

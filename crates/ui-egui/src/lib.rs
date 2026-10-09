@@ -23,9 +23,11 @@ pub mod canvas;
 pub mod chest;
 pub mod chest_more;
 pub mod chest_sets;
+pub mod chest_shared;
 pub mod chrome;
 pub mod commands;
 pub mod context_menu;
+pub mod context_text;
 pub mod dialogs;
 pub mod dock;
 pub mod editing;
@@ -45,9 +47,12 @@ pub mod shapes_more;
 pub mod shell;
 pub mod sketch;
 pub mod snapping;
+pub mod snapping_more;
+pub mod spell_prefs;
 pub mod theme;
 pub mod tools;
 pub mod viewports;
+pub mod viewports_more;
 pub mod windows;
 
 use std::path::{Path, PathBuf};
@@ -425,7 +430,8 @@ impl AppState {
 
     fn save_to(&mut self, uid: u64, path: &Path, then_close: bool) {
         let threads = self.threads;
-        let full_saves = self.shell.prefs.save_mode == "full";
+        let compressed = self.shell.prefs.save_mode == "compressed";
+        let full_saves = self.shell.prefs.save_mode == "full" || compressed;
         let Some(d) = self.doc_by_uid(uid) else { return };
         interact::commit_editor(d, &mut CanvasOut::default());
         let same = d.path.as_deref() == Some(path);
@@ -436,6 +442,16 @@ impl AppState {
         } else {
             d.session.save_as(path, full)
         };
+        // Publish compressed: the saved file is rewritten with compressed object streams
+        let r = r.and_then(|()| {
+            if compressed {
+                d.session
+                    .publish_as(path, markupcraft_engine::docfile::PublishMode::Compressed)
+                    .map(|_| ())
+            } else {
+                Ok(())
+            }
+        });
         match r {
             Ok(()) => {
                 d.path = Some(path.to_path_buf());
@@ -516,7 +532,8 @@ impl AppState {
                 Purpose::InsertPages { at } => {
                     let threads = self.threads;
                     if let Some(d) = self.doc_mut() {
-                        let r = d.session.insert_file_pages(at, &first, None);
+                        let items: Vec<_> = paths.iter().map(|p| (p.clone(), None)).collect();
+                        let r = d.session.insert_files(at, &items);
                         d.sync_pages(threads);
                         self.status = actions::report(r, |rep| {
                             format!(
@@ -1225,8 +1242,10 @@ impl eframe::App for MarkupCraftApp {
         chrome::menu_bar(&mut self.state, ui);
         chrome::toolbar(&mut self.state, ui);
         shell::proptoolbar::bar(&mut self.state, ui);
+        shell::toolbars_more::strips(&mut self.state, ui);
         chrome::status_bar(&mut self.state, ui);
         shell::panelbars::bars(&mut self.state, ui);
+        shell::edges::strips(&mut self.state, ui);
         egui::CentralPanel::default().frame(egui::Frame::NONE).show(ui, |ui| {
             let style = egui_dock::Style::from_egui(ui.style().as_ref());
             DockArea::new(&mut self.dock)

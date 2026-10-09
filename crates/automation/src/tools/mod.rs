@@ -30,6 +30,7 @@ mod markup_ops;
 mod markups;
 mod ocr;
 mod pages;
+mod partials;
 mod prefs;
 mod redact;
 mod scale;
@@ -293,6 +294,27 @@ pub static TOOLS: &[&Tool] = &[
     &docs6a::STAMP_INTERACTIVE,
     &docs6a::STAMP_SETTINGS,
     &docs6a::REDACT_TEXT,
+    // wave 6B: partial rows finished
+    &partials::INSERT_FILES,
+    &partials::INSERT_BLANK_STYLED,
+    &partials::EXTRACT_EACH,
+    &partials::PAGE_SETUP,
+    &partials::CREATE_EACH,
+    &partials::PAGE_TEMPLATE,
+    &partials::EMAIL_TEMPLATE,
+    &partials::BATCH_SPLIT,
+    &partials::BATCH_SCRIPT,
+    &partials::LEGEND_TOOLSET,
+    &partials::STATUS_REPORT,
+    &partials::VIEWPORT_CALIBRATE,
+    &partials::REDACT_KINDS,
+    &partials::SNAPSHOT_CUT,
+    &partials::ID_STORE,
+    &partials::CLEAR_CERTIFICATION,
+    &partials::FORM_PROPS,
+    &partials::FORM_ACTION,
+    &partials::XFA_LAYOUT,
+    &partials::FLATTEN_EXTRAS,
 ];
 
 pub fn find(name: &str) -> Option<&'static Tool> {

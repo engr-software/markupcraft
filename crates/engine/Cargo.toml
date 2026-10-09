@@ -35,3 +35,8 @@ pdfcraft-content = { workspace = true }
 pdfcraft-export = { workspace = true }
 pdfcraft-preflight = { workspace = true }
 pdfcraft-js = { workspace = true }
+pdfcraft-xfa = { workspace = true }
+flate2 = { version = "1.1", default-features = false, features = ["rust_backend"] }
+roxmltree = "0.20"
+tiff = "0.11"
+weezl = "0.1"

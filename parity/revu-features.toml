@@ -210,10 +210,10 @@ section = "Viewports"
 name = "Viewport scale by preset / custom / calibrate"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:77"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["viewport_tool_asks_for_a_name_and_scale", "viewport_edit_renames_rescales_copies_and_clears"]
-notes = "Preset or custom scale when added, rescaled from the Measurements panel; calibrating inside a viewport not yet."
+evidence = ["count_status_report_and_viewport_calibration_with_separate_y", "viewport_calibrate_raster_fill_redaction_kinds_and_snapshot_cut"]
+notes = "A viewport takes a preset or custom scale when added, and from the Measurements panel's viewport list a new preset or custom scale, a calibrated one (Calibrate: the known length and unit, then drag between its ends inside the viewport) and a separate Y scale; measurements inside it update (tool viewport_calibrate)."
 
 [[feature]]
 id = "meas-017"
@@ -717,10 +717,10 @@ section = "Count"
 name = "Live count preview"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:136"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["cloud_drags_a_rectangle_and_count_shows_a_live_total"]
-notes = "While counting, the running count shows in the lower-right of the view (and the status bar); clicking it does not reopen a panel."
+evidence = ["count_readout_hides_and_comes_back_and_the_status_report"]
+notes = "While counting, the running count shows in the lower-right of the view (and the status bar); its Hide button closes it and the Show Count button there brings it back."
 
 [[feature]]
 id = "meas-056"
@@ -730,10 +730,10 @@ section = "Count"
 name = "Count statuses"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:137"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["count_series_resume_delete_split_and_merge", "line_styles_custom_statuses_and_profile_columns"]
-notes = "Counts take the review statuses and custom ones (Installed ...), and items split off take their own; visual status reports are not built."
+evidence = ["count_readout_hides_and_comes_back_and_the_status_report", "count_status_report_and_viewport_calibration_with_separate_y", "status_rows_colours_and_visual_copy"]
+notes = "Counts take the review statuses and custom ones (Installed ...), and items split off take their own. Measure > Count Status Report lists items by subject and status, each status in its colour, and exports the table (CSV) or the visual status report: a copy of the drawings with every count drawn in its status's colour (tool count_status_report)."
 
 [[feature]]
 id = "meas-057"
@@ -808,10 +808,10 @@ section = "Dynamic Fill and auto-detection"
 name = "Dynamic Fill settings"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:148"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["fill_by_dragging_polylength_and_volume_outputs", "dynamic_fill_drag_boundaries_polylength_and_volume"]
-notes = "Gap tolerance, cutouts on/off, boundaries, click or drag; no DPI or cursor settings (vector tracing has none)."
+evidence = ["a_room_on_the_page_image_with_a_gap_closed", "raster_dynamic_fill_redaction_kinds_snapshot_cut_and_image_markups", "viewport_calibrate_raster_fill_redaction_kinds_and_snapshot_cut"]
+notes = "Dynamic Fill bar: gap tolerance, cutouts, boundaries, click or drag; Detection and cursor: vector linework or the page image (scans) with detection DPI (36-300), edge sensitivity and Hide markups while filling, and the fill cursor's size and colour (tool dynamic_fill detect raster, dpi, sensitivity, hide_markups). Fill speed is not a setting: a fill runs at once."
 
 [[feature]]
 id = "meas-063"
@@ -860,10 +860,10 @@ section = "Dynamic Fill and auto-detection"
 name = "AI auto-count"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:152"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["visual_search_picks_a_region_and_finds_the_symbol", "eighth_turns_colour_filter_and_limit_to_selection"]
-notes = "Not a Revu feature; Visual Search > Count places counts on every similar symbol (no symbol recognition model)."
+evidence = ["visual_search_finds_symbols_and_counts_them", "visual_search_picks_a_region_and_finds_the_symbol"]
+notes = "Not a Revu feature (Revu 21 has no AI auto-count). MarkupCraft's Visual Search > Count places counts on every symbol like the one picked, which is what Revu offers for automatic counting."
 
 [[feature]]
 id = "meas-067"
@@ -1171,10 +1171,10 @@ section = "Measurement properties, captions and appearance"
 name = "Caption default placement"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:191"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = []
-notes = "Area, Volume and Perimeter captions sit at the vertex mean (Revu's /CO anchor in the reference set); Polylength at the middle segment, or beside the last segment with segment values; Length along the line. Perimeter along its last segment is not done."
+evidence = ["caption_along_the_last_segment", "caption_placement_and_strike_superscript_in_properties", "caption_along_the_last_segment_with_strike_and_superscript"]
+notes = "Area and Volume captions sit in the shape (Revu's /CO anchor at the vertex mean); Perimeter and Polylength captions can sit beside the last segment (Properties > Caption > Placement: Along the last segment, saved as /PCCaptionLastSeg; Polylength with segment values does so already); Length along the line."
 
 [[feature]]
 id = "meas-091"
@@ -1210,10 +1210,10 @@ section = "Measurement properties, captions and appearance"
 name = "Font for captions"
 priority = "P2"
 source = "docs/revu_features/01_measurement.md:194"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["measurement_extras_round_trip"]
-notes = "Properties > Caption sets the caption's font size (2-144, saved in /DS and drawn at that size on the canvas and in the saved appearance), font, colour and bold / italic / underline; the saved appearance draws Helvetica in the markup colour, and strike-through, superscript and subscript are not offered."
+evidence = ["caption_placement_and_strike_superscript_in_properties", "caption_along_the_last_segment_with_strike_and_superscript"]
+notes = "Properties > Caption: font size (2-144, typed), font, colour, bold, italic, underline, strike-through, superscript and subscript; saved in /DS as CSS (text-decoration, vertical-align), drawn on the canvas and in the saved appearance (smaller and raised or lowered, with underline and strike lines)."
 
 [[feature]]
 id = "meas-094"
@@ -1391,10 +1391,10 @@ section = "Tool Chest for takeoff"
 name = "Takeoff profile"
 priority = "P3"
 source = "docs/revu_features/01_measurement.md:213"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["drag_to_tool_chest_edit_action_and_takeoff_workspace"]
-notes = "Window > Takeoff Workspace opens the Measurements panel, Markups List and Tool Chest in the measure mode; it is a command, not a saved profile."
+evidence = ["profile_columns_every_document_takeoff_profile_and_toolset_legend"]
+notes = "Window > Takeoff Workspace switches to the Takeoff profile (made from the current one the first time): Measurements panel, Markups List and Tool Chest shown and the measure tool active; the profile keeps its own layout and preferences."
 
 [[feature]]
 id = "meas-108"
@@ -1586,10 +1586,10 @@ section = "Legends"
 name = "Tool-set legend"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:243"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["legend_ranges_selections_tool_sets_custom_columns_look_and_distribution", "legend_options_copy_freeze_and_reduce_options"]
-notes = "A legend of a list of subjects that shows every subject even with none drawn (show_empty); the list is typed, not picked from a Tool Chest set."
+evidence = ["toolset_legend_and_review_columns_capture_legend_3d_view", "profile_columns_every_document_takeoff_profile_and_toolset_legend"]
+notes = "Legend > From Tool Chest set lists every subject the set's tools make, even with none drawn yet (show_empty), with symbols and live counts and totals; markups of those subjects drawn later appear as the legend updates (tool legend_from_toolset)."
 
 [[feature]]
 id = "meas-123"
@@ -1716,10 +1716,10 @@ section = "Export, reporting and Excel"
 name = "Quantity Link: link cell to total"
 priority = "P1"
 source = "docs/revu_features/01_measurement.md:258"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["links_total_by_type_and_filters_and_write_the_workbook", "quantity_links_and_folder_summary_to_excel", "quantity_link_dialog_and_folder_summary_to_excel"]
-notes = "Quantity Links name a sheet and cell and a total over one or more PDFs; Update recomputes and writes them into a workbook we write (with a Links sheet). Existing Excel workbooks are not edited in place."
+evidence = ["quantity_link_updates_an_existing_workbook_in_place", "cells_are_set_in_place_and_other_parts_are_kept", "quantity_link_dialog_and_folder_summary_to_excel"]
+notes = "Quantity Links bind a sheet and cell to a total over one or more PDFs (count, length, area, volume, quantity or a custom column, filtered). Update writes the totals into the workbook: an existing .xlsx is edited in place (only the linked cells and our Links sheet change; styles, formulas, charts and other sheets are kept; Excel recalculates on open). It runs from MarkupCraft (Quantity Link dialog, quantity_link tool), not as an add-in inside Excel."
 
 [[feature]]
 id = "meas-133"
@@ -2282,10 +2282,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Image markup"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:86"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["stamps_builtin_custom_dynamic_fields_and_images", "stamp_library_places_a_stamp_and_an_image"]
-notes = "Markup > Image places a PNG or JPEG (click or box) as an image stamp annotation; no separate Image markup kind."
+evidence = ["stamp_library_places_a_stamp_and_an_image", "raster_dynamic_fill_redaction_kinds_snapshot_cut_and_image_markups"]
+notes = "Markup > Image (I) places a PNG or JPEG (click or box) as an Image markup (a Stamp annotation with the subject Image, as Revu saves images); it moves and resizes like any box, its picture fitted to the new box."
 
 [[feature]]
 id = "mark-043"
@@ -2334,10 +2334,10 @@ section = "C. Stamps, images, links, attachments, capture"
 name = "Snapshot Content (cut/copy region of page)"
 priority = "P2"
 source = "docs/revu_features/02_markups.md:90"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["snapshots_of_a_region_a_page_and_a_space", "snapshots_and_file_attachment_markups_with_capture_summary"]
-notes = "Snapshot tool (G) and snapshot_copy: a region kept in vector form, copied and pasted; no cut."
+evidence = ["cut_removes_the_content_and_paste_brings_it_back_as_a_snapshot", "raster_dynamic_fill_redaction_kinds_snapshot_cut_and_image_markups", "viewport_calibrate_raster_fill_redaction_kinds_and_snapshot_cut"]
+notes = "Snapshot tool (G) and snapshot_copy copy a region in vector form; Edit > Cut Snapshot (snapshot_cut) copies it and removes that content from the page (no box drawn); Paste places it."
 
 [[feature]]
 id = "mark-047"
@@ -3403,7 +3403,7 @@ source = "docs/revu_features/02_markups.md:188"
 status = "partial"
 cpp = "partial"
 evidence = ["tool_chest_symbol_view_scale_export_and_import", "reorder_export_import_and_rescale"]
-notes = "Export / Import a tool set as MarkupCraft's own JSON (.mctools); Revu's .btx is not read or written."
+notes = "Export / Import a tool set as MarkupCraft's own JSON (.mctools), shareable through a shared folder (Add Shared Tool Set). Revu's .btx format has no public specification, so .btx files are not read or written."
 
 [[feature]]
 id = "mark-130"
@@ -3439,10 +3439,10 @@ section = "F. Tool Chest"
 name = "Shared tool set lock/checkout"
 priority = "P3"
 source = "docs/revu_features/02_markups.md:191"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["tool_chest_sequence_pin_lock_options_and_update_on_reuse"]
-notes = "Tool set right-click > Lock Tool Set / Unlock (Check Out): a locked set takes no new, changed or removed tools; there are no network-shared sets."
+evidence = ["shared_tool_sets_check_out_and_in_through_a_shared_folder"]
+notes = "Tools > Add Shared Tool Set links a .mctools file in a shared (network) folder: read-only until Check Out (the set's right-click menu), which writes <file>.lock naming who has it; others see Checked out by <name> and cannot check it out; Check In writes the set back and unlocks; Refresh reads the shared file again. Lock Tool Set / Unlock also works on any set."
 
 [[feature]]
 id = "mark-133"
@@ -3712,10 +3712,10 @@ section = "H. Markups List"
 name = "Standard columns: review"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:222"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["list_cells_formula_choice_currency_status"]
-notes = "Status, Checkmark, Lock; no Capture / Legend / 3D View."
+evidence = ["toolset_legend_and_review_columns_capture_legend_3d_view"]
+notes = "Status, Checkmark, Lock, Capture (the file a File Attachment captured), Legend (a legend markup) and 3D View columns. MarkupCraft makes no 3D views, so the 3D View column stays empty."
 
 [[feature]]
 id = "mark-154"
@@ -3840,10 +3840,10 @@ section = "H. Markups List"
 name = "Save columns to profile"
 priority = "P1"
 source = "docs/revu_features/02_markups.md:232"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["line_styles_custom_statuses_and_profile_columns"]
-notes = "Manage Columns > Save to Profile keeps the column definitions; Load from Profile adds them to another document (on request, not to every new document); column layouts are saved by name."
+evidence = ["profile_columns_every_document_takeoff_profile_and_toolset_legend"]
+notes = "Manage Columns > Save to Profile keeps column definitions; Markup > Profile Columns lists them, deletes them from the profile, adds them to this document, or to every document opened; column layouts are saved by name."
 
 [[feature]]
 id = "mark-164"
@@ -4241,10 +4241,10 @@ section = "Opening, tabs and multiple documents"
 name = "Open images as PDF"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:90"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "File > Open (and drops) convert PNG, JPEG, TIFF (first image) and BMP to a one-page PDF at the declared resolution (engine docfile, tool doc_from_image); no GIF or multi-page TIFF."
+evidence = ["gif_and_multi_page_tiff_open_and_export", "gif_multi_page_tiff_office_dxf_and_one_pdf_per_source", "gif_round_trip_and_multi_page_tiff"]
+notes = "File > Open (and drops) convert PNG, JPEG, BMP, GIF (first frame) and TIFF (every page of a multi-page TIFF) to PDF pages at the declared resolution (engine docfile + finish::imaging, tool doc_from_image)."
 
 [[feature]]
 id = "doc-003"
@@ -4423,10 +4423,10 @@ section = "Opening, tabs and multiple documents"
 name = "New blank PDF / from template"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:104"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["new_blank_pdf_and_refresh_from_disk"]
-notes = "File > New Blank PDF (Ctrl+N): an untitled Letter page; no templates."
+evidence = ["page_templates_and_email_templates", "page_and_email_templates"]
+notes = "File > New Blank PDF (Ctrl+N), and File > New PDF from Template: page templates kept as PDFs in the settings folder (save the current document as a template, remove, open a new untitled document from one; tool page_template)."
 
 [[feature]]
 id = "doc-017"
@@ -4449,10 +4449,10 @@ section = "Opening, tabs and multiple documents"
 name = "Email PDF"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:106"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["email_attaches_the_document_to_a_draft", "email_draft_attaches_the_pdf"]
-notes = "File > Email (Ctrl+E): an unsent message with the document attached opens in the mail program; no email templates."
+evidence = ["page_templates_and_email_templates", "page_and_email_templates", "email_attaches_the_document_to_a_draft"]
+notes = "File > Email (Ctrl+E): an unsent message with the document attached opens in the mail program. File > Email Templates: saved To, Cc, subject and message ({file} = the document's name) prefill it (tool email_template)."
 
 [[feature]]
 id = "doc-019"
@@ -4462,10 +4462,10 @@ section = "Opening, tabs and multiple documents"
 name = "Save modes and revisions"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:107"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["save_modes_publish_and_revert_as", "revisions_publish_and_deskew"]
-notes = "Preferences > Document: keep revisions (incremental) or publish (full rewrite); publish compressed is File > Publish As Compressed, not a save mode."
+evidence = ["security_icon_pdfa_badge_verify_page_tags_ids_numbering_and_compressed_saves", "save_modes_publish_and_revert_as"]
+notes = "Preferences > Document > Save mode: keep revisions (incremental), publish (full rewrite) or publish compressed (every save rewritten with compressed object streams); File > Publish As Compressed does it once."
 
 [[feature]]
 id = "doc-020"
@@ -4527,10 +4527,10 @@ section = "Opening, tabs and multiple documents"
 name = "PDF/A awareness"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:112"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["certified_pdfa_and_signed_documents_guard_page_edits"]
-notes = "PDF/A conformance read from the XMP metadata; page edits locked (Preferences > Advanced unlocks); Document Properties shows it; no tab icon or Verify."
+evidence = ["security_icon_pdfa_badge_verify_page_tags_ids_numbering_and_compressed_saves", "certified_pdfa_and_signed_documents_guard_page_edits"]
+notes = "PDF/A conformance read from the XMP metadata; the document tab shows a [PDF/A-2B] badge; page edits locked (Preferences > Advanced unlocks; Document Properties > Unlock removes the claim); Document Properties > Verify checks compliance (pdfcraft-preflight) and lists the problems."
 
 [[feature]]
 id = "doc-025"
@@ -4943,10 +4943,10 @@ section = "Split views, sync and second monitor (MultiView)"
 name = "Detach tab (dual screen)"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:154"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["detach_a_tab_to_a_window_and_drop_a_tab_on_the_split_pane"]
-notes = "Window > Detach Tab to New Window (or a tab's right-click Detach): the document in its own window with its own view; clicking in it makes it active; Reattach. No drag-out, no split or sync inside it."
+evidence = ["detached_window_splits_and_syncs", "detach_a_tab_to_a_window_and_drop_a_tab_on_the_split_pane"]
+notes = "Window > Detach Tab to New Window, a tab's right-click Detach, or dragging a tab out of the window: the document in its own window with its own view; clicking in it makes it active; inside it Split shows a second view, synchronized (Document or Page) or not, and Follow the main window keeps it on the main window's page; Reattach. The main window keeps its tab, so a detached window is always also a copy."
 
 [[feature]]
 id = "doc-057"
@@ -5060,10 +5060,10 @@ section = "Thumbnails panel"
 name = "Page commands from Thumbnails"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:168"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = []
-notes = "Thumbnail menu: rotate, Rotate Pages, insert blank, Insert Pages, Extract, Replace, Crop, Page Setup, move, cut / copy / paste, delete, Copy to Snapshot, Set Scale, Rename Label, Print, Markup Summary, Flatten; no stamp, numbering or export."
+evidence = ["security_icon_pdfa_badge_verify_page_tags_ids_numbering_and_compressed_saves", "thumbnails_rename_set_scale_snapshot_and_dropped_files"]
+notes = "Thumbnail menu: rotate, Rotate Pages, insert blank, Insert Pages, Extract, Replace, Crop, Page Setup, move, cut / copy / paste, delete, Copy to Snapshot, Set Scale, Rename Label, Number Pages, Stamp, Export Pages as Images (the chosen pages), Email, Print, Repair, Markup Summary, Flatten."
 
 [[feature]]
 id = "doc-066"
@@ -5320,10 +5320,10 @@ section = "Page operations"
 name = "Insert pages from PDF"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:203"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["page_dialogs_insert_rotate_crop_setup_delete"]
-notes = "Document > Insert Pages: one PDF, a page range, before or after a page; several files only by dropping them on Thumbnails."
+evidence = ["page_dialogs_insert_several_files_grid_extract_each_and_place_content", "insert_from_several_pdfs_grid_template_extract_each_and_page_setup"]
+notes = "Document > Insert Pages: one or more PDFs in a list (reorder, remove, each with its own page range), before or after a page, first or last; one undo step (tool page_insert_files). Dropping PDFs on Thumbnails inserts them too."
 
 [[feature]]
 id = "doc-086"
@@ -5346,10 +5346,10 @@ section = "Page operations"
 name = "Insert blank page"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:205"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["page_dialogs_insert_rotate_crop_setup_delete"]
-notes = "Document > Insert Blank Pages: count, standard or custom size, orientation, before / after a page; no grid or template."
+evidence = ["page_dialogs_insert_several_files_grid_extract_each_and_place_content", "insert_from_several_pdfs_grid_template_extract_each_and_page_setup"]
+notes = "Document > Insert Blank Pages: count, standard or custom size, orientation, a ruled or dotted grid at a chosen spacing, or copies of a template PDF's first page, before / after a page (tool page_insert_blank_styled)."
 
 [[feature]]
 id = "doc-088"
@@ -5385,10 +5385,10 @@ section = "Page operations"
 name = "Extract pages"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:208"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["extract_and_replace_pages_through_dialogs"]
-notes = "Document > Extract Pages: page range, delete after extracting, open the new file; one file only."
+evidence = ["summary_pdf_extras_and_extract_with_links", "links_between_extracted_pages_point_to_the_new_files", "page_dialogs_insert_several_files_grid_extract_each_and_place_content"]
+notes = "Document > Extract Pages: page range to one file, or one file per page (named by number or page label, overwrite or not), links between the extracted pages updated to point to their new files (relative paths), delete after extracting, open the new file."
 
 [[feature]]
 id = "doc-091"
@@ -5476,10 +5476,10 @@ section = "Page operations"
 name = "Page setup / resize"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:215"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["page_dialogs_insert_rotate_crop_setup_delete", "crop_boxes_and_page_resize"]
-notes = "Document > Page Setup: standard or custom size, orientation, keep the drawing at an anchor; no content scaling, offsets or borders."
+evidence = ["page_dialogs_insert_several_files_grid_extract_each_and_place_content", "insert_from_several_pdfs_grid_template_extract_each_and_page_setup", "insert_several_files_grid_template_extract_each_and_setup"]
+notes = "Document > Page Setup: standard or custom size and orientation, keep the drawing at an anchor, or place the content: fit or scale, X/Y offset, rotation (or level a drawn line, tool page_setup level_line), centre, binding margins and a border; markups move with the content."
 
 [[feature]]
 id = "doc-098"
@@ -5515,10 +5515,10 @@ section = "Page operations"
 name = "Batch file list (shared)"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:218"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["batch_link_summary_sets_and_apply"]
-notes = "Batch tools take a file list or a set file."
+evidence = ["batch_list_sources_save_load_split_script_and_one_pdf_per_file", "batch_create_layered_merge_combine_options_and_link_terms"]
+notes = "Every batch dialog shares one file list: Add Files, Add Open Files, Add Current Set, Add Folder (with or without subfolders), drag rows (or Up / Down) to reorder, remove, clear, Save List / Load List (JSON); batches work on closed files and save them in place."
 
 [[feature]]
 id = "doc-101"
@@ -5570,7 +5570,7 @@ source = "docs/revu_features/03_documents.md:227"
 status = "partial"
 cpp = "missing"
 evidence = ["create_combine_and_layered", "combine_create_and_layered", "batch_create_layered_merge_combine_options_and_link_terms"]
-notes = "Images (PNG, JPEG, TIFF, BMP) and text files to PDF (doc_create_from_files; File > Create PDF from Files). No Office or CAD documents (those need authoring plugins)."
+notes = "File > Create PDF from Files converts images (PNG, JPEG, TIFF, BMP, GIF), text, Word (.docx text, headings, lists, tables), Excel (.xlsx sheets as tables), PowerPoint (.pptx slide text) and DXF drawings (vector linework and text) without plugins (doc_create_from_files). Binary DWG files are not read: their format has no public specification (save as DXF); Office layout beyond text and tables is not reproduced."
 
 [[feature]]
 id = "doc-105"
@@ -5583,7 +5583,7 @@ source = "docs/revu_features/03_documents.md:228"
 status = "partial"
 cpp = "missing"
 evidence = ["create_combine_and_layered", "combine_create_and_layered", "batch_create_layered_merge_combine_options_and_link_terms"]
-notes = "Stapler: images, text files and PDFs in one PDF in list order. No Office or CAD documents (authoring plugins)."
+notes = "Stapler (Create PDF from Files): images, text, Word, Excel, PowerPoint, DXF and PDFs in one PDF in list order, or one PDF per file beside each source or in a chosen folder (doc_create_each). DWG is not read (no public specification); jobs run one after another from the dialog, not from a background queue."
 
 [[feature]]
 id = "doc-106"
@@ -5842,10 +5842,10 @@ section = "Batch tools"
 name = "Other batch processes"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:253"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["batch_unflatten_repair_rotate_and_recolour", "batch_compare_and_overlay_with_saved_batch_file_and_reports"]
-notes = "batch_apply also runs security, OCR, reduce file size, repair, colour processing, PDF/A, rotate, crop, page size, redaction and form flattening; batch compare and overlay; no split or script batches."
+evidence = ["batch_split_and_batch_script", "batch_list_sources_save_load_split_script_and_one_pdf_per_file"]
+notes = "batch_apply runs security, OCR, reduce file size, repair, colour processing, PDF/A, rotate, crop, page size, redaction and form flattening; Batch > Compare and Overlay; Batch > Split (every N pages or at bookmarks, tool batch_split) and Batch > Run Script (a markupcraft-cli script's tool steps on every file, tool batch_script)."
 
 [[feature]]
 id = "doc-126"
@@ -6024,10 +6024,10 @@ section = "Markup summary and print"
 name = "Summary PDF layout"
 priority = "P1"
 source = "docs/revu_features/03_documents.md:277"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["multi_sort_content_layouts_links_and_one_report_per_value", "summary_options_and_print_jobs", "summary_filters_then_sort_output_and_pdf_layout"]
-notes = "Table or flow style, page size, a page per group, padding, totals, links to the source pages, a PNG logo; no markup thumbnails, Spaces cover sheet, page content or status history."
+evidence = ["summary_pdf_extras_in_the_dialog", "summary_pdf_extras_and_extract_with_links", "cover_history_thumbnails_and_pages"]
+notes = "Table or flow style, page size, a page per group, padding, totals, links to the source pages, a PNG logo, and extras: a Spaces cover sheet, each markup's status history, markup thumbnails at a chosen size (contact sheets with an index) and the summarized pages themselves."
 
 [[feature]]
 id = "doc-140"
@@ -6040,7 +6040,7 @@ source = "docs/revu_features/03_documents.md:278"
 status = "partial"
 cpp = "missing"
 evidence = ["commands_name_the_printer_and_copies", "print_dialog_copies_window_markups_only_emphasis_and_batch_print", "summary_options_and_print_jobs"]
-notes = "Printer chosen from the system's list; Print lays the sheets out as a print-ready PDF and hands it to the system print command (lp; PowerShell PrintTo, which needs a PDF handler); no printer properties, status, .prn or live preview."
+notes = "Printer chosen from the system's list (read-only queries: lpstat, PowerShell Get-Printer); Print lays the sheets out as a print-ready PDF (Save Print PDF keeps it) and hands it to the system print command; Advanced grayscale and print as image. Printer-language .prn files, the driver's properties dialog and live printer status need the printer driver, which MarkupCraft does not drive."
 
 [[feature]]
 id = "doc-141"
@@ -6115,10 +6115,10 @@ section = "Markup summary and print"
 name = "Print: emphasis options"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:284"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["jobs_print_regions_markups_only_margins_and_emphasis", "print_dialog_copies_window_markups_only_emphasis_and_batch_print"]
-notes = "Dim page content, dim filtered-out markups, print Spaces, print visible hyperlinks; no Advanced dialog or reset to defaults."
+evidence = ["print_advanced_reset_and_flatten_extras", "grayscale_and_as_image", "print_dialog_copies_window_markups_only_emphasis_and_batch_print"]
+notes = "Dim page content, dim filtered-out markups, print Spaces, print visible hyperlinks; Advanced (print in grayscale, print as image at 72-600 dpi) and Reset to Defaults."
 
 [[feature]]
 id = "doc-147"
@@ -6248,7 +6248,7 @@ source = "docs/revu_features/03_documents.md:304"
 status = "partial"
 cpp = "partial"
 evidence = ["real_ocr_reads_rendered_text_turned_and_skewed", "ocr_adds_a_searchable_layer_over_the_ink", "ocr_runs_on_a_worker_with_deskew_and_orientation"]
-notes = "Page range, dpi, skip pages that already have text, skip vector pages, deskew, orientation and vertical text; runs on a worker thread. Verified with the real ocrs models. Latin-script (English) models only: no language choice."
+notes = "Page range, dpi, skip pages that already have text, skip vector pages, deskew, orientation and vertical text; runs on a worker thread; verified with the real ocrs models. The OCR engine (ocrs) ships Latin-script (English) recognition models only, so there is no language choice until other models exist."
 
 [[feature]]
 id = "doc-157"
@@ -6349,10 +6349,10 @@ section = "Forms"
 name = "Fill forms"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:317"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["forms_create_fill_and_flatten", "create_fill_reset_and_flatten_fields"]
-notes = "Tools form_list, form_fill (text, check box, radio, combo, list; appearances regenerated by pdfcraft-forms) and form_reset. No XFA or field highlight yet."
+evidence = ["form_highlight_properties_actions_and_xfa_layout", "form_field_properties_actions_and_xfa_layout", "properties_actions_and_xfa"]
+notes = "Tools form_list, form_fill (text, check box, radio, combo, list; appearances regenerated by pdfcraft-forms) and form_reset; static XFA forms fill through their AcroForm fields and dynamic XFA forms are laid out as pages and fields (Form Fields > Lay Out XFA Form, form_xfa_layout, pdfcraft-xfa); Form Fields > Highlight fields tints every field on the page."
 
 [[feature]]
 id = "doc-165"
@@ -6362,10 +6362,10 @@ section = "Forms"
 name = "Create form fields"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:318"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["forms_create_fill_and_flatten", "create_fill_reset_and_flatten_fields"]
-notes = "Tool form_add_field: text (multiline), check box, radio groups, dropdown, list box, button and signature fields with Acrobat-style names and looks; no properties or actions editing yet. Fields flatten into page content with form_flatten."
+evidence = ["form_highlight_properties_actions_and_xfa_layout", "form_field_properties_actions_and_xfa_layout", "properties_actions_and_xfa"]
+notes = "Tool form_add_field: text (multiline), check box, radio groups, dropdown, list box, button and signature fields with Acrobat-style names and looks; Form Fields > Field properties (name, tooltip, required, read-only, multiline, most characters, default value; form_field_props also font size, alignment, lock, options) and Actions by trigger (web link, page, menu command, reset, show / hide, JavaScript; form_field_action). Fields flatten into page content with form_flatten."
 
 [[feature]]
 id = "doc-166"
@@ -6427,10 +6427,10 @@ section = "Digital signatures and certificates"
 name = "Certify document"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:328"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["signatures_sign_validate_and_track_changes"]
-notes = "certify 1/2/3 (DocMDP) as first signer, and later changes are judged against it; no clearing a certification."
+evidence = ["digital_id_manager_and_clearing_a_certification"]
+notes = "Certify 1/2/3 (DocMDP) as first signer, visibly or invisibly, and later changes are judged against it; Tools > Clear Certification (certification_clear) lets the certifier, with the certifying ID, remove the certification (the signature goes, its field stays)."
 
 [[feature]]
 id = "doc-171"
@@ -6440,10 +6440,10 @@ section = "Digital signatures and certificates"
 name = "Digital ID manager"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:329"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["signatures_sign_validate_and_track_changes"]
-notes = "Tool digital_id_create: self-signed P-256 ID in a password-protected .p12 plus its public certificate (PEM); no store, import, change-password or delete management."
+evidence = ["digital_id_manager_and_clearing_a_certification", "store_create_import_export_password_and_delete", "security_icon_pdfa_badge_verify_page_tags_ids_numbering_and_compressed_saves"]
+notes = "Tools > Digital IDs: a store of password-protected .p12 IDs in the settings folder: create self-signed (P-256), import .p12/.pfx, view who each names and its fingerprint, export the public certificate (PEM), change the password, log in / log out, delete (tool digital_id_store). The Windows certificate store is not used."
 
 [[feature]]
 id = "doc-172"
@@ -6466,10 +6466,10 @@ section = "Security and redaction"
 name = "Security status icon"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:336"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["presets_templates_kept_header_footer_and_fit", "security_presets_status_header_footer_templates_and_fit", "security_presets_status_and_kept_header_footer_templates"]
-notes = "Security status (none, open password, printing or editing limited, both) as it will be saved, in security_info and the Security dialog; no icon in the status bar."
+evidence = ["security_icon_pdfa_badge_verify_page_tags_ids_numbering_and_compressed_saves", "security_presets_status_and_kept_header_footer_templates"]
+notes = "The status bar shows a lock icon by the security as it will be saved (open lock: none; closed: open password, printing or editing limited, or both); hover for the status, click for the Security dialog; security_info reports it too."
 
 [[feature]]
 id = "doc-174"
@@ -6518,10 +6518,10 @@ section = "Security and redaction"
 name = "Apply redactions"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:340"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["redaction_marks_applies_and_verifies", "marks_search_hits_and_areas_then_applies_and_verifies", "overlay_look_codes_and_metadata_scrub", "redaction_look_codes_and_scrub", "redaction_properties_scrub_form_data_and_legend_distribution"]
-notes = "Tool redact_apply (pdfcraft-redact): text, images and paths under the marks removed on all or chosen pages, verified afterwards (residue), optional scrub of document properties, metadata, attachments and scripts; next save is a full rewrite. No text-only / images-only choice."
+evidence = ["text_only_keeps_the_graphics_and_images_only_keeps_the_text", "raster_dynamic_fill_redaction_kinds_snapshot_cut_and_image_markups", "viewport_calibrate_raster_fill_redaction_kinds_and_snapshot_cut"]
+notes = "Apply Redactions (pdfcraft-redact): on all or chosen pages, removing text, images and graphics, text only, or images only (tool redact_apply_kinds; content inside form XObjects is not split by kind), verified afterwards (residue), optional scrub of document properties, metadata, attachments and scripts; next save is a full rewrite."
 
 [[feature]]
 id = "doc-178"
@@ -6557,10 +6557,10 @@ section = "Flatten, file size and archive"
 name = "Flatten extras"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:348"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["recoverable_flatten_onto_a_layer_and_unflatten"]
-notes = "Flatten into a named layer and recoverable flatten; no overlay text, kept pop-up properties or capture summary."
+evidence = ["overlay_kept_properties_and_capture_summary", "flatten_extras_overlay_popups_and_capture_summary", "print_advanced_reset_and_flatten_extras"]
+notes = "Flatten into a named layer, recoverable flatten, overlay text on each flattened page (Helvetica, Times-Roman or Courier, size, six positions), chosen properties (subject, author, comments, label, status, date) kept in a pop-up note at each flattened markup, and a capture summary of flattened File Attachments attached to the document (tool markup_flatten_extras)."
 
 [[feature]]
 id = "doc-181"
@@ -6648,10 +6648,10 @@ section = "Export"
 name = "Export to images"
 priority = "P2"
 source = "docs/revu_features/03_documents.md:360"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["export_images_office_formats_and_page_region", "export_dialogs_write_images_office_files_and_a_region"]
-notes = "File > Export Pages as Images: PNG, JPEG (quality), TIFF or BMP at 18-1200 dpi, pages, with or without markups, auto-numbered <name><suffix><page>; no GIF."
+evidence = ["gif_and_multi_page_tiff_open_and_export", "gif_multi_page_tiff_office_dxf_and_one_pdf_per_source", "export_images_office_formats_and_page_region"]
+notes = "File > Export Pages as Images: PNG, JPEG (quality), TIFF, BMP or GIF (256 colours) at 18-1200 dpi, chosen pages, with or without markups, auto-numbered <name><suffix><page> (tool export_images)."
 
 [[feature]]
 id = "doc-188"
@@ -6765,10 +6765,10 @@ section = "Properties, metadata and attachments"
 name = "Page tags / standards info"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:374"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["certified_pdfa_and_signed_documents_guard_page_edits"]
-notes = "Document Properties: Standards (PDF/A claim) and signatures (certified); no page tags."
+evidence = ["security_icon_pdfa_badge_verify_page_tags_ids_numbering_and_compressed_saves"]
+notes = "Document Properties: Standards (PDF/A claim, Verify, Unlock), signatures (certified) and the current page's tags (the Set's custom tags for the sheet), read-only."
 
 [[feature]]
 id = "doc-197"
@@ -6908,10 +6908,10 @@ section = "Recent files and File Access panel"
 name = "Recents preferences"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:395"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["recent_files_reopen_at_the_last_page_and_pin", "preferences_dialog_applies_and_persists"]
-notes = "Preferences > Interface: how many recent files and days kept, clear; no preview option."
+evidence = ["security_icon_pdfa_badge_verify_page_tags_ids_numbering_and_compressed_saves", "previews_the_first_page_small"]
+notes = "Preferences > Interface: how many recent files (0 turns the list off), days kept, preview on hover (the first page), clear."
 
 [[feature]]
 id = "doc-208"
@@ -7045,7 +7045,7 @@ source = "docs/revu_features/03_documents.md:415"
 status = "partial"
 cpp = "missing"
 evidence = []
-notes = "Script: markupcraft-cli run --script runs tool steps; no markup translation."
+notes = "Script: markupcraft-cli run --script runs tool steps, and Batch > Run Script runs a script on many files. Machine translation of markup text needs a translation service or model, which MarkupCraft does not include."
 
 [[feature]]
 id = "ui-001"
@@ -8015,10 +8015,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Toolbars in toolstrips"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:162"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["toolbars_show_hide_customize_and_lock"]
-notes = "Main, Markup and Measure toolbars in one strip; not dockable."
+evidence = ["toolbars_dock_on_the_sides_and_new_toolbars"]
+notes = "Main, Markup, Measure and the user's own toolbars, each a strip with a grip: drag the grip to an edge (or use its menu) to dock the toolbar at the top, in a second row, or down the left or right side; Window > Toolbars shows or hides them."
 
 [[feature]]
 id = "ui-076"
@@ -8041,10 +8041,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Customize toolbars"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:164"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["toolbars_show_hide_customize_and_lock"]
-notes = "Window > Toolbars > Customize: add, remove, reorder commands and separators on the main toolbar; no new toolbars."
+evidence = ["toolbars_dock_on_the_sides_and_new_toolbars"]
+notes = "Window > Toolbars > Customize: choose a toolbar, add, remove and reorder its commands and separators, make new toolbars (named, shown or hidden, deleted), reset."
 
 [[feature]]
 id = "ui-078"
@@ -8067,10 +8067,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Properties toolbar"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:166"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["properties_toolbar_edits_the_selection_and_the_tool"]
-notes = "Window > Properties Toolbar: colour, fill, line width, opacity and font size of the selection, or of the active tool's next markup; no line style or scale."
+evidence = ["sketch_ellipse_by_radius_and_properties_toolbar_style_and_scale", "properties_toolbar_edits_the_selection_and_the_tool"]
+notes = "Window > Properties Toolbar: colour, fill, line width, line style (solid, dashed, dotted, dash-dot and the user's line styles), opacity, font size and a measurement's scale, of the selection or of the active tool's next markup."
 
 [[feature]]
 id = "ui-080"
@@ -8184,10 +8184,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Collapse panel by edge click"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:175"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "Each panel group has a collapse button on its tab bar; not by clicking the edge."
+evidence = ["edge_click_collapses_panels_bookmarks_follow_pages_and_urls_in_text"]
+notes = "A thin strip on each side of the window, beside the panels: click it to slide that side's panels shut, click again to open them; each panel group also has a collapse button on its tab bar."
 
 [[feature]]
 id = "ui-089"
@@ -8249,10 +8249,10 @@ section = "5. Application layout: menus, toolbars, panels, tabs"
 name = "Detach tab to window / monitor"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:180"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = ["detach_a_tab_to_a_window_and_drop_a_tab_on_the_split_pane"]
-notes = "Tab right-click or Window > Detach Tab to New Window (its own window, another view of the file); Reattach; no split or sync inside it."
+evidence = ["detached_window_splits_and_syncs", "detach_a_tab_to_a_window_and_drop_a_tab_on_the_split_pane"]
+notes = "Drag a tab out of the window, tab right-click or Window > Detach Tab to New Window (its own window, another view of the file); detached windows split and sync; Reattach."
 
 [[feature]]
 id = "ui-094"
@@ -8418,10 +8418,10 @@ section = "6. Profiles and keyboard shortcut customization"
 name = "Single-key tool shortcuts"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:198"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = []
-notes = "Select V, Pan Shift+V, Zoom Z, markup tools by letter, measurements by Shift+Alt+letter, Underline U, Strikethrough D; no Lasso."
+evidence = ["revu_markup_measure_and_selection_shortcuts_are_bound"]
+notes = "Select V, Pan Shift+V, Zoom Z, Lasso Shift+O, markup tools by letter, measurements by Shift+Alt+letter, Underline U, Strikethrough D."
 
 [[feature]]
 id = "ui-107"
@@ -8743,10 +8743,10 @@ section = "8. Rulers, grid, snap, crosshair, line weights"
 name = "Snap to markup"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:233"
-status = "partial"
+status = "have"
 cpp = "have"
-evidence = ["snap_to_markup_and_grid"]
-notes = "Snap to Markup (Ctrl+Shift+F7); no alignment guide lines."
+evidence = ["alignment_guides_ctrl_click_links_and_the_text_menu", "lines_up_with_vertices"]
+notes = "Snap to Markup (Ctrl+Shift+F7, status bar): points snap to other markups' vertices, midpoints and centres, and alignment guides: when the pointer lines up horizontally or vertically with another markup's vertex a dashed guide joins them and the point takes the aligned coordinate."
 
 [[feature]]
 id = "ui-132"
@@ -8837,7 +8837,7 @@ source = "docs/revu_features/04_compare_ui_collab.md:240"
 status = "partial"
 cpp = "missing"
 evidence = []
-notes = "The renderer always keeps hairlines at least one device pixel wide and anti-aliases fills; no toggles."
+notes = "The renderer (pdfcraft-render / hayro) always keeps hairlines at least one device pixel wide and anti-aliases fills; it offers no switch to turn either off, so there are no toggles. View > Disable Line Weights draws all linework thin."
 
 [[feature]]
 id = "ui-139"
@@ -8876,7 +8876,7 @@ source = "docs/revu_features/04_compare_ui_collab.md:253"
 status = "partial"
 cpp = "missing"
 evidence = ["preferences_dialog_applies_and_persists", "dark_theme_and_menus_render"]
-notes = "General: theme (light, dark, system); no language choice."
+notes = "General: theme (light, dark, system). The interface is in English only: no translations exist yet, so there is no language choice."
 
 [[feature]]
 id = "ui-142"
@@ -8925,10 +8925,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "General > Document: misc"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:257"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "Document: remember last page, locked-file prompt, Rotate Pages on every page by default; no bookmark reordering, slip-sheet link redirect or URL detection."
+evidence = ["edge_click_collapses_panels_bookmarks_follow_pages_and_urls_in_text", "bookmarks_follow_their_pages"]
+notes = "Document: remember last page, locked-file prompt, Rotate Pages on every page by default, reorder bookmarks when pages move, detect web addresses in page text (Ctrl+click opens them). Slip Sheet replaces a sheet's content in place, so links to a slip-sheeted page keep pointing at it without a redirect option."
 
 [[feature]]
 id = "ui-146"
@@ -9003,10 +9003,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "General > Spelling"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:263"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["spell_check_flags_markup_text_with_suggestions"]
-notes = "Language (dictionary name), ignore ALL-CAPS and accepted words are tool options; no preferences page or user dictionary file yet."
+evidence = ["spelling_preferences_user_dictionary_and_auto_complete", "completions_and_the_word_being_typed"]
+notes = "General > Spelling: check spelling as you type on or off, ignore words in capitals, the underline colour, the dictionary (English, United States), a user dictionary (Check Spelling > Add to Dictionary adds to it), and auto-complete from a managed list of phrases offered while typing."
 
 [[feature]]
 id = "ui-152"
@@ -9019,7 +9019,7 @@ source = "docs/revu_features/04_compare_ui_collab.md:264"
 status = "partial"
 cpp = "missing"
 evidence = ["preferences_dialog_applies_and_persists"]
-notes = "Interface: recent files count, days kept, clear; no preview or DMS settings."
+notes = "Interface: recent files count (0-200), days kept, preview on hover, clear. Document management systems (SharePoint and other DMS) are not integrated, so there are no DMS settings."
 
 [[feature]]
 id = "ui-153"
@@ -9081,10 +9081,10 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Tools > Sketch"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:269"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["scrollbars_snap_targets_and_startup_preferences"]
-notes = "Tools: Sketch to Scale angles absolute or relative; no ellipse width x height / radius choice."
+evidence = ["sketch_ellipse_by_radius_and_properties_toolbar_style_and_scale"]
+notes = "Tools > Sketch to Scale: angles absolute or relative, and ellipses typed as width x height or as a radius from the centre."
 
 [[feature]]
 id = "ui-158"
@@ -9343,10 +9343,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Right-click context menus"
 priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:294"
-status = "partial"
+status = "have"
 cpp = "partial"
-evidence = []
-notes = "Page and markup menus, document tab menu, panel tab menu, thumbnail menu, ruler menu, Markups List and File Access menus, Shift+F10; no menus on page text."
+evidence = ["alignment_guides_ctrl_click_links_and_the_text_menu"]
+notes = "Page and markup menus, menus on page text (Copy Text, Highlight / Underline / Strikethrough Text, Search for This Text), document tab menu, panel tab menu, thumbnail menu, ruler menu, Markups List and File Access menus, Shift+F10."
 
 [[feature]]
 id = "ui-178"
@@ -9538,10 +9538,10 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Ctrl-click link opens in background"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:309"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = []
-notes = "Ctrl+click a File Access entry opens it behind the current tab; links on the page do not yet."
+evidence = ["alignment_guides_ctrl_click_links_and_the_text_menu"]
+notes = "Ctrl+click a File Access entry or a link on the page to another file: it opens behind the current tab; Ctrl+click on a page or web link follows it."
 
 [[feature]]
 id = "ui-193"
@@ -10744,7 +10744,7 @@ source = "docs/revu_features/05_shortcuts.md:90"
 status = "partial"
 cpp = "missing"
 evidence = []
-notes = "Ctrl+N makes a new blank PDF; images open as PDF through File > Open; no Create PDF from other file types."
+notes = "Ctrl+N makes a new blank PDF; File > Create PDF from Files converts images, text, Word, Excel, PowerPoint and DXF files; DWG files are not read (no public specification)."
 
 [[feature]]
 id = "key-062"

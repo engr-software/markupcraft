@@ -50,6 +50,7 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, out: &mut CanvasOut) {
     let ids = doc.session.selection().to_vec();
     let first = ids.first().and_then(|id| doc.session.doc().find(id)).cloned();
     let Some(m) = first.filter(|_| target.markup.is_some()) else {
+        crate::context_text::rows(ui, doc, out, target.page, target.at);
         paste_here(ui, doc, out, &target);
         command(ui, out, "Select All", "edit.select_all", true);
         if !ids.is_empty() {

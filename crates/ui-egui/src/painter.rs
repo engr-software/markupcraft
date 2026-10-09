@@ -627,14 +627,47 @@ fn paint_caption(p: &Painter, xf: &Xf, m: &Markup) {
         }
     }
     p.rect_filled(r.expand(1.0), 1.0, Color32::from_white_alpha(170));
-    let galley = p.layout_no_wrap(text, FontId::proportional(size), col);
+    let galley = p.layout_job(caption_job(m, text, size, col));
     p.galley(r.min, galley, col);
+}
+
+/// A caption laid out in its style: italic, underline, strike-through, super / subscript
+/// (smaller and raised or lowered); bold is not a separate face in the UI font.
+fn caption_job(m: &Markup, text: String, size: f32, col: Color32) -> LayoutJob {
+    let t = &m.text;
+    let deco = |on: bool| {
+        if on {
+            Stroke::new((size / 14.0).max(1.0), col)
+        } else {
+            Stroke::NONE
+        }
+    };
+    let (sz, valign) = match t.script {
+        1 => (size * 0.7, egui::Align::TOP),
+        -1 => (size * 0.7, egui::Align::BOTTOM),
+        _ => (size, egui::Align::BOTTOM),
+    };
+    let mut job = LayoutJob::default();
+    job.append(
+        &text,
+        0.0,
+        TextFormat {
+            font_id: FontId::proportional(sz),
+            color: col,
+            italics: t.italic,
+            underline: deco(t.underline),
+            strikethrough: deco(t.strike),
+            valign,
+            ..Default::default()
+        },
+    );
+    job
 }
 
 /// Where the caption of `m` is on screen (for drawing and for Shift-dragging it).
 pub fn caption_rect(p: &Painter, xf: &Xf, m: &Markup, text: &str, size: f32) -> Rect {
     let at = xf.to_screen(caption::caption_anchor(m));
-    let galley = p.layout_no_wrap(text.to_string(), FontId::proportional(size), Color32::BLACK);
+    let galley = p.layout_job(caption_job(m, text.to_string(), size, Color32::BLACK));
     Align2::CENTER_CENTER.anchor_size(at, galley.size())
 }
 

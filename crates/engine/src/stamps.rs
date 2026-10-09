@@ -751,6 +751,7 @@ impl Session {
             .file_stem()
             .map(|s| s.to_string_lossy().into_owned())
             .unwrap_or_else(|| "Image".into());
+        let is_picture = !path.extension().is_some_and(|e| e.eq_ignore_ascii_case("pdf"));
         self.graph_edit("Add Stamp", move |cos, _| {
             let pages = page_objs(cos)?;
             let pref = *pages.get(page).ok_or(EngineError::NoPage {
@@ -779,7 +780,11 @@ impl Session {
             a.set(b"Subtype".to_vec(), name("Stamp"));
             a.set(b"NM".to_vec(), Object::String(PdfString::text(&nm)));
             a.set(b"Name".to_vec(), name(&title.replace([' ', '/', '#', '(', ')'], "_")));
-            a.set(b"Subj".to_vec(), Object::String(PdfString::text("Stamp")));
+            // a picture file is an Image markup (a PDF page stays a Stamp)
+            a.set(
+                b"Subj".to_vec(),
+                Object::String(PdfString::text(if is_picture { "Image" } else { "Stamp" })),
+            );
             a.set(b"Contents".to_vec(), Object::String(PdfString::text(&title)));
             a.set(b"T".to_vec(), Object::String(PdfString::text(&author)));
             a.set(b"F".to_vec(), Object::Int(4));

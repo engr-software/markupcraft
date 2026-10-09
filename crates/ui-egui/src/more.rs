@@ -196,14 +196,7 @@ pub fn run(app: &mut AppState, id: &str) {
                 app.edit.more.edit_action = Some((id, String::new(), String::new()));
             }
         }
-        "window.takeoff_workspace" => {
-            for p in ["measurements", "markups", "toolchest"] {
-                app.show_panel(p);
-            }
-            let t = app.edit.more.measure_tool;
-            app.set_tool(t);
-            app.status = "Takeoff workspace: Measurements, Markups List and Tool Chest".into();
-        }
+        "window.takeoff_workspace" => crate::features::partials_more::takeoff_profile(app),
         "markup.summary_append" => {
             let threads = app.threads;
             if let Some(d) = app.doc_mut() {

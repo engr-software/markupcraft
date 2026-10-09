@@ -20,7 +20,7 @@ pub static EXPORT_IMAGES: Tool = Tool {
                 "dir": path_arg("The folder for the images"),
                 "name": { "type": "string", "description": "File name stem (default: the document's)." },
                 "suffix": { "type": "string", "description": "Between the name and the page number (default \"_\")." },
-                "format": { "type": "string", "enum": ["png", "jpg", "jpeg", "tif", "tiff", "bmp"] },
+                "format": { "type": "string", "enum": ["png", "jpg", "jpeg", "tif", "tiff", "bmp", "gif"] },
                 "quality": { "type": "integer", "minimum": 1, "maximum": 100 },
                 "dpi": { "type": "number" },
                 "pages": pages_arg("to export (default all)"),

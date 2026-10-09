@@ -19,6 +19,8 @@ pub struct ToolbarPrefs {
     pub locked: bool,
     /// The main toolbar's command ids in order ("|" = separator).
     pub main: Vec<String>,
+    /// Where each toolbar docks, and the user's own toolbars (`toolbars_more`).
+    pub more: super::toolbars_more::ToolbarsMore,
 }
 
 impl Default for ToolbarPrefs {
@@ -34,6 +36,7 @@ impl Default for ToolbarPrefs {
             show_measure: true,
             locked: false,
             main,
+            more: Default::default(),
         }
     }
 }
@@ -43,6 +46,7 @@ impl ToolbarPrefs {
     pub fn sanitize(&mut self) {
         self.main.retain(|id| id == "|" || commands::describe(id).is_some());
         self.main.truncate(MAX_ITEMS);
+        self.more.sanitize();
     }
 }
 
@@ -75,8 +79,16 @@ pub fn customize_window(app: &mut AppState, ctx: &egui::Context) {
                 ui.label("Toolbars are locked. Unlock them (Window > Toolbars > Lock Toolbars) to customize.");
                 return;
             }
-            ui.label("Main toolbar, in order:");
-            let items = &mut app.shell.ui.toolbars.main;
+            let target_id = egui::Id::new("tb-target-name");
+            let mut target: String = ui.data(|d| d.get_temp(target_id)).unwrap_or_else(|| "Main".into());
+            changed |= super::toolbars_more::customize_rows(ui, &mut app.shell.ui.toolbars.more, &mut target);
+            ui.data_mut(|d| d.insert_temp(target_id, target.clone()));
+            ui.label(format!("{target} toolbar, in order:"));
+            let tbs = &mut app.shell.ui.toolbars;
+            let items = match tbs.more.custom.iter_mut().find(|c| c.name == target) {
+                Some(c) => &mut c.items,
+                None => &mut tbs.main,
+            };
             let mut action: Option<(usize, i32)> = None;
             egui::ScrollArea::vertical()
                 .id_salt("tb-items")
@@ -142,7 +154,11 @@ pub fn customize_window(app: &mut AppState, ctx: &egui::Context) {
                 ui.data_mut(|d| d.insert_temp(pick_id, pick));
             });
             if ui.button("Reset").clicked() {
-                *items = ToolbarPrefs::default().main;
+                *items = if target == "Main" {
+                    ToolbarPrefs::default().main
+                } else {
+                    Vec::new()
+                };
                 changed = true;
             }
         });

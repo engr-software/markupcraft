@@ -7,7 +7,7 @@ use std::path::Path;
 use egui::RichText;
 use markupcraft_engine::legend::LegendOptions;
 use markupcraft_engine::quantity::{
-    QuantityLink, QuantityMeasure, QuantityValue, load_links, quantity_totals, save_links, update_quantity_workbook,
+    QuantityLink, QuantityMeasure, QuantityValue, load_links, quantity_totals, save_links,
 };
 use markupcraft_engine::redact::REDACTION_CODES;
 
@@ -413,13 +413,15 @@ pub fn quantity_window(app: &mut AppState, ctx: &egui::Context) {
 pub fn quantity_file(app: &mut AppState, ask: &Ask, path: &Path) {
     let q = &mut app.features.quantity;
     q.message = match ask {
-        Ask::QuantityOut => match update_quantity_workbook(&q.links, path) {
-            Ok(v) => {
-                q.values = v;
-                format!("Workbook written: {}", path.display())
+        Ask::QuantityOut => {
+            match markupcraft_engine::finish::xlsx_edit::update_quantity_workbook_in_place(&q.links, path) {
+                Ok(v) => {
+                    q.values = v;
+                    format!("Workbook written: {}", path.display())
+                }
+                Err(e) => e.to_string(),
             }
-            Err(e) => e.to_string(),
-        },
+        }
         Ask::QuantityLinksSave => actions::report(save_links(path, &q.links), |_| {
             format!("Links saved: {}", path.display())
         }),

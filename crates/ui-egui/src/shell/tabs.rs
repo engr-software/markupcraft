@@ -80,6 +80,7 @@ pub fn tab_bar(app: &mut AppState, ui: &mut egui::Ui) {
     let mut drag_x: Option<(usize, f32)> = None;
     let mut to_pane: Option<u64> = None;
     let mut dragging = false;
+    let mut detach_out: Option<usize> = None;
     let pane_rect = app.shell.extra.pane_rect;
     let (max, from_start) = (app.shell.ui.tab_max_chars, app.shell.ui.tab_truncate_start);
     egui::Frame::NONE
@@ -96,7 +97,10 @@ pub fn tab_bar(app: &mut AppState, ui: &mut egui::Ui) {
                         let mut rects = Vec::with_capacity(app.docs.len());
                         for i in 0..app.docs.len() {
                             let Some(d) = app.docs.get(i) else { continue };
-                            let base = truncate(&d.name, max, from_start);
+                            let mut base = truncate(&d.name, max, from_start);
+                            if let Some(b) = crate::features::partials_more3::tab_badge(ui.ctx(), d) {
+                                base = format!("[{b}] {base}");
+                            }
                             let name = if d.session.is_dirty() {
                                 format!("{base} *")
                             } else {
@@ -136,6 +140,17 @@ pub fn tab_bar(app: &mut AppState, ui: &mut egui::Ui) {
                             {
                                 to_pane = Some(d.uid);
                             }
+                            // Dragged out of the window (or released far below the tab bar onto
+                            // the edge of the screen): the document gets a window of its own.
+                            if dr.drag_stopped() {
+                                let screen = ui.ctx().content_rect();
+                                let out = ui
+                                    .input(|inp| inp.pointer.latest_pos())
+                                    .is_none_or(|p| !screen.shrink(2.0).contains(p));
+                                if out {
+                                    detach_out = Some(i);
+                                }
+                            }
                             r.context_menu(|ui| {
                                 for (id, label) in [
                                     ("close", "Close"),
@@ -167,6 +182,11 @@ pub fn tab_bar(app: &mut AppState, ui: &mut egui::Ui) {
                 });
         });
     app.shell.extra.dragging_tab = dragging;
+    if let Some(i) = detach_out {
+        app.active = i.min(app.docs.len().saturating_sub(1));
+        super::detach::detach(app);
+        return;
+    }
     if let Some(uid) = to_pane {
         super::split::show_in_pane(app, uid);
     }

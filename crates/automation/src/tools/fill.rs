@@ -30,7 +30,11 @@ pub static DYNAMIC_FILL: Tool = Tool {
                 "gap": { "type": "number", "minimum": 0, "maximum": 72, "description": "Close gaps up to this many points (default 0.5)." },
                 "cutouts": { "type": "boolean", "description": "Islands inside become cutouts (default true)." },
                 "boundaries": { "type": "array", "items": points_arg("A boundary polyline") },
-                "preview": { "type": "boolean" }
+                "preview": { "type": "boolean" },
+                "detect": { "type": "string", "enum": ["vector", "raster"], "description": "raster: detect on the rendered page image (scans), with dpi, sensitivity and hide_markups." },
+                "dpi": { "type": "number", "minimum": 36, "maximum": 300, "description": "Raster detection resolution (default 100)." },
+                "sensitivity": { "type": "integer", "minimum": 1, "maximum": 254, "description": "Raster edge sensitivity: pixels darker than this grey level are walls (default 160)." },
+                "hide_markups": { "type": "boolean", "description": "Raster: markups are not walls (default true)." }
             })),
             &["page"],
         )
@@ -47,6 +51,17 @@ pub static DYNAMIC_FILL: Tool = Tool {
             opts.gap = g;
         }
         opts.cutouts = args.bool_or("cutouts", true)?;
+        if args.opt_str("detect")? == Some("raster") {
+            let d = markupcraft_engine::finish::rasterfill::RasterFill::default();
+            opts.raster = Some(markupcraft_engine::finish::rasterfill::RasterFill {
+                dpi: args.opt_num("dpi")?.unwrap_or(d.dpi),
+                sensitivity: u8::try_from(args.opt_int("sensitivity")?.unwrap_or(i64::from(d.sensitivity)))
+                    .map_err(|_| bad_args("sensitivity is 1 to 254"))?,
+                gap: opts.gap.max(d.gap),
+                hide_markups: args.bool_or("hide_markups", true)?,
+                cutouts: opts.cutouts,
+            });
+        }
         if let Some(b) = args.get("boundaries") {
             let lines = b
                 .as_array()

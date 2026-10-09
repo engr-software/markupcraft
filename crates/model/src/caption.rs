@@ -20,6 +20,12 @@ pub fn default_caption_anchor(m: &Markup) -> Point {
     let Some(first) = m.pts.first() else {
         return Point::default();
     };
+    if m.caption_last_segment
+        && matches!(m.kind, Kind::Area | Kind::Perimeter | Kind::Volume | Kind::Polylength)
+        && let Some(at) = last_segment_anchor(m)
+    {
+        return at;
+    }
     if matches!(m.kind, Kind::Area | Kind::Perimeter | Kind::Volume) {
         return vertex_mean(&m.pts);
     }
@@ -85,6 +91,33 @@ pub fn default_caption_anchor(m: &Markup) -> Point {
         }
     }
     *first
+}
+
+/// Beside the middle of the last drawn segment (the one ending at the last vertex): outside a
+/// closed shape (away from its vertex mean), below an open line.
+fn last_segment_anchor(m: &Markup) -> Option<Point> {
+    let n = m.pts.len();
+    if n < 2 {
+        return None;
+    }
+    let (a, b) = (*m.pts.get(n - 2)?, *m.pts.get(n - 1)?);
+    let l = a.dist(b);
+    if l <= 0.0 {
+        return Some(a);
+    }
+    let mid = a.mid(b);
+    let mut nrm = Point::new(-(b.y - a.y) / l, (b.x - a.x) / l);
+    if matches!(m.kind, Kind::Polylength) {
+        if nrm.y > 0.0 || (nrm.y == 0.0 && nrm.x > 0.0) {
+            nrm = Point::new(-nrm.x, -nrm.y);
+        }
+    } else {
+        let c = vertex_mean(&m.pts);
+        if (mid.x - c.x) * nrm.x + (mid.y - c.y) * nrm.y < 0.0 {
+            nrm = Point::new(-nrm.x, -nrm.y);
+        }
+    }
+    Some(Point::new(mid.x + nrm.x * TOTAL_OFFSET, mid.y + nrm.y * TOTAL_OFFSET))
 }
 
 /// Where the caption is drawn: the default anchor plus the user's offset.
@@ -256,6 +289,21 @@ mod tests {
 
     fn p(x: f64, y: f64) -> Point {
         Point::new(x, y)
+    }
+
+    #[test]
+    fn caption_along_the_last_segment() {
+        let sq = vec![
+            Point::new(0.0, 0.0),
+            Point::new(100.0, 0.0),
+            Point::new(100.0, 100.0),
+            Point::new(0.0, 100.0),
+        ];
+        let mut m = Markup::new(Kind::Perimeter, 0, sq);
+        assert_eq!(default_caption_anchor(&m), Point::new(50.0, 50.0));
+        m.caption_last_segment = true;
+        // the last segment runs (100,100) -> (0,100): the caption sits above it, outside
+        assert_eq!(default_caption_anchor(&m), Point::new(50.0, 100.0 + TOTAL_OFFSET));
     }
 
     #[test]

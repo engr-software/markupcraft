@@ -66,6 +66,14 @@ pub struct ExtraPrefs {
     pub sync_default: String,
     /// Tools > Sketch: rotation typed relative to the last segment (else absolute).
     pub sketch_relative: bool,
+    /// Tools > Sketch: an ellipse is typed as a radius from its centre (else width x height).
+    pub sketch_radius: bool,
+    /// General > Document: bookmarks follow their pages when pages move.
+    pub reorder_bookmarks: bool,
+    /// General > Document: Ctrl+click on text that is a web address opens it.
+    pub detect_urls: bool,
+    /// General > Spelling.
+    pub spell: crate::spell_prefs::SpellPrefs,
     /// Advanced > PDF/A: PDF/A documents refuse page edits.
     pub pdfa_locked: bool,
 }
@@ -97,6 +105,10 @@ impl Default for ExtraPrefs {
             scrollbars_left: false,
             sync_default: "off".into(),
             sketch_relative: false,
+            sketch_radius: false,
+            reorder_bookmarks: true,
+            detect_urls: true,
+            spell: Default::default(),
             pdfa_locked: true,
         }
     }
@@ -185,6 +197,8 @@ pub struct ScaleDialog {
 /// State of these features (lives in `Shell::extra`).
 #[derive(Default)]
 pub struct ExtraState {
+    /// Panels collapsed by clicking the window's edge (`edges`).
+    pub edges: super::edges::EdgeState,
     /// Menu button ids by menu name (Alt accelerators open them).
     pub menu_ids: Vec<(&'static str, egui::Id)>,
     /// Shift+F10: the keyboard context menu is open at this screen point.
@@ -611,6 +625,8 @@ pub fn begin_frame(app: &mut AppState, ctx: &egui::Context) {
         app.shell.extra.sketch_applied = Some(rel);
         app.edit.sketch.relative = rel;
     }
+    app.edit.sketch.radius = app.shell.ui.extra.sketch_radius;
+    crate::spell_prefs::set(&app.shell.ui.extra.spell);
     super::files::begin_frame(app, ctx);
     if app.shell.ui.extra.alt_menus && !ctx.egui_wants_keyboard_input() {
         alt_menus(app, ctx);

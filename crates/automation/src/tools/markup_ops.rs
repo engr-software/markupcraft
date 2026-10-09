@@ -408,6 +408,12 @@ pub static MEASURE_PROPS: Tool = Tool {
                 "slope": { "type": "number", "description": "Pitch rise in 12, degrees, or grade %." },
                 "caption": { "type": "string", "description": "Caption contents template." },
                 "caption_leader": { "type": "boolean" },
+                "caption_last_segment": { "type": "boolean", "description": "Perimeter, Area, Volume or Polylength caption along the last segment instead of the centre." },
+                "caption_bold": { "type": "boolean" },
+                "caption_italic": { "type": "boolean" },
+                "caption_underline": { "type": "boolean" },
+                "caption_strike": { "type": "boolean", "description": "Strike-through caption text." },
+                "caption_script": { "type": "string", "enum": ["normal", "superscript", "subscript"] },
                 "show_centroid": { "type": "boolean" },
                 "offset": { "type": "number", "description": "Dimension line offset, points." },
                 "extension": { "type": "number", "description": "Extension past the dimension line, points." }
@@ -419,6 +425,11 @@ pub static MEASURE_PROPS: Tool = Tool {
         let mut p = MarkupPatch {
             caption_template: args.opt_string("caption")?,
             caption_leader: args.opt_bool("caption_leader")?,
+            caption_last_segment: args.opt_bool("caption_last_segment")?,
+            bold: args.opt_bool("caption_bold")?,
+            italic: args.opt_bool("caption_italic")?,
+            underline: args.opt_bool("caption_underline")?,
+            strike: args.opt_bool("caption_strike")?,
             show_centroid: args.opt_bool("show_centroid")?,
             leader: args.opt_num("offset")?,
             leader_ext: args.opt_num("extension")?,
@@ -433,6 +444,18 @@ pub static MEASURE_PROPS: Tool = Tool {
                 o => return Err(bad_args(format!("slope_type: none, pitch, degrees or grade (got {o})"))),
             };
             p.slope = Some((code, args.opt_num("slope")?.unwrap_or(0.0)));
+        }
+        if let Some(t) = args.opt_str("caption_script")? {
+            p.script = Some(match t {
+                "normal" => 0,
+                "superscript" => 1,
+                "subscript" => -1,
+                o => {
+                    return Err(bad_args(format!(
+                        "caption_script: normal, superscript or subscript (got {o})"
+                    )));
+                }
+            });
         }
         p.validate().map_err(|e| bad_args(e.to_string()))?;
         let (doc, s) = a.session(args)?;

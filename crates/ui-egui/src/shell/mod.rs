@@ -9,12 +9,14 @@
 
 pub mod deskew;
 pub mod detach;
+pub mod edges;
 pub mod extra;
 pub mod files;
 pub mod history;
 pub mod layout;
 pub mod overlay;
 pub mod pages;
+pub mod pages_more;
 pub mod panelbars;
 pub mod prefs_more;
 pub mod proptoolbar;
@@ -23,6 +25,7 @@ pub mod shortcutref;
 pub mod split;
 pub mod tabs;
 pub mod toolbars;
+pub mod toolbars_more;
 pub mod workspace;
 
 use std::collections::HashMap;
@@ -121,6 +124,8 @@ pub struct UiPrefs {
     pub reuse_tools: bool,
     // Interface > File Access
     pub recents_days: u32,
+    /// File Access: show a preview of a recent file's first page on hover.
+    pub recents_preview: bool,
     // Window > Presentation
     pub presentation_loop: bool,
     pub presentation_advance_secs: f32,
@@ -157,6 +162,7 @@ impl Default for UiPrefs {
             dimmer_pct: 50.0,
             reuse_tools: false,
             recents_days: 90,
+            recents_preview: true,
             presentation_loop: false,
             presentation_advance_secs: 0.0,
             show_menu: true,
@@ -754,7 +760,7 @@ pub fn dialog_answer(app: &mut AppState, tag: &str, paths: &[std::path::PathBuf]
         extra::dialog_answer(app, tag, paths);
     } else if tag.starts_with("prefs-") {
         crate::prefs_ui::answer(app, tag, first);
-    } else {
+    } else if !pages_more::answer(app, tag, paths) {
         pages::answer(app, tag, first);
     }
 }

@@ -16,7 +16,7 @@ use crate::flatten::FlattenFilter;
 use crate::{Result, Session, invalid};
 
 /// Image files File > Open converts to a PDF page (lower case, without the dot).
-pub const IMAGE_EXTS: &[&str] = &["png", "jpg", "jpeg", "tif", "tiff", "bmp"];
+pub const IMAGE_EXTS: &[&str] = &["png", "jpg", "jpeg", "tif", "tiff", "bmp", "gif"];
 
 /// Largest image file read, bytes.
 const MAX_IMAGE_FILE: u64 = 256 << 20;
@@ -137,7 +137,8 @@ pub fn image_file_pdf(path: &Path) -> Result<Vec<u8>> {
     if len > MAX_IMAGE_FILE {
         return Err(invalid(format!("{} is larger than 256 MB", path.display())));
     }
-    image_pdf_bytes(&std::fs::read(path).map_err(io)?)
+    // every page of a TIFF, a GIF's first frame, or the one image
+    crate::finish::imaging::image_bytes_pdf(&std::fs::read(path).map_err(io)?)
 }
 
 impl Session {

@@ -12,6 +12,12 @@ use crate::canvas::{self, CanvasCx, DocView};
 
 pub struct Detached {
     pub pane: Pane,
+    /// Split inside the window: a second view of the document, side by side.
+    pub second: Option<Pane>,
+    /// The second view follows the first (page for page, or by as much as it pans and zooms).
+    pub sync: super::split::Sync,
+    /// The window follows the main window's view of the document (page for page).
+    pub follow_main: bool,
 }
 
 impl Detached {
@@ -34,6 +40,9 @@ pub fn detach(app: &mut AppState) {
     let (uid, name) = (d.uid, d.name.clone());
     app.shell.extra.detached.push(Detached {
         pane: Pane::new(uid, view),
+        second: None,
+        sync: super::split::Sync::Off,
+        follow_main: false,
     });
     app.status = format!("{name} detached to a new window");
 }
@@ -74,6 +83,31 @@ fn window_ui(app: &mut AppState, ui: &mut egui::Ui, uid: u64) -> bool {
         if ui.button("Reattach").clicked() {
             close = true;
         }
+        if let Some(w) = app.shell.extra.detached.iter_mut().find(|w| w.uid() == uid) {
+            let mut split = w.second.is_some();
+            if ui.checkbox(&mut split, "Split").changed() {
+                w.second = split.then(|| {
+                    let mut v = DocView::default();
+                    v.mode = w.pane.view.mode;
+                    v.fit = w.pane.view.fit;
+                    v.current = w.pane.view.current;
+                    Pane::new(uid, v)
+                });
+            }
+            use super::split::Sync;
+            egui::ComboBox::from_id_salt(("detached-sync", uid))
+                .selected_text(match w.sync {
+                    Sync::Off => "Sync: Off",
+                    Sync::Document => "Sync: Document",
+                    Sync::Page => "Sync: Page",
+                })
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut w.sync, Sync::Off, "Sync: Off");
+                    ui.selectable_value(&mut w.sync, Sync::Document, "Sync: Document");
+                    ui.selectable_value(&mut w.sync, Sync::Page, "Sync: Page");
+                });
+            ui.checkbox(&mut w.follow_main, "Follow the main window");
+        }
     });
     let threads = app.threads;
     let ctx = ui.ctx().clone();
@@ -101,23 +135,76 @@ fn window_ui(app: &mut AppState, ui: &mut egui::Ui, uid: u64) -> bool {
         return true;
     };
     let Some(doc) = app.docs.get_mut(i) else { return true };
-    w.pane.view.opts = doc.view.opts;
-    super::split::ensure_render(&mut w.pane, doc, threads, &ctx);
-    std::mem::swap(&mut doc.view, &mut w.pane.view);
-    std::mem::swap(&mut doc.render, &mut w.pane.render);
-    let rect = ui.available_rect_before_wrap();
-    let out = ui
-        .scope_builder(
-            egui::UiBuilder::new().max_rect(rect).id_salt(("detached-canvas", uid)),
-            |ui| canvas::show(ui, doc, &cx),
-        )
-        .inner;
-    std::mem::swap(&mut doc.view, &mut w.pane.view);
-    std::mem::swap(&mut doc.render, &mut w.pane.render);
-    let pressed = ui.input(|i| i.pointer.any_pressed() && i.pointer.press_origin().is_some_and(|p| rect.contains(p)));
+    if w.follow_main {
+        let src = &doc.view;
+        w.pane.view.mode = src.mode;
+        w.pane.view.place(src.current, src.zoom, src.fit, src.offset);
+    }
+    let full = ui.available_rect_before_wrap();
+    let rects = if w.second.is_some() {
+        let mid = full.center().x;
+        vec![
+            egui::Rect::from_min_max(full.min, egui::pos2(mid - 2.0, full.max.y)),
+            egui::Rect::from_min_max(egui::pos2(mid + 2.0, full.min.y), full.max),
+        ]
+    } else {
+        vec![full]
+    };
+    let before = (w.pane.view.zoom, w.pane.view.offset);
+    let mut outs = Vec::new();
+    for (k, rect) in rects.iter().enumerate() {
+        let pane = if k == 0 {
+            &mut w.pane
+        } else {
+            match w.second.as_mut() {
+                Some(p) => p,
+                None => break,
+            }
+        };
+        pane.view.opts = doc.view.opts;
+        super::split::ensure_render(pane, doc, threads, &ctx);
+        std::mem::swap(&mut doc.view, &mut pane.view);
+        std::mem::swap(&mut doc.render, &mut pane.render);
+        let out = ui
+            .scope_builder(
+                egui::UiBuilder::new()
+                    .max_rect(*rect)
+                    .id_salt(("detached-canvas", uid, k)),
+                |ui| canvas::show(ui, doc, &cx),
+            )
+            .inner;
+        std::mem::swap(&mut doc.view, &mut pane.view);
+        std::mem::swap(&mut doc.render, &mut pane.render);
+        outs.push(out);
+    }
+    // the second view follows the first
+    if let Some(second) = w.second.as_mut() {
+        use super::split::Sync;
+        let src = &w.pane.view;
+        match w.sync {
+            Sync::Off => {}
+            Sync::Document => {
+                second.view.mode = src.mode;
+                second.view.place(src.current, src.zoom, src.fit, src.offset);
+            }
+            Sync::Page => {
+                let k = src.zoom / before.0.max(1e-6);
+                let d_off = src.offset - before.1;
+                if (k - 1.0).abs() > 1e-4 || d_off != egui::Vec2::ZERO {
+                    let (cur, fit) = (second.view.current, second.view.fit);
+                    let zoom = second.view.zoom * k;
+                    let off = second.view.offset * k + d_off;
+                    second.view.place(cur, zoom, fit, off);
+                }
+            }
+        }
+    }
+    let pressed = ui.input(|i| i.pointer.any_pressed() && i.pointer.press_origin().is_some_and(|p| full.contains(p)));
     if pressed {
         app.active = i;
     }
-    app.apply_canvas_out(out);
+    for out in outs {
+        app.apply_canvas_out(out);
+    }
     close
 }

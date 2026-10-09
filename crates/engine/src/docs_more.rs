@@ -804,6 +804,27 @@ fn source_pages(path: &Path) -> Result<Vec<SourcePage>> {
         return Err(invalid(format!("{} is too large", path.display())));
     }
     let bytes = std::fs::read(path).map_err(io_err(path))?;
+    // Word, Excel and DXF files (`finish::office`)
+    if let Some(r) = crate::finish::office::pages_for(&ext, &bytes) {
+        let pages = r.map_err(|e| invalid(format!("{}: {e}", path.display())))?;
+        return Ok(pages.into_iter().map(|p| (p.w, p.h, p.content, None)).collect());
+    }
+    // every page of a TIFF, a GIF's first frame, PNG and BMP
+    if matches!(ext.as_str(), "png" | "bmp" | "tif" | "tiff" | "gif") {
+        let pics = crate::finish::imaging::pictures(&bytes).map_err(|e| invalid(format!("{}: {e}", path.display())))?;
+        return Ok(pics
+            .into_iter()
+            .map(|p| {
+                let k = (1224.0 / f64::from(p.w)).min(1584.0 / f64::from(p.h)).min(1.0);
+                (
+                    f64::from(p.w) * k,
+                    f64::from(p.h) * k,
+                    String::new(),
+                    Some((p.rgb, p.w, p.h, false)),
+                )
+            })
+            .collect());
+    }
     match ext.as_str() {
         "png" | "jpg" | "jpeg" | "bmp" | "tif" | "tiff" => {
             let img = image::load_from_memory(&bytes).map_err(|e| invalid(format!("{}: {e}", path.display())))?;
@@ -854,7 +875,7 @@ fn source_pages(path: &Path) -> Result<Vec<SourcePage>> {
             Ok(pages)
         }
         _ => Err(invalid(format!(
-            "{}: images (PNG, JPEG, TIFF, BMP) and text files can be converted",
+            "{}: images (PNG, JPEG, TIFF, BMP, GIF), text, Word (.docx), Excel (.xlsx) and DXF files can be converted",
             path.display()
         ))),
     }

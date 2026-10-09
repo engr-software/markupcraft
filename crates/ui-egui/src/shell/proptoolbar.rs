@@ -74,6 +74,12 @@ pub fn apply(app: &mut AppState, patch: &MarkupPatch) {
     if let Some(s) = patch.font_size {
         m.text.size = s;
     }
+    if let Some(d) = &patch.dash {
+        m.dash = d.clone();
+    }
+    if let Some(s) = &patch.scale {
+        m.scale = Some(s.clone());
+    }
     if app.toolchest.set_default(&m).is_none() {
         app.status = "This tool has no look to set".into();
     }
@@ -136,6 +142,54 @@ pub fn bar(app: &mut AppState, ui: &mut egui::Ui) {
                     .changed()
                 {
                     patch.line_width = Some(w);
+                }
+                let styles: Vec<(String, Vec<f64>)> = [
+                    ("Solid".to_string(), Vec::new()),
+                    ("Dashed".to_string(), vec![6.0, 3.0]),
+                    ("Dotted".to_string(), vec![1.0, 3.0]),
+                    ("Dash-dot".to_string(), vec![6.0, 3.0, 1.0, 3.0]),
+                ]
+                .into_iter()
+                .chain(
+                    app.toolchest
+                        .extras
+                        .line_styles
+                        .iter()
+                        .map(|s| (s.name.clone(), s.dash.clone())),
+                )
+                .collect();
+                let current = styles
+                    .iter()
+                    .find(|(_, d)| *d == m.dash)
+                    .map_or_else(|| "Custom".to_string(), |(n, _)| n.clone());
+                egui::ComboBox::from_label("Style")
+                    .selected_text(current)
+                    .width(80.0)
+                    .show_ui(ui, |ui| {
+                        for (n, d) in &styles {
+                            if ui.selectable_label(*d == m.dash, n).clicked() {
+                                patch.dash = Some(d.clone());
+                            }
+                        }
+                    });
+                if m.kind.is_measurement() {
+                    let presets = markupcraft_measure::units::scale_presets();
+                    let current = m
+                        .scale
+                        .as_ref()
+                        .map_or_else(|| "Page scale".to_string(), |s| s.ratio.clone());
+                    egui::ComboBox::from_label("Scale")
+                        .selected_text(current)
+                        .width(120.0)
+                        .show_ui(ui, |ui| {
+                            egui::ScrollArea::vertical().max_height(240.0).show(ui, |ui| {
+                                for p in &presets {
+                                    if ui.selectable_label(false, &p.name).clicked() {
+                                        patch.scale = Some(p.scale.clone());
+                                    }
+                                }
+                            });
+                        });
                 }
                 ui.label(RichText::new("Opacity").size(11.0));
                 let mut o = (m.opacity * 100.0).round();

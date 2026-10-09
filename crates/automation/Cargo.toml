@@ -18,3 +18,5 @@ serde_json = { workspace = true }
 markupcraft-revu = { workspace = true }
 markupcraft-render = { workspace = true }
 image = { workspace = true }
+tiff = "0.11"
+pdfcraft-xfa = { workspace = true }

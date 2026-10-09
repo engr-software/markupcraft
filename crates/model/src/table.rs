@@ -318,6 +318,20 @@ impl<'a> MarkupTable<'a> {
             "status" => Cell::text(&m.status),
             "checkmark" => check_cell(m.checked, "Checked"),
             "lock" => check_cell(m.locked(), "Locked"),
+            // the captured file of a File Attachment (Capture)
+            "capture" => Cell::text(if m.kind == Kind::Attachment {
+                if m.attachment_name.is_empty() {
+                    "Attachment"
+                } else {
+                    m.attachment_name.as_str()
+                }
+            } else {
+                ""
+            }),
+            // a legend (a text box titled by its subject "Legend")
+            "legend" => check_cell(m.kind == Kind::Text && m.subject == "Legend", "Legend"),
+            // the 3D view a markup was placed in: MarkupCraft has no 3D views, so it is empty
+            "view3d" => Cell::text(""),
             "color" => Cell::text(m.color.hex()),
             "layer" => Cell::text(&m.layer),
             "space" => Cell::text(crate::spaces::space_path(self.doc, m)),

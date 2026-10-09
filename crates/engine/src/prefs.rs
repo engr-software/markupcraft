@@ -147,8 +147,8 @@ impl Preferences {
         if self.autosave_minutes > 24 * 60 {
             return Err(invalid("autosave_minutes: 0 to 1440"));
         }
-        if !matches!(self.save_mode.as_str(), "incremental" | "full") {
-            return Err(invalid("save_mode: incremental or full"));
+        if !matches!(self.save_mode.as_str(), "incremental" | "full" | "compressed") {
+            return Err(invalid("save_mode: incremental, full or compressed"));
         }
         if self.recent_files > 200 {
             return Err(invalid("recent_files: 0 to 200"));

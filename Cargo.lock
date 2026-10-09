@@ -2934,7 +2934,9 @@ dependencies = [
  "markupcraft-model",
  "markupcraft-render",
  "markupcraft-revu",
+ "pdfcraft-xfa",
  "serde_json",
+ "tiff",
 ]
 
 [[package]]
@@ -2953,6 +2955,7 @@ dependencies = [
 name = "markupcraft-engine"
 version = "0.3.0"
 dependencies = [
+ "flate2",
  "image",
  "markupcraft-geom",
  "markupcraft-measure",
@@ -2975,10 +2978,14 @@ dependencies = [
  "pdfcraft-redact",
  "pdfcraft-render",
  "pdfcraft-sign",
+ "pdfcraft-xfa",
  "pdfcraft-xfdf",
+ "roxmltree",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
+ "tiff",
+ "weezl 0.1.12",
 ]
 
 [[package]]
@@ -3040,6 +3047,7 @@ dependencies = [
  "egui_kittest",
  "image",
  "log",
+ "markupcraft-automation",
  "markupcraft-engine",
  "markupcraft-geom",
  "markupcraft-measure",
@@ -3047,9 +3055,11 @@ dependencies = [
  "markupcraft-render",
  "markupcraft-revu",
  "nokhwa",
+ "pdfcraft-xfa",
  "rfd",
  "serde",
  "serde_json",
+ "tiff",
 ]
 
 [[package]]
@@ -4111,6 +4121,18 @@ dependencies = [
  "security-framework",
  "sha1",
  "sha2",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "pdfcraft-xfa"
+version = "0.4.0"
+source = "git+https://github.com/storytold/pdfcraft?rev=a6bc63a497954af87c1cd5a2a1e72e928a11c039#a6bc63a497954af87c1cd5a2a1e72e928a11c039"
+dependencies = [
+ "base64",
+ "pdfcraft-cos",
+ "pdfcraft-fonts",
+ "roxmltree",
  "thiserror 2.0.21",
 ]
 

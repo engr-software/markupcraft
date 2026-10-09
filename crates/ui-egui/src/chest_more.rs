@@ -74,6 +74,10 @@ pub struct ChestExtras {
     pub locked: Vec<String>,
     /// the user's own review statuses (after None, Accepted, Rejected, Cancelled, Completed)
     pub statuses: Vec<String>,
+    /// tool sets linked to files in a shared folder (`chest_shared`)
+    pub shared: Vec<crate::chest_shared::SharedSet>,
+    /// add the profile's columns to every document opened
+    pub columns_on_open: bool,
 }
 
 impl Default for ChestExtras {
@@ -89,6 +93,8 @@ impl Default for ChestExtras {
             pinned: Vec::new(),
             locked: Vec::new(),
             statuses: Vec::new(),
+            shared: Vec::new(),
+            columns_on_open: false,
         }
     }
 }
@@ -622,6 +628,7 @@ pub fn set_menu(ui: &mut egui::Ui, app: &AppState, set: &str, out: &mut Vec<Ches
         out.push(ChestAct::Lock(set.into(), !locked));
         ui.close();
     }
+    crate::chest_shared::set_menu(ui, app, set, out);
 }
 
 /// The flyout of a collapsed tool set: its items in a menu next to the header.
@@ -693,6 +700,9 @@ pub enum ChestAct {
     Pin(String, bool),
     Lock(String, bool),
     Use(String, String),
+    CheckOut(String),
+    CheckIn(String),
+    RefreshShared(String),
 }
 
 pub fn apply(app: &mut AppState, acts: Vec<ChestAct>) {
@@ -720,6 +730,9 @@ pub fn apply(app: &mut AppState, acts: Vec<ChestAct>) {
             ChestAct::Use(set, item) => {
                 app.edit.item_scale = app.toolchest.item_set_scale(&set).cloned();
                 app.use_item(&set, &item);
+            }
+            act @ (ChestAct::CheckOut(_) | ChestAct::CheckIn(_) | ChestAct::RefreshShared(_)) => {
+                crate::chest_shared::apply(app, &act);
             }
         }
     }

@@ -224,6 +224,10 @@ pub struct TextStyle {
     pub margin: f64,
     /// line spacing, a multiple of Revu's 1.15 x size (`/PCLineSpacing`)
     pub line_spacing: f64,
+    /// struck through (`text-decoration: line-through` in `/DS`)
+    pub strike: bool,
+    /// 1 superscript, -1 subscript, 0 normal (`vertical-align` in `/DS`)
+    pub script: i8,
 }
 
 impl Default for TextStyle {
@@ -238,6 +242,8 @@ impl Default for TextStyle {
             color: Color::RED,
             margin: 0.0,
             line_spacing: 1.0,
+            strike: false,
+            script: 0,
         }
     }
 }
@@ -421,6 +427,9 @@ pub struct Markup {
     /// File Attachment: the file to embed when it is written (not kept once in the file)
     #[serde(skip)]
     pub attachment_data: Option<std::sync::Arc<Vec<u8>>>,
+    /// Perimeter / Area / Volume: the caption sits along the last segment instead of at the
+    /// vertex mean (`/PCCaptionLastSeg`)
+    pub caption_last_segment: bool,
 }
 
 impl Default for Markup {
@@ -496,6 +505,7 @@ impl Default for Markup {
             item_height: 0.0,
             attachment_name: String::new(),
             attachment_data: None,
+            caption_last_segment: false,
         }
     }
 }

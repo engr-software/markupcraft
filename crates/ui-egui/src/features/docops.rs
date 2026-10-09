@@ -68,6 +68,8 @@ pub struct DocOpsState {
     pub flatten_selected: bool,
     pub flatten_kinds: String,
     pub flatten_layers: String,
+    /// Layer, recoverable and the extras (`flatten_ui`).
+    pub flatten_more: super::flatten_ui::FlattenMore,
     // Reduce (runs on a worker thread)
     pub reduce: ReduceSettings,
     pub reducing: Option<(u64, std::sync::mpsc::Receiver<ReduceOutcome>)>,
@@ -100,6 +102,7 @@ impl Default for DocOpsState {
             flatten_selected: false,
             flatten_kinds: String::new(),
             flatten_layers: String::new(),
+            flatten_more: Default::default(),
             reduce: ReduceSettings::default(),
             reducing: None,
             open_password: String::new(),
@@ -282,6 +285,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                         ui.add(egui::TextEdit::singleline(&mut s.flatten_layers).hint_text("all"));
                     });
                     super::pages_field(ui, &mut s.pages);
+                    super::flatten_ui::rows(ui, &mut s.flatten_more);
                     if ui.button("Flatten").clicked() {
                         apply = Some(Action::Flatten);
                     }
@@ -693,9 +697,11 @@ pub fn run(app: &mut AppState, action: Action) {
                 layers: list(&s.flatten_layers),
                 authors: Vec::new(),
             };
-            actions::report(d.session.flatten_markups(&filter), |n| {
-                format!("Flattened {}", actions::plural(n, "markup"))
-            })
+            let opts = super::flatten_ui::options(&s.flatten_more);
+            actions::report(
+                d.session.flatten_with_extras(&filter, &opts, &s.flatten_more.extras),
+                |n| format!("Flattened {}", actions::plural(n, "markup")),
+            )
         }
         Action::Security => {
             let set = SecuritySettings {

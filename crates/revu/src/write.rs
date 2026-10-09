@@ -88,11 +88,17 @@ fn appearance(cos: &mut CosDoc, m: &mut Markup, ak: &AnnotKind) -> Object {
             let w = 0.55 * size * line.chars().count() as f64;
             // the block of lines centred on the anchor, the first line on top
             let y = a.y + 3.0 + (n - 1.0) * size * 0.6 - i as f64 * size * 1.2;
+            let (sz, rise, w) = match m.text.script {
+                1 => (size * 0.7, size * 0.35, w * 0.7),
+                -1 => (size * 0.7, -size * 0.2, w * 0.7),
+                _ => (size, 0.0, w),
+            };
             ap.op("BT /Helv ")
-                .nums(&[size], "Tf")
+                .nums(&[sz], "Tf")
                 .fill_rgb(&c)
-                .nums(&[a.x - w / 2.0, y], "Td");
+                .nums(&[a.x - w / 2.0, y + rise], "Td");
             ap.op(&format!("({}) Tj ET\n", Ap::text_literal(line)));
+            kinds::more::caption_decorations(&mut ap, &m.text, &c, (a.x - w / 2.0, y + rise), w, sz);
             extent.push(Point::new(a.x - w / 2.0, y));
             extent.push(Point::new(a.x + w / 2.0, y + size));
         }
@@ -253,6 +259,16 @@ pub fn write_annot(cos: &mut CosDoc, a: &mut Dict, m: &mut Markup, page: ObjRef)
         if let Some(sc) = &m.scale {
             pdf::set(a, "Measure", scale::object(sc));
         }
+        // a stamp or image moved or resized: its appearance is fitted to the new /Rect
+        if m.subtype == "Stamp"
+            && m.kind == Kind::Stamp
+            && let Some(bb) = markupcraft_geom::bbox(&m.pts)
+            && bb.width() >= 1.0
+            && bb.height() >= 1.0
+        {
+            pdf::set(a, "Rect", rect_arr(&bb));
+            m.rect = bb;
+        }
         pdf::set(a, "Contents", s(&m.contents));
         extras::write_markup(cos, a, m, page);
         return;
@@ -283,7 +299,7 @@ pub fn write_annot(cos: &mut CosDoc, a: &mut Dict, m: &mut Markup, page: ObjRef)
         } else {
             12.0
         };
-        let ds = format!(
+        let mut ds = format!(
             "font: Helvetica {}pt; text-align:center; line-height:{}pt; color:#{:02X}{:02X}{:02X}",
             crate::ap::f3(size).trim_end_matches('0').trim_end_matches('.'),
             crate::ap::f3(size * 1.15).trim_end_matches('0').trim_end_matches('.'),
@@ -291,6 +307,8 @@ pub fn write_annot(cos: &mut CosDoc, a: &mut Dict, m: &mut Markup, page: ObjRef)
             c(m.color.g),
             c(m.color.b)
         );
+        // caption styles beyond the size, only when set (other captions keep Revu's string)
+        kinds::more::caption_style_css(&m.text, &mut ds);
         pdf::set(a, "DS", s(&ds));
         if m.kind == Kind::Length && m.fill.is_none() {
             pdf::set(a, "IC", color_arr(&m.color));

@@ -29,6 +29,8 @@ pub struct FormsState {
     pub new_name: String,
     pub new_options: String,
     pub message: String,
+    /// Highlight, XFA, properties and actions (`forms_more`).
+    pub more: super::forms_more::FormsMore,
 }
 
 pub fn open(app: &mut AppState) {
@@ -52,6 +54,9 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
         return;
     }
     let (mut open, mut apply, mut add, mut reset, mut flatten) = (true, false, false, false, false);
+    let xfa = app.doc().is_some_and(|d| d.session.is_xfa_form());
+    let names: Vec<String> = app.features.forms.fields.iter().map(|f| f.name.clone()).collect();
+    let mut more_act = None;
     super::window("Form Fields")
         .open(&mut open)
         .default_width(480.0)
@@ -170,12 +175,16 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                     add = true;
                 }
             });
+            more_act = super::forms_more::rows(ui, &mut f.more, &names, xfa);
             if !f.message.is_empty() {
                 ui.label(RichText::new(&f.message).small());
             }
         });
     if !open {
         app.features.forms.open = false;
+    }
+    if let Some(a) = more_act {
+        super::forms_more::apply(app, a);
     }
     let threads = app.threads;
     if apply {

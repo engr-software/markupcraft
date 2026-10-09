@@ -18,6 +18,8 @@ pub struct RedactState {
     pub properties_open: bool,
     /// Also remove the document properties, metadata, attachments and scripts.
     pub scrub: bool,
+    /// What is removed under the marks: everything, text only or images only.
+    pub kinds: markupcraft_engine::finish::redact_kinds::RedactKinds,
 }
 
 impl RedactState {
@@ -60,6 +62,13 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                 .color(Color32::from_rgb(200, 60, 40)),
         );
         super::pages_field(ui, &mut s.pages);
+        ui.horizontal(|ui| {
+            use markupcraft_engine::finish::redact_kinds::RedactKinds;
+            ui.label("Remove");
+            ui.radio_value(&mut s.kinds, RedactKinds::All, "Text, images and graphics");
+            ui.radio_value(&mut s.kinds, RedactKinds::TextOnly, "Text only");
+            ui.radio_value(&mut s.kinds, RedactKinds::ImagesOnly, "Images only");
+        });
         ui.checkbox(
             &mut s.scrub,
             "Also remove document properties, metadata, attachments and scripts",
@@ -101,7 +110,9 @@ pub fn apply(app: &mut AppState) {
             }
         }
     };
-    let r = d.session.redact_apply_with(pages.as_deref(), app.features.redact.scrub);
+    let r = d
+        .session
+        .redact_apply_kinds(pages.as_deref(), app.features.redact.kinds, app.features.redact.scrub);
     let msg = actions::report(r, |rep| {
         let mut s = format!(
             "Redacted {} on {}: {} glyphs, {} images, {} paths removed",

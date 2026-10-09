@@ -903,8 +903,50 @@ fn text(ui: &mut egui::Ui, sel: &Sel<'_>, edits: &mut Edits) {
                     edits.push((key, p));
                 }
             }
+            if m.kind.is_measurement() {
+                // caption-only styles: strike-through, superscript, subscript
+                let strike = egui::Button::new(RichText::new("S").strikethrough())
+                    .selected(m.text.strike)
+                    .min_size(egui::vec2(24.0, 20.0));
+                if ui.add(strike).on_hover_text("Strikethrough").clicked() {
+                    edits.push((
+                        "strike",
+                        MarkupPatch {
+                            strike: Some(!m.text.strike),
+                            ..Default::default()
+                        },
+                    ));
+                }
+                for (v, t, tip) in [(1i8, "x\u{b2}", "Superscript"), (-1, "x\u{2082}", "Subscript")] {
+                    let on = m.text.script == v;
+                    let b = egui::Button::new(t).selected(on).min_size(egui::vec2(24.0, 20.0));
+                    if ui.add(b).on_hover_text(tip).clicked() {
+                        edits.push((
+                            "script",
+                            MarkupPatch {
+                                script: Some(if on { 0 } else { v }),
+                                ..Default::default()
+                            },
+                        ));
+                    }
+                }
+            }
         });
         ui.end_row();
+        if matches!(m.kind, Kind::Perimeter | Kind::Area | Kind::Volume | Kind::Polylength) {
+            label(ui, "Placement", sel.mixed(|m| m.caption_last_segment));
+            let mut last = m.caption_last_segment;
+            if ui.checkbox(&mut last, "Along the last segment").changed() {
+                edits.push((
+                    "caption-last-segment",
+                    MarkupPatch {
+                        caption_last_segment: Some(last),
+                        ..Default::default()
+                    },
+                ));
+            }
+            ui.end_row();
+        }
         if m.kind.is_text() {
             label(ui, "Alignment", sel.mixed(|m| m.text.align));
             ui.horizontal(|ui| {

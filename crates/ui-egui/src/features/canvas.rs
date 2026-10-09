@@ -103,6 +103,7 @@ pub fn publish(app: &AppState, ctx: &egui::Context) {
     }
     f.signatures.marks(d, &mut marks);
     super::more6::prefs::form_marks(app, d, &mut marks);
+    f.forms.more.marks(d, &mut marks);
     let pick = f.pick.filter(|(uid, _)| *uid == d.uid).map(|(_, p)| p.kind());
     if pick.is_none() {
         ctx.data_mut(|m| m.remove::<Draft>(draft_id()));
@@ -172,6 +173,14 @@ pub fn layer(ui: &mut egui::Ui, resp: &egui::Response, painter: &egui::Painter, 
             }
             painter.add(egui::Shape::closed_line(pts, Stroke::new(1.5, m.stroke)));
         }
+    }
+    if l.pick.is_none()
+        && resp.clicked()
+        && ui.input(|i| i.modifiers.command)
+        && let Some(s) = resp.interact_pointer_pos()
+        && let Some((page, xf)) = xfs.iter().find(|(_, xf)| xf.rect.contains(s))
+    {
+        super::partials_more2::push_ctrl_click(ui.ctx(), doc, *page, xf.to_user(s));
     }
     let Some(kind) = l.pick else { return false };
     ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);

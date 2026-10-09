@@ -36,6 +36,8 @@ pub struct FillOptions {
     pub cutouts: bool,
     /// Extra boundary lines (Add Boundary), each an open polyline in user space.
     pub boundaries: Vec<Vec<Point>>,
+    /// Detect on the rendered page image instead of the vector linework (scans).
+    pub raster: Option<crate::finish::rasterfill::RasterFill>,
 }
 
 impl Default for FillOptions {
@@ -44,6 +46,7 @@ impl Default for FillOptions {
             gap: 0.5,
             cutouts: true,
             boundaries: Vec::new(),
+            raster: None,
         }
     }
 }
@@ -559,6 +562,9 @@ pub fn fill_region(segs: &[(Point, Point)], seed: Point, opts: &FillOptions) -> 
 impl Session {
     /// The closed region of page linework around `seed` (page 0-based).
     pub fn dynamic_fill(&self, page: usize, seed: Point, opts: &FillOptions) -> Result<FillRegion> {
+        if let Some(r) = &opts.raster {
+            return self.dynamic_fill_raster(page, seed, r);
+        }
         let lw = self.page_linework(page)?;
         fill_region(&lw.segments, seed, opts)
     }

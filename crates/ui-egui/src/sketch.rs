@@ -85,6 +85,16 @@ pub fn apply(app: &mut AppState, finish: bool) -> String {
             }
             format!("Placed a point {} away", st.length.trim())
         }
+        Offer::Size if st.radius && draft.tool == "ellipse" => {
+            let Some(r) = to_points(&st.width, scale.as_ref()) else {
+                return "Sketch to Scale: type the radius".into();
+            };
+            if let Some(dr) = d.view.draft.as_mut() {
+                dr.pts = vec![Point::new(last.x - r, last.y + r), Point::new(last.x + r, last.y - r)];
+                dr.stage = Stage::Typed;
+            }
+            format!("Placed a radius of {}", st.width.trim())
+        }
         Offer::Size => {
             let (Some(w), Some(h)) = (
                 to_points(&st.width, scale.as_ref()),
@@ -136,6 +146,16 @@ pub fn bar(app: &mut AppState, ctx: &egui::Context) {
                         finish |= ui.button("Finish").clicked();
                     }
                 }
+                Offer::Size if st.radius && app.tool == "ellipse" => {
+                    ui.label("Radius");
+                    let r = ui.add(
+                        egui::TextEdit::singleline(&mut st.width)
+                            .id(egui::Id::new("sketch-radius"))
+                            .desired_width(70.0),
+                    );
+                    go |= r.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+                    go |= ui.button("Place").clicked();
+                }
                 Offer::Size => {
                     ui.label("Width");
                     let r = ui.add(
@@ -170,6 +190,8 @@ pub struct SketchState {
     pub relative: bool,
     pub width: String,
     pub height: String,
+    /// an ellipse is a radius from its centre (the first click)
+    pub radius: bool,
 }
 
 /// PDF points for a typed real length: `12'-6"`, `12.5` (the scale's first distance unit).

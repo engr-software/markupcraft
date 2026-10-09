@@ -15,6 +15,7 @@ markupcraft-model = { workspace = true }
 markupcraft-revu = { workspace = true }
 markupcraft-render = { workspace = true }
 markupcraft-engine = { workspace = true }
+markupcraft-automation = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 egui = { workspace = true }
@@ -34,3 +35,5 @@ camera = ["dep:nokhwa"]
 [dev-dependencies]
 egui_kittest = { workspace = true, features = ["eframe", "wgpu"] }
 image = { workspace = true }
+tiff = "0.11"
+pdfcraft-xfa = { workspace = true }

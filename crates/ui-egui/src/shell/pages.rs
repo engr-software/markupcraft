@@ -129,6 +129,8 @@ pub struct PageDialog {
     /// Replace: first page of the source to use (1-based).
     pub source_start: usize,
     pub error: String,
+    /// Further options (`pages_more`).
+    pub more: super::pages_more::PageExtras,
 }
 
 impl PageDialog {
@@ -150,6 +152,7 @@ impl PageDialog {
             open_after: false,
             source_start: 1,
             error: String::new(),
+            more: Default::default(),
         }
     }
 
@@ -275,9 +278,20 @@ pub fn apply(app: &mut AppState, dlg: &PageDialog) -> Option<String> {
         .doc()
         .map(|d| d.name.trim_end_matches(".pdf").to_string())
         .unwrap_or_default();
+    if let Some(r) = super::pages_more::apply(app, dlg, at, &pages) {
+        return match r {
+            Ok(s) => {
+                if !s.is_empty() {
+                    app.status = s;
+                }
+                None
+            }
+            Err(e) => Some(e),
+        };
+    }
     match dlg.kind {
         Kind::InsertPages => {
-            app.dialogs.open(Purpose::InsertPages { at }, dialogs::PDF, false);
+            app.dialogs.open(Purpose::InsertPages { at }, dialogs::PDF, true);
             return None;
         }
         Kind::Extract => {
@@ -403,6 +417,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
     let mut open = true;
     let mut ok = false;
     let mut cancel = false;
+    let (mut ask_files, mut ask_template) = (false, false);
     egui::Window::new(dlg.kind.title())
         .open(&mut open)
         .collapsible(false)
@@ -417,6 +432,9 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                             ui.add(egui::DragValue::new(&mut dlg.count).range(1..=500));
                         });
                         size_picker(ui, &mut dlg);
+                        ask_template = super::pages_more::blank_ui(ui, &mut dlg.more);
+                    } else {
+                        ask_files = super::pages_more::insert_files_ui(ui, &mut dlg.more);
                     }
                     ui.horizontal(|ui| {
                         ui.radio_value(&mut dlg.after, false, "Before");
@@ -430,6 +448,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                     range_picker(ui, &mut dlg.pages, "extract");
                     ui.checkbox(&mut dlg.delete_after, "Delete pages after extracting");
                     ui.checkbox(&mut dlg.open_after, "Open the new file");
+                    super::pages_more::extract_ui(ui, &mut dlg.more);
                 }
                 Kind::Delete => range_picker(ui, &mut dlg.pages, "delete"),
                 Kind::Rotate => {
@@ -481,6 +500,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                                 }
                             });
                     });
+                    super::pages_more::setup_ui(ui, &mut dlg.more);
                 }
                 Kind::Replace => {
                     range_picker(ui, &mut dlg.pages, "replace");
@@ -514,6 +534,12 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
     }
     if open && !cancel {
         app.shell.page_dialog = Some(dlg);
+        if ask_files {
+            super::pages_more::ask_insert_files(app);
+        }
+        if ask_template {
+            super::pages_more::ask_template(app);
+        }
     }
 }
 

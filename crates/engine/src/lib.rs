@@ -46,6 +46,7 @@ mod docutil;
 mod edit;
 pub mod export;
 pub mod fill;
+pub mod finish;
 pub mod flatten;
 pub mod forms;
 pub mod geometry;
@@ -285,6 +286,11 @@ impl Session {
             .iter()
             .position(|m| m.id == id)
             .ok_or_else(|| EngineError::NoMarkup(id.to_string()))
+    }
+
+    /// A number that changes with every edit (for caches of derived facts).
+    pub fn state_version(&self) -> u64 {
+        self.version
     }
 
     /// Unsaved changes (a new blank document always counts as unsaved).

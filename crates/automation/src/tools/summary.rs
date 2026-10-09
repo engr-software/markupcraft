@@ -36,7 +36,11 @@ pub static EXPORT: Tool = Tool {
                 "pdf_links": { "type": "boolean", "description": "PDF: link each markup to its source page (default true)." },
                 "pdf_totals": { "type": "boolean" },
                 "pdf_padding": { "type": "number" },
-                "pdf_logo": path_arg("PDF: a PNG logo at the top right")
+                "pdf_logo": path_arg("PDF: a PNG logo at the top right"),
+                "pdf_spaces_cover": { "type": "boolean", "description": "PDF: a cover sheet of the Spaces and their markup counts." },
+                "pdf_status_history": { "type": "boolean", "description": "PDF: each markup's status history (review replies)." },
+                "pdf_thumbnails": { "type": "integer", "minimum": 48, "maximum": 400, "description": "PDF: markup thumbnails of this many pixels, on contact sheets with an index." },
+                "pdf_page_content": { "type": "boolean", "description": "PDF: the summarized pages themselves after the report." }
             }),
             &["out"],
         )
@@ -114,7 +118,21 @@ pub static EXPORT: Tool = Tool {
                 json!({ "doc": doc, "files": files.iter().map(|f| f.display().to_string()).collect::<Vec<_>>() }),
             );
         }
-        let n = s.export_summary(&out, format, &o)?;
+        let x = markupcraft_engine::finish::summary_more::SummaryExtras {
+            spaces_cover: args.bool_or("pdf_spaces_cover", false)?,
+            status_history: args.bool_or("pdf_status_history", false)?,
+            thumbnails: args
+                .opt_u64("pdf_thumbnails")?
+                .map(|v| u32::try_from(v).unwrap_or(u32::MAX)),
+            page_content: args.bool_or("pdf_page_content", false)?,
+        };
+        let pdf = format == Some(markupcraft_engine::summary::SummaryFormat::Pdf)
+            || (format.is_none() && out.extension().is_some_and(|e| e.eq_ignore_ascii_case("pdf")));
+        let n = if pdf && x != Default::default() {
+            s.export_summary_extras(&out, &o, &x)?
+        } else {
+            s.export_summary(&out, format, &o)?
+        };
         Ok(json!({ "doc": doc, "markups": n, "out": out.display().to_string() }))
     },
 };

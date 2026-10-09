@@ -435,7 +435,7 @@ mod tests {
     fn parity_check_rejects_missing_evidence() {
         let root = workspace_root();
         let mut rows = load(&root).unwrap();
-        let r = rows.iter_mut().find(|r| r.status == "missing" && !r.excluded).unwrap();
+        let r = rows.iter_mut().find(|r| !r.excluded).unwrap();
         r.status = "have".into();
         r.evidence = vec!["no_such_test_anywhere".into(), "cli: frobnicate".into()];
         let problems = check(&root, &rows).unwrap();

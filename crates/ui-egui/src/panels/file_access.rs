@@ -115,6 +115,14 @@ fn row(app: &mut AppState, ui: &mut egui::Ui, path: &Path, detail: &str, view: &
         let r = ui
             .add(egui::Button::new(text).frame(false))
             .on_hover_text(format!("{}\n{detail}", path.display()));
+        if r.hovered() && exists && app.shell.ui.recents_preview {
+            let ctx = ui.ctx().clone();
+            if let Some(tex) = crate::features::partials_more3::preview(app, &ctx, path) {
+                r.clone().on_hover_ui(|ui| {
+                    ui.image((tex.id(), tex.size_vec2()));
+                });
+            }
+        }
         if r.clicked() && exists {
             let bg = ui.input(|i| i.modifiers.command);
             open(app, path, bg);

@@ -33,6 +33,8 @@ pub struct SummaryState {
     pub headers: bool,
     pub per_value: bool,
     pub layout: PdfLayout,
+    /// PDF extras: Spaces cover, status history, thumbnails, page content.
+    pub extras: markupcraft_engine::finish::summary_more::SummaryExtras,
 }
 
 impl Default for SummaryState {
@@ -56,6 +58,7 @@ impl Default for SummaryState {
             headers: true,
             per_value: false,
             layout: PdfLayout::default(),
+            extras: Default::default(),
         }
     }
 }
@@ -223,6 +226,17 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                 ui.checkbox(&mut s.layout.links, "Links to pages");
                 ui.checkbox(&mut s.layout.totals, "Totals");
             });
+            ui.horizontal_wrapped(|ui| {
+                let x = &mut s.extras;
+                ui.checkbox(&mut x.spaces_cover, "Spaces cover sheet");
+                ui.checkbox(&mut x.status_history, "Status history");
+                let mut thumbs = x.thumbnails.is_some();
+                ui.checkbox(&mut thumbs, "Thumbnails");
+                let mut side = x.thumbnails.unwrap_or(120);
+                ui.add_enabled(thumbs, egui::DragValue::new(&mut side).range(48..=400).suffix(" px"));
+                x.thumbnails = thumbs.then_some(side);
+                ui.checkbox(&mut x.page_content, "Page content");
+            });
             ui.horizontal(|ui| {
                 ui.label("Padding");
                 ui.add(egui::DragValue::new(&mut s.layout.padding).range(0.0..=20.0));
@@ -289,7 +303,13 @@ pub fn write(app: &mut AppState, f: SummaryFormat, out: &Path) {
         app.features.summary.message = app.status.clone();
         return;
     }
-    match d.session.export_summary(out, Some(f), &o) {
+    let x = app.features.summary.extras;
+    let r = if f == SummaryFormat::Pdf && x != Default::default() {
+        d.session.export_summary_extras(out, &o, &x)
+    } else {
+        d.session.export_summary(out, Some(f), &o)
+    };
+    match r {
         Ok(n) => {
             app.status = format!(
                 "Summary of {} written to {}",

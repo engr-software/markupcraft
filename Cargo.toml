@@ -43,6 +43,7 @@ pdfcraft-export = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63
 pdfcraft-preflight = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
 # Document JavaScript and the JavaScript console (PdfCraft's sandboxed boa interpreter), same pin.
 pdfcraft-js = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
+pdfcraft-xfa = { git = "https://github.com/storytold/pdfcraft", rev = "a6bc63a497954af87c1cd5a2a1e72e928a11c039" }
 
 # foundation
 thiserror = "2"

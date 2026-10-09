@@ -42,6 +42,8 @@ pub struct FillState {
     pub legend_pages: String,
     /// Count only the selected markups.
     pub legend_selection: bool,
+    /// Detection on the page image and the cursor (`partials_more2`).
+    pub more: super::partials_more2::FillMore,
 }
 
 impl Default for FillState {
@@ -61,6 +63,7 @@ impl Default for FillState {
             legend: LegendOptions::default(),
             legend_pages: String::new(),
             legend_selection: false,
+            more: Default::default(),
         }
     }
 }
@@ -107,6 +110,7 @@ pub fn picked(app: &mut AppState, what: Pick, page: usize, pts: &[Point]) {
         gap: f.gap.clamp(0.0, 72.0),
         cutouts: f.cutouts,
         boundaries: f.boundaries.clone(),
+        raster: f.more.raster(f.gap.clamp(0.0, 36.0), f.cutouts),
     };
     let drag = what == Pick::FillDrag;
     let space = |name: &str, n: usize| {
@@ -164,6 +168,9 @@ pub fn picked(app: &mut AppState, what: Pick, page: usize, pts: &[Point]) {
 pub fn window(app: &mut AppState, ctx: &egui::Context) {
     let filling = matches!(app.features.pick, Some((_, Pick::Fill | Pick::FillDrag)));
     if filling {
+        super::partials_more2::fill_cursor(&app.features.fill.more, ctx);
+    }
+    if filling {
         let selected = app.doc().map_or(0, |d| d.selection().len());
         let mut hatch = None;
         let mut done = false;
@@ -215,6 +222,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                     ui.add(egui::DragValue::new(&mut f.gap).range(0.0..=72.0).suffix(" pt"));
                 });
                 ui.checkbox(&mut f.cutouts, "Islands become cutouts");
+                super::partials_more2::fill_settings(ui, &mut f.more);
                 ui.separator();
                 ui.horizontal(|ui| {
                     ui.label("Hatch");
@@ -317,6 +325,7 @@ fn legend_window(app: &mut AppState, ctx: &egui::Context) {
             &mut app.features.fill.legend_pages,
             &mut app.features.fill.legend_selection,
         );
+        super::partials_more::toolset_legend_ui(ui, &app.toolchest, &mut app.features.fill.legend);
         ui.horizontal(|ui| {
             if ui.button("Place...").clicked() {
                 place = true;

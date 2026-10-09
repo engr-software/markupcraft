@@ -56,12 +56,14 @@ pub fn dictionary_settled() -> bool {
 /// Misspelled words of `text` as char ranges (no suggestions: cheap enough per frame).
 pub fn misspelled(text: &str) -> Vec<(usize, usize, String)> {
     let Some(d) = dictionary() else { return Vec::new() };
-    if text.len() > 20_000 {
+    let p = crate::spell_prefs::get();
+    if text.len() > 20_000 || !p.live {
         return Vec::new();
     }
     let opts = SpellOptions {
         suggestions: 0,
-        ..Default::default()
+        ignore_uppercase: p.ignore_caps,
+        accept: p.words,
     };
     check_text(&d, text, &opts)
         .into_iter()
@@ -87,6 +89,7 @@ pub fn layout_job(text: &str, base: &TextStyle, runs: &[TextRun], size: f32, wra
     job.wrap.max_width = wrap;
     let chars: Vec<char> = text.chars().collect();
     let bad = misspelled(text);
+    let uc = crate::spell_prefs::get().color;
     let n = chars.len();
     // Cut points: run boundaries and misspelling boundaries.
     let mut cuts: Vec<usize> = vec![0, n];
@@ -110,7 +113,7 @@ pub fn layout_job(text: &str, base: &TextStyle, runs: &[TextRun], size: f32, wra
         let wrong = bad.iter().any(|(bs, be, _)| *bs <= s && e <= *be);
         let t: String = chars.get(s..e).unwrap_or_default().iter().collect();
         let underline = if wrong {
-            Stroke::new(1.5, Color32::from_rgb(220, 30, 30))
+            Stroke::new(1.5, Color32::from_rgb(uc[0], uc[1], uc[2]))
         } else if st.underline {
             Stroke::new((size / 14.0).max(1.0), c32(&st.color))
         } else {

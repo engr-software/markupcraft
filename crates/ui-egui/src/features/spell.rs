@@ -31,9 +31,11 @@ pub fn start(app: &mut AppState) {
 pub fn check(app: &mut AppState) {
     let Some(d) = app.docs.get(app.active) else { return };
     let s = &mut app.features.spell;
+    let mut accept = s.ignored.clone();
+    accept.extend(crate::spell_prefs::get().words);
     let opts = SpellOptions {
         ignore_uppercase: s.ignore_caps,
-        accept: s.ignored.clone(),
+        accept,
         suggestions: 6,
     };
     match dictionary(LANG).and_then(|dict| d.session.spell_check(&dict, None, &opts)) {
@@ -158,6 +160,13 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                     if ui.button("Ignore All").clicked() {
                         act = Some(2);
                     }
+                    if ui
+                        .button("Add to Dictionary")
+                        .on_hover_text("Accept this word from now on (General > Spelling)")
+                        .clicked()
+                    {
+                        act = Some(4);
+                    }
                 });
             }
             None => {
@@ -176,6 +185,23 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
     });
     if !open {
         app.features.spell.open = false;
+    }
+    if act == Some(4) {
+        if let Some(w) = app
+            .features
+            .spell
+            .words
+            .get(app.features.spell.current)
+            .map(|m| m.word.clone())
+        {
+            let words = &mut app.shell.ui.extra.spell.words;
+            if !words.contains(&w) {
+                words.push(w);
+            }
+            crate::spell_prefs::set(&app.shell.ui.extra.spell);
+            app.shell.save_ui();
+        }
+        act = Some(2);
     }
     match act {
         Some(0) => {

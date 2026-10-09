@@ -75,6 +75,11 @@ pub fn create(app: &mut AppState, v: &NewViewport) -> String {
     })
 }
 
+/// The preset / custom scale picker (for other viewport rows).
+pub fn scale_picker_pub(ui: &mut egui::Ui, salt: &str, v: &mut NewViewport) {
+    scale_picker(ui, salt, v);
+}
+
 fn scale_picker(ui: &mut egui::Ui, salt: &str, v: &mut NewViewport) {
     let presets = scale_presets();
     let text = v
@@ -190,6 +195,8 @@ pub struct PanelState {
     pub copy_to: String,
     /// the viewport whose scale is being changed, with the picker state
     pub rescale: Option<(usize, NewViewport)>,
+    /// calibrate and separate Y (`viewports_more`)
+    pub more: crate::viewports_more::ScaleMore,
 }
 
 /// The Measurements panel's Viewports section for `page`; returns a status text.
@@ -266,10 +273,11 @@ pub fn panel_section(
         let mut keep = true;
         ui.group(|ui| {
             scale_picker(ui, "viewport-rescale", &mut nv);
+            crate::viewports_more::rescale_rows(ui, &mut st.more, page, i, &nv);
             ui.horizontal(|ui| {
                 if ui.button("Apply scale").clicked() {
                     keep = false;
-                    status = Some(match nv.scale() {
+                    status = Some(match nv.scale().map(|sc| crate::viewports_more::with_y(&st.more, sc)) {
                         Some(sc) => actions::report(doc.session.set_viewport_scale(page, i, &sc, true), |n| {
                             format!(
                                 "Viewport scale {} ({} updated)",

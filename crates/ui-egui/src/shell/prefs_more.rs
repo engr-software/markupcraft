@@ -26,6 +26,14 @@ pub fn section(ui: &mut egui::Ui, page: &str, u: &mut UiPrefs) -> Option<&'stati
     match page {
         "General" => {
             ui.add_space(6.0);
+            ui.label(RichText::new("Document").strong());
+            ui.checkbox(&mut x.reorder_bookmarks, "Reorder bookmarks when pages move");
+            ui.checkbox(
+                &mut x.detect_urls,
+                "Detect web addresses in page text (Ctrl+click opens them)",
+            );
+            crate::spell_prefs::page_ui(ui, &mut x.spell);
+            ui.add_space(6.0);
             ui.label(RichText::new("Startup").strong());
             ui.horizontal(|ui| {
                 ui.label("Start in");
@@ -103,6 +111,11 @@ pub fn section(ui: &mut egui::Ui, page: &str, u: &mut UiPrefs) -> Option<&'stati
                 ui.label("Angles are");
                 ui.radio_value(&mut x.sketch_relative, false, "absolute (0 = right)");
                 ui.radio_value(&mut x.sketch_relative, true, "relative to the last segment");
+            });
+            ui.horizontal(|ui| {
+                ui.label("Ellipses are typed as");
+                ui.radio_value(&mut x.sketch_radius, false, "width x height");
+                ui.radio_value(&mut x.sketch_radius, true, "a radius from the centre");
             });
         }
         "Advanced" => {

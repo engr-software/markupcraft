@@ -30,6 +30,8 @@ pub enum ImageFormat {
     Jpeg(u8),
     Tiff,
     Bmp,
+    /// 256 colours (`finish::imaging::gif_encode`).
+    Gif,
 }
 
 impl ImageFormat {
@@ -39,6 +41,7 @@ impl ImageFormat {
             "jpg" | "jpeg" => Self::Jpeg(85),
             "tif" | "tiff" => Self::Tiff,
             "bmp" => Self::Bmp,
+            "gif" => Self::Gif,
             _ => return None,
         })
     }
@@ -49,6 +52,7 @@ impl ImageFormat {
             Self::Jpeg(_) => "jpg",
             Self::Tiff => "tif",
             Self::Bmp => "bmp",
+            Self::Gif => "gif",
         }
     }
 }
@@ -157,12 +161,16 @@ pub fn encode_rgb(w: usize, h: usize, rgb: Vec<u8>, format: ImageFormat) -> Resu
         u32::try_from(w).map_err(|_| invalid("image too wide"))?,
         u32::try_from(h).map_err(|_| invalid("image too tall"))?,
     );
+    if format == ImageFormat::Gif {
+        return crate::finish::imaging::gif_encode(w, h, &rgb);
+    }
     let img = image::RgbImage::from_raw(w32, h32, rgb).ok_or_else(|| invalid("image size mismatch"))?;
     let mut out = Cursor::new(Vec::new());
     let r = match format {
         ImageFormat::Png => img.write_to(&mut out, image::ImageFormat::Png),
         ImageFormat::Tiff => img.write_to(&mut out, image::ImageFormat::Tiff),
         ImageFormat::Bmp => img.write_to(&mut out, image::ImageFormat::Bmp),
+        ImageFormat::Gif => return Err(invalid("GIF is encoded above")),
         ImageFormat::Jpeg(q) => {
             let mut enc = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut out, q.clamp(1, 100));
             enc.encode_image(&img)

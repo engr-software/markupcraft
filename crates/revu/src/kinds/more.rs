@@ -281,6 +281,7 @@ pub fn write_measure_extras(a: &mut Dict, m: &Markup) {
     set_or_remove(a, "PCCaption", !m.caption_template.is_empty(), s(&m.caption_template));
     set_or_remove(a, "PCCapLeader", m.caption_leader, Object::Bool(true));
     set_or_remove(a, "PCCentroid", m.show_centroid, Object::Bool(true));
+    set_or_remove(a, "PCCaptionLastSeg", m.caption_last_segment, Object::Bool(true));
     let dims = m.kind == Kind::Count && (m.item_width > 0.0 || m.item_height > 0.0 || m.depth > 0.0);
     set_or_remove(
         a,
@@ -288,6 +289,51 @@ pub fn write_measure_extras(a: &mut Dict, m: &Markup) {
         dims,
         Object::Array(vec![real(m.item_width), real(m.item_height), real(m.depth)]),
     );
+}
+
+/// Append the caption's bold, italic, underline, strike-through and super / subscript to a
+/// measurement's `/DS` (CSS, as text boxes write them); nothing when none is set.
+pub fn caption_style_css(t: &markupcraft_model::TextStyle, ds: &mut String) {
+    if t.bold {
+        ds.push_str("; font-weight:bold");
+    }
+    if t.italic {
+        ds.push_str("; font-style:italic");
+    }
+    match (t.underline, t.strike) {
+        (true, true) => ds.push_str("; text-decoration:underline line-through"),
+        (true, false) => ds.push_str("; text-decoration:underline"),
+        (false, true) => ds.push_str("; text-decoration:line-through"),
+        (false, false) => {}
+    }
+    match t.script {
+        1 => ds.push_str("; vertical-align:super"),
+        -1 => ds.push_str("; vertical-align:sub"),
+        _ => {}
+    }
+}
+
+/// Underline and strike-through lines of one caption line whose baseline starts at `at`, `w`
+/// wide, in colour `c`.
+pub fn caption_decorations(
+    ap: &mut Ap,
+    t: &markupcraft_model::TextStyle,
+    c: &markupcraft_model::Color,
+    at: (f64, f64),
+    w: f64,
+    size: f64,
+) {
+    let lw = (size / 14.0).max(0.5);
+    for (on, dy) in [(t.underline, -size * 0.12), (t.strike, size * 0.3)] {
+        if on {
+            ap.op("q ")
+                .stroke_rgb(c)
+                .nums(&[lw], "w")
+                .nums(&[at.0, at.1 + dy], "m")
+                .nums(&[at.0 + w, at.1 + dy], "l")
+                .op("S Q\n");
+        }
+    }
 }
 
 /// Read what [`write_measure_extras`] writes. A Revu `/SlopeType` without our value is left
@@ -300,6 +346,17 @@ pub fn read_measure_extras(a: &Dict, m: &mut Markup) {
     m.caption_template = pdf::text(a.get(b"PCCaption"));
     m.caption_leader = pdf::boolean(a.get(b"PCCapLeader")).unwrap_or(false);
     m.show_centroid = pdf::boolean(a.get(b"PCCentroid")).unwrap_or(false);
+    m.caption_last_segment = pdf::boolean(a.get(b"PCCaptionLastSeg")).unwrap_or(false);
+    // the caption's styles written after Revu's string (bold, italic, decorations, script)
+    {
+        let mut st = m.text.clone();
+        super::text::parse_text_css(&pdf::text(a.get(b"DS")), &mut st);
+        m.text.bold = st.bold;
+        m.text.italic = st.italic;
+        m.text.underline = st.underline;
+        m.text.strike = st.strike;
+        m.text.script = st.script;
+    }
     // the caption's font size, from /DS (`font: Helvetica 12pt; ...`)
     let ds = pdf::text(a.get(b"DS"));
     if let Some(sz) = ds

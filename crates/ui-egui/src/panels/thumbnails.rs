@@ -96,7 +96,19 @@ pub fn command(app: &mut AppState, cmd: &str, pages: &[usize]) {
     let last = pages.last().copied().unwrap_or(0);
     let edits_pages = !matches!(
         cmd,
-        "copy" | "extract" | "snapshot" | "set_scale" | "rename" | "print" | "summary" | "flatten"
+        "copy"
+            | "extract"
+            | "snapshot"
+            | "set_scale"
+            | "rename"
+            | "print"
+            | "summary"
+            | "flatten"
+            | "stamp"
+            | "number"
+            | "export_images"
+            | "email"
+            | "repair"
     );
     if edits_pages && let Some(msg) = crate::shell::extra::page_edits_refused(app) {
         app.status = msg;
@@ -115,6 +127,15 @@ pub fn command(app: &mut AppState, cmd: &str, pages: &[usize]) {
         "print" => app.queue("file.print"),
         "summary" => app.queue("markup.summary"),
         "flatten" => app.queue("document.flatten"),
+        "stamp" => app.queue("markup.stamps"),
+        "number" => crate::features::partials_more3::open_number(app, pages.to_vec()),
+        "export_images" => {
+            let text = pages.iter().map(|p| (p + 1).to_string()).collect::<Vec<_>>().join(", ");
+            app.features.export.pages = text;
+            app.queue("file.export_images");
+        }
+        "email" => app.queue("file.email"),
+        "repair" => app.queue("document.repair"),
         "rotate_cw" | "rotate_ccw" | "delete" | "insert_blank" | "move_up" | "move_down" => {
             let Some(d) = app.doc_mut() else { return };
             let n = d.session.page_count();
@@ -136,6 +157,9 @@ pub fn command(app: &mut AppState, cmd: &str, pages: &[usize]) {
             d.sync_pages(threads);
             app.status = crate::actions::report(r, |s| s.to_string());
             app.shell.thumbs.selected.clear();
+            if cmd.starts_with("move") {
+                crate::features::partials_more2::after_page_move(app);
+            }
         }
         "copy" | "cut" => {
             // pid + a per-process counter: two copies in the same second never share a file.
@@ -225,6 +249,7 @@ pub fn drop_pages(app: &mut AppState, pages: &[usize], before: usize) {
     d.sync_pages(threads);
     app.status = crate::actions::report(r, |_| format!("Moved {}", crate::actions::plural(pages.len(), "page")));
     app.shell.thumbs.selected.clear();
+    crate::features::partials_more2::after_page_move(app);
 }
 
 fn ui(app: &mut AppState, ui: &mut egui::Ui) {
@@ -358,6 +383,11 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                         ("print", "Print..."),
                         ("summary", "Markup Summary..."),
                         ("flatten", "Flatten Markups..."),
+                        ("stamp", "Stamp..."),
+                        ("number", "Number Pages..."),
+                        ("export_images", "Export Pages as Images..."),
+                        ("email", "Email..."),
+                        ("repair", "Repair PDF"),
                     ] {
                         let enabled = id != "paste" || has_clip;
                         if ui.add_enabled(enabled, egui::Button::new(label)).clicked() {

@@ -211,6 +211,12 @@ pub fn run(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mut Ca
         doc.view.gesture = None;
         doc.view.preview.clear();
     }
+    if let Some(g) = crate::snapping_more::current(ix.ui.ctx())
+        && let Some(xf) = ix.xf(g.page)
+        && (doc.view.draft.is_some() || doc.view.gesture.is_some() || cx.tool.draws())
+    {
+        crate::snapping_more::paint(ix.painter, xf, g.page, snapping::indicator_color(cx.snaps.color));
+    }
     if let Some((page, s)) = doc.view.snapped
         && let (Some(g), Some(xf)) = (s.glyph, ix.xf(page))
         && (doc.view.draft.is_some() || doc.view.gesture.is_some() || cx.tool.draws())
@@ -243,6 +249,7 @@ fn snap_at(
     let ctrl = ix.ui.input(|i| i.modifiers.command);
     if ctrl || !(s.grid || s.content || s.markup) {
         doc.view.snapped = None;
+        crate::snapping_more::store(ix.ui.ctx(), None);
         return Snapped::raw(raw);
     }
     let reach = f64::from(snapping::reach() / xf.k.max(1e-6));
@@ -262,7 +269,17 @@ fn snap_at(
     } else {
         Vec::new()
     };
-    let r = snapping::snap_point(raw, s, reach, content.as_deref(), &markups);
+    let mut r = snapping::snap_point(raw, s, reach, content.as_deref(), &markups);
+    // Snap to Markup's alignment guides when nothing nearer caught the point
+    let guides = if s.markup && r.glyph.is_none() {
+        crate::snapping_more::find(page, raw, reach, &markups)
+    } else {
+        None
+    };
+    if let Some(g) = &guides {
+        r.pt = g.at;
+    }
+    crate::snapping_more::store(ix.ui.ctx(), guides);
     doc.view.snapped = Some((page, r));
     r
 }
@@ -744,8 +761,8 @@ fn points_tool(
             .circle_stroke(xf.to_screen(*p), 3.0, Stroke::new(1.5, ix.tokens.select));
     }
     if kind == Kind::Count {
-        crate::more::paint_count_readout(
-            ix.painter,
+        crate::features::partials_more2::count_readout(
+            ix.painter.ctx(),
             ix.resp.rect,
             d.pts.len(),
             cx.edit.more.resume_count.is_some(),
@@ -1417,8 +1434,24 @@ fn editor_ui(ix: &mut Input<'_>, doc: &mut DocTab, out: &mut CanvasOut) {
                                 }
                             }
                         }
-                        // Spelling: suggestions for the misspelled word at the cursor.
+                        // Auto-complete from the managed list (General > Spelling).
                         let at = crate::richedit::cursor(&ctx, edit_id).unwrap_or(0);
+                        if let Some((s, e, w)) = crate::spell_prefs::word_before(&text, at) {
+                            let list = crate::spell_prefs::completions(&w);
+                            if !list.is_empty() {
+                                ui.separator();
+                                for c in list {
+                                    if ui.small_button(&c).on_hover_text("Complete").clicked() {
+                                        let (t, r) = crate::richedit::replace(&text, &runs, s, e, &c);
+                                        text = t;
+                                        runs = r;
+                                        crate::richedit::set_cursor(&ctx, edit_id, s + c.chars().count());
+                                        keep_open = true;
+                                    }
+                                }
+                            }
+                        }
+                        // Spelling: suggestions for the misspelled word at the cursor.
                         if let Some((s, e, word)) = crate::richedit::word_at(&text, at) {
                             ui.separator();
                             ui.label(egui::RichText::new(&word).color(Color32::from_rgb(200, 30, 30)));

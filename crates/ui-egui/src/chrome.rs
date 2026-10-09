@@ -7,7 +7,6 @@ use crate::canvas::{Fit, PageMode};
 use crate::commands::{self, MENUS};
 use crate::panels::PANELS;
 use crate::theme::Tokens;
-use crate::tools::ToolDef;
 use crate::tools::{TOOLS, ToolKind};
 use crate::{AppState, icons};
 
@@ -136,8 +135,8 @@ fn separator(ui: &mut egui::Ui, t: &Tokens) {
 
 /// The main toolbar and the markup tools.
 pub fn toolbar(app: &mut AppState, ui: &mut egui::Ui) {
-    let tb = app.shell.ui.toolbars.clone();
-    if !app.shell.chrome_visible() || !(tb.show_main || tb.show_markup || tb.show_measure) {
+    let top = crate::shell::toolbars_more::at(app, crate::shell::toolbars_more::Dock::Top);
+    if !app.shell.chrome_visible() || top.is_empty() {
         return;
     }
     let t = Tokens::get(ui.ctx());
@@ -152,32 +151,19 @@ pub fn toolbar(app: &mut AppState, ui: &mut egui::Ui) {
         .show(ui, |ui| {
             ui.horizontal_centered(|ui| {
                 ui.spacing_mut().item_spacing.x = 2.0;
-                let mut first = true;
-                if tb.show_main {
-                    for id in &tb.main {
-                        if id == "|" {
-                            separator(ui, &t);
-                            continue;
-                        }
-                        tool_button(app, ui, id);
-                    }
-                    first = false;
-                }
-                for (group, on) in [("Markup", tb.show_markup), ("Measure", tb.show_measure)] {
-                    if !on {
-                        continue;
-                    }
-                    if !first {
+                for (k, name) in top.iter().enumerate() {
+                    if k > 0 {
                         separator(ui, &t);
                     }
-                    first = false;
-                    let tools: Vec<&&ToolDef> = TOOLS.iter().filter(|tl| tl.menu == group && tl.draws()).collect();
-                    for tool in tools {
-                        tool_button(app, ui, &format!("tool.{}", tool.id));
-                    }
+                    crate::shell::toolbars_more::strip(app, ui, name, false);
                 }
             });
         });
+}
+
+/// A toolbar button for command `id` (for every toolbar strip).
+pub fn tool_button_pub(app: &mut AppState, ui: &mut egui::Ui, id: &str) {
+    tool_button(app, ui, id);
 }
 
 fn tool_button(app: &mut AppState, ui: &mut egui::Ui, id: &str) {
@@ -241,6 +227,8 @@ pub fn status_bar(app: &mut AppState, ui: &mut egui::Ui) {
                 toggle(app, ui, "snap.markup", "Markup");
                 separator(ui, &t);
                 toggle(app, ui, "window.reuse_tools", "Reuse");
+                separator(ui, &t);
+                crate::features::partials_more3::security_icon(app, ui);
                 if app.shell.split.is_some() {
                     let sync = app
                         .shell
@@ -509,6 +497,8 @@ pub fn windows(app: &mut AppState, ctx: &egui::Context) {
     app.show_about = open;
 
     let mut open = app.show_properties;
+    let tags = crate::features::partials_more3::page_tags(app);
+    let mut std_act = None;
     let info = app.doc().map(|d| {
         (
             d.name.clone(),
@@ -550,6 +540,12 @@ pub fn windows(app: &mut AppState, ctx: &egui::Context) {
                         st.signatures.to_string()
                     });
                     ui.end_row();
+                    std_act = crate::features::partials_more3::properties_rows(
+                        ui,
+                        &app.features.partials.more3,
+                        st.pdfa.is_some(),
+                        &tags,
+                    );
                 });
             }
             None => {
@@ -557,6 +553,9 @@ pub fn windows(app: &mut AppState, ctx: &egui::Context) {
             }
         });
     app.show_properties = open;
+    if let Some(a) = std_act {
+        crate::features::partials_more3::properties_act(app, a);
+    }
 }
 
 /// The default and current view mode for menu checkmarks.

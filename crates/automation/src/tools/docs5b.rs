@@ -10,7 +10,7 @@ use markupcraft_engine::docs_more::{
 };
 use markupcraft_engine::marks::HeaderFooter;
 use markupcraft_engine::quantity::{
-    QuantityLink, QuantityMeasure, QuantityValue, load_links, quantity_totals, save_links, update_quantity_workbook,
+    QuantityLink, QuantityMeasure, QuantityValue, load_links, quantity_totals, save_links,
 };
 use serde_json::{Value, json};
 
@@ -551,7 +551,7 @@ pub static QUANTITY_LINK: Tool = Tool {
                     return Err(bad_args("the links file has no links (save some first)"));
                 }
                 let out = a.resolve(args.str("out")?, true)?;
-                let values = update_quantity_workbook(&list, &out)?;
+                let values = markupcraft_engine::finish::xlsx_edit::update_quantity_workbook_in_place(&list, &out)?;
                 Ok(json!({
                     "path": out.display().to_string(),
                     "links": list.iter().zip(&values).map(|(l, v)| link_json(l, Some(v))).collect::<Vec<_>>(),

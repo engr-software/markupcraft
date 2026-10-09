@@ -72,6 +72,9 @@ pub struct PrintState {
     pub dim_filtered: bool,
     pub spaces: bool,
     pub links: bool,
+    /// Advanced: grayscale, print as image.
+    pub advanced: markupcraft_engine::finish::print_more::PrintAdvanced,
+    pub advanced_open: bool,
 }
 
 impl Default for PrintState {
@@ -100,6 +103,8 @@ impl Default for PrintState {
             dim_filtered: false,
             spaces: false,
             links: false,
+            advanced: Default::default(),
+            advanced_open: false,
         }
     }
 }
@@ -298,6 +303,36 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
             });
             ui.end_row();
         });
+        ui.horizontal(|ui| {
+            if ui.button("Advanced...").clicked() {
+                p.advanced_open = !p.advanced_open;
+            }
+            if ui
+                .button("Reset to Defaults")
+                .on_hover_text("Every print setting back to its default")
+                .clicked()
+            {
+                let printers = std::mem::take(&mut p.printers);
+                *p = PrintState {
+                    open: true,
+                    printers,
+                    ..Default::default()
+                };
+            }
+        });
+        if p.advanced_open {
+            ui.group(|ui| {
+                ui.label(RichText::new("Advanced").strong());
+                ui.checkbox(&mut p.advanced.grayscale, "Print in grayscale");
+                let mut img = p.advanced.as_image.is_some();
+                ui.horizontal(|ui| {
+                    ui.checkbox(&mut img, "Print as image");
+                    let mut dpi = p.advanced.as_image.unwrap_or(300.0);
+                    ui.add_enabled(img, egui::DragValue::new(&mut dpi).range(72.0..=600.0).suffix(" dpi"));
+                    p.advanced.as_image = img.then_some(dpi);
+                });
+            });
+        }
         if !p.message.is_empty() {
             ui.label(RichText::new(&p.message).small());
         }
@@ -376,7 +411,12 @@ pub fn write(app: &mut AppState, out: &Path) -> bool {
             return false;
         }
     };
-    match d.session.print_job_to_pdf(out, &job) {
+    let advanced = app.features.print.advanced;
+    let r = d.session.print_job_to_pdf(out, &job).and_then(|n| {
+        markupcraft_engine::finish::print_more::post_process(out, &advanced)?;
+        Ok(n)
+    });
+    match r {
         Ok(n) => {
             app.status = format!("Wrote {} to {}", actions::plural(n, "sheet"), out.display());
             app.features.print.message = app.status.clone();

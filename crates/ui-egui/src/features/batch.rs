@@ -33,6 +33,10 @@ pub enum Kind {
     Layered,
     /// The form data of many PDFs in one CSV.
     FormMerge,
+    /// Split every file into parts.
+    Split,
+    /// Run a script's tool steps on every file.
+    Script,
 }
 
 impl Kind {
@@ -48,6 +52,8 @@ impl Kind {
             Kind::Create => "Create PDF from Files",
             Kind::Layered => "Create Layered PDF",
             Kind::FormMerge => "Merge Form Data",
+            Kind::Split => "Batch Split",
+            Kind::Script => "Batch Script",
         }
     }
 }
@@ -70,6 +76,8 @@ pub struct BatchState {
     pub message: String,
     /// Batch Print: also send the sheets to the printer chosen in the Print dialog.
     pub print_send: bool,
+    /// The list's further sources and the Split / Script / one-per-file options.
+    pub more: super::batch_list::ListExtras,
 }
 
 impl Default for BatchState {
@@ -95,6 +103,7 @@ impl Default for BatchState {
             },
             message: String::new(),
             print_send: false,
+            more: Default::default(),
         }
     }
 }
@@ -132,7 +141,10 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
     }
     let kind = app.features.batch.kind;
     let has_doc = app.has_doc();
-    let (mut open, mut add, mut go, mut add_folder) = (true, false, false, false);
+    let (mut open, mut add, mut go) = (true, false, false);
+    let open_docs: Vec<PathBuf> = app.docs.iter().filter_map(|d| d.path.clone()).collect();
+    let set_files = app.features.sets.set.files.clone();
+    let mut want = None;
     super::window(kind.title()).open(&mut open).default_width(500.0).show(ctx, |ui| {
         let b = &mut app.features.batch;
         ui.label(match kind {
@@ -146,12 +158,15 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
             Kind::Create => "Make one PDF from these files in order: images (PNG, JPEG, TIFF, BMP) and text files become pages, PDFs are appended.",
             Kind::Layered => "Draw the first page of each file on one page, each in its own layer named after its file.",
             Kind::FormMerge => "Collect the form field values of these PDFs into one CSV: a row per file.",
+            Kind::Split => "Split each PDF into parts (every N pages, or at its top-level bookmarks) in a folder you choose.",
+            Kind::Script => "Run a script's tool steps (a JSON list of {\"tool\", \"params\"}) on each PDF; files are saved in place.",
         });
         let mut action = None;
+        let mut moved = None;
         egui::ScrollArea::vertical().max_height(200.0).show(ui, |ui| {
             for (i, f) in b.files.iter().enumerate() {
                 ui.horizontal(|ui| {
-                    ui.label(file_name(f)).on_hover_text(f.display().to_string());
+                    super::batch_list::row(ui, i, f, &mut moved);
                     if matches!(kind, Kind::Combine | Kind::Print | Kind::Create | Kind::Layered) {
                         if ui.small_button("Up").clicked() {
                             action = Some((i, 0));
@@ -174,6 +189,9 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
             }
             _ => {}
         }
+        if let Some((from, to)) = moved {
+            super::batch_list::move_row(&mut b.files, from, to);
+        }
         if ui
             .button(if kind == Kind::SlipSheet {
                 "Choose Revision..."
@@ -184,8 +202,8 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
         {
             add = true;
         }
-        if kind == Kind::Summary && ui.button("Add Folder...").on_hover_text("Every PDF in a folder and its subfolders").clicked() {
-            add_folder = true;
+        if kind != Kind::SlipSheet {
+            want = super::batch_list::sources_ui(ui, &mut b.files, &open_docs, &set_files, &mut b.more);
         }
         match kind {
             Kind::Combine => {
@@ -195,7 +213,30 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                 ui.checkbox(&mut b.combine.layers, "Keep every file's layers");
                 ui.checkbox(&mut b.combine.labels_from_names, "Page labels from file names");
             }
-            Kind::Create | Kind::Layered | Kind::FormMerge => {}
+            Kind::Create => {
+                ui.checkbox(&mut b.more.each, "One PDF per file");
+                ui.add_enabled_ui(b.more.each, |ui| {
+                    ui.radio_value(&mut b.more.beside_source, true, "Beside each source file");
+                    ui.radio_value(&mut b.more.beside_source, false, "In a folder I choose");
+                });
+            }
+            Kind::Layered | Kind::FormMerge => {}
+            Kind::Split => {
+                ui.horizontal(|ui| {
+                    ui.label("Pages per part");
+                    ui.add(egui::DragValue::new(&mut b.more.split_pages).range(0..=10_000));
+                    ui.label(RichText::new("0 = at top-level bookmarks").weak());
+                });
+            }
+            Kind::Script => {
+                ui.horizontal(|ui| {
+                    let name = b.more.script.as_deref().map_or_else(|| "none".to_string(), file_name);
+                    ui.label(format!("Script: {name}"));
+                    if ui.button("Choose Script...").clicked() {
+                        want = Some(super::batch_list::Want::Script);
+                    }
+                });
+            }
             Kind::Link => {
                 ui.horizontal(|ui| {
                     ui.label("Search for");
@@ -256,6 +297,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
             let ready = match kind {
                 Kind::Combine => b.files.len() >= 2,
                 Kind::SlipSheet => b.files.len() == 1 && has_doc,
+                Kind::Script => !b.files.is_empty() && b.more.script.is_some(),
                 _ => !b.files.is_empty(),
             };
             ui.add_enabled_ui(ready, |ui| {
@@ -276,8 +318,22 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
         app.dialogs
             .open(Purpose::Feature(Ask::BatchFiles), filter, kind != Kind::SlipSheet);
     }
-    if add_folder {
+    if want == Some(super::batch_list::Want::Folder) {
         app.dialogs.folder(Purpose::Feature(Ask::BatchFolder));
+    }
+    match want {
+        Some(super::batch_list::Want::SaveList) => {
+            app.dialogs
+                .save(Purpose::Feature(Ask::BatchListSave), super::JSON, "File List.json");
+        }
+        Some(super::batch_list::Want::LoadList) => {
+            app.dialogs
+                .open(Purpose::Feature(Ask::BatchListLoad), super::JSON, false);
+        }
+        Some(super::batch_list::Want::Script) => {
+            app.dialogs.open(Purpose::Feature(Ask::BatchScript), super::JSON, false);
+        }
+        _ => {}
     }
     if go {
         run(app);
@@ -287,8 +343,31 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
 /// Run the batch (asking where to write when it makes a file).
 pub fn run(app: &mut AppState) {
     let kind = app.features.batch.kind;
+    let more = app.features.batch.more.clone();
     match kind {
         Kind::Combine => app.dialogs.save(Purpose::Feature(Ask::BatchOut), PDF, "Combined.pdf"),
+        Kind::Create if more.each && more.beside_source => {
+            let r = markupcraft_engine::finish::create::create_each(&app.features.batch.files, None);
+            app.features.batch.message = actions::report(r, |v| {
+                format!("Created {} beside their sources", actions::plural(v.len(), "PDF"))
+            });
+        }
+        Kind::Create if more.each => app.dialogs.folder(Purpose::Feature(Ask::BatchOut)),
+        Kind::Split => app.dialogs.folder(Purpose::Feature(Ask::BatchOut)),
+        Kind::Script => {
+            let Some(script) = more.script.clone() else { return };
+            let b = &mut app.features.batch;
+            b.message = match super::batch_list::run_script(&b.files, &script) {
+                Ok((n, errors)) => {
+                    let mut m = format!("Ran the script on {}", actions::plural(n, "file"));
+                    if !errors.is_empty() {
+                        m.push_str(&format!("; {}", errors.join("; ")));
+                    }
+                    m
+                }
+                Err(e) => e,
+            };
+        }
         Kind::Create => app.dialogs.save(Purpose::Feature(Ask::BatchOut), PDF, "Created.pdf"),
         Kind::Layered => app.dialogs.save(Purpose::Feature(Ask::BatchOut), PDF, "Layered.pdf"),
         Kind::FormMerge => app.dialogs.save(Purpose::Feature(Ask::BatchOut), CSV, "Form Data.csv"),
@@ -396,6 +475,20 @@ pub fn run(app: &mut AppState) {
 pub fn output(app: &mut AppState, out: &Path) {
     let b = &app.features.batch;
     match b.kind {
+        Kind::Create if b.more.each => {
+            let r = markupcraft_engine::finish::create::create_each(&b.files, Some(out));
+            app.features.batch.message = actions::report(r, |v| {
+                format!("Created {} in {}", actions::plural(v.len(), "PDF"), out.display())
+            });
+        }
+        Kind::Split => {
+            let (n, errors) = super::batch_list::split_all(&b.files, out, b.more.split_pages);
+            let mut m = format!("Split into {} in {}", actions::plural(n, "part"), out.display());
+            if !errors.is_empty() {
+                m.push_str(&format!("; {}", errors.join("; ")));
+            }
+            app.features.batch.message = m;
+        }
         Kind::Create | Kind::Layered | Kind::FormMerge => {
             let r = match b.kind {
                 Kind::Create => create_pdf_from_files(&b.files, out)

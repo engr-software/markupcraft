@@ -345,6 +345,7 @@ fn document(ui: &mut egui::Ui, p: &mut Preferences, u: &mut UiPrefs) {
             "Keep revisions (incremental)",
         );
         ui.radio_value(&mut p.save_mode, "full".to_string(), "Publish (full rewrite)");
+        ui.radio_value(&mut p.save_mode, "compressed".to_string(), "Publish compressed");
     });
     ui.add_space(6.0);
     ui.label(RichText::new("Opening documents").strong());
@@ -451,6 +452,7 @@ fn interface(ui: &mut egui::Ui, p: &mut Preferences, u: &mut UiPrefs) -> bool {
         );
         ui.label("(0 = never)");
     });
+    ui.checkbox(&mut u.recents_preview, "Preview recent files (first page on hover)");
     ui.button("Clear Recent Files").clicked()
 }
 

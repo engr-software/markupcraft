@@ -83,7 +83,16 @@ pub fn creatable_kinds() -> Vec<&'static str> {
 
 /// The writer redraws this markup from its geometry (so its geometry can be edited).
 pub fn geometry_editable(m: &Markup) -> bool {
-    can_create(m.kind) && (!m.in_file() || kinds::app_draws(&m.subtype, &m.intent, !m.stamp.is_empty(), m.foreign_look))
+    can_create(m.kind)
+        && (!m.in_file()
+            || kinds::app_draws(&m.subtype, &m.intent, !m.stamp.is_empty(), m.foreign_look)
+            || fitted_appearance(m))
+}
+
+/// A stamp or image drawn from its own appearance: moving or resizing it moves `/Rect`, and
+/// the appearance is fitted to the new box (ISO 32000 12.5.5), so its look is kept.
+pub fn fitted_appearance(m: &Markup) -> bool {
+    m.subtype == "Stamp" && m.kind == markupcraft_model::Kind::Stamp
 }
 
 /// Saving this markup after a property change keeps or redraws its look correctly.
@@ -207,6 +216,11 @@ pub struct MarkupPatch {
     pub caption_template: Option<String>,
     /// join a moved caption to its markup with a leader line
     pub caption_leader: Option<bool>,
+    /// text struck through; super (1) / subscript (-1) / normal (0)
+    pub strike: Option<bool>,
+    pub script: Option<i8>,
+    /// a Perimeter / Area / Volume / Polylength caption along the last segment
+    pub caption_last_segment: Option<bool>,
     /// mark an area's centroid
     pub show_centroid: Option<bool>,
     /// a Count's item width and height (first `/D` unit)
@@ -521,6 +535,15 @@ impl MarkupPatch {
         }
         if let Some(v) = self.caption_leader {
             m.caption_leader = v;
+        }
+        if let Some(v) = self.strike {
+            m.text.strike = v;
+        }
+        if let Some(v) = self.script {
+            m.text.script = v.clamp(-1, 1);
+        }
+        if let Some(v) = self.caption_last_segment {
+            m.caption_last_segment = v;
         }
         if let Some(v) = self.show_centroid {
             m.show_centroid = v;

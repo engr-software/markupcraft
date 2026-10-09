@@ -66,7 +66,13 @@ impl Default for ExportState {
     }
 }
 
-const IMAGE_FORMATS: [(&str, &str); 4] = [("PNG", "png"), ("JPEG", "jpg"), ("TIFF", "tif"), ("BMP", "bmp")];
+const IMAGE_FORMATS: [(&str, &str); 5] = [
+    ("PNG", "png"),
+    ("JPEG", "jpg"),
+    ("TIFF", "tif"),
+    ("BMP", "bmp"),
+    ("GIF", "gif"),
+];
 const DOC_FORMATS: [(&str, &str); 6] = [
     ("Plain text", "txt"),
     ("HTML", "html"),
@@ -246,6 +252,7 @@ pub fn images_to(app: &mut AppState, dir: &Path) {
         1 => ImageFormat::Jpeg(e.quality),
         2 => ImageFormat::Tiff,
         3 => ImageFormat::Bmp,
+        4 => ImageFormat::Gif,
         _ => ImageFormat::Png,
     };
     let o = ImageExport {

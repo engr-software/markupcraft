@@ -91,8 +91,16 @@ pub fn text_css(s: &TextStyle) -> String {
     if s.italic {
         css += "; font-style:italic";
     }
-    if s.underline {
-        css += "; text-decoration:underline";
+    match (s.underline, s.strike) {
+        (true, true) => css += "; text-decoration:underline line-through",
+        (true, false) => css += "; text-decoration:underline",
+        (false, true) => css += "; text-decoration:line-through",
+        (false, false) => {}
+    }
+    match s.script {
+        1 => css += "; vertical-align:super",
+        -1 => css += "; vertical-align:sub",
+        _ => {}
     }
     css
 }
@@ -146,7 +154,17 @@ pub fn parse_text_css(css: &str, s: &mut TextStyle) {
             "font-size" => s.size = leading_number(val),
             "font-weight" => s.bold = lval == "bold" || leading_number(val) >= 600.0,
             "font-style" => s.italic = lval == "italic" || lval == "oblique",
-            "text-decoration" => s.underline = lval.contains("underline"),
+            "text-decoration" => {
+                s.underline = lval.contains("underline");
+                s.strike = lval.contains("line-through");
+            }
+            "vertical-align" => {
+                s.script = match lval.as_str() {
+                    "super" | "superscript" => 1,
+                    "sub" | "subscript" => -1,
+                    _ => 0,
+                }
+            }
             "text-align" => {
                 s.align = match lval.as_str() {
                     "center" => 1,
