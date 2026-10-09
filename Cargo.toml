@@ -37,6 +37,9 @@ egui_extras = { version = "0.36", default-features = false, features = ["svg"] }
 eframe = { version = "0.36", default-features = false }
 egui_kittest = "0.36"
 rfd = "0.17"
+egui_dock = "0.21"
+image = { version = "0.25", default-features = false, features = ["png"] }
+winresource = "0.1"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
