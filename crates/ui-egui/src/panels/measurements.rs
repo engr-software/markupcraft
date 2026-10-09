@@ -80,7 +80,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     let Some(info) = doc.session.doc().pages.get(page).cloned() else {
         return;
     };
-    let current: Option<Scale> = info.scale.clone().filter(Scale::valid);
+    let current: Option<Scale> = info.page_scale().cloned();
     let mut new_scale: Option<Scale> = None;
     egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
         ui.add_space(4.0);

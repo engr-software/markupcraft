@@ -561,10 +561,7 @@ impl Markup {
         let k = self.slope_factor();
         match self.kind {
             Kind::Area => {
-                let mut a = s.area_of(&self.pts);
-                for h in &self.holes {
-                    a -= s.area_of(h);
-                }
+                let a = s.area_of(&self.pts) - measure_extras::cutout_deduction(s, &self.holes);
                 Some(a.max(0.0) * k)
             }
             Kind::Length => Some(s.length_of(&self.pts, false) * k),
@@ -682,6 +679,25 @@ impl Default for PageInfo {
 }
 
 impl PageInfo {
+    /// The page-wide scale: the one set in this session, else a viewport covering the whole
+    /// media box (how Revu stores a page scale, so a file opened from disk has it there).
+    pub fn page_scale(&self) -> Option<&Scale> {
+        self.scale.as_ref().filter(|s| s.valid()).or_else(|| {
+            let m = self.media.normalized();
+            self.viewports
+                .iter()
+                .find(|vp| {
+                    let b = vp.bbox.normalized();
+                    vp.scale.valid()
+                        && (b.x0 - m.x0).abs() < 0.5
+                        && (b.y0 - m.y0).abs() < 0.5
+                        && (b.x1 - m.x1).abs() < 0.5
+                        && (b.y1 - m.y1).abs() < 0.5
+                })
+                .map(|vp| &vp.scale)
+        })
+    }
+
     /// The scale in effect at a point: a viewport containing it, else the page scale.
     pub fn scale_at(&self, p: Point) -> Option<&Scale> {
         self.viewports

@@ -122,6 +122,17 @@ fn column_of(v: &Value, existing: &[CustomColumn]) -> Result<CustomColumn> {
     if let Some(f) = v["formula"].as_str() {
         c.formula = f.to_string();
     }
+    // how a Formula column shows its number: Number, Currency or Percent
+    if let Some(d) = v["display"].as_str() {
+        c.display = match ColumnType::from_name(d) {
+            Some(t @ (ColumnType::Number | ColumnType::Currency | ColumnType::Percent)) => t,
+            _ => {
+                return Err(bad_args(format!(
+                    "display {d:?} is not one of Number, Currency, Percent"
+                )));
+            }
+        };
+    }
     if let Some(sym) = v["symbol"].as_str() {
         c.symbol = sym.to_string();
     }
@@ -171,7 +182,7 @@ fn column_of(v: &Value, existing: &[CustomColumn]) -> Result<CustomColumn> {
 pub static COLUMNS_SET: Tool = Tool {
     name: "columns_set",
     title: "Set the custom columns",
-    description: "Replace the document's Markups List custom columns (the Manage Columns dialog). Each column: name, type (Text, Number, Currency, Percent, Date, Choice, Formula, Checkmark), and optionally id, decimals, total, formula (e.g. \"Measurement * [Unit Cost]\"; a column name with spaces goes in brackets), symbol, items (choices: text, or {item, subject, value}), allow_custom, default (the value new markups get), date_format. Values already on markups are kept. Undoable.",
+    description: "Replace the document's Markups List custom columns (the Manage Columns dialog). Each column: name, type (Text, Number, Currency, Percent, Date, Choice, Formula, Checkmark), and optionally id, decimals, total, formula (e.g. \"Measurement * [Unit Cost]\"; a column name with spaces goes in brackets), display (a Formula shown as Number, Currency or Percent), symbol, items (choices: text, or {item, subject, value}), allow_custom, default (the value new markups get), date_format. Values already on markups are kept. Undoable.",
     read_only: false,
     destructive: true,
     schema: || {

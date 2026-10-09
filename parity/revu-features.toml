@@ -18,6 +18,8 @@ source = "docs/revu_features/01_measurement.md:57"
 status = "have"
 cpp = "have"
 evidence = ["calibrate_asks_for_the_distance_and_sets_the_scale", "calibrate_measure_and_viewports_survive_save"]
+accepted = ["calibrate_derives_the_page_scale_from_a_known_length"]
+acceptance = "pass"
 notes = "Calibrate tool (Measure menu, Measurements panel): two clicks or a drag, then a dialog for the real distance (feet-inches accepted), unit, pages and whether measurements update."
 
 [[feature]]
@@ -31,6 +33,8 @@ source = "docs/revu_features/01_measurement.md:58"
 status = "have"
 cpp = "have"
 evidence = ["scale_quantities", "measurements_panel_sets_a_custom_scale_on_every_page"]
+accepted = ["preset_scales_measure_by_hand_worked_values"]
+acceptance = "pass"
 notes = "Architectural, engineering and metric presets in the Measurements panel and the Properties panel scale picker."
 
 [[feature]]
@@ -44,6 +48,8 @@ source = "docs/revu_features/01_measurement.md:59"
 status = "have"
 cpp = "have"
 evidence = ["scale_quantities", "measurements_panel_sets_a_custom_scale_on_every_page"]
+accepted = ["custom_scale_mixes_unit_systems", "custom_scale_in_the_measurements_panel"]
+acceptance = "pass"
 notes = "Measurements panel: paper length and unit = real length and unit."
 
 [[feature]]
@@ -57,7 +63,9 @@ source = "docs/revu_features/01_measurement.md:60"
 status = "have"
 cpp = "missing"
 evidence = ["scale_presets_and_separate_y_scale"]
-notes = "Measurements panel: + Add Preset saves the page scale under a name; the user's presets list first in the Preset menu with a delete button (the built-ins cannot be deleted). Kept in the Tool Chest file."
+accepted = ["user_scale_presets_list_first_and_can_be_deleted"]
+acceptance = "fixed"
+notes = "Measurements panel: + Add Preset saves the page scale under a name; the user's presets list first in the Preset menu with a delete button (the built-ins cannot be deleted). Kept in the Tool Chest file. Acceptance fix: on a file opened from disk the page scale lives in a full-page /VP, and the Measurements panel (and thumbnails) called the page unscaled and hid + Add Preset; they now read it (PageInfo::page_scale)."
 
 [[feature]]
 id = "meas-005"
@@ -70,6 +78,8 @@ source = "docs/revu_features/01_measurement.md:61"
 status = "have"
 cpp = "partial"
 evidence = ["measurements_panel_sets_a_custom_scale_on_every_page", "page_ranges"]
+accepted = ["scale_applies_to_a_page_range_and_each_page_keeps_its_own", "add_scale_to_more_pages_and_recalculate"]
+acceptance = "pass"
 notes = "Apply to: this page, all, or a range like 1-3, 7 (Measurements panel and Calibrate)."
 
 [[feature]]
@@ -83,7 +93,9 @@ source = "docs/revu_features/01_measurement.md:62"
 status = "have"
 cpp = "have"
 evidence = ["measurements_panel_sets_a_custom_scale_on_every_page"]
-notes = "Apply to other pages from the Measurements panel and the Calibrate dialog."
+accepted = ["add_scale_to_more_pages_and_recalculate"]
+acceptance = "pass"
+notes = "Apply to other pages from the Measurements panel and the Calibrate dialog. Acceptance: there is no command named Add Scale to More Pages; the Measurements panel's Apply to (page range) with a preset or custom scale does it."
 
 [[feature]]
 id = "meas-007"
@@ -96,6 +108,8 @@ source = "docs/revu_features/01_measurement.md:63"
 status = "have"
 cpp = "have"
 evidence = ["viewport_wins_over_page_scale", "calibrate_measure_and_viewports_survive_save", "measurements_panel_sets_a_custom_scale_on_every_page"]
+accepted = ["scale_applies_to_a_page_range_and_each_page_keeps_its_own"]
+acceptance = "pass"
 notes = "Page scale read from and written to /VP; no UI."
 
 [[feature]]
@@ -109,6 +123,8 @@ source = "docs/revu_features/01_measurement.md:64"
 status = "have"
 cpp = "missing"
 evidence = ["scale_presets_and_separate_y_scale"]
+accepted = ["separate_y_scale_measures_vertical_runs_differently"]
+acceptance = "pass"
 notes = "Measurements panel > Separate Y Scale: a vertical ratio of its own, written as the /Measure /Y number format; only the scale applied from then on changes."
 
 [[feature]]
@@ -122,6 +138,8 @@ source = "docs/revu_features/01_measurement.md:65"
 status = "have"
 cpp = "have"
 evidence = ["perimeter_rise_drop_vertices_and_precision", "measurements_panel_sets_a_custom_scale_on_every_page"]
+accepted = ["precision_rounds_to_the_chosen_fraction_or_decimals"]
+acceptance = "pass"
 notes = "Precision and display unit pickers in the Measurements and Properties panels (decimal places, or fractions for inches and feet-inches)."
 
 [[feature]]
@@ -135,7 +153,9 @@ source = "docs/revu_features/01_measurement.md:66"
 status = "have"
 cpp = "have"
 evidence = ["opens_the_sample_and_hides_what_it_draws"]
-notes = "Status bar shows the scale under the pointer (viewport first, else the page scale)."
+accepted = ["status_bar_shows_the_scale_or_that_none_is_set"]
+acceptance = "fixed"
+notes = "Status bar shows the scale under the pointer (viewport first, else the page scale). Acceptance fix: the navigation bar said \"No scale\"; it now says \"Scale Not Set\" as Revu does. Clicking it starts Calibrate (no preset menu there; presets are in the Measurements panel)."
 
 [[feature]]
 id = "meas-011"
@@ -148,6 +168,8 @@ source = "docs/revu_features/01_measurement.md:67"
 status = "have"
 cpp = "missing"
 evidence = ["protected_and_temporary_scales", "a_temporary_scale_is_not_saved"]
+accepted = ["temporary_scale_reverts_when_the_document_is_reopened"]
+acceptance = "pass"
 notes = "Measurements panel: Protect scale locks the page's scale controls (for the session); Temporary (not saved) measures with a scale the file does not keep, so the file's own comes back when it is opened again."
 
 [[feature]]
@@ -161,6 +183,8 @@ source = "docs/revu_features/01_measurement.md:68"
 status = "have"
 cpp = "have"
 evidence = ["measure_tool_switches_modes_and_recalculates", "lasso_arcs_cutouts_and_recalculate"]
+accepted = ["add_scale_to_more_pages_and_recalculate"]
+acceptance = "pass"
 notes = "Measure > Recalculate Measurements: every measurement takes the scale now in effect where it sits, keeping its units and precision; one undo step (measure_recalculate tool)."
 
 [[feature]]
@@ -174,6 +198,8 @@ source = "docs/revu_features/01_measurement.md:69"
 status = "have"
 cpp = "partial"
 evidence = ["measuring_without_a_scale_says_so"]
+accepted = ["status_bar_shows_the_scale_or_that_none_is_set"]
+acceptance = "pass"
 notes = "Measuring on a page without a scale says so next to the cursor and in the status bar; the Measurements panel shows Not set."
 
 [[feature]]
@@ -187,6 +213,8 @@ source = "docs/revu_features/01_measurement.md:75"
 status = "have"
 cpp = "missing"
 evidence = ["viewport_tool_asks_for_a_name_and_scale"]
+accepted = ["viewports_give_regions_their_own_scale"]
+acceptance = "pass"
 notes = "Measure > Add Viewport: drag a box, then name it and pick a preset or custom scale."
 
 [[feature]]
@@ -200,6 +228,8 @@ source = "docs/revu_features/01_measurement.md:76"
 status = "have"
 cpp = "missing"
 evidence = ["viewport_tool_asks_for_a_name_and_scale", "viewport_edit_renames_rescales_copies_and_clears"]
+accepted = ["viewports_give_regions_their_own_scale"]
+acceptance = "pass"
 notes = "Named in the Add Viewport dialog; renamed in the Measurements panel."
 
 [[feature]]
@@ -213,6 +243,8 @@ source = "docs/revu_features/01_measurement.md:77"
 status = "have"
 cpp = "missing"
 evidence = ["count_status_report_and_viewport_calibration_with_separate_y", "viewport_calibrate_raster_fill_redaction_kinds_and_snapshot_cut"]
+accepted = ["viewports_give_regions_their_own_scale"]
+acceptance = "pass"
 notes = "A viewport takes a preset or custom scale when added, and from the Measurements panel's viewport list a new preset or custom scale, a calibrated one (Calibrate: the known length and unit, then drag between its ends inside the viewport) and a separate Y scale; measurements inside it update (tool viewport_calibrate)."
 
 [[feature]]
@@ -226,6 +258,8 @@ source = "docs/revu_features/01_measurement.md:78"
 status = "have"
 cpp = "missing"
 evidence = ["viewport_tool_asks_for_a_name_and_scale"]
+accepted = ["viewports_give_regions_their_own_scale"]
+acceptance = "pass"
 notes = "View > Highlight Viewports (and the Measurements panel checkbox) outlines each viewport with its name and scale."
 
 [[feature]]
@@ -239,6 +273,8 @@ source = "docs/revu_features/01_measurement.md:79"
 status = "have"
 cpp = "missing"
 evidence = ["viewports_panel_renames_copies_and_clears", "rename_rescale_copy_and_clear"]
+accepted = ["viewports_give_regions_their_own_scale"]
+acceptance = "pass"
 notes = "Measurements panel: delete one, or Clear All (the page scale stays)."
 
 [[feature]]
@@ -252,6 +288,8 @@ source = "docs/revu_features/01_measurement.md:80"
 status = "have"
 cpp = "missing"
 evidence = ["viewports_panel_renames_copies_and_clears", "viewport_edit_renames_rescales_copies_and_clears"]
+accepted = ["viewports_give_regions_their_own_scale"]
+acceptance = "pass"
 notes = "Measurements panel > Copy to (all, or a range); viewport_edit copy_to."
 
 [[feature]]
@@ -265,6 +303,8 @@ source = "docs/revu_features/01_measurement.md:86"
 status = "proven"
 cpp = "have"
 evidence = ["cli: check", "cli: resave"]
+accepted = ["length_tool_two_clicks"]
+acceptance = "pass"
 notes = "Matches Revu on the reference set: value and label identical on 410/410 Revu-made measurements (check) and 410/410 after rewrite and reload (resave). No drawing tool yet (no UI)."
 
 [[feature]]
@@ -278,6 +318,8 @@ source = "docs/revu_features/01_measurement.md:87"
 status = "have"
 cpp = "have"
 evidence = ["length_and_polylength_measure"]
+accepted = ["polylength_backspace_and_enter"]
+acceptance = "pass"
 notes = "Polylength read/write and quantity (incl. Rise/Drop); not on the reference set; no tool."
 
 [[feature]]
@@ -291,6 +333,8 @@ source = "docs/revu_features/01_measurement.md:88"
 status = "have"
 cpp = "have"
 evidence = ["perimeter_rise_drop_vertices_and_precision"]
+accepted = ["perimeter_closes_on_the_first_point"]
+acceptance = "pass"
 notes = "Perimeter tool (Shift+Alt+P): click points, Enter / double-click; a depth gives wall area."
 
 [[feature]]
@@ -304,6 +348,8 @@ source = "docs/revu_features/01_measurement.md:89"
 status = "have"
 cpp = "missing"
 evidence = ["polyline_takes_clicks_backspace_and_enter"]
+accepted = ["polylength_backspace_and_enter"]
+acceptance = "pass"
 notes = "Every point tool."
 
 [[feature]]
@@ -317,6 +363,8 @@ source = "docs/revu_features/01_measurement.md:90"
 status = "have"
 cpp = "have"
 evidence = ["polyline_takes_clicks_backspace_and_enter", "area_shows_its_value_and_finishes_on_double_click", "clicking_the_first_point_closes_a_polygon_and_ellipse_drags", "length_and_polylength_measure"]
+accepted = ["polylength_backspace_and_enter", "perimeter_closes_on_the_first_point", "area_tool_clicks_and_double_click"]
+acceptance = "pass"
 notes = "Enter, double-click or right-click finishes; clicking the first point closes a closed shape."
 
 [[feature]]
@@ -330,6 +378,8 @@ source = "docs/revu_features/01_measurement.md:91"
 status = "have"
 cpp = "have"
 evidence = ["perimeter_rise_drop_vertices_and_precision", "segment_values_and_arcs_round_trip"]
+accepted = ["polylength_rise_drop_adds_and_saves"]
+acceptance = "pass"
 notes = "Properties > Rise/Drop on a Polylength adds to its length (our key /PCRiseDrop)."
 
 [[feature]]
@@ -343,6 +393,8 @@ source = "docs/revu_features/01_measurement.md:92"
 status = "have"
 cpp = "missing"
 evidence = ["caption_slope_centroid_and_units_from_properties", "measurement_extras_round_trip", "slope_caption_and_centroid_properties"]
+accepted = ["slope_gives_true_sloped_length_and_area"]
+acceptance = "pass"
 notes = "Properties > Takeoff > Slope: pitch (rise in 12), degrees or grade %; Length, Polylength, Perimeter and Area report the true sloped value. Revu's /SlopeType plus our /PCSlope value."
 
 [[feature]]
@@ -356,6 +408,8 @@ source = "docs/revu_features/01_measurement.md:93"
 status = "have"
 cpp = "have"
 evidence = ["segment_values_toggle_from_the_menu"]
+accepted = ["segment_values_arcs_and_control_points"]
+acceptance = "pass"
 notes = "Right-click menu and Properties checkbox; values drawn on the canvas per segment."
 
 [[feature]]
@@ -369,6 +423,8 @@ source = "docs/revu_features/01_measurement.md:94"
 status = "have"
 cpp = "have"
 evidence = ["convert_to_arc_and_cutout_to_measurement_from_the_menu", "ctrl_drag_curves_a_segment_and_its_handle_bends_it", "lasso_arcs_cutouts_and_recalculate"]
+accepted = ["segment_values_arcs_and_control_points"]
+acceptance = "pass"
 notes = "Right-click a segment > Convert to Arc / Convert to Line, Ctrl+drag a segment of the selected markup to curve it, drag the arc's middle handle to bend it; the value follows. Stored as a 32-chord polyline in /Vertices + /PCArcs."
 
 [[feature]]
@@ -382,6 +438,8 @@ source = "docs/revu_features/01_measurement.md:95"
 status = "have"
 cpp = "have"
 evidence = ["perimeter_rise_drop_vertices_and_precision"]
+accepted = ["segment_values_arcs_and_control_points"]
+acceptance = "pass"
 notes = "Right-click a segment > Add Vertex, a vertex > Delete Vertex."
 
 [[feature]]
@@ -395,6 +453,8 @@ source = "docs/revu_features/01_measurement.md:101"
 status = "proven"
 cpp = "have"
 evidence = ["cli: check", "cli: resave", "area_with_cutout"]
+accepted = ["area_tool_clicks_and_double_click"]
+acceptance = "pass"
 notes = "Matches Revu on the reference set: value and label identical on 410/410 Revu-made measurements (check) and 410/410 after rewrite and reload (resave). No drawing tool yet (no UI)."
 
 [[feature]]
@@ -408,6 +468,8 @@ source = "docs/revu_features/01_measurement.md:102"
 status = "have"
 cpp = "have"
 evidence = ["volume_and_area_by_rectangle"]
+accepted = ["area_by_drag_rectangle"]
+acceptance = "pass"
 notes = "Measure > Area (Rectangle): drag a box (or two clicks)."
 
 [[feature]]
@@ -421,6 +483,8 @@ source = "docs/revu_features/01_measurement.md:103"
 status = "have"
 cpp = "missing"
 evidence = ["volume_and_area_by_rectangle"]
+accepted = ["volume_depth_wall_area_and_all_measurements"]
+acceptance = "pass"
 notes = "Measure > Volume (Shift+Alt+V): an Area outline with a depth (1 unit until set in Properties)."
 
 [[feature]]
@@ -434,6 +498,8 @@ source = "docs/revu_features/01_measurement.md:104"
 status = "have"
 cpp = "missing"
 evidence = ["measurement_caption_depth_and_count_symbol"]
+accepted = ["volume_depth_wall_area_and_all_measurements"]
+acceptance = "pass"
 notes = "Properties > Depth on Area, Volume, Perimeter and Polylength."
 
 [[feature]]
@@ -447,6 +513,8 @@ source = "docs/revu_features/01_measurement.md:105"
 status = "have"
 cpp = "missing"
 evidence = ["measurement_caption_depth_and_count_symbol"]
+accepted = ["volume_depth_wall_area_and_all_measurements"]
+acceptance = "pass"
 notes = "Properties shows the Wall Area (perimeter x depth) once a depth is set."
 
 [[feature]]
@@ -460,6 +528,8 @@ source = "docs/revu_features/01_measurement.md:106"
 status = "have"
 cpp = "missing"
 evidence = ["caption_slope_centroid_and_units_from_properties", "caption_templates_fill_in_fields"]
+accepted = ["volume_depth_wall_area_and_all_measurements"]
+acceptance = "pass"
 notes = "Properties > Caption Contents > Show All Measurements: P / A / WA / V in one caption."
 
 [[feature]]
@@ -473,6 +543,8 @@ source = "docs/revu_features/01_measurement.md:107"
 status = "have"
 cpp = "missing"
 evidence = ["caption_slope_centroid_and_units_from_properties", "caption_templates_fill_in_fields", "measurement_extras_round_trip"]
+accepted = ["show_centroid_from_properties"]
+acceptance = "pass"
 notes = "Properties > Takeoff > Show Centroid marks the area-weighted centre (cutouts deducted); our key /PCCentroid."
 
 [[feature]]
@@ -486,7 +558,9 @@ source = "docs/revu_features/01_measurement.md:108"
 status = "have"
 cpp = "partial"
 evidence = ["area_with_cutout", "cutout_cuts_a_hole_in_the_area", "cutouts_are_one_step_each", "cutout_add_and_delete"]
-notes = "Polygon Cutout tool: draw inside an Area (the selected one first); right-click > Delete Cutout."
+accepted = ["cutouts_subtract_merge_delete_and_become_measurements"]
+acceptance = "fixed"
+notes = "Polygon Cutout tool: draw inside an Area (the selected one first); right-click > Delete Cutout. Acceptance fix: overlapping cutouts were each deducted in full (the overlap twice); they now merge, the union is deducted once (geom::union_area)."
 
 [[feature]]
 id = "meas-038"
@@ -499,6 +573,8 @@ source = "docs/revu_features/01_measurement.md:109"
 status = "have"
 cpp = "have"
 evidence = ["ellipse_cutout_cuts_an_ellipse"]
+accepted = ["cutouts_subtract_merge_delete_and_become_measurements"]
+acceptance = "pass"
 notes = "Measure > Ellipse Cutout: drag an ellipse inside an Area; a 64-vertex hole."
 
 [[feature]]
@@ -512,6 +588,8 @@ source = "docs/revu_features/01_measurement.md:110"
 status = "have"
 cpp = "have"
 evidence = ["cutout_vertices_drag_add_and_delete", "cutout_cuts_a_hole_in_the_area"]
+accepted = ["cutouts_subtract_merge_delete_and_become_measurements"]
+acceptance = "pass"
 notes = "Cutout vertices drag like the outline's; right-click inside a cutout > Add Cutout Vertex / Delete Cutout Vertex / Delete Cutout."
 
 [[feature]]
@@ -525,6 +603,8 @@ source = "docs/revu_features/01_measurement.md:111"
 status = "have"
 cpp = "missing"
 evidence = ["convert_to_arc_and_cutout_to_measurement_from_the_menu", "lasso_arcs_cutouts_and_recalculate"]
+accepted = ["cutouts_subtract_merge_delete_and_become_measurements"]
+acceptance = "pass"
 notes = "Right-click inside a cutout > Cutout to Measurement: a new Area / Volume of the hole with the parent's look and scale (cutout_to_measurement tool)."
 
 [[feature]]
@@ -538,6 +618,8 @@ source = "docs/revu_features/01_measurement.md:112"
 status = "have"
 cpp = "missing"
 evidence = ["dynamic_fill_makes_areas_spaces_and_hatch", "hatch_saves_into_the_appearance_and_reads_back"]
+accepted = ["hatch_fill_on_an_area_saves"]
+acceptance = "pass"
 notes = "markup_hatch: six line hatches (our own key /PCHatch) drawn into the appearance, clipped to the shape and its cutouts."
 
 [[feature]]
@@ -551,6 +633,8 @@ source = "docs/revu_features/01_measurement.md:113"
 status = "have"
 cpp = "missing"
 evidence = ["dimension_offset_and_measurement_rotation_snaps", "layout_moves_resizes_and_rotates"]
+accepted = ["rotate_a_measurement_keeps_its_value"]
+acceptance = "pass"
 notes = "The rotation handle turns a measurement in 15-degree steps (Shift: single degrees); Properties > Layout > Rotation takes a typed angle."
 
 [[feature]]
@@ -564,6 +648,8 @@ source = "docs/revu_features/01_measurement.md:119"
 status = "have"
 cpp = "missing"
 evidence = ["angle_diameter_and_radius_tools_measure"]
+accepted = ["diameter_radius_and_angle_tools"]
+acceptance = "pass"
 notes = "Measure > Diameter (Shift+Alt+D): the two ends of a diameter; the circle is drawn."
 
 [[feature]]
@@ -577,6 +663,8 @@ source = "docs/revu_features/01_measurement.md:120"
 status = "have"
 cpp = "missing"
 evidence = ["angle_diameter_and_radius_tools_measure"]
+accepted = ["diameter_radius_and_angle_tools"]
+acceptance = "pass"
 notes = "Measure > Center Radius (Shift+Alt+U): centre, then a point on the circle."
 
 [[feature]]
@@ -590,6 +678,8 @@ source = "docs/revu_features/01_measurement.md:121"
 status = "have"
 cpp = "missing"
 evidence = ["angle_diameter_and_radius_tools_measure"]
+accepted = ["diameter_radius_and_angle_tools"]
+acceptance = "pass"
 notes = "Measure > 3-Point Radius: three points on the circle; saved as a centre radius."
 
 [[feature]]
@@ -603,6 +693,8 @@ source = "docs/revu_features/01_measurement.md:122"
 status = "have"
 cpp = "missing"
 evidence = ["angle_diameter_and_radius_tools_measure"]
+accepted = ["diameter_radius_and_angle_tools"]
+acceptance = "pass"
 notes = "Measure > Angle (Shift+Alt+G): arm end, vertex, other arm end."
 
 [[feature]]
@@ -616,6 +708,8 @@ source = "docs/revu_features/01_measurement.md:128"
 status = "have"
 cpp = "have"
 evidence = ["count_adds_items_until_enter"]
+accepted = ["count_clicks_build_one_series_until_escape"]
+acceptance = "pass"
 notes = "Click per item; Enter or Esc ends the group; the tool stays active."
 
 [[feature]]
@@ -629,6 +723,8 @@ source = "docs/revu_features/01_measurement.md:129"
 status = "have"
 cpp = "partial"
 evidence = ["measurement_caption_depth_and_count_symbol"]
+accepted = ["count_series_edits"]
+acceptance = "pass"
 notes = "Symbol, size, and a custom symbol in Properties."
 
 [[feature]]
@@ -642,6 +738,8 @@ source = "docs/revu_features/01_measurement.md:130"
 status = "have"
 cpp = "have"
 evidence = ["measurement_caption_depth_and_count_symbol"]
+accepted = ["custom_count_symbol_from_a_markup"]
+acceptance = "pass"
 notes = "Select a Count and any other markup: Properties > Use the ... as the symbol."
 
 [[feature]]
@@ -655,6 +753,8 @@ source = "docs/revu_features/01_measurement.md:131"
 status = "have"
 cpp = "have"
 evidence = ["count_series_from_the_canvas_menu", "count_series_resume_delete_split_and_merge"]
+accepted = ["count_series_edits"]
+acceptance = "pass"
 notes = "Right-click a count > Resume Count: new clicks join that series until Esc."
 
 [[feature]]
@@ -668,6 +768,8 @@ source = "docs/revu_features/01_measurement.md:132"
 status = "have"
 cpp = "have"
 evidence = ["count_series_from_the_canvas_menu", "count_series_resume_delete_split_and_merge"]
+accepted = ["count_series_edits"]
+acceptance = "pass"
 notes = "Right-click a count item > Delete Count Item; the series renumbers, the last item deletes the count."
 
 [[feature]]
@@ -681,6 +783,8 @@ source = "docs/revu_features/01_measurement.md:133"
 status = "have"
 cpp = "missing"
 evidence = ["count_series_from_the_canvas_menu", "count_series_resume_delete_split_and_merge"]
+accepted = ["count_series_edits"]
+acceptance = "pass"
 notes = "Right-click a count item > Split Off This Item / Split Count Here; select counts > Merge Counts (same page)."
 
 [[feature]]
@@ -694,6 +798,8 @@ source = "docs/revu_features/01_measurement.md:134"
 status = "have"
 cpp = "missing"
 evidence = ["measurement_extras_round_trip", "list_filters_dim_the_page_display_options_and_columns"]
+accepted = ["count_series_edits"]
+acceptance = "pass"
 notes = "Properties > Item Size: a Count's item width, height and depth (our key /PCCountDims), shown in the Width, Height and Depth columns in the scale's unit."
 
 [[feature]]
@@ -707,6 +813,8 @@ source = "docs/revu_features/01_measurement.md:135"
 status = "have"
 cpp = "partial"
 evidence = ["spaces_add_column_tally_export_import", "spaces_name_markups_split_counts_and_round_trip"]
+accepted = ["counts_per_page_space_and_status"]
+acceptance = "pass"
 notes = "space_tally: counted items per subject per page and space (each Count point in its own space)."
 
 [[feature]]
@@ -720,6 +828,8 @@ source = "docs/revu_features/01_measurement.md:136"
 status = "have"
 cpp = "missing"
 evidence = ["count_readout_hides_and_comes_back_and_the_status_report"]
+accepted = ["count_clicks_build_one_series_until_escape"]
+acceptance = "pass"
 notes = "While counting, the running count shows in the lower-right of the view (and the status bar); its Hide button closes it and the Show Count button there brings it back."
 
 [[feature]]
@@ -733,6 +843,8 @@ source = "docs/revu_features/01_measurement.md:137"
 status = "have"
 cpp = "missing"
 evidence = ["count_readout_hides_and_comes_back_and_the_status_report", "count_status_report_and_viewport_calibration_with_separate_y", "status_rows_colours_and_visual_copy"]
+accepted = ["counts_per_page_space_and_status"]
+acceptance = "pass"
 notes = "Counts take the review statuses and custom ones (Installed ...), and items split off take their own. Measure > Count Status Report lists items by subject and status, each status in its colour, and exports the table (CSV) or the visual status report: a copy of the drawings with every count drawn in its status's colour (tool count_status_report)."
 
 [[feature]]
@@ -746,6 +858,8 @@ source = "docs/revu_features/01_measurement.md:143"
 status = "have"
 cpp = "missing"
 evidence = ["dynamic_fill_makes_areas_spaces_and_hatch", "fill_finds_the_room_and_its_column", "big_rooms_grow_the_window"]
+accepted = ["dynamic_fill_turns_a_room_into_measurements"]
+acceptance = "pass"
 notes = "dynamic_fill traces the closed region of the page's vector linework around a point (planar graph of the segments, face walk); islands become cutouts. Vector linework only (no raster detection). Headless; no click-and-hold UI."
 
 [[feature]]
@@ -759,6 +873,8 @@ source = "docs/revu_features/01_measurement.md:144"
 status = "have"
 cpp = "missing"
 evidence = ["fill_by_dragging_polylength_and_volume_outputs", "dynamic_fill_by_path_polylength_and_volume", "dynamic_fill_drag_boundaries_polylength_and_volume"]
+accepted = ["dynamic_fill_turns_a_room_into_measurements"]
+acceptance = "pass"
 notes = "Area (with cutouts), Polygon, Perimeter, Polylength, Volume (with depth) or Space; one output per fill."
 
 [[feature]]
@@ -772,6 +888,8 @@ source = "docs/revu_features/01_measurement.md:145"
 status = "have"
 cpp = "missing"
 evidence = ["gaps_close_within_tolerance_and_open_rooms_fail"]
+accepted = ["dynamic_fill_boundaries_and_drag"]
+acceptance = "pass"
 notes = "dynamic_fill boundaries: extra polylines that close or split a room."
 
 [[feature]]
@@ -785,7 +903,9 @@ source = "docs/revu_features/01_measurement.md:146"
 status = "have"
 cpp = "missing"
 evidence = ["fill_by_dragging_polylength_and_volume_outputs", "dynamic_fill_drag_boundaries_polylength_and_volume"]
-notes = "Add Boundary lines kept for the next fills and Clear Boundaries in the Dynamic Fill bar; a fill is undone with Undo."
+accepted = ["dynamic_fill_boundaries_and_drag"]
+acceptance = "gap"
+notes = "Add Boundary lines kept for the next fills and Clear Boundaries in the Dynamic Fill bar; a fill is undone with Undo. Acceptance gap: each click applies its fill at once (Undo takes it back), so there is no pending fill and no Clear Fill / Clear All; only Clear Boundaries."
 
 [[feature]]
 id = "meas-061"
@@ -798,7 +918,9 @@ source = "docs/revu_features/01_measurement.md:147"
 status = "have"
 cpp = "missing"
 evidence = ["fill_by_dragging_polylength_and_volume_outputs", "dynamic_fill_by_path_polylength_and_volume", "dynamic_fill_drag_boundaries_polylength_and_volume"]
-notes = "Drag across regions: every closed region the drag passes through is filled (dynamic_fill path; the bar's drag option)."
+accepted = ["dynamic_fill_boundaries_and_drag"]
+acceptance = "gap"
+notes = "Drag across regions: every closed region the drag passes through is filled (dynamic_fill path; the bar's drag option). Acceptance gap: a drag makes one measurement per region it passes through; Revu makes one fill covering everything encircled."
 
 [[feature]]
 id = "meas-062"
@@ -811,6 +933,8 @@ source = "docs/revu_features/01_measurement.md:148"
 status = "have"
 cpp = "missing"
 evidence = ["a_room_on_the_page_image_with_a_gap_closed", "raster_dynamic_fill_redaction_kinds_snapshot_cut_and_image_markups", "viewport_calibrate_raster_fill_redaction_kinds_and_snapshot_cut"]
+accepted = ["dynamic_fill_raster_settings"]
+acceptance = "pass"
 notes = "Dynamic Fill bar: gap tolerance, cutouts, boundaries, click or drag; Detection and cursor: vector linework or the page image (scans) with detection DPI (36-300), edge sensitivity and Hide markups while filling, and the fill cursor's size and colour (tool dynamic_fill detect raster, dpi, sensitivity, hide_markups). Fill speed is not a setting: a fill runs at once."
 
 [[feature]]
@@ -824,6 +948,8 @@ source = "docs/revu_features/01_measurement.md:149"
 status = "have"
 cpp = "missing"
 evidence = ["visual_search_finds_symbols_and_counts_them"]
+accepted = ["visual_search_and_count_from_hits"]
+acceptance = "pass"
 notes = "Tool visual_search."
 
 [[feature]]
@@ -837,6 +963,8 @@ source = "docs/revu_features/01_measurement.md:150"
 status = "have"
 cpp = "missing"
 evidence = ["visual_search_finds_symbols_and_counts_them"]
+accepted = ["visual_search_and_count_from_hits"]
+acceptance = "pass"
 notes = "action count: one Count measurement per page with a point on each hit."
 
 [[feature]]
@@ -850,6 +978,8 @@ source = "docs/revu_features/01_measurement.md:151"
 status = "have"
 cpp = "have"
 evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results"]
+accepted = ["count_from_text_search_hits"]
+acceptance = "pass"
 notes = "Search panel > Count: one Count per page on the checked text results, subject = the search text."
 
 [[feature]]
@@ -863,6 +993,8 @@ source = "docs/revu_features/01_measurement.md:152"
 status = "have"
 cpp = "missing"
 evidence = ["visual_search_finds_symbols_and_counts_them", "visual_search_picks_a_region_and_finds_the_symbol"]
+accepted = ["visual_search_and_count_from_hits"]
+acceptance = "pass"
 notes = "Not a Revu feature (Revu 21 has no AI auto-count). MarkupCraft's Visual Search > Count places counts on every symbol like the one picked, which is what Revu offers for automatic counting."
 
 [[feature]]
@@ -876,6 +1008,8 @@ source = "docs/revu_features/01_measurement.md:158"
 status = "have"
 cpp = "missing"
 evidence = ["sketch_to_scale_places_typed_lengths"]
+accepted = ["sketch_polyline_and_polygon_to_scale"]
+acceptance = "pass"
 notes = "While drawing, the Sketch to Scale bar takes a length (feet-inches accepted) and angle; Enter or Add places the point."
 
 [[feature]]
@@ -889,6 +1023,8 @@ source = "docs/revu_features/01_measurement.md:159"
 status = "have"
 cpp = "missing"
 evidence = ["sketch_to_scale_places_typed_lengths"]
+accepted = ["sketch_polyline_and_polygon_to_scale"]
+acceptance = "pass"
 notes = "Polygon, Area, Perimeter, Volume and Cloud take typed segments; Finish closes."
 
 [[feature]]
@@ -902,6 +1038,8 @@ source = "docs/revu_features/01_measurement.md:160"
 status = "have"
 cpp = "missing"
 evidence = ["sketch_to_scale_places_typed_lengths"]
+accepted = ["sketch_rectangle_and_ellipse_to_scale"]
+acceptance = "pass"
 notes = "Rectangle (and Area by rectangle): click the corner, type width and height."
 
 [[feature]]
@@ -915,6 +1053,8 @@ source = "docs/revu_features/01_measurement.md:161"
 status = "have"
 cpp = "missing"
 evidence = ["sketch_to_scale_places_typed_lengths"]
+accepted = ["sketch_rectangle_and_ellipse_to_scale"]
+acceptance = "pass"
 notes = "Ellipse: click the corner, type width and height."
 
 [[feature]]
@@ -928,6 +1068,8 @@ source = "docs/revu_features/01_measurement.md:162"
 status = "have"
 cpp = "missing"
 evidence = ["sketch_to_scale_places_typed_lengths", "angles_absolute_and_relative"]
+accepted = ["sketch_polyline_and_polygon_to_scale"]
+acceptance = "pass"
 notes = "Absolute angles, or Relative to the previous segment."
 
 [[feature]]
@@ -941,6 +1083,8 @@ source = "docs/revu_features/01_measurement.md:168"
 status = "have"
 cpp = "have"
 evidence = ["shift_constrains_a_line_and_a_drag_makes_an_arrow", "shift_constrains_to_45_degrees"]
+accepted = ["shift_constrains_to_orthogonal"]
+acceptance = "pass"
 notes = "Shift: 0/45/90 degrees from the last point; squares for box tools."
 
 [[feature]]
@@ -954,6 +1098,8 @@ source = "docs/revu_features/01_measurement.md:169"
 status = "have"
 cpp = "have"
 evidence = ["snap_to_content_lands_on_a_wall_corner", "sample_pages_have_linework", "content_markup_and_grid"]
+accepted = ["snapping_to_content_markup_and_grid"]
+acceptance = "pass"
 notes = "Page linework (paths in content and forms) indexed per page on a worker; Ctrl+Shift+F8."
 
 [[feature]]
@@ -967,6 +1113,8 @@ source = "docs/revu_features/01_measurement.md:170"
 status = "have"
 cpp = "have"
 evidence = ["snap_to_markup_and_grid", "content_markup_and_grid"]
+accepted = ["snapping_to_content_markup_and_grid"]
+acceptance = "pass"
 notes = "Vertices, segment midpoints, nearest point and box centres of the page's markups; Ctrl+Shift+F7."
 
 [[feature]]
@@ -980,6 +1128,8 @@ source = "docs/revu_features/01_measurement.md:171"
 status = "have"
 cpp = "missing"
 evidence = ["snap_to_markup_and_grid"]
+accepted = ["grid_snap_rounds_points_to_the_grid", "snapping_to_content_markup_and_grid"]
+acceptance = "pass"
 notes = "Quarter-inch grid; Ctrl+Shift+F9."
 
 [[feature]]
@@ -993,6 +1143,8 @@ source = "docs/revu_features/01_measurement.md:172"
 status = "have"
 cpp = "missing"
 evidence = ["rulers_crosshair_and_dimmer", "preferences_dialog_applies_and_persists"]
+accepted = ["snapping_to_content_markup_and_grid"]
+acceptance = "pass"
 notes = "View > Show Grid (Shift+F9); spacing from Preferences > Grid & Snap."
 
 [[feature]]
@@ -1006,6 +1158,8 @@ source = "docs/revu_features/01_measurement.md:173"
 status = "have"
 cpp = "have"
 evidence = ["content_markup_and_grid", "snap_to_content_lands_on_a_wall_corner"]
+accepted = ["snapping_to_content_markup_and_grid"]
+acceptance = "pass"
 notes = "Endpoint, intersection, midpoint, nearest, centre and grid, each with its own indicator glyph."
 
 [[feature]]
@@ -1019,6 +1173,8 @@ source = "docs/revu_features/01_measurement.md:174"
 status = "have"
 cpp = "missing"
 evidence = ["preferences_dialog_applies_and_persists"]
+accepted = ["snapping_to_content_markup_and_grid"]
+acceptance = "pass"
 notes = "Preferences > Grid & Snap > Snap sensitivity sets the capture radius."
 
 [[feature]]
@@ -1032,6 +1188,8 @@ source = "docs/revu_features/01_measurement.md:175"
 status = "have"
 cpp = "missing"
 evidence = ["rulers_crosshair_and_dimmer", "ruler_ticks_stay_readable"]
+accepted = ["rulers_toggle"]
+acceptance = "pass"
 notes = "View > Rulers (Ctrl+R) with selectable units."
 
 [[feature]]
@@ -1045,6 +1203,8 @@ source = "docs/revu_features/01_measurement.md:176"
 status = "have"
 cpp = "have"
 evidence = ["space_pans_while_drawing_and_autosize_shrinks_a_text_box"]
+accepted = ["space_pans_while_drawing"]
+acceptance = "pass"
 notes = "Hold Space and drag to pan; the drawing in progress keeps its points."
 
 [[feature]]
@@ -1058,6 +1218,8 @@ source = "docs/revu_features/01_measurement.md:177"
 status = "have"
 cpp = "partial"
 evidence = ["wheel_zooms_or_scrolls_by_preference_and_ctrl_swaps"]
+accepted = ["ctrl_wheel_swaps_zoom_and_pan"]
+acceptance = "pass"
 notes = "Ctrl swaps wheel zoom and scroll."
 
 [[feature]]
@@ -1071,6 +1233,8 @@ source = "docs/revu_features/01_measurement.md:178"
 status = "have"
 cpp = "have"
 evidence = ["ctrl_shift_drag_copies_in_a_straight_line"]
+accepted = ["ctrl_shift_drag_copies_in_a_straight_line"]
+acceptance = "pass"
 
 [[feature]]
 id = "meas-083"
@@ -1083,6 +1247,8 @@ source = "docs/revu_features/01_measurement.md:184"
 status = "have"
 cpp = "have"
 evidence = ["general_fields_take_typing_as_one_undo_step"]
+accepted = ["subject_label_layer_author_comment"]
+acceptance = "pass"
 notes = "Properties > Subject (typing is one undo step); no UI test of typing yet."
 
 [[feature]]
@@ -1096,7 +1262,9 @@ source = "docs/revu_features/01_measurement.md:185"
 status = "have"
 cpp = "have"
 evidence = ["general_fields_take_typing_as_one_undo_step"]
-notes = "Properties > Label; no UI test of typing yet."
+accepted = ["subject_label_layer_author_comment"]
+acceptance = "fixed"
+notes = "Properties > Label; no UI test of typing yet. Acceptance fix: a measurement's Label was not shown on the markup; the caption now reads label then value (\"R-1 10'-0\\\"\") when no caption template is set."
 
 [[feature]]
 id = "meas-085"
@@ -1109,6 +1277,8 @@ source = "docs/revu_features/01_measurement.md:186"
 status = "have"
 cpp = "partial"
 evidence = ["caption_slope_centroid_and_units_from_properties", "perimeter_rise_drop_vertices_and_precision"]
+accepted = ["units_per_measurement_from_properties"]
+acceptance = "pass"
 notes = "Properties > Units sets a measurement's length unit; Takeoff > Area unit and Volume unit set its own area and volume units (sf, sy, m², cu yd ...), the scale unchanged."
 
 [[feature]]
@@ -1122,6 +1292,8 @@ source = "docs/revu_features/01_measurement.md:187"
 status = "have"
 cpp = "have"
 evidence = ["set_as_default_styles_new_markups", "tool_sets_persist_and_reload"]
+accepted = ["set_as_default_carries_to_new_measurements"]
+acceptance = "pass"
 notes = "Right-click > Set as Default or Properties > Options; saved with the Tool Chest."
 
 [[feature]]
@@ -1135,6 +1307,8 @@ source = "docs/revu_features/01_measurement.md:188"
 status = "have"
 cpp = "partial"
 evidence = ["caption_slope_centroid_and_units_from_properties", "caption_templates_fill_in_fields"]
+accepted = ["caption_contents_leader_and_font"]
+acceptance = "pass"
 notes = "Properties > Caption > Show Caption; Caption Contents takes text with fields ({value}, {subject}, {area}, {c:<column>} ...) from an Insert field list; our key /PCCaption."
 
 [[feature]]
@@ -1148,6 +1322,8 @@ source = "docs/revu_features/01_measurement.md:189"
 status = "have"
 cpp = "have"
 evidence = ["shift_drag_moves_a_caption_alone"]
+accepted = ["caption_placement_move_and_reset"]
+acceptance = "pass"
 notes = "Shift-drag a caption; stored as /CO; right-click > Reset Caption Position."
 
 [[feature]]
@@ -1161,6 +1337,8 @@ source = "docs/revu_features/01_measurement.md:190"
 status = "have"
 cpp = "missing"
 evidence = ["caption_slope_centroid_and_units_from_properties", "measurement_extras_round_trip"]
+accepted = ["caption_contents_leader_and_font"]
+acceptance = "pass"
 notes = "Properties > Caption Contents > Show Caption Leader Line joins a moved caption to its markup; our key /PCCapLeader."
 
 [[feature]]
@@ -1174,7 +1352,9 @@ source = "docs/revu_features/01_measurement.md:191"
 status = "have"
 cpp = "partial"
 evidence = ["caption_along_the_last_segment", "caption_placement_and_strike_superscript_in_properties", "caption_along_the_last_segment_with_strike_and_superscript"]
-notes = "Area and Volume captions sit in the shape (Revu's /CO anchor at the vertex mean); Perimeter and Polylength captions can sit beside the last segment (Properties > Caption > Placement: Along the last segment, saved as /PCCaptionLastSeg; Polylength with segment values does so already); Length along the line."
+accepted = ["caption_placement_move_and_reset"]
+acceptance = "fixed"
+notes = "Area and Volume captions sit in the shape (Revu's /CO anchor at the vertex mean); Perimeter and Polylength captions can sit beside the last segment (Properties > Caption > Placement: Along the last segment, saved as /PCCaptionLastSeg; Polylength with segment values does so already); Length along the line. Acceptance fix: Polylength captions sat on the middle segment and Perimeter captions at the centre; both now sit along the last segment by default, as the inventory says Revu does."
 
 [[feature]]
 id = "meas-091"
@@ -1187,7 +1367,9 @@ source = "docs/revu_features/01_measurement.md:192"
 status = "have"
 cpp = "missing"
 evidence = ["line_endings_cloud_and_text_style"]
-notes = "Properties > Start / End endings on Length and Polylength (and lines); their size follows the line width."
+accepted = ["measurement_appearance_saves"]
+acceptance = "fixed"
+notes = "Properties > Start / End endings on Length and Polylength (and lines); their size follows the line width. Acceptance fix: a Length always saved /LE [/ClosedArrow /ClosedArrow] whatever ends were chosen (new or edited); it now saves the chosen Start / End (closed arrows when none is set)."
 
 [[feature]]
 id = "meas-092"
@@ -1200,6 +1382,8 @@ source = "docs/revu_features/01_measurement.md:193"
 status = "have"
 cpp = "partial"
 evidence = ["appearance_pickers_change_the_markup", "line_styles_custom_statuses_and_profile_columns"]
+accepted = ["measurement_appearance_saves"]
+acceptance = "pass"
 notes = "Properties: colour, fill, opacity, fill opacity, line width, line style including the user's own line styles, endings, blend mode."
 
 [[feature]]
@@ -1213,6 +1397,8 @@ source = "docs/revu_features/01_measurement.md:194"
 status = "have"
 cpp = "missing"
 evidence = ["caption_placement_and_strike_superscript_in_properties", "caption_along_the_last_segment_with_strike_and_superscript"]
+accepted = ["caption_contents_leader_and_font"]
+acceptance = "pass"
 notes = "Properties > Caption: font size (2-144, typed), font, colour, bold, italic, underline, strike-through, superscript and subscript; saved in /DS as CSS (text-decoration, vertical-align), drawn on the canvas and in the saved appearance (smaller and raised or lowered, with underline and strike lines)."
 
 [[feature]]
@@ -1226,6 +1412,8 @@ source = "docs/revu_features/01_measurement.md:195"
 status = "have"
 cpp = "have"
 evidence = ["area_shows_its_value_and_finishes_on_double_click", "measuring_without_a_scale_says_so"]
+accepted = ["length_tool_two_clicks"]
+acceptance = "pass"
 notes = "The value under construction follows the cursor and shows in the status bar."
 
 [[feature]]
@@ -1239,6 +1427,8 @@ source = "docs/revu_features/01_measurement.md:196"
 status = "have"
 cpp = "missing"
 evidence = ["temporary_measurements_and_keep_last_subject"]
+accepted = ["measure_without_making_annotations"]
+acceptance = "pass"
 notes = "Measure > Make Annotations from Measurements: off, a measurement tool only reads its value out."
 
 [[feature]]
@@ -1252,6 +1442,8 @@ source = "docs/revu_features/01_measurement.md:197"
 status = "have"
 cpp = "missing"
 evidence = ["measure_tool_switches_modes_and_recalculates"]
+accepted = ["measure_tool_and_measurements_panel"]
+acceptance = "pass"
 notes = "Measure (M): opens the Measurements panel and switches between the measurement modes from its mode row."
 
 [[feature]]
@@ -1265,6 +1457,8 @@ source = "docs/revu_features/01_measurement.md:198"
 status = "have"
 cpp = "partial"
 evidence = ["measurements_panel_sets_a_custom_scale_on_every_page"]
+accepted = ["measure_tool_and_measurements_panel"]
+acceptance = "pass"
 notes = "Measurements panel (Alt+U): page scale, presets, custom scale, calibrate, units and precision, viewports, selection totals."
 
 [[feature]]
@@ -1278,6 +1472,8 @@ source = "docs/revu_features/01_measurement.md:199"
 status = "have"
 cpp = "have"
 evidence = ["markups_list_shows_totals_and_status"]
+accepted = ["totals_and_bulk_edit_of_the_selection"]
+acceptance = "pass"
 notes = "Totals of the selected measurements by unit in the Measurements panel and the Markups List footer."
 
 [[feature]]
@@ -1291,6 +1487,8 @@ source = "docs/revu_features/01_measurement.md:200"
 status = "have"
 cpp = "partial"
 evidence = ["properties_edit_every_selected_markup"]
+accepted = ["totals_and_bulk_edit_of_the_selection"]
+acceptance = "pass"
 notes = "Properties edits apply to every selected markup."
 
 [[feature]]
@@ -1304,6 +1502,8 @@ source = "docs/revu_features/01_measurement.md:201"
 status = "have"
 cpp = "partial"
 evidence = ["general_fields_take_typing_as_one_undo_step", "layers_from_properties"]
+accepted = ["subject_label_layer_author_comment"]
+acceptance = "pass"
 notes = "Properties > General: Subject, Label, Author, Layer; a measurement's comment is its value (Revu writes the quantity into /Contents)."
 
 [[feature]]
@@ -1317,6 +1517,8 @@ source = "docs/revu_features/01_measurement.md:202"
 status = "have"
 cpp = "missing"
 evidence = ["extras_columns_status_replies_lock_round_trip", "properties_edit_every_selected_markup"]
+accepted = ["locked_measurements_do_not_move"]
+acceptance = "pass"
 notes = "Properties > Options > Locked, Ctrl+Shift+L, right-click."
 
 [[feature]]
@@ -1330,6 +1532,8 @@ source = "docs/revu_features/01_measurement.md:203"
 status = "have"
 cpp = "missing"
 evidence = ["temporary_measurements_and_keep_last_subject"]
+accepted = ["keep_last_subject_and_label"]
+acceptance = "pass"
 notes = "Measure > Keep Last Subject and Label: a new measurement takes the last one of its kind's subject and label."
 
 [[feature]]
@@ -1343,6 +1547,8 @@ source = "docs/revu_features/01_measurement.md:209"
 status = "have"
 cpp = "have"
 evidence = ["context_menu_saves_a_look_to_the_tool_chest", "tool_sets_persist_and_reload"]
+accepted = ["tool_chest_measurement_tools"]
+acceptance = "pass"
 
 [[feature]]
 id = "meas-104"
@@ -1355,6 +1561,8 @@ source = "docs/revu_features/01_measurement.md:210"
 status = "have"
 cpp = "missing"
 evidence = ["drawing_mode_places_a_copy", "tool_sets_persist_and_reload"]
+accepted = ["tool_chest_measurement_tools"]
+acceptance = "pass"
 notes = "Tool Chest item right-click: Properties Mode / Drawing Mode."
 
 [[feature]]
@@ -1368,6 +1576,8 @@ source = "docs/revu_features/01_measurement.md:211"
 status = "have"
 cpp = "have"
 evidence = ["tool_sets_persist_and_reload"]
+accepted = ["tool_sets_share_and_rescale"]
+acceptance = "pass"
 notes = "New / rename / delete tool sets; copy items between sets."
 
 [[feature]]
@@ -1381,6 +1591,8 @@ source = "docs/revu_features/01_measurement.md:212"
 status = "have"
 cpp = "missing"
 evidence = ["tool_chest_symbol_view_scale_export_and_import", "reorder_export_import_and_rescale"]
+accepted = ["tool_sets_share_and_rescale"]
+acceptance = "pass"
 notes = "A tool set's scale (header right-click > Scale): its Drawing-mode items placed on a page at another scale are resized to keep their real size."
 
 [[feature]]
@@ -1394,6 +1606,8 @@ source = "docs/revu_features/01_measurement.md:213"
 status = "have"
 cpp = "missing"
 evidence = ["profile_columns_every_document_takeoff_profile_and_toolset_legend"]
+accepted = ["takeoff_workspace_profile"]
+acceptance = "pass"
 notes = "Window > Takeoff Workspace switches to the Takeoff profile (made from the current one the first time): Measurements panel, Markups List and Tool Chest shown and the measure tool active; the profile keeps its own layout and preferences."
 
 [[feature]]
@@ -1407,6 +1621,8 @@ source = "docs/revu_features/01_measurement.md:219"
 status = "have"
 cpp = "have"
 evidence = ["list_group_sort_and_totals_per_unit", "cli_list_and_summary_end_to_end"]
+accepted = ["markups_list_measurement_columns_totals_sort_filter"]
+acceptance = "pass"
 notes = "Measurement column with group and grand totals per unit (markupcraft-cli list/summary); no panel UI."
 
 [[feature]]
@@ -1420,6 +1636,8 @@ source = "docs/revu_features/01_measurement.md:220"
 status = "have"
 cpp = "partial"
 evidence = ["list_wall_area_slope_and_geometry_columns", "spaces_name_markups_split_counts_and_round_trip"]
+accepted = ["markups_list_measurement_columns_totals_sort_filter"]
+acceptance = "pass"
 notes = "Length, Area, Perimeter, Volume, Count, Depth, Rise/Drop, Width, Height, Wall Area, Slope, Unit, Space, Page Label and Layer columns."
 
 [[feature]]
@@ -1433,6 +1651,8 @@ source = "docs/revu_features/01_measurement.md:221"
 status = "have"
 cpp = "have"
 evidence = ["list_group_sort_and_totals_per_unit", "list_filters_search_and_scope", "cli_list_and_summary_end_to_end"]
+accepted = ["markups_list_measurement_columns_totals_sort_filter"]
+acceptance = "pass"
 notes = "Headless (crates/model table, CLI --group/--sort/--filter); no panel UI. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table."
 
 [[feature]]
@@ -1446,6 +1666,8 @@ source = "docs/revu_features/01_measurement.md:222"
 status = "have"
 cpp = "have"
 evidence = ["list_custom_column_types"]
+accepted = ["custom_columns_number_choice_formula_currency"]
+acceptance = "pass"
 notes = "Headless; stored as /PCColumns + /PCColumnData. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table."
 
 [[feature]]
@@ -1459,7 +1681,9 @@ source = "docs/revu_features/01_measurement.md:223"
 status = "have"
 cpp = "have"
 evidence = ["list_cells_formula_choice_currency_status"]
-notes = "Choice items with subject and value; value used by formulas. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table."
+accepted = ["custom_columns_number_choice_formula_currency"]
+acceptance = "fixed"
+notes = "Choice items with subject and value; value used by formulas. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table. Acceptance fix: columns_set dropped choice items given as objects, so a choice's numeric value (unit cost) could not be set headlessly; items now take \"text\" or {text, value, subject}."
 
 [[feature]]
 id = "meas-113"
@@ -1472,6 +1696,8 @@ source = "docs/revu_features/01_measurement.md:224"
 status = "have"
 cpp = "have"
 evidence = ["formula_functions_and_constants", "list_cells_formula_choice_currency_status"]
+accepted = ["custom_columns_number_choice_formula_currency"]
+acceptance = "pass"
 notes = "+ - * / ^ %, pi, e, sqrt/trig/log/ln/exp/floor/ceil(ing)/round/min/max/pow/if, column references. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table."
 
 [[feature]]
@@ -1485,6 +1711,8 @@ source = "docs/revu_features/01_measurement.md:225"
 status = "have"
 cpp = "partial"
 evidence = ["list_custom_column_types"]
+accepted = ["custom_text_date_checkmark_and_statuses"]
+acceptance = "pass"
 notes = "Text, Date (stored as typed) and Checkmark columns. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table."
 
 [[feature]]
@@ -1498,7 +1726,9 @@ source = "docs/revu_features/01_measurement.md:226"
 status = "have"
 cpp = "partial"
 evidence = ["list_formula_display_and_date_formats", "extras_columns_status_replies_lock_round_trip"]
-notes = "Manage Columns: a Formula column shows its number as Number, Currency or Percent (saved as /Display); number columns as number, currency or percent."
+accepted = ["custom_columns_number_choice_formula_currency"]
+acceptance = "fixed"
+notes = "Manage Columns: a Formula column shows its number as Number, Currency or Percent (saved as /Display); number columns as number, currency or percent. Acceptance fix: columns_set ignored a Formula column's display format; it now takes display = Number, Currency or Percent."
 
 [[feature]]
 id = "meas-116"
@@ -1511,6 +1741,8 @@ source = "docs/revu_features/01_measurement.md:227"
 status = "have"
 cpp = "missing"
 evidence = ["caption_templates_fill_in_fields", "caption_slope_centroid_and_units_from_properties"]
+accepted = ["caption_contents_leader_and_font"]
+acceptance = "pass"
 notes = "Caption Contents > Insert field lists the custom columns ({c:<id>})."
 
 [[feature]]
@@ -1524,6 +1756,8 @@ source = "docs/revu_features/01_measurement.md:228"
 status = "have"
 cpp = "have"
 evidence = ["line_styles_custom_statuses_and_profile_columns", "extras_columns_status_replies_lock_round_trip"]
+accepted = ["custom_text_date_checkmark_and_statuses", "counts_per_page_space_and_status"]
+acceptance = "pass"
 notes = "None, Accepted, Rejected, Cancelled, Completed plus the user's own statuses (Properties > Custom Status, kept for the status menus); stored as /StateModel /Review replies, filterable in the Status column."
 
 [[feature]]
@@ -1537,6 +1771,8 @@ source = "docs/revu_features/01_measurement.md:234"
 status = "have"
 cpp = "missing"
 evidence = ["spaces_add_column_tally_export_import", "spaces_name_markups_split_counts_and_round_trip"]
+accepted = ["spaces_name_and_total_their_markups"]
+acceptance = "pass"
 notes = "space_add/edit/delete/list: named polygons per page, stored as our page key /PCSpaces. No panel UI."
 
 [[feature]]
@@ -1550,6 +1786,8 @@ source = "docs/revu_features/01_measurement.md:235"
 status = "have"
 cpp = "missing"
 evidence = ["spaces_name_markups_split_counts_and_round_trip", "markups_take_the_innermost_space"]
+accepted = ["spaces_name_and_total_their_markups"]
+acceptance = "pass"
 notes = "Markups List Space column (crates/model table): the innermost space containing the markup's centre, nested spaces as Outer > Inner; groups and filters like any column."
 
 [[feature]]
@@ -1563,7 +1801,9 @@ source = "docs/revu_features/01_measurement.md:236"
 status = "have"
 cpp = "missing"
 evidence = ["spaces_name_markups_split_counts_and_round_trip"]
-notes = "The Space column is computed from the current geometry, so it is always recalculated."
+accepted = ["spaces_name_and_total_their_markups"]
+acceptance = "pass"
+notes = "The Space column is computed from the current geometry, so it is always recalculated. Acceptance: membership is computed live (markups drawn before a space, or a moved outline, follow at once), so no explicit Recalculate Space is needed."
 
 [[feature]]
 id = "meas-121"
@@ -1576,6 +1816,8 @@ source = "docs/revu_features/01_measurement.md:237"
 status = "have"
 cpp = "missing"
 evidence = ["dynamic_fill_makes_areas_spaces_and_hatch", "dynamic_fill_makes_an_area_with_a_cutout"]
+accepted = ["dynamic_fill_turns_a_room_into_measurements"]
+acceptance = "pass"
 notes = "dynamic_fill output space."
 
 [[feature]]
@@ -1589,6 +1831,8 @@ source = "docs/revu_features/01_measurement.md:243"
 status = "have"
 cpp = "missing"
 evidence = ["toolset_legend_and_review_columns_capture_legend_3d_view", "profile_columns_every_document_takeoff_profile_and_toolset_legend"]
+accepted = ["legends_from_tool_sets_scope_columns_look_and_copies"]
+acceptance = "pass"
 notes = "Legend > From Tool Chest set lists every subject the set's tools make, even with none drawn yet (show_empty), with symbols and live counts and totals; markups of those subjects drawn later appear as the legend updates (tool legend_from_toolset)."
 
 [[feature]]
@@ -1602,6 +1846,8 @@ source = "docs/revu_features/01_measurement.md:244"
 status = "have"
 cpp = "missing"
 evidence = ["legend_ranges_selections_tool_sets_custom_columns_look_and_distribution", "legend_options_copy_freeze_and_reduce_options", "redaction_properties_scrub_form_data_and_legend_distribution"]
+accepted = ["ad_hoc_legend_of_a_selection"]
+acceptance = "pass"
 notes = "A legend of the selected markups (ids; the Legend dialog's selection option)."
 
 [[feature]]
@@ -1615,6 +1861,8 @@ source = "docs/revu_features/01_measurement.md:245"
 status = "have"
 cpp = "missing"
 evidence = ["legend_ranges_selections_tool_sets_custom_columns_look_and_distribution", "legend_options_copy_freeze_and_reduce_options"]
+accepted = ["legends_from_tool_sets_scope_columns_look_and_copies"]
+acceptance = "pass"
 notes = "Current page, all pages, or a page range."
 
 [[feature]]
@@ -1628,7 +1876,9 @@ source = "docs/revu_features/01_measurement.md:246"
 status = "have"
 cpp = "missing"
 evidence = ["legend_ranges_selections_tool_sets_custom_columns_look_and_distribution", "legend_options_copy_freeze_and_reduce_options"]
-notes = "Symbol, Subject, Type, Count, Total in any order plus custom Markups List columns (their values split rows)."
+accepted = ["legends_from_tool_sets_scope_columns_look_and_copies"]
+acceptance = "gap"
+notes = "Symbol, Subject, Type, Count, Total in any order plus custom Markups List columns (their values split rows). Acceptance gap: legend columns are Symbol, Subject (Description), Type, Count and Total plus custom columns; other Markups List columns (Layer, Author, Measurement ...) cannot be chosen."
 
 [[feature]]
 id = "meas-126"
@@ -1641,6 +1891,8 @@ source = "docs/revu_features/01_measurement.md:247"
 status = "have"
 cpp = "missing"
 evidence = ["legend_ranges_selections_tool_sets_custom_columns_look_and_distribution", "legend_options_copy_freeze_and_reduce_options", "redaction_properties_scrub_form_data_and_legend_distribution"]
+accepted = ["legends_from_tool_sets_scope_columns_look_and_copies"]
+acceptance = "pass"
 notes = "Title, font size, border colour and width, fill or none, opacity, symbol size, header row on/off."
 
 [[feature]]
@@ -1654,6 +1906,8 @@ source = "docs/revu_features/01_measurement.md:248"
 status = "have"
 cpp = "missing"
 evidence = ["legend_ranges_selections_tool_sets_custom_columns_look_and_distribution", "legend_options_copy_freeze_and_reduce_options", "redaction_properties_scrub_form_data_and_legend_distribution"]
+accepted = ["legends_from_tool_sets_scope_columns_look_and_copies"]
+acceptance = "pass"
 notes = "Copy Legend to Pages (same position, each counting its own page) and Snapshot Legend (a static copy that no longer updates)."
 
 [[feature]]
@@ -1667,6 +1921,8 @@ source = "docs/revu_features/01_measurement.md:254"
 status = "have"
 cpp = "have"
 evidence = ["csv_summary_with_groups_and_totals", "cli_list_and_summary_end_to_end", "cli: summary"]
+accepted = ["markup_summary_formats_filters_and_sort"]
+acceptance = "pass"
 notes = "Spreadsheet-safe CSV with groups, subtotals and grand total per unit."
 
 [[feature]]
@@ -1680,6 +1936,8 @@ source = "docs/revu_features/01_measurement.md:255"
 status = "have"
 cpp = "partial"
 evidence = ["csv_summary_with_groups_and_totals", "markup_summary_writes_excel_pdf_and_csv", "summary_export_writes_csv_xml_xlsx_and_pdf"]
+accepted = ["markup_summary_formats_filters_and_sort"]
+acceptance = "pass"
 notes = "XML, CSV, Excel and PDF summary; print through the PDF report."
 
 [[feature]]
@@ -1693,6 +1951,8 @@ source = "docs/revu_features/01_measurement.md:256"
 status = "have"
 cpp = "missing"
 evidence = ["quantity_links_and_folder_summary_to_excel", "quantity_link_dialog_and_folder_summary_to_excel"]
+accepted = ["summary_across_a_folder"]
+acceptance = "pass"
 notes = "Batch Summary of chosen files, a set, or every PDF in a folder (and subfolders), as CSV or an Excel workbook with a File column."
 
 [[feature]]
@@ -1706,6 +1966,8 @@ source = "docs/revu_features/01_measurement.md:257"
 status = "have"
 cpp = "have"
 evidence = ["cli_list_and_summary_end_to_end"]
+accepted = ["markup_summary_formats_filters_and_sort"]
+acceptance = "pass"
 notes = "Summary honours the view's filters, search, sort and grouping. C++ value taken from the matching Markups List rows (K-150..K-177), which were updated after this table."
 
 [[feature]]
@@ -1719,6 +1981,8 @@ source = "docs/revu_features/01_measurement.md:258"
 status = "have"
 cpp = "missing"
 evidence = ["quantity_link_updates_an_existing_workbook_in_place", "cells_are_set_in_place_and_other_parts_are_kept", "quantity_link_dialog_and_folder_summary_to_excel"]
+accepted = ["quantity_links_to_filtered_totals"]
+acceptance = "pass"
 notes = "Quantity Links bind a sheet and cell to a total over one or more PDFs (count, length, area, volume, quantity or a custom column, filtered). Update writes the totals into the workbook: an existing .xlsx is edited in place (only the linked cells and our Links sheet change; styles, formulas, charts and other sheets are kept; Excel recalculates on open). It runs from MarkupCraft (Quantity Link dialog, quantity_link tool), not as an add-in inside Excel."
 
 [[feature]]
@@ -1732,6 +1996,8 @@ source = "docs/revu_features/01_measurement.md:259"
 status = "have"
 cpp = "missing"
 evidence = ["links_total_by_type_and_filters_and_write_the_workbook", "quantity_links_and_folder_summary_to_excel"]
+accepted = ["quantity_links_to_filtered_totals"]
+acceptance = "pass"
 notes = "Filters by subject, layer, label, author, colour and page label."
 
 [[feature]]
@@ -1745,6 +2011,8 @@ source = "docs/revu_features/01_measurement.md:260"
 status = "have"
 cpp = "missing"
 evidence = ["links_total_by_type_and_filters_and_write_the_workbook", "quantity_links_and_folder_summary_to_excel", "quantity_link_dialog_and_folder_summary_to_excel"]
+accepted = ["quantity_links_to_filtered_totals"]
+acceptance = "pass"
 notes = "Count, length, area, volume, any measurement quantity, or the sum of a custom column."
 
 [[feature]]

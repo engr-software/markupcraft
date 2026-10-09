@@ -26,6 +26,14 @@ pub fn default_caption_anchor(m: &Markup) -> Point {
     {
         return at;
     }
+    // Revu: Perimeter and Polylength values sit along the last segment; Area and Volume
+    // values centre in the shape.
+    if matches!(m.kind, Kind::Perimeter | Kind::Polylength)
+        && !m.segment_values
+        && let Some(at) = last_segment_anchor(m)
+    {
+        return at;
+    }
     if matches!(m.kind, Kind::Area | Kind::Perimeter | Kind::Volume) {
         return vertex_mean(&m.pts);
     }
@@ -245,7 +253,14 @@ pub fn caption_field(m: &Markup, name: &str) -> Option<String> {
 /// value without one. Unknown `{names}` stay as typed.
 pub fn caption_text(m: &Markup) -> String {
     if m.caption_template.trim().is_empty() {
-        return m.quantity_text();
+        // Revu shows a measurement's Label on the markup beside its value.
+        let label = m.label.trim();
+        let value = m.quantity_text();
+        return match (label.is_empty(), value.is_empty()) {
+            (true, _) => value,
+            (false, true) => label.chars().take(MAX_CAPTION).collect(),
+            (false, false) => format!("{} {value}", label.chars().take(MAX_CAPTION).collect::<String>()),
+        };
     }
     let mut out = String::new();
     let mut rest = m.caption_template.as_str();
@@ -299,10 +314,14 @@ mod tests {
             Point::new(100.0, 100.0),
             Point::new(0.0, 100.0),
         ];
-        let mut m = Markup::new(Kind::Perimeter, 0, sq);
+        // A Perimeter's value sits along its last segment (Revu); an Area's in its centre unless
+        // asked for along the last segment.
+        let p = Markup::new(Kind::Perimeter, 0, sq.clone());
+        // the last segment runs (100,100) -> (0,100): the caption sits above it, outside
+        assert_eq!(default_caption_anchor(&p), Point::new(50.0, 100.0 + TOTAL_OFFSET));
+        let mut m = Markup::new(Kind::Area, 0, sq);
         assert_eq!(default_caption_anchor(&m), Point::new(50.0, 50.0));
         m.caption_last_segment = true;
-        // the last segment runs (100,100) -> (0,100): the caption sits above it, outside
         assert_eq!(default_caption_anchor(&m), Point::new(50.0, 100.0 + TOTAL_OFFSET));
     }
 
@@ -335,12 +354,13 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(default_caption_anchor(&pl), p(150.0, 90.0));
+        // Without them the value sits along the last segment too (Revu), below it.
         pl.segment_values = false;
-        assert_eq!(default_caption_anchor(&pl), p(100.0, 50.0));
-        // With an arc: the middle control segment's handle.
+        assert_eq!(default_caption_anchor(&pl), p(150.0, 90.0));
+        // An arc earlier in the run does not move it.
         crate::measure_extras::convert_to_arc(&mut pl, 1, 0.0);
         let h = default_caption_anchor(&pl);
-        assert!((h.y - 50.0).abs() < 1e-9 && (h.x - 75.0).abs() < 1e-9, "{h:?}");
+        assert!((h.y - 90.0).abs() < 1e-9 && (h.x - 150.0).abs() < 1e-9, "{h:?}");
 
         let ang = Markup {
             kind: Kind::Angle,

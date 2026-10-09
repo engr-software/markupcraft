@@ -129,6 +129,73 @@ pub fn polygon_area(p: &[Point]) -> f64 {
     s.abs() / 2.0
 }
 
+/// Area covered by the union of simple polygons (overlaps counted once). Exact for straight
+/// edges: the plane is cut into vertical slabs at every vertex and edge crossing, and inside a
+/// slab the covered height is linear in x, so its midline gives the slab's area. Above
+/// [`UNION_MAX_EDGES`] edges in total it falls back to the plain sum of the areas.
+pub fn union_area(polys: &[Vec<Point>]) -> f64 {
+    let rings: Vec<&Vec<Point>> = polys.iter().filter(|p| p.len() >= 3).collect();
+    if rings.len() < 2 {
+        return rings.iter().map(|p| polygon_area(p)).sum();
+    }
+    let edges: Vec<(Point, Point)> = rings
+        .iter()
+        .flat_map(|p| (0..p.len()).map(move |i| (p[i], p[(i + 1) % p.len()])))
+        .collect();
+    if edges.len() > UNION_MAX_EDGES {
+        return rings.iter().map(|p| polygon_area(p)).sum();
+    }
+    let mut xs: Vec<f64> = edges.iter().map(|e| e.0.x).filter(|x| x.is_finite()).collect();
+    for (i, a) in edges.iter().enumerate() {
+        for b in edges.iter().skip(i + 1) {
+            if let Some(p) = snap::segment_intersection(*a, *b) {
+                xs.push(p.x);
+            }
+        }
+    }
+    xs.sort_by(f64::total_cmp);
+    xs.dedup_by(|a, b| (*a - *b).abs() < 1e-9);
+    let mut total = 0.0;
+    for w in xs.windows(2) {
+        let (x0, x1) = (w[0], w[1]);
+        let xm = (x0 + x1) / 2.0;
+        // each ring's covered intervals on the line x = xm (even-odd)
+        let mut spans: Vec<(f64, f64)> = Vec::new();
+        for p in &rings {
+            let mut ys: Vec<f64> = (0..p.len())
+                .filter_map(|i| {
+                    let (a, b) = (p[i], p[(i + 1) % p.len()]);
+                    ((a.x <= xm && xm < b.x) || (b.x <= xm && xm < a.x))
+                        .then(|| a.y + (xm - a.x) * (b.y - a.y) / (b.x - a.x))
+                })
+                .collect();
+            ys.sort_by(f64::total_cmp);
+            spans.extend(ys.as_chunks::<2>().0.iter().map(|[a, b]| (*a, *b)));
+        }
+        spans.sort_by(|a, b| a.0.total_cmp(&b.0));
+        let mut covered = 0.0;
+        let mut cur: Option<(f64, f64)> = None;
+        for (lo, hi) in spans {
+            cur = match cur {
+                Some((a, b)) if lo <= b => Some((a, b.max(hi))),
+                Some((a, b)) => {
+                    covered += b - a;
+                    Some((lo, hi))
+                }
+                None => Some((lo, hi)),
+            };
+        }
+        if let Some((a, b)) = cur {
+            covered += b - a;
+        }
+        total += covered * (x1 - x0);
+    }
+    total
+}
+
+/// Edge budget for [`union_area`] (pairwise crossings grow with its square).
+pub const UNION_MAX_EDGES: usize = 2000;
+
 /// Length along `p`; `closed` adds the closing segment (only with 3+ points).
 pub fn polyline_length(p: &[Point], closed: bool) -> f64 {
     let mut s: f64 = p.windows(2).map(|w| w[0].dist(w[1])).sum();

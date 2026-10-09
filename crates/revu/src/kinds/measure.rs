@@ -30,7 +30,9 @@ pub(super) fn polygon_keys(a: &mut Dict, m: &Markup) {
 
 fn line_keys(a: &mut Dict, m: &Markup) {
     measurement_keys(a, m);
-    pdf::set(a, "LE", Object::Array(vec![n("ClosedArrow"), n("ClosedArrow")]));
+    // the ends chosen in Properties > Start / End; Revu's closed arrows when none is set
+    let end = |e: &str| n(if e.is_empty() { "ClosedArrow" } else { e });
+    pdf::set(a, "LE", Object::Array(vec![end(&m.line_start), end(&m.line_end)]));
     pdf::set(a, "LL", Object::Int(0));
     pdf::set(a, "LLE", Object::Int(0));
 }
@@ -88,6 +90,11 @@ pub(super) fn polish_keys(a: &mut Dict, m: &Markup) {
 fn line_geometry(a: &mut Dict, m: &Markup) {
     geometry_by_subtype(a, m);
     polish_keys(a, m);
+    // the ends as chosen in Properties > Start / End (left as read when never set)
+    if !(m.line_start.is_empty() && m.line_end.is_empty()) {
+        let end = |e: &str| n(if e.is_empty() { "ClosedArrow" } else { e });
+        pdf::set(a, "LE", Object::Array(vec![end(&m.line_start), end(&m.line_end)]));
+    }
 }
 
 pub(super) fn area_geometry(a: &mut Dict, m: &Markup) {

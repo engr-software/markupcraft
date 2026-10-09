@@ -533,8 +533,19 @@ pub fn cutout_areas(m: &Markup) -> Vec<f64> {
 /// Area without cutouts minus the cutouts, never below zero (first `/A` unit).
 pub fn net_area(m: &Markup) -> Option<f64> {
     let s = m.scale.as_ref().filter(|s| s.valid())?;
-    let deductions: f64 = m.holes.iter().map(|h| s.area_of(h)).sum();
-    Some((s.area_of(&m.pts) - deductions).max(0.0))
+    Some((s.area_of(&m.pts) - cutout_deduction(s, &m.holes)).max(0.0))
+}
+
+/// What the cutouts take off, in the first `/A` unit: overlapping cutouts merge, so a region
+/// two of them cover is deducted once (as Revu does).
+pub fn cutout_deduction(s: &Scale, holes: &[Vec<Point>]) -> f64 {
+    let unit = [
+        Point::new(0.0, 0.0),
+        Point::new(1.0, 0.0),
+        Point::new(1.0, 1.0),
+        Point::new(0.0, 1.0),
+    ];
+    markupcraft_geom::union_area(holes) * s.area_of(&unit)
 }
 
 /// A cutout ring for an ellipse (implicitly closed, `n` points).
