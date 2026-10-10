@@ -5,8 +5,7 @@
 
 use std::path::{Path, PathBuf};
 
-use markupcraft_engine::combine::SplitBy;
-use markupcraft_engine::{EngineError, Result, Session};
+use markupcraft_engine::{EngineError, Result};
 
 fn invalid(m: impl Into<String>) -> EngineError {
     EngineError::Invalid(m.into())
@@ -148,25 +147,6 @@ pub fn load_list(path: &Path) -> Result<Vec<PathBuf>> {
         .take(markupcraft_engine::batch::MAX_FILES)
         .map(PathBuf::from)
         .collect())
-}
-
-/// Batch Split: each file split into `dir` (every `pages` pages, or at top-level bookmarks
-/// when 0). Returns the parts written and the errors.
-pub fn split_all(files: &[PathBuf], dir: &Path, pages: u32) -> (usize, Vec<String>) {
-    let mut parts = 0;
-    let mut errors = Vec::new();
-    for f in files {
-        let by = if pages == 0 {
-            SplitBy::Bookmarks
-        } else {
-            SplitBy::Pages(pages as usize)
-        };
-        match Session::open(f).and_then(|s| s.split_document(dir, &by)) {
-            Ok(v) => parts += v.len(),
-            Err(e) => errors.push(format!("{}: {e}", f.display())),
-        }
-    }
-    (parts, errors)
 }
 
 /// Run Script on every file: the script's steps (`[{"tool", "params" | "args"}]`) as one

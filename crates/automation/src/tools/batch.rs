@@ -4,13 +4,14 @@ use std::path::PathBuf;
 
 use markupcraft_engine::Session;
 use markupcraft_engine::batch::{
-    BatchLinkOptions, DrawingSet, LinkTerms, SetSort, SlipSheetOptions, batch_link, batch_summary_csv, link_terms_csv,
-    load_set, save_set, set_sheets,
+    BatchLinkOptions, BatchLinkRun, DrawingSet, HighlightStyle, LinkTerms, SetSort, TermDest, TermTarget, batch_link,
+    batch_link_terms, batch_summary_csv, link_terms_csv, link_terms_from_csv, link_terms_to_csv, load_link_run,
+    load_set, save_link_run, save_set, set_sheets,
 };
 use serde_json::{Map, Value, json};
 
-use super::{Tool, path_arg, rect_arg, schema, schema_nodoc};
-use crate::{Args, Automation, Result, bad_args, failed, summary};
+use super::{Tool, path_arg, rect_arg, schema_nodoc};
+use crate::{Args, Automation, Result, bad_args, failed};
 
 /// Tools batch_apply may run on each file.
 const APPLY_TOOLS: &[&str] = &[
@@ -20,6 +21,7 @@ const APPLY_TOOLS: &[&str] = &[
     "bates_add",
     "marks_remove",
     "stamp_add",
+    "stamp_apply",
     "markup_paste",
     "markup_add",
     "layer_assign",
@@ -215,7 +217,7 @@ pub static SUMMARY: Tool = Tool {
 pub static LINK: Tool = Tool {
     name: "batch_link",
     title: "Batch Link",
-    description: "Batch Link: every page label (sheet number) in the files is a target; wherever a page's text shows another page's label, a link to that page is added (same file: a page link; another file: a link to its page). Files are saved in place; places that already have a link are skipped, so it can be run again.",
+    description: "Batch Link: every page label (sheet number) in the files is a target; wherever a page's text shows another page's label, a link to that page is added (same file: a page link; another file: a link to its page). Terms can instead be file names, a region's text, or a term table (`targets`: each to a page of a file, a file, a named Place in a file, or a web URL; `terms_csv` reads Term,File,Page,Place,URL). Options: relative or full paths, border, a highlight over each link (highlight_style fill / outline / highlight, flatten_highlight), places with a link already are skipped, replaced (replace_existing) or kept beside (add_overlapping). `export_terms` writes the term table as CSV; `save_run` saves the files and options as XML (or into a .pcset Set file) and `run_file` runs a saved one; `run: false` only exports / saves. Files are saved in place; the report counts links created and deleted, pages skipped (no text) and files not opened.",
     read_only: false,
     destructive: true,
     schema: || {
@@ -235,19 +237,44 @@ pub static LINK: Tool = Tool {
                     "keep_start": { "type": "boolean", "description": "Keep the text before filter_char (default) or after it." },
                     "full_paths": { "type": "boolean" },
                     "highlight": { "type": ["string", "array"], "description": "A highlight rectangle of this colour over each new link." },
-                    "replace_existing": { "type": "boolean" }
+                    "replace_existing": { "type": "boolean" },
+                    "add_overlapping": { "type": "boolean", "description": "Add the new link beside an existing one." },
+                    "highlight_style": { "type": "string", "enum": ["fill", "outline", "highlight"] },
+                    "flatten_highlight": { "type": "boolean" },
+                    "targets": { "type": "array", "items": { "type": "object" }, "description": "terms=targets: [{term, file (from 1), page (from 1) | place | (neither: the file)} or {term, url}]." },
+                    "export_terms": path_arg("Write the term table here as CSV"),
+                    "save_run": path_arg("Save the run (files and options) as .xml, or into a .pcset Set file"),
+                    "run_file": path_arg("Run a saved run (.xml or .pcset)"),
+                    "run": { "type": "boolean", "description": "false: only export_terms / save_run (default true)." }
                 }),
             ),
             &[],
         )
     },
     run: |a, args| {
-        let files = files_of(a, args)?;
-        check_closed(a, &files)?;
-        let mut o = BatchLinkOptions {
-            match_case: args.bool_or("match_case", false)?,
-            ..Default::default()
+        let loaded = match args.opt_str("run_file")? {
+            Some(f) => Some(load_link_run(&a.resolve(f, false)?)?),
+            None => None,
         };
+        let files = match &loaded {
+            Some(l) if args.get("files").is_none() && args.get("set").is_none() => l
+                .files
+                .iter()
+                .map(|p| a.resolve(&p.display().to_string(), false))
+                .collect::<Result<Vec<_>>>()?,
+            _ => files_of(a, args)?,
+        };
+        let do_run = args.bool_or("run", true)?;
+        if do_run {
+            check_closed(a, &files)?;
+        }
+        let mut o = match &loaded {
+            Some(l) => l.options.clone(),
+            None => BatchLinkOptions::default(),
+        };
+        if let Some(v) = args.opt_bool("match_case")? {
+            o.match_case = v;
+        }
         if let Some(w) = args.opt_num("border_width")? {
             o.width = w;
         }
@@ -257,8 +284,24 @@ pub static LINK: Tool = Tool {
         if let Some(p) = args.opt_num("padding")? {
             o.padding = p;
         }
-        o.terms = match args.opt_str("terms")?.unwrap_or("page_labels") {
+        let default_terms = if loaded.is_some() { "saved" } else { "page_labels" };
+        o.terms = match args.opt_str("terms")?.unwrap_or(default_terms) {
+            "saved" => o.terms.clone(),
             "page_labels" => LinkTerms::PageLabels,
+            "targets" => {
+                let mut list = Vec::new();
+                if let Some(csv) = args.opt_str("terms_csv")? {
+                    let text = std::fs::read_to_string(a.resolve(csv, false)?).map_err(failed)?;
+                    list.extend(link_terms_from_csv(&text, &files));
+                }
+                for t in args.get("targets").and_then(Value::as_array).into_iter().flatten() {
+                    list.push(term_target(t, files.len())?);
+                }
+                if list.is_empty() {
+                    return Err(bad_args("terms=targets needs targets or terms_csv"));
+                }
+                LinkTerms::Targets(list)
+            }
             "file_names" => LinkTerms::FileNames,
             "region" => LinkTerms::Region(
                 args.opt_rect("region")?
@@ -294,7 +337,7 @@ pub static LINK: Tool = Tool {
             }
             other => {
                 return Err(bad_args(format!(
-                    "terms is page_labels, file_names, region or custom, not {other:?}"
+                    "terms is page_labels, file_names, region, custom or targets, not {other:?}"
                 )));
             }
         };
@@ -306,19 +349,103 @@ pub static LINK: Tool = Tool {
                 _ => return Err(bad_args("filter_char is one character")),
             }
         }
-        o.keep_start = args.bool_or("keep_start", true)?;
-        o.full_paths = args.bool_or("full_paths", false)?;
-        o.highlight = args.opt_color("highlight")?;
-        o.replace_existing = args.bool_or("replace_existing", false)?;
+        for (k, slot) in [
+            ("keep_start", &mut o.keep_start),
+            ("full_paths", &mut o.full_paths),
+            ("replace_existing", &mut o.replace_existing),
+            ("add_overlapping", &mut o.add_overlapping),
+            ("flatten_highlight", &mut o.flatten_highlight),
+        ] {
+            if let Some(v) = args.opt_bool(k)? {
+                *slot = v;
+            }
+        }
+        if let Some(c) = args.opt_color("highlight")? {
+            o.highlight = Some(c);
+        }
+        if let Some(st) = args.opt_str("highlight_style")? {
+            o.highlight_style = HighlightStyle::from_name(st)
+                .ok_or_else(|| bad_args("highlight_style is fill, outline or highlight"))?;
+            if o.highlight.is_none() {
+                o.highlight = Some(markupcraft_model::Color::rgb(1.0, 1.0, 0.0));
+            }
+        }
+        let mut out = Map::new();
+        if let Some(p) = args.opt_str("export_terms")? {
+            let p = a.resolve(p, true)?;
+            let (terms, _) = batch_link_terms(&files, &o)?;
+            std::fs::write(&p, link_terms_to_csv(&terms, &files)).map_err(failed)?;
+            out.insert("terms_exported".into(), json!(terms.len()));
+        }
+        if let Some(p) = args.opt_str("save_run")? {
+            let p = a.resolve(p, true)?;
+            save_link_run(
+                &p,
+                &BatchLinkRun {
+                    files: files.clone(),
+                    options: o.clone(),
+                },
+            )?;
+            out.insert("saved".into(), json!(p.display().to_string()));
+        }
+        if !do_run {
+            return Ok(Value::Object(out));
+        }
         let r = batch_link(&files, &o)?;
-        Ok(json!({
+        let mut v = json!({
             "links": r.links,
             "existing": r.existing,
+            "deleted": r.deleted,
+            "skipped_pages": r.skipped_pages,
+            "highlights": r.highlights,
+            "files_not_opened": r.files_not_opened,
             "files": r.files.iter().map(|(f, n)| json!({ "file": f.display().to_string(), "links": n })).collect::<Vec<_>>(),
             "errors": r.errors,
-        }))
+        });
+        if let Some(m) = v.as_object_mut() {
+            m.extend(out);
+        }
+        Ok(v)
     },
 };
+
+/// One `targets` entry of batch_link.
+fn term_target(t: &Value, files: usize) -> Result<TermTarget> {
+    let term = t
+        .get("term")
+        .and_then(Value::as_str)
+        .filter(|s| !s.trim().is_empty())
+        .ok_or_else(|| bad_args("each target has a term"))?
+        .to_string();
+    if let Some(u) = t.get("url").and_then(Value::as_str) {
+        return Ok(TermTarget {
+            term,
+            dest: TermDest::Url(u.to_string()),
+        });
+    }
+    let file = t
+        .get("file")
+        .and_then(Value::as_u64)
+        .and_then(|f| usize::try_from(f).ok())
+        .and_then(|f| f.checked_sub(1))
+        .filter(|f| *f < files)
+        .ok_or_else(|| bad_args(format!("target {term:?}: file is one of the files, counted from 1")))?;
+    let dest = match (
+        t.get("place").and_then(Value::as_str),
+        t.get("page").and_then(Value::as_u64),
+    ) {
+        (Some(name), _) => TermDest::Place {
+            file,
+            name: name.to_string(),
+        },
+        (None, Some(p)) => TermDest::Page {
+            file,
+            page: usize::try_from(p).unwrap_or(1).max(1) - 1,
+        },
+        (None, None) => TermDest::File { file },
+    };
+    Ok(TermTarget { term, dest })
+}
 
 /// Files changed in place must not be open here (their unsaved state would be overwritten).
 fn check_closed(a: &Automation, files: &[PathBuf]) -> Result<()> {
@@ -339,44 +466,6 @@ fn same_file(a: &std::path::Path, b: &std::path::Path) -> bool {
         _ => a == b,
     }
 }
-
-pub static SLIP: Tool = Tool {
-    name: "slip_sheet",
-    title: "Slip Sheet",
-    description: "Slip Sheet: replace this document's pages with the revised pages of `new_file` whose page labels match (by the whole label, or the part before `number_filter`, e.g. \" - \"); the replaced pages keep their markups. New sheets that match nothing are appended with their labels (`append_unmatched`, default true). Undoable.",
-    read_only: false,
-    destructive: true,
-    schema: || {
-        schema(
-            json!({
-                "new_file": path_arg("The revised set"),
-                "number_filter": { "type": "string" },
-                "match_case": { "type": "boolean" },
-                "append_unmatched": { "type": "boolean" }
-            }),
-            &["new_file"],
-        )
-    },
-    run: |a, args| {
-        let new = a.resolve(args.str("new_file")?, false)?;
-        let o = SlipSheetOptions {
-            number_filter: args.opt_string("number_filter")?.unwrap_or_default(),
-            match_case: args.bool_or("match_case", false)?,
-            append_unmatched: args.bool_or("append_unmatched", true)?,
-        };
-        let (doc, s) = a.session(args)?;
-        let r = s.slip_sheet(&new, &o)?;
-        Ok(json!({
-            "matched": r.matched.iter().map(|p| json!({
-                "label": p.label, "old_page": p.old_page + 1, "new_page": p.new_page + 1, "markups": p.markups,
-            })).collect::<Vec<_>>(),
-            "unmatched_old": r.unmatched_old.iter().map(|p| p + 1).collect::<Vec<_>>(),
-            "unmatched_new": r.unmatched_new.iter().map(|p| p + 1).collect::<Vec<_>>(),
-            "appended": r.appended,
-            "document": summary(doc, s),
-        }))
-    },
-};
 
 pub static APPLY: Tool = Tool {
     name: "batch_apply",

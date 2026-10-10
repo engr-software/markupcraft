@@ -29,6 +29,8 @@ pub enum LinkTarget {
     View { page: usize, rect: Rect },
     /// A rectangle of a page of another PDF.
     FileView { path: String, page: usize, rect: Rect },
+    /// A Place (named destination) of another PDF.
+    FilePlace { path: String, name: String },
     /// Something else (a named destination elsewhere, JavaScript...): kept as is.
     Other(String),
 }
@@ -147,6 +149,16 @@ pub(crate) fn target_entry(cos: &CosDoc, target: &LinkTarget) -> Result<(&'stati
                 b"D".to_vec(),
                 dest_array(Object::Int(i64::try_from(*page).unwrap_or(0)), None, Some(*rect)),
             );
+            a.set(b"F".to_vec(), filespec(&path));
+            a.set(b"NewWindow".to_vec(), Object::Bool(true));
+            (b"A", Object::Dict(a))
+        }
+        LinkTarget::FilePlace { path, name } => {
+            let path = text_target(path, "file path")?;
+            let name = text_target(name, "Place name")?;
+            let mut a = Dict::new();
+            a.set(b"S".to_vec(), Object::name("GoToR"));
+            a.set(b"D".to_vec(), Object::String(PdfString::text(&name)));
             a.set(b"F".to_vec(), filespec(&path));
             a.set(b"NewWindow".to_vec(), Object::Bool(true));
             (b"A", Object::Dict(a))
@@ -287,6 +299,12 @@ pub(crate) fn target_of(cos: &CosDoc, d: &Dict, pages: &[markupcraft_revu::cos::
     match a.name(b"S") {
         Some(b"URI") => LinkTarget::Url(text_of(cos, a.get(b"URI"))),
         Some(b"GoToR") => {
+            if let Some(n) = a.get(b"D").and_then(named) {
+                return LinkTarget::FilePlace {
+                    path: file_name(cos, a.get(b"F")),
+                    name: n,
+                };
+            }
             let arr = a.get(b"D").map(|d| cos.resolve(d)).and_then(|d| d.as_array().cloned());
             let page = arr
                 .as_ref()

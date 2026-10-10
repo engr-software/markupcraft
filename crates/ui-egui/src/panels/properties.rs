@@ -64,6 +64,8 @@ enum Change {
     Move(f64, f64),
     Resize(markupcraft_geom::Rect),
     Rotate(f64),
+    /// a box's own angle (rectangle, ellipse, text box, stamp)
+    Angle(f64),
     Symbol(Vec<Vec<markupcraft_geom::Point>>),
 }
 
@@ -266,6 +268,10 @@ fn apply_changes(doc: &mut DocTab, targets: &[String], changes: Vec<Change>) {
                 }
             }
             Change::Rotate(deg) => doc.session.rotate_markups(targets, deg, None).map(|_| ()),
+            Change::Angle(deg) => {
+                doc.session.set_merge_key(Some("layout-angle"));
+                doc.session.set_markup_rotation(targets, deg).map(|_| ())
+            }
             Change::Symbol(paths) => {
                 let counts: Vec<String> = targets
                     .iter()
@@ -954,12 +960,32 @@ fn text(ui: &mut egui::Ui, sel: &Sel<'_>, edits: &mut Edits) {
                     (0, "align-left", "Left"),
                     (1, "align-center", "Center"),
                     (2, "align-right", "Right"),
+                    (3, "align-justify", "Justify"),
                 ] {
                     if crate::icons::button(ui, icon, 22.0, m.text.align == i, tip).clicked() {
                         edits.push((
                             "align",
                             MarkupPatch {
                                 align: Some(i),
+                                ..Default::default()
+                            },
+                        ));
+                    }
+                }
+            });
+            ui.end_row();
+            label(ui, "Vertical", sel.mixed(|m| m.text.valign));
+            ui.horizontal(|ui| {
+                for (i, icon, tip) in [
+                    (0, "align-start-horizontal", "Top"),
+                    (1, "align-center-horizontal", "Middle"),
+                    (2, "align-end-horizontal", "Bottom"),
+                ] {
+                    if crate::icons::button(ui, icon, 22.0, m.text.valign == i, tip).clicked() {
+                        edits.push((
+                            "valign",
+                            MarkupPatch {
+                                valign: Some(i),
                                 ..Default::default()
                             },
                         ));
@@ -1288,6 +1314,23 @@ fn layout(ui: &mut egui::Ui, sel: &Sel<'_>, changes: &mut Vec<Change>) {
                         b.x0 + w * 72.0,
                         b.y0 + h * 72.0,
                     )));
+                }
+                if markupcraft_model::turn::free_rotates(m.kind) {
+                    // a box keeps its angle: any angle, typed or dragged
+                    ui.label("Angle");
+                    let mut deg = markupcraft_model::turn::norm_degrees(m.rotation);
+                    let r = ui.add_enabled(
+                        geometry,
+                        egui::DragValue::new(&mut deg)
+                            .range(0.0..=360.0)
+                            .speed(1.0)
+                            .max_decimals(2)
+                            .suffix("\u{b0}"),
+                    );
+                    if r.changed() {
+                        changes.push(Change::Angle(deg));
+                    }
+                    ui.end_row();
                 }
                 ui.label("Rotation");
                 ui.horizontal(|ui| {

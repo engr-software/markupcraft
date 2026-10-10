@@ -1261,8 +1261,9 @@ fn dynamic_fill_turns_a_room_into_measurements() {
     );
 }
 
-/// M-059 / M-060 / M-061: a temporary boundary splits a room; dragging fills every region the
-/// path passes through; the toolbar clears fill and boundaries.
+/// M-059 / M-060 / M-061: a temporary boundary splits a room; dragging makes one fill covering
+/// every region the path passes through; the toolbar's Clear Fill, Clear Boundaries and Clear
+/// All take the last fill and the boundaries away.
 #[test]
 fn dynamic_fill_boundaries_and_drag() {
     let dir = temp_dir("m-fill2");
@@ -1281,25 +1282,60 @@ fn dynamic_fill_boundaries_and_drag() {
         "dynamic_fill",
         json!({ "page": 1, "path": [[200, 600], [200, 450]] }),
     );
-    // MarkupCraft makes one Area per region the drag passed through (Revu: one fill).
+    // One Area covering both regions the drag passed through (Revu's one fill).
     let ids: Vec<String> = v["created"]
         .as_array()
         .unwrap()
         .iter()
         .map(|i| i.as_str().unwrap().to_string())
         .collect();
-    assert_eq!(ids.len(), 2, "{v}");
-    let total: f64 = ids.iter().map(|i| qty(&get(&mut a, i))).sum();
-    assert!(near(total, LIVING, LIVING * 0.04), "both regions: {total}: {v}");
+    assert_eq!(ids.len(), 1, "one fill: {v}");
+    assert_eq!(v["regions"], 2, "the drag passed through two regions: {v}");
+    let total = qty(&get(&mut a, &ids[0]));
+    assert!(near(total, LIVING, LIVING * 0.04), "both regions in one: {total}: {v}");
     // The Dynamic Fill toolbar's clear actions.
     let mut h = app();
     run(&mut h, "measure.dynamic_fill");
     h.run_steps(4);
-    // Each click applies its fill at once (Edit > Undo takes one back), so the bar has no
-    // Clear Fill / Clear All of a pending fill; boundaries clear here.
-    for label in ["Add Boundary", "Clear Boundaries", "Drag across regions"] {
+    for label in [
+        "Add Boundary",
+        "Clear Boundaries",
+        "Clear Fill",
+        "Clear All",
+        "Drag across regions",
+    ] {
         assert!(shows(&h, label), "{label}");
     }
+    // Clear Fill takes the last fill away
+    let n0 = markups(&h).len();
+    click(&mut h, 200.0, 500.0);
+    assert_eq!(markups(&h).len(), n0 + 1, "{}", h.state().state.features.fill.message);
+    h.query_by_label("Clear Fill").unwrap().click();
+    h.run_steps(3);
+    assert_eq!(markups(&h).len(), n0, "the fill is cleared");
+    // Clear All: the last fill and the boundaries
+    markupcraft_ui_egui::features::fill::boundary_picked(
+        &mut h.state_mut().state,
+        vec![Point::new(120.0, 605.0), Point::new(300.0, 605.0)],
+    );
+    h.run_steps(2);
+    click(&mut h, 200.0, 650.0);
+    assert_eq!(markups(&h).len(), n0 + 1, "{}", h.state().state.features.fill.message);
+    assert_eq!(h.state().state.features.fill.boundaries.len(), 1);
+    h.query_by_label("Clear All").unwrap().click();
+    h.run_steps(3);
+    assert_eq!(markups(&h).len(), n0, "the fill is cleared");
+    assert!(
+        h.state().state.features.fill.boundaries.is_empty(),
+        "and the boundaries"
+    );
+    // a drag across regions in the app is one fill too
+    h.state_mut().state.features.fill.drag = true;
+    markupcraft_ui_egui::features::fill::restart(&mut h.state_mut().state);
+    h.run_steps(2);
+    drag(&mut h, (200.0, 600.0), (200.0, 450.0));
+    let made = markups(&h).len() - n0;
+    assert_eq!(made, 1, "{}", h.state().state.features.fill.message);
 }
 
 /// M-062: raster detection with its DPI and sensitivity, markups hidden while filling.
@@ -2483,6 +2519,68 @@ fn legends_from_tool_sets_scope_columns_look_and_copies() {
     call(&mut a, "legend_copy", json!({ "id": lid }));
     assert!(call(&mut a, "markup_list", json!({}))["count"].as_u64().unwrap() > before);
     call(&mut a, "legend_freeze", json!({ "id": lid }));
+}
+
+/// M-125: legend columns may be any Markups List column (Layer, Author, Measurement, Status,
+/// Label ... and custom columns, by id or name); their values split the rows.
+#[test]
+fn legend_columns_are_any_markups_list_column() {
+    let dir = temp_dir("m-legend-cols");
+    let mut a = plan(&dir);
+    let pipe = |a: &mut Automation, x: f64, layer: &str, author: &str| {
+        add(
+            a,
+            json!({ "page": 1, "kind": "Length", "points": [[x, 400], [x + 72.0, 400]], "subject": "Pipe",
+                    "layer": layer, "author": author, "status": "Accepted" }),
+        )
+    };
+    pipe(&mut a, 400.0, "Level 1", "Ann");
+    pipe(&mut a, 500.0, "Level 1", "Ann");
+    pipe(&mut a, 600.0, "Level 2", "Bob");
+    let v = call(
+        &mut a,
+        "legend_add",
+        json!({ "page": 1, "at": [400, 300], "subjects": ["Pipe"], "custom_columns": ["Layer", "author"] }),
+    );
+    let _ = v;
+    let l = call(&mut a, "legend_list", json!({}));
+    let rows = l["legends"][0]["rows"].as_array().unwrap().clone();
+    assert_eq!(rows.len(), 2, "one row per layer and author: {l}");
+    let by = |layer: &str| {
+        rows.iter()
+            .find(|r| r["custom"][0] == layer)
+            .unwrap_or_else(|| panic!("{layer}: {l}"))
+            .clone()
+    };
+    assert_eq!(by("Level 1")["count"], 2, "{l}");
+    assert_eq!(by("Level 1")["custom"][1], "Ann");
+    assert_eq!(by("Level 2")["count"], 1);
+    assert_eq!(by("Level 2")["custom"][1], "Bob");
+    // the table shows the columns' headers and values (also as text in /Contents)
+    let id = l["legends"][0]["id"].as_str().unwrap().to_string();
+    let m = get(&mut a, &id);
+    let contents = m["contents"].as_str().unwrap_or("").to_string();
+    assert!(contents.contains("Layer") && contents.contains("Author"), "{contents}");
+    assert!(contents.contains("Level 2") && contents.contains("Bob"), "{contents}");
+    // Status, Label and Measurement columns too
+    call(
+        &mut a,
+        "legend_update",
+        json!({ "id": id, "custom_columns": ["Status", "Measurement"] }),
+    );
+    let l = call(&mut a, "legend_list", json!({}));
+    let rows = l["legends"][0]["rows"].as_array().unwrap().clone();
+    assert!(rows.iter().all(|r| r["custom"][0] == "Accepted"), "{l}");
+    assert_eq!(rows.len(), 1, "the same status and length: one row: {l}");
+    assert!(
+        !rows[0]["custom"][1].as_str().unwrap_or("").is_empty(),
+        "the measurement: {l}"
+    );
+    // the Legend window offers every Markups List column
+    let mut h = app();
+    run(&mut h, "measure.legend");
+    h.run_steps(3);
+    assert!(shows(&h, "Add column"), "the column picker");
 }
 
 /// M-123: a legend of a chosen selection of markups only.

@@ -155,6 +155,7 @@ fn poly(xf: &Xf, pts: &[Point]) -> Vec<Pos2> {
 /// Draw the layer on the visible pages and run a pick. True when a pick took the pointer (the
 /// active tool does not run this frame).
 pub fn layer(ui: &mut egui::Ui, resp: &egui::Response, painter: &egui::Painter, xfs: &[(usize, Xf)], doc: u64) -> bool {
+    super::docs7::canvas_drop(ui, resp, painter, xfs, doc);
     let Some(l) = ui.ctx().data(|m| m.get_temp::<Layer>(layer_id())) else {
         return false;
     };

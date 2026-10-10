@@ -130,7 +130,7 @@ impl Default for ToolChest {
 /// configuration folder.
 pub fn config_dir() -> Option<PathBuf> {
     if let Some(d) = std::env::var_os("MARKUPCRAFT_CONFIG_DIR") {
-        return Some(PathBuf::from(d));
+        return Some(markupcraft_engine::prefs::expand_config_dir(std::path::Path::new(&d)));
     }
     let base = if cfg!(target_os = "windows") {
         std::env::var_os("APPDATA").map(PathBuf::from)

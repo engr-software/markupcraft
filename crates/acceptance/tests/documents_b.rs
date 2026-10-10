@@ -273,6 +273,162 @@ fn batch_link_report_counts_and_failures() {
     assert_eq!(links(&mut a, "arch.pdf").len(), 2, "saved in place");
 }
 
+/// D-113: a term targets a page of a file, a whole file, a named Place in a file, or a web URL.
+#[test]
+fn batch_link_terms_go_to_places_urls_and_files() {
+    let dir = temp_dir("blink-dest2");
+    let mut a = automation(&dir);
+    text_pdf(
+        &dir,
+        "a.pdf",
+        &[&[
+            (72.0, 700.0, "SEE DETAIL 5"),
+            (72.0, 600.0, "SPEC BOOK"),
+            (72.0, 500.0, "MAKER SITE"),
+            (72.0, 400.0, "LOCAL PLACE"),
+        ]],
+    );
+    text_pdf(&dir, "b.pdf", &[&[(72.0, 700.0, "ONE")], &[(72.0, 700.0, "TWO")]]);
+    open(&mut a, "b.pdf");
+    call(
+        &mut a,
+        "place_set",
+        json!({ "name": "Detail5", "page": 2, "left": 0, "top": 700 }),
+    );
+    call(&mut a, "doc_save", json!({ "full": true }));
+    call(&mut a, "doc_close", json!({}));
+    open(&mut a, "a.pdf");
+    call(&mut a, "place_set", json!({ "name": "Here", "page": 1 }));
+    call(&mut a, "doc_save", json!({ "full": true }));
+    call(&mut a, "doc_close", json!({}));
+    let r = call(
+        &mut a,
+        "batch_link",
+        json!({ "files": ["a.pdf", "b.pdf"], "terms": "targets", "targets": [
+            { "term": "DETAIL 5", "file": 2, "place": "Detail5" },
+            { "term": "SPEC BOOK", "file": 2 },
+            { "term": "MAKER SITE", "url": "https://example.com/maker" },
+            { "term": "LOCAL PLACE", "file": 1, "place": "Here" }
+        ] }),
+    );
+    assert_eq!(r["links"], 4, "{r}");
+    let l = json!(links(&mut a, "a.pdf")).to_string();
+    assert!(
+        l.contains("\"place\":\"Detail5\"") && l.contains("b.pdf"),
+        "a Place in another file: {l}"
+    );
+    assert!(l.contains("https://example.com/maker"), "a web URL: {l}");
+    assert!(l.contains("\"place\":\"Here\""), "a Place in this file: {l}");
+    assert!(
+        l.contains("\"file_page\":1"),
+        "a whole file (opens at its first page): {l}"
+    );
+}
+
+/// D-114: highlight style (outline / fill / highlight), flatten highlight, and keeping an
+/// overlapping link beside the old one.
+#[test]
+fn batch_link_highlight_styles_flatten_and_overlap() {
+    let dir = temp_dir("blink-style");
+    let mut a = automation(&dir);
+    for (f, style) in [("o.pdf", "outline"), ("h.pdf", "highlight")] {
+        text_pdf(&dir, f, &[&[(72.0, 700.0, "SEE B-1")]]);
+        text_pdf(&dir, "B-1.pdf", &[&[(72.0, 700.0, "B")]]);
+        call(
+            &mut a,
+            "batch_link",
+            json!({ "files": [f, "B-1.pdf"], "terms": "file_names", "highlight": "#00FF00", "highlight_style": style }),
+        );
+        open(&mut a, f);
+        let m = list(&mut a);
+        call(&mut a, "doc_close", json!({ "discard_changes": true }));
+        assert_eq!(m.len(), 1, "{style}: {m:?}");
+        let t = s(&m[0]);
+        match style {
+            "outline" => assert!(t.contains("Rectangle") && !t.contains("\"fill\":\"#"), "outline: {t}"),
+            _ => assert!(t.contains("Highlight"), "text highlight: {t}"),
+        }
+    }
+    // flatten the highlight: no markup left, the link stays
+    text_pdf(&dir, "f.pdf", &[&[(72.0, 700.0, "SEE B-1")]]);
+    let r = call(
+        &mut a,
+        "batch_link",
+        json!({ "files": ["f.pdf", "B-1.pdf"], "terms": "file_names", "highlight": "#FFFF00", "flatten_highlight": true }),
+    );
+    assert_eq!(r["highlights"], 1, "{r}");
+    assert_eq!(markup_count(&mut a, "f.pdf"), 0, "highlight flattened");
+    assert_eq!(links(&mut a, "f.pdf").len(), 1);
+    // overlapping: add beside
+    let r = call(
+        &mut a,
+        "batch_link",
+        json!({ "files": ["f.pdf", "B-1.pdf"], "terms": "file_names", "add_overlapping": true }),
+    );
+    assert_eq!(r["existing"], 1, "{r}");
+    assert_eq!(links(&mut a, "f.pdf").len(), 2, "kept beside the old link");
+    // replace: the old ones deleted and counted
+    let r = call(
+        &mut a,
+        "batch_link",
+        json!({ "files": ["f.pdf", "B-1.pdf"], "terms": "file_names", "replace_existing": true }),
+    );
+    assert_eq!(r["deleted"], 2, "{r}");
+    assert_eq!(links(&mut a, "f.pdf").len(), 1);
+}
+
+/// D-115: terms exported to CSV (and read back), the run saved as XML or into a Set file and
+/// run again, and the summary: links created / deleted, pages skipped, files not opened.
+#[test]
+fn batch_link_terms_csv_saved_runs_and_summary() {
+    let dir = temp_dir("blink-runs");
+    let mut a = automation(&dir);
+    labelled(
+        &dir,
+        &mut a,
+        "arch.pdf",
+        &[&[(72.0, 700.0, "SEE A-102")], &[(72.0, 700.0, "SEE A-101")], &[]],
+        json!({"1": "A-101", "2": "A-102"}),
+    );
+    let r = call(
+        &mut a,
+        "batch_link",
+        json!({ "files": ["arch.pdf"], "export_terms": "terms.csv", "save_run": "run.xml", "run": false }),
+    );
+    assert!(r["terms_exported"].as_u64().unwrap() >= 2, "{r}");
+    let csv = std::fs::read_to_string(dir.join("terms.csv")).unwrap();
+    assert!(csv.starts_with("Term,File,Page,Place,URL"), "{csv}");
+    assert!(csv.contains("\"A-102\",\"arch.pdf\",2"), "{csv}");
+    let xml = std::fs::read_to_string(dir.join("run.xml")).unwrap();
+    assert!(xml.contains("<BatchLink") && xml.contains("arch.pdf"), "{xml}");
+    assert_eq!(links(&mut a, "arch.pdf").len(), 0, "run: false links nothing");
+    // the saved run, run again
+    let r = call(&mut a, "batch_link", json!({ "run_file": "run.xml" }));
+    assert_eq!(r["links"], 2, "{r}");
+    assert_eq!(r["skipped_pages"], 1, "the page with no text: {r}");
+    assert_eq!(r["files_not_opened"], 0, "{r}");
+    // the edited term table (CSV) as terms, saved into a Set file
+    std::fs::write(
+        dir.join("terms2.csv"),
+        "Term,File,Page,Place,URL\r\n\"A-101\",\"\",,,\"https://example.com/a101\"\r\n",
+    )
+    .unwrap();
+    call(
+        &mut a,
+        "batch_link",
+        json!({ "files": ["arch.pdf"], "terms": "targets", "terms_csv": "terms2.csv", "replace_existing": true,
+                 "save_run": "arch.pcset", "run": false }),
+    );
+    std::fs::write(dir.join("broken.pdf"), b"not a pdf").unwrap();
+    let r = call(&mut a, "batch_link", json!({ "run_file": "arch.pcset" }));
+    assert_eq!(r["links"], 1, "{r}");
+    assert_eq!(r["deleted"], 1, "{r}");
+    let l = json!(links(&mut a, "arch.pdf")).to_string();
+    assert!(l.contains("https://example.com/a101"), "{l}");
+    let r = call(&mut a, "batch_link", json!({ "files": ["arch.pdf", "broken.pdf"] }));
+    assert_eq!(r["files_not_opened"], 1, "{r}");
+}
+
 /// The tool table with its own config folder (stamps, presets, prefs never touch the user's).
 fn auto(dir: &Path) -> Automation {
     automation(dir).with_config_dir(dir.join("config"))
@@ -353,6 +509,286 @@ fn slip_sheet_matches_by_label_replaces_and_carries_markups() {
     );
 }
 
+/// D-116: sheets pair by file name + page index, by the text of a title-block region, by
+/// manual pairs, and a wildcard match filter keeps only the sheet number.
+#[test]
+fn slip_sheet_matches_by_file_index_region_manual_and_wildcard() {
+    let dir = temp_dir("slip-match");
+    let mut a = automation(&dir);
+    std::fs::create_dir_all(dir.join("rev")).unwrap();
+    // file name + page index: rev/plans.pdf revises plans.pdf page by page
+    text_pdf(
+        &dir,
+        "plans.pdf",
+        &[&[(72.0, 700.0, "OLD ONE")], &[(72.0, 700.0, "OLD TWO")]],
+    );
+    text_pdf(
+        &dir,
+        "rev/plans.pdf",
+        &[&[(72.0, 700.0, "NEW ONE")], &[(72.0, 700.0, "NEW TWO")]],
+    );
+    text_pdf(&dir, "rev/other.pdf", &[&[(72.0, 700.0, "UNRELATED")]]);
+    open(&mut a, "plans.pdf");
+    let r = call(
+        &mut a,
+        "slip_sheet",
+        json!({ "new_files": ["rev/other.pdf", "rev/plans.pdf"], "match": "file_page", "unmatched": "skip" }),
+    );
+    assert_eq!(r["matched"].as_array().map(Vec::len), Some(2), "{r}");
+    call(&mut a, "doc_save", json!({ "full": true }));
+    call(&mut a, "doc_close", json!({}));
+    assert!(page_text(&mut a, "plans.pdf", 2).contains("NEW TWO"));
+
+    // AutoMark region: the sheet number in the title block (bottom right)
+    text_pdf(
+        &dir,
+        "tb.pdf",
+        &[
+            &[(72.0, 700.0, "OLD PLAN"), (500.0, 40.0, "S-1")],
+            &[(72.0, 700.0, "OLD ROOF"), (500.0, 40.0, "S-2")],
+        ],
+    );
+    text_pdf(
+        &dir,
+        "tb-rev.pdf",
+        &[&[(72.0, 700.0, "NEW ROOF"), (500.0, 40.0, "S-2")]],
+    );
+    open(&mut a, "tb.pdf");
+    let r = call(
+        &mut a,
+        "slip_sheet",
+        json!({ "new_file": "tb-rev.pdf", "match": "region", "region": [480, 20, 600, 70] }),
+    );
+    assert_eq!(r["matched"][0]["old_page"], 2, "S-2 found in the region: {r}");
+    call(&mut a, "doc_close", json!({ "discard_changes": true }));
+
+    // manual pairs
+    open(&mut a, "tb.pdf");
+    let r = call(
+        &mut a,
+        "slip_sheet",
+        json!({ "new_file": "tb-rev.pdf", "match": "manual", "pairs": [[1, 1, 1]], "unmatched": "skip" }),
+    );
+    assert_eq!(r["matched"][0]["old_page"], 1, "{r}");
+    assert_eq!(r["unmatched_old"], json!([2]), "{r}");
+    call(&mut a, "doc_close", json!({ "discard_changes": true }));
+
+    // wildcard filter: labels "Sheet A-101 (issue 3)" match "A-101" by @?# ; a sheet the
+    // filter does not match takes no part
+    labelled(
+        &dir,
+        &mut a,
+        "w.pdf",
+        &[&[(72.0, 700.0, "OLD W")], &[(72.0, 700.0, "OLD COVER")]],
+        json!({"1": "Sheet A-101 (issue 2)", "2": "COVER"}),
+    );
+    labelled(
+        &dir,
+        &mut a,
+        "w-rev.pdf",
+        &[&[(72.0, 700.0, "NEW W")], &[(72.0, 700.0, "NEW COVER")]],
+        json!({"1": "A-101 rev 3", "2": "COVER"}),
+    );
+    open(&mut a, "w.pdf");
+    let r = call(
+        &mut a,
+        "slip_sheet",
+        json!({ "new_file": "w-rev.pdf", "filter": "@?#", "unmatched": "skip" }),
+    );
+    let m = r["matched"].as_array().unwrap();
+    assert_eq!(m.len(), 1, "only A-101 matches through the wildcard: {r}");
+    assert_eq!(m[0]["key"], "A-101", "{r}");
+    call(&mut a, "doc_close", json!({ "discard_changes": true }));
+}
+
+/// D-117, D-130: the revision goes ahead of the old sheet, the markups are copied forward
+/// (unflattened first, flattened after on request) and the old sheet is stamped SUPERSEDED;
+/// links and bookmarks to the old sheet move to the revision.
+#[test]
+fn slip_sheet_inserts_ahead_copies_markups_and_stamps_superseded() {
+    let dir = temp_dir("slip-ahead");
+    let mut a = automation(&dir);
+    labelled(
+        &dir,
+        &mut a,
+        "set.pdf",
+        &[&[(72.0, 700.0, "INDEX SEE ROOF")], &[(72.0, 700.0, "OLD ROOF")]],
+        json!({"1": "G-001", "2": "A-102"}),
+    );
+    labelled(
+        &dir,
+        &mut a,
+        "rev.pdf",
+        &[&[(72.0, 700.0, "NEW ROOF")]],
+        json!({"1": "A-102"}),
+    );
+    open(&mut a, "set.pdf");
+    add_rect(&mut a, 2, "Roof note");
+    call(
+        &mut a,
+        "link_add",
+        json!({ "page": 1, "rect": [72, 690, 200, 715], "to_page": 2 }),
+    );
+    call(&mut a, "bookmark_add", json!({ "title": "Roof", "page": 2 }));
+    let r = call(
+        &mut a,
+        "slip_sheet",
+        json!({ "new_file": "rev.pdf", "insert_ahead": true, "superseded": true, "unmatched": "skip" }),
+    );
+    let t = s(&r);
+    assert_eq!(r["superseded"], 1, "{t}");
+    assert_eq!(r["matched"][0]["result_page"], 2, "revision inserted ahead: {t}");
+    assert!(r["links_redirected"].as_u64().unwrap() >= 1, "{t}");
+    assert!(r["bookmarks_redirected"].as_u64().unwrap() >= 1, "{t}");
+    let info = call(&mut a, "doc_info", json!({}));
+    assert_eq!(
+        info["page_list"].as_array().map(Vec::len),
+        Some(3),
+        "old sheet kept: {info}"
+    );
+    let m = list(&mut a);
+    assert!(
+        m.iter().any(|x| x["page"] == 2 && s(x).contains("Roof note")),
+        "markup copied forward: {m:?}"
+    );
+    assert!(
+        m.iter().any(|x| x["page"] == 3 && s(x).contains("Roof note")),
+        "old sheet keeps its markup: {m:?}"
+    );
+    assert!(
+        m.iter().any(|x| x["page"] == 3 && s(x).contains("SUPERSEDED")),
+        "old sheet stamped Superseded: {m:?}"
+    );
+    call(&mut a, "doc_save", json!({ "full": true }));
+    call(&mut a, "doc_close", json!({}));
+    assert!(page_text(&mut a, "set.pdf", 2).contains("NEW ROOF"));
+    assert!(page_text(&mut a, "set.pdf", 3).contains("OLD ROOF"));
+    let l = links(&mut a, "set.pdf");
+    assert!(
+        s(&l[0]).contains("\"page\":2"),
+        "link redirected to the revision: {l:?}"
+    );
+
+    // flatten after: the carried markups become page content on the revision
+    labelled(&dir, &mut a, "f.pdf", &[&[(72.0, 700.0, "OLD")]], json!({"1": "M-1"}));
+    labelled(
+        &dir,
+        &mut a,
+        "f-rev.pdf",
+        &[&[(72.0, 700.0, "NEW")]],
+        json!({"1": "M-1"}),
+    );
+    open(&mut a, "f.pdf");
+    add_rect(&mut a, 1, "Flatten me");
+    let r = call(
+        &mut a,
+        "slip_sheet",
+        json!({ "new_file": "f-rev.pdf", "insert_ahead": true, "flatten_after": true, "unflatten_first": true }),
+    );
+    assert_eq!(r["flattened"], 1, "{r}");
+    let m = list(&mut a);
+    assert!(m.iter().all(|x| x["page"] != 1), "revision's markups flattened: {m:?}");
+    // superseded needs a kept old sheet
+    call(&mut a, "doc_close", json!({ "discard_changes": true }));
+    open(&mut a, "f.pdf");
+    let e = fails(
+        &mut a,
+        "slip_sheet",
+        json!({ "new_file": "f-rev.pdf", "superseded": true }),
+    );
+    assert!(e.contains("insert"), "{e}");
+}
+
+/// D-118: unmatched new sheets extracted to files; a CSV and a PDF report (with links).
+#[test]
+fn slip_sheet_extracts_leftovers_and_writes_reports() {
+    let dir = temp_dir("slip-report");
+    let mut a = automation(&dir);
+    labelled(
+        &dir,
+        &mut a,
+        "set.pdf",
+        &[&[(72.0, 700.0, "OLD")]],
+        json!({"1": "A-101"}),
+    );
+    labelled(
+        &dir,
+        &mut a,
+        "rev.pdf",
+        &[&[(72.0, 700.0, "NEW")], &[(72.0, 700.0, "EXTRA SHEET")]],
+        json!({"1": "A-101", "2": "A-900"}),
+    );
+    open(&mut a, "set.pdf");
+    let r = call(
+        &mut a,
+        "slip_sheet",
+        json!({ "new_file": "rev.pdf", "unmatched": "extract", "extract_dir": "left",
+                 "report_csv": "slip.csv", "report_pdf": "slip-report.pdf" }),
+    );
+    assert_eq!(r["appended"], 0, "{r}");
+    let x = dir.join("left").join("A-900.pdf");
+    assert!(x.exists(), "the unmatched sheet extracted by its label: {r}");
+    assert!(page_text(&mut a, "left/A-900.pdf", 1).contains("EXTRA SHEET"));
+    let csv = std::fs::read_to_string(dir.join("slip.csv")).unwrap();
+    assert!(csv.starts_with("Status,"), "{csv}");
+    assert!(csv.contains("\"matched\"") && csv.contains("A-101"), "{csv}");
+    assert!(csv.contains("\"new unmatched\"") && csv.contains("A-900.pdf"), "{csv}");
+    assert!(page_text(&mut a, "slip-report.pdf", 1).contains("Slip Sheet Report"));
+    let l = links(&mut a, "slip-report.pdf");
+    assert!(l.len() >= 2, "a link per result: {l:?}");
+    assert!(
+        json!(l).to_string().contains("set.pdf") && json!(l).to_string().contains("A-900.pdf"),
+        "{l:?}"
+    );
+}
+
+/// D-116, D-117: Batch Slip Sheet over many files from one pool of revisions, each file saved.
+#[test]
+fn batch_slip_sheet_over_many_files() {
+    let dir = temp_dir("slip-batch");
+    let mut a = automation(&dir);
+    labelled(
+        &dir,
+        &mut a,
+        "arch.pdf",
+        &[&[(72.0, 700.0, "OLD A")]],
+        json!({"1": "A-101"}),
+    );
+    labelled(
+        &dir,
+        &mut a,
+        "mech.pdf",
+        &[&[(72.0, 700.0, "OLD M")]],
+        json!({"1": "M-101"}),
+    );
+    labelled(
+        &dir,
+        &mut a,
+        "rev.pdf",
+        &[
+            &[(72.0, 700.0, "NEW M")],
+            &[(72.0, 700.0, "NEW A")],
+            &[(72.0, 700.0, "NEW E")],
+        ],
+        json!({"1": "M-101", "2": "A-101", "3": "E-101"}),
+    );
+    let r = call(
+        &mut a,
+        "batch_slip_sheet",
+        json!({ "files": ["arch.pdf", "mech.pdf"], "new_files": ["rev.pdf"], "unmatched": "extract",
+                 "extract_dir": "left", "report_csv": "batch.csv" }),
+    );
+    assert_eq!(r["matched"].as_array().map(Vec::len), Some(2), "{r}");
+    assert!(page_text(&mut a, "arch.pdf", 1).contains("NEW A"));
+    assert!(page_text(&mut a, "mech.pdf", 1).contains("NEW M"));
+    assert!(dir.join("left").join("E-101.pdf").exists(), "{r}");
+    assert!(
+        std::fs::read_to_string(dir.join("batch.csv"))
+            .unwrap()
+            .contains("E-101")
+    );
+}
+
 // ---- Batch Sign & Seal, Stamp, Flatten, Summary, Print, H&F, others (doc-119 .. doc-125) ----
 
 /// D-119: across many files add a date, place a seal and digitally sign.
@@ -429,6 +865,139 @@ fn batch_apply_stamp_places_one_stamp_on_many_files() {
         assert!(st.contains("\"opacity\":0.5"), "opacity from the stamp settings: {st}");
         assert!(st.contains("\"locked\":true"), "lock from the stamp settings: {st}");
         call(&mut a, "doc_close", json!({}));
+    }
+}
+
+/// D-120: Batch Apply Stamp with a page filter, an anchor on the page grid with X / Y offset,
+/// a scale and a rotation, on closed files saved directly.
+#[test]
+fn batch_apply_stamp_page_filter_anchor_offset_scale_and_rotation() {
+    let dir = temp_dir("bstamp2");
+    let mut a = auto(&dir);
+    let pages: Vec<SyntheticPage> = (0..4)
+        .map(|i| {
+            if i == 3 {
+                SyntheticPage::new(792.0, 612.0, text(72.0, 500.0, 12.0, "WIDE"))
+            } else {
+                SyntheticPage::new(612.0, 792.0, text(72.0, 700.0, 12.0, "TALL"))
+            }
+        })
+        .collect();
+    std::fs::write(dir.join("one.pdf"), pdf(&pages)).unwrap();
+    std::fs::write(dir.join("two.pdf"), pdf(&pages)).unwrap();
+    // odd pages, top-right corner 20 / 30 points in, half size
+    call(
+        &mut a,
+        "batch_apply",
+        json!({ "files": ["one.pdf", "two.pdf"],
+                 "operations": [{ "tool": "stamp_apply", "args": { "stamp": "Approved", "filter": "odd",
+                     "anchor": "top_right", "offset_x": 20, "offset_y": 30, "scale": 0.5 } }] }),
+    );
+    for f in ["one.pdf", "two.pdf"] {
+        open(&mut a, f);
+        let m = list(&mut a);
+        call(&mut a, "doc_close", json!({}));
+        let on: Vec<u64> = m.iter().map(|x| x["page"].as_u64().unwrap()).collect();
+        assert_eq!(on, [1, 3], "{f}: odd pages only: {m:?}");
+        let r = bounds(&m[0]);
+        let (x1, y1) = (r[2], r[3]);
+        assert!((x1 - (612.0 - 20.0)).abs() < 0.5, "right edge 20 pt in: {r:?}");
+        assert!((y1 - (792.0 - 30.0)).abs() < 0.5, "top edge 30 pt in: {r:?}");
+    }
+    // landscape pages only, bottom-left, rotated a quarter turn, double size
+    open(&mut a, "one.pdf");
+    let r = call(
+        &mut a,
+        "stamp_apply",
+        json!({ "text": "CHECKED", "filter": "landscape", "anchor": "bottom_left", "scale": 2, "rotation": 90 }),
+    );
+    assert_eq!(r["pages"], json!([4]), "{r}");
+    let m = list(&mut a);
+    let st = m.iter().find(|x| x["page"] == 4).unwrap();
+    assert_eq!(st["rotation"].as_f64(), Some(90.0), "turned a quarter: {st}");
+    let rr: Vec<f64> = st["rect"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v.as_f64().unwrap())
+        .collect();
+    assert!(rr[3] - rr[1] > rr[2] - rr[0], "the turned stamp stands upright: {st}");
+    assert!(
+        rr[0].abs() < 3.0 && rr[1].abs() < 3.0,
+        "the turned box sits in the bottom-left corner: {st}"
+    );
+    // any angle
+    let r = call(
+        &mut a,
+        "stamp_apply",
+        json!({ "stamp": "Void", "pages": [2], "rotation": 30 }),
+    );
+    let id = r["ids"][0].as_str().unwrap().to_string();
+    let m = list(&mut a);
+    let st = m.iter().find(|x| x["id"] == id.as_str()).unwrap();
+    assert_eq!(st["rotation"].as_f64(), Some(30.0), "{st}");
+    // chosen pages narrowed by even
+    let r = call(
+        &mut a,
+        "stamp_apply",
+        json!({ "stamp": "Draft", "pages": [1, 2, 3], "filter": "even" }),
+    );
+    assert_eq!(r["pages"], json!([2]), "{r}");
+    let e = fails(&mut a, "stamp_apply", json!({ "stamp": "Draft", "scale": 50 }));
+    assert!(e.contains("scale"), "{e}");
+}
+
+/// A markup's points' bounding box [x0, y0, x1, y1].
+fn bounds(m: &Value) -> [f64; 4] {
+    let mut b = [f64::MAX, f64::MAX, f64::MIN, f64::MIN];
+    for p in m["points"].as_array().unwrap() {
+        let (x, y) = (p[0].as_f64().unwrap(), p[1].as_f64().unwrap());
+        b = [b[0].min(x), b[1].min(y), b[2].max(x), b[3].max(y)];
+    }
+    b
+}
+
+/// D-095, D-114, D-115, D-116 .. D-120 in the app: the Slip Sheet, Batch Link, Split and Apply
+/// Stamp dialogs offer their options.
+#[test]
+fn batch_dialogs_offer_slip_link_split_and_stamp_options() {
+    let mut h = app();
+    run(&mut h, "document.slip_sheet");
+    for t in [
+        "File name + page",
+        "Region",
+        "Wildcard filter",
+        "Insert revisions ahead",
+        "Stamp old sheets Superseded",
+        "Unflatten markups first",
+        "Flatten markups after",
+        "Extract to files",
+        "Write a CSV and a PDF report",
+    ] {
+        assert!(shows(&h, t), "Slip Sheet: {t}");
+    }
+    run(&mut h, "batch.link");
+    for t in [
+        "Highlight style",
+        "Flatten highlights",
+        "Export Terms...",
+        "Save Run...",
+        "Load Run...",
+    ] {
+        assert!(shows(&h, t), "Batch Link: {t}");
+    }
+    run(&mut h, "batch.split");
+    for t in [
+        "Prefix",
+        "Suffix",
+        "Name parts after their bookmarks",
+        "Put the parts in a subfolder",
+    ] {
+        assert!(shows(&h, t), "Split: {t}");
+    }
+    run(&mut h, "batch.apply_stamp");
+    for t in ["Anchor", "X offset", "Y offset", "Scale", "Rotation", "landscape"] {
+        assert!(shows(&h, t), "Apply Stamp: {t}");
     }
 }
 
@@ -867,6 +1436,145 @@ fn summary_output_types_csv_xml_pdf_and_appended() {
     );
 }
 
+/// D-135: the summary straight to the printer: the report is laid out as a print-ready PDF
+/// and handed to the system print command (tests record the command, never run it).
+#[test]
+fn summary_straight_to_the_printer() {
+    markupcraft_engine::print_seam::set_dry_run(true);
+    let dir = temp_dir("sumprint");
+    let mut a = automation(&dir);
+    summary_doc(&dir, &mut a);
+    let r = call(
+        &mut a,
+        "summary_print",
+        json!({ "dry_run": true, "printer": "Plotter 7", "copies": 2, "columns": ["subject", "status"] }),
+    );
+    assert_eq!(r["sent"], false, "a dry run sends nothing: {r}");
+    assert_eq!(r["markups"], 3, "{r}");
+    assert!(s(&r["args"]).contains("Plotter 7"), "the chosen printer: {r}");
+    let pdf = PathBuf::from(r["pdf"].as_str().unwrap());
+    let report = markupcraft_engine::Session::open(&pdf).unwrap();
+    for word in ["Door", "Wall", "Accepted"] {
+        let hits = report.search_text(word, &Default::default()).unwrap();
+        assert!(!hits.hits.is_empty(), "{word} in the printed report");
+    }
+    // Without dry_run it goes through the print path (recorded here instead of printed).
+    let r = call(&mut a, "summary_print", json!({}));
+    let sent = PathBuf::from(r["pdf"].as_str().unwrap());
+    assert!(
+        markupcraft_engine::print_seam::recorded().iter().any(|p| p.pdf == sent),
+        "handed to the print command: {r}"
+    );
+    // The app: Markup Summary > Print Summary.
+    let mut h = app();
+    call_ui_markup(&mut h);
+    let before = markupcraft_engine::print_seam::recorded().len();
+    run(&mut h, "markup.summary");
+    h.get_by_label("Print Summary").click();
+    h.run_steps(4);
+    let after = markupcraft_engine::print_seam::recorded();
+    assert!(after.len() > before, "{}", h.state().state.status);
+    assert!(h.state().state.status.contains("printer"), "{}", h.state().state.status);
+}
+
+/// A markup in the app's open sample, so its summary has a row.
+fn call_ui_markup(h: &mut Harness<'_, MarkupCraftApp>) {
+    let m = markupcraft_model::Markup::new(
+        Kind::Rectangle,
+        0,
+        vec![Point::new(100.0, 100.0), Point::new(200.0, 160.0)],
+    );
+    let d = h.state_mut().state.doc_mut().unwrap();
+    d.session.add_new_markups("Add", vec![m]).unwrap();
+    h.run_steps(2);
+}
+
+/// D-136: saved column configurations: save, list, load (order kept), delete; empty columns
+/// left out unless the configuration keeps them; the dialog saves and loads them too.
+#[test]
+fn summary_saved_column_configurations() {
+    let dir = temp_dir("sumcfg");
+    let mut a = automation(&dir);
+    summary_doc(&dir, &mut a);
+    call(
+        &mut a,
+        "summary_columns",
+        json!({ "action": "save", "name": "Review", "columns": ["status", "subject", "label", "page"], "include_empty": false }),
+    );
+    call(
+        &mut a,
+        "summary_columns",
+        json!({ "action": "save", "name": "All", "columns": ["page", "label", "subject"] }),
+    );
+    let l = call(&mut a, "summary_columns", json!({}));
+    assert!(s(&l).contains("Review") && s(&l).contains("All"), "{l}");
+    let c = call(&mut a, "summary_columns", json!({ "action": "load", "name": "review" }));
+    assert_eq!(c["columns"], json!(["status", "subject", "label", "page"]), "{c}");
+    assert!(
+        dir.join("config/summary_columns.json").is_file(),
+        "kept in the config folder"
+    );
+    call(
+        &mut a,
+        "summary_export",
+        json!({ "out": "r.csv", "column_config": "Review" }),
+    );
+    let head = std::fs::read_to_string(dir.join("r.csv")).unwrap();
+    let head = head.lines().next().unwrap().to_lowercase();
+    let (st, su, pg) = (head.find("status"), head.find("subject"), head.find("page"));
+    assert!(st < su && su < pg, "the configuration's order: {head}");
+    assert!(!head.contains("label"), "the empty Label column left out: {head}");
+    call(
+        &mut a,
+        "summary_export",
+        json!({ "out": "all.csv", "column_config": "All" }),
+    );
+    let head = std::fs::read_to_string(dir.join("all.csv")).unwrap();
+    assert!(
+        head.lines().next().unwrap().to_lowercase().contains("label"),
+        "kept when the configuration includes empty columns: {head}"
+    );
+    call(&mut a, "summary_columns", json!({ "action": "delete", "name": "All" }));
+    assert!(!s(&call(&mut a, "summary_columns", json!({}))).contains("\"All\""));
+    fails(
+        &mut a,
+        "summary_export",
+        json!({ "out": "x.csv", "column_config": "All" }),
+    );
+    // The dialog: save the chosen columns as a set, then load it back.
+    let mut h = app();
+    let cfg = dir.join("uicfg");
+    std::fs::create_dir_all(&cfg).unwrap();
+    h.state_mut().state.features.partials.config = Some(cfg.clone());
+    run(&mut h, "markup.summary");
+    h.state_mut().state.features.summary.columns = vec!["subject".into(), "page".into()];
+    h.state_mut().state.features.summary.config_name = "Mine".into();
+    h.run_steps(2);
+    h.get_by_label("Save Columns").click();
+    h.run_steps(3);
+    let saved = markupcraft_engine::summary_cols::load_configs(&cfg).unwrap();
+    assert_eq!(saved.len(), 1, "{}", h.state().state.features.summary.message);
+    assert_eq!(saved[0].columns, ["subject", "page"]);
+    h.state_mut().state.features.summary.columns = vec!["status".into()];
+    h.state_mut().state.features.summary.config_name.clear();
+    h.run_steps(2);
+    {
+        use egui::accesskit::Role;
+        h.get_all_by(|n| n.role() == Role::ComboBox && n.value().as_deref() == Some("(choose)"))
+            .next()
+            .expect("the column set box")
+            .click();
+        h.run_steps(4);
+        h.get_all_by_label("Mine").last().unwrap().click();
+        h.run_steps(3);
+    }
+    assert_eq!(
+        h.state().state.features.summary.columns,
+        ["subject", "page"],
+        "loaded from the column set"
+    );
+}
+
 /// D-136, D-137, D-138: columns chosen and ordered, filter and multi-level sort, title with
 /// date, totals only, no headers, one report per value of the first column.
 #[test]
@@ -1005,6 +1713,46 @@ fn print_printer_choice_and_print_ready_output() {
     call(&mut a, "print_pdf", json!({ "out": "p.pdf" }));
     let (pages, _) = printed(&mut a, "p.pdf");
     assert_eq!(pages.len(), 3);
+}
+
+/// D-140: a live preview with margins: the sheet as it prints, its size and the margin box,
+/// in the tool and the Print dialog.
+#[test]
+fn print_live_preview_with_margins() {
+    let dir = temp_dir("prnprev");
+    let mut a = automation(&dir);
+    print_doc(&dir, &mut a);
+    let r = call(
+        &mut a,
+        "print_preview",
+        json!({ "paper": "tabloid", "orientation": "landscape", "margin": 36, "png": "sheet.png", "size": 400 }),
+    );
+    assert_eq!(r["sheets"], 3, "{r}");
+    assert_eq!(r["paper"], json!([1224.0, 792.0]), "{r}");
+    assert_eq!(r["printable"], json!([36.0, 36.0, 1188.0, 756.0]), "{r}");
+    assert!(r["image"][0].as_u64().unwrap().abs_diff(400) <= 2, "{r}");
+    let png = std::fs::read(dir.join("sheet.png")).unwrap();
+    assert!(png.starts_with(b"\x89PNG"), "the sheet as an image");
+    let r = call(&mut a, "print_preview", json!({ "sheet": 2, "pages": [3, 1] }));
+    assert_eq!((r["sheets"].as_u64(), r["sheet"].as_u64()), (Some(2), Some(2)), "{r}");
+    // The dialog shows the preview and follows the settings.
+    let mut h = app();
+    run(&mut h, "file.print");
+    h.run_steps(3);
+    h.get_by_label("Preview").click();
+    h.run_steps(3);
+    assert!(
+        shows(&h, "First sheet: 8.5 x 11.0 in") || shows(&h, "First sheet: 11.0 x 8.5 in"),
+        "a Letter preview"
+    );
+    h.state_mut().state.features.print.paper = "Tabloid".into();
+    h.state_mut().state.features.print.margin = 36.0;
+    h.run_steps(4);
+    assert!(
+        shows(&h, "First sheet: 11.0 x 17.0 in, margins 0.50 in")
+            || shows(&h, "First sheet: 17.0 x 11.0 in, margins 0.50 in"),
+        "the preview follows the paper and margins"
+    );
 }
 
 /// D-141, D-142: page range, Get Window region; document and markups / document only /
@@ -1204,7 +1952,48 @@ fn header_footer_six_places_and_tokens() {
         page_text(&mut a, "doc.pdf", 3).contains("JOB-0008-X"),
         "Bates counts up"
     );
-    // Gap: Revu's file data tokens (file name, path, author) are not offered.
+    // File data: file name, path, author, title and subject from the document information.
+    open(&mut a, "doc.pdf");
+    call(
+        &mut a,
+        "doc_properties_set",
+        json!({ "properties": { "Author": "Pat Drafter", "Title": "Level Two Plan", "Subject": "Ducts" } }),
+    );
+    let t = call(&mut a, "header_footer_tokens", json!({}));
+    for want in [
+        "<<File Name>>",
+        "<<File Path>>",
+        "<<Author>>",
+        "<<Title>>",
+        "<<Subject>>",
+    ] {
+        assert!(s(&t).contains(want), "{want} offered: {t}");
+    }
+    assert_eq!(t["values"]["<<Author>>"], "Pat Drafter", "{t}");
+    call(
+        &mut a,
+        "header_footer_add",
+        json!({ "pages": [1], "header_left": "<<File Name>>", "header_center": "<<Title>> / <<Subject>>",
+                 "header_right": "by <<Author>>", "footer_left": "<<File Path>>", "replace": true }),
+    );
+    call(&mut a, "doc_save", json!({}));
+    call(&mut a, "doc_close", json!({}));
+    let p1 = page_text(&mut a, "doc.pdf", 1);
+    for want in ["doc.pdf", "Level Two Plan / Ducts", "by Pat Drafter", "hf"] {
+        assert!(p1.contains(want), "{want} on page 1: {p1}");
+    }
+    // The dialog's token picker inserts a file-data token into the chosen place.
+    let mut h = app();
+    run(&mut h, "document.headers_footers");
+    h.get_by_label("Insert Token").click();
+    h.run_steps(2);
+    h.get_by_label("Author (document properties)").click();
+    h.run_steps(2);
+    assert_eq!(
+        h.state().state.features.docops.hf.text[0],
+        "<<Author>>",
+        "inserted into Header left"
+    );
 }
 
 /// D-150: shrink the page content so the header/footer does not overlap it.
@@ -1427,6 +2216,64 @@ fn ocr_makes_scanned_pages_searchable() {
     assert!(e.to_lowercase().contains("sign"), "{e}");
 }
 
+/// D-156: OCR options: accuracy against speed (the resolution read at), document type,
+/// page chunk size and a maximum vector size. Uses the real models when they are installed,
+/// else a stand-in recogniser that reads every page's ink as one word.
+#[test]
+fn ocr_accuracy_doc_type_chunks_and_max_vector_size() {
+    if !models_present() {
+        markupcraft_engine::ocr::install_recognizer(std::sync::Arc::new(markupcraft_engine::ocr::InkWord {
+            text: "MECHANICAL".into(),
+        }));
+    }
+    let dir = temp_dir("ocropts");
+    let mut a = automation(&dir);
+    // Page 1: light content; page 2: heavy vector linework (about 60 KB of paths).
+    let heavy: String = (0..3000)
+        .map(|i| format!("{} {} m {} {} l S\n", i % 600, i % 700, (i * 7) % 600, (i * 3) % 700))
+        .collect();
+    let pages = [
+        SyntheticPage::new(612.0, 792.0, rect(100.0, 600.0, 200.0, 40.0)),
+        SyntheticPage::new(612.0, 792.0, heavy),
+    ];
+    std::fs::write(dir.join("v.pdf"), pdf(&pages)).unwrap();
+    open(&mut a, "v.pdf");
+    let r = call(
+        &mut a,
+        "ocr_pages",
+        json!({ "accuracy": "speed", "doc_type": "text_document", "max_vector_kb": 20, "chunk_pages": 1 }),
+    );
+    assert_eq!(r["dpi"], 150.0, "speed on a text document reads at 150 dpi: {r}");
+    assert_eq!(r["chunks"], 2, "one page at a time: {r}");
+    let p = r["pages"].as_array().unwrap();
+    assert!(p[0]["skipped"].is_null(), "the light page is read: {r}");
+    assert!(
+        s(&p[1]["skipped"]).contains("larger than 20 KB"),
+        "the heavy vector page is skipped: {r}"
+    );
+    call(&mut a, "doc_close", json!({ "discard_changes": true }));
+    open(&mut a, "v.pdf");
+    let r = call(&mut a, "ocr_pages", json!({ "accuracy": "accuracy", "pages": [1] }));
+    assert_eq!(r["dpi"], 400.0, "accuracy on a drawing: {r}");
+    let r = call(&mut a, "ocr_pages", json!({ "skip_text": false, "pages": [1] }));
+    assert_eq!(r["dpi"], 300.0, "balanced by default: {r}");
+    fails(&mut a, "ocr_pages", json!({ "accuracy": "perfect" }));
+    // The dialog offers the same choices.
+    let mut h = app();
+    run(&mut h, "tools.ocr");
+    for label in [
+        "Speed",
+        "Accuracy",
+        "Page chunk size",
+        "Skip pages with vector content over",
+    ] {
+        assert!(shows(&h, label), "{label} in the OCR dialog");
+    }
+    h.get_by_label("Speed").click();
+    h.run_steps(2);
+    assert_eq!(h.state().state.features.ocr.dpi, 200.0, "Speed on a drawing");
+}
+
 /// D-157, D-158, D-159: results with snippet and page; scopes (page range, document, open
 /// documents, folder with subfolders); options (case, whole words, markups, file names,
 /// properties, form fields).
@@ -1583,6 +2430,77 @@ fn act_on_search_results() {
     }
     assert!(s(&call(&mut a, "link_list", json!({}))).contains("example.com/door"));
     assert!(s(&call(&mut a, "redact_list", json!({}))).contains('1'));
+    // Make hyperlinks from the checked results: one link per hit, in one undo step.
+    text_pdf(
+        &dir,
+        "b.pdf",
+        &[
+            &[
+                (72.0, 700.0, "SEE DETAIL 5"),
+                (72.0, 600.0, "SEE DETAIL 5 AGAIN"),
+                (72.0, 500.0, "DETAIL 5 ONCE MORE"),
+            ],
+            &[(72.0, 700.0, "DETAIL SHEET")],
+        ],
+    );
+    open(&mut a, "b.pdf");
+    let r = call(
+        &mut a,
+        "search_results_link",
+        json!({ "text": "DETAIL 5", "checked": [1, 3], "to_page": 2 }),
+    );
+    assert_eq!(r["links"], 2, "a link per checked result: {r}");
+    let l = call(&mut a, "link_list", json!({}));
+    let list = l["links"].as_array().cloned().unwrap_or_default();
+    assert_eq!(list.len(), 2, "{l}");
+    assert!(
+        list.iter()
+            .all(|x| x["target"]["page"] == 2 || s(x).contains("\"page\":2")),
+        "{l}"
+    );
+    call(&mut a, "edit_undo", json!({}));
+    assert!(
+        call(&mut a, "link_list", json!({}))["links"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    let r = call(
+        &mut a,
+        "search_results_link",
+        json!({ "text": "DETAIL 5", "url": "https://example.com/d5" }),
+    );
+    assert_eq!(r["links"], 3, "every result by default: {r}");
+    // The Search panel: check results, then Link.
+    let mut h = app();
+    h.state_mut().state.open_path(&dir.join("b.pdf"));
+    h.run_steps(4);
+    h.state_mut().state.features.search.query = "DETAIL 5".into();
+    markupcraft_ui_egui::features::search::run_text(&mut h.state_mut().state);
+    h.run_steps(3);
+    for hit in h.state_mut().state.features.search.results_mut() {
+        hit.checked = true;
+    }
+    h.state_mut().state.show_panel("search");
+    h.run_steps(4);
+    h.get_by_label("Link").click();
+    h.run_steps(3);
+    h.get_by_label("Web address").click();
+    h.run_steps(2);
+    h.state_mut().state.features.docs7.link_text = "https://example.com/ui".into();
+    h.run_steps(2);
+    h.get_by_label("Create Links").click();
+    h.run_steps(3);
+    let links = h.state().state.doc().unwrap().session.links();
+    assert_eq!(
+        links
+            .iter()
+            .filter(|l| format!("{l:?}").contains("example.com/ui"))
+            .count(),
+        3,
+        "{}: {links:?}",
+        h.state().state.status
+    );
 }
 
 /// D-162: replace found text in the page content, not in markups.
@@ -2261,6 +3179,60 @@ fn reduce_file_size_with_custom_settings() {
     assert!(after < before, "{after} < {before}");
 }
 
+/// D-185: Archive as PDF/A-1b (what Revu exports): a PDF 1.4 file with a classic
+/// cross-reference table, identified as part 1 conformance B, transparency groups removed;
+/// Verify knows the PDF/A-1 rules (transparency, version) that PDF/A-2b allows.
+#[test]
+fn archive_as_pdfa_1b_and_verify_part_1_rules() {
+    let dir = temp_dir("pdfa1");
+    let mut a = automation(&dir);
+    text_pdf(&dir, "doc.pdf", &[&[(72.0, 700.0, "ARCHIVE ME")]]);
+    open(&mut a, "doc.pdf");
+    let r = call(&mut a, "doc_pdfa", json!({ "action": "archive", "level": "1b" }));
+    assert!(s(&r).contains("PDF/A-1b"), "{r}");
+    call(&mut a, "doc_save", json!({ "path": "a1.pdf" }));
+    call(&mut a, "doc_close", json!({}));
+    let bytes = std::fs::read(dir.join("a1.pdf")).unwrap();
+    assert!(bytes.starts_with(b"%PDF-1.4"), "PDF 1.4 header");
+    assert!(
+        !bytes.windows(7).any(|w| w == b"/ObjStm") && bytes.windows(5).any(|w| w == b"xref\n" || w == b"xref\r"),
+        "a classic cross-reference table, no object streams"
+    );
+    open(&mut a, "a1.pdf");
+    let st = s(&call(&mut a, "doc_standards", json!({})));
+    assert!(st.contains("1B") || st.contains("1b"), "declares PDF/A-1b: {st}");
+    let v = call(&mut a, "doc_pdfa", json!({ "action": "verify", "level": "1b" }));
+    assert_eq!(v["declared"], "PDF/A-1b", "{v}");
+    for i in v["issues"].as_array().unwrap() {
+        let c = i["clause"].as_str().unwrap();
+        assert!(
+            !["6.1.2", "6.1.4", "6.7.11", "6.4"].contains(&c),
+            "part 1 rule broken: {v}"
+        );
+    }
+    assert!(page_text(&mut a, "a1.pdf", 1).contains("ARCHIVE ME"));
+    // Transparency (a half-opaque markup): allowed in PDF/A-2b, not in PDF/A-1b.
+    text_pdf(&dir, "t.pdf", &[&[(72.0, 700.0, "SEE THROUGH")]]);
+    open(&mut a, "t.pdf");
+    call(
+        &mut a,
+        "markup_add",
+        json!({ "page": 1, "kind": "Rectangle", "points": [[100, 100], [300, 200]], "opacity": 0.5, "fill": "red", "fill_opacity": 0.5 }),
+    );
+    let v2 = s(&call(&mut a, "doc_pdfa", json!({ "action": "verify", "level": "2b" })));
+    let v1 = s(&call(&mut a, "doc_pdfa", json!({ "action": "verify", "level": "1b" })));
+    assert!(!v2.contains("transparen"), "2b allows transparency: {v2}");
+    assert!(v1.contains("transparen"), "1b reports it: {v1}");
+    let r = call(&mut a, "doc_pdfa", json!({ "action": "archive", "level": "1b" }));
+    assert_eq!(r["conforming"], false, "transparency is refused, not hidden: {r}");
+    // The dialog offers PDF/A-1b.
+    let mut h = app();
+    run(&mut h, "document.pdfa");
+    h.get_by_label("PDF/A-1b").click();
+    h.run_steps(2);
+    assert!(h.state().state.features.export.pdfa_1b);
+}
+
 /// D-184, D-185, D-186: repair rewrites a damaged file; PDF/A archive + verify + unlock;
 /// colour processing greys the content.
 #[test]
@@ -2925,6 +3897,67 @@ fn file_access_explorer_and_context_menu() {
     assert!(shows(&h, "New Folder") && shows(&h, "Up"), "Explorer controls");
 }
 
+/// D-208: path favourites in the Explorer: add the folder shown, go to a favourite, remove it;
+/// kept in the config folder.
+#[test]
+fn file_access_explorer_path_favourites() {
+    let (dir, _files) = fa_files("fafav");
+    let mut a = automation(&dir);
+    let r = call(&mut a, "file_favorites", json!({ "action": "add", "path": "a" }));
+    call(&mut a, "file_favorites", json!({ "action": "add", "path": "b" }));
+    call(&mut a, "file_favorites", json!({ "action": "add", "path": "a" }));
+    let l = call(&mut a, "file_favorites", json!({}));
+    assert_eq!(l["favorites"].as_array().unwrap().len(), 2, "added once each: {l} {r}");
+    assert!(
+        dir.join("config/file_access_favorites.json").is_file(),
+        "kept in the config folder"
+    );
+    fails(&mut a, "file_favorites", json!({ "action": "add", "path": "missing" }));
+    call(&mut a, "file_favorites", json!({ "action": "remove", "path": "b" }));
+    let l = call(&mut a, "file_favorites", json!({}));
+    assert_eq!(l["favorites"].as_array().unwrap().len(), 1, "{l}");
+    // The Explorer: Favorites > Add This Folder, go elsewhere, then Favorites > the folder.
+    let cfg = dir.join("uicfg");
+    std::fs::create_dir_all(&cfg).unwrap();
+    let mut h = app();
+    h.state_mut().state.features.partials.config = Some(cfg.clone());
+    show(&mut h, "file_access");
+    h.get_all_by_label("Explorer").last().unwrap().click();
+    h.run_steps(3);
+    let id = markupcraft_ui_egui::panels::file_access::view_id();
+    let set_folder = |h: &mut Harness<'static, MarkupCraftApp>, p: PathBuf| {
+        h.ctx.data_mut(|m| {
+            let v = m.get_temp_mut_or_default::<file_access::View>(id);
+            v.folder = Some(p.clone());
+            v.path_text = p.display().to_string();
+        });
+        h.run_steps(3);
+    };
+    set_folder(&mut h, dir.join("b"));
+    h.get_by_label("Favorites").click();
+    h.run_steps(2);
+    h.get_by_label("Add This Folder to Favorites").click();
+    h.run_steps(3);
+    assert_eq!(
+        markupcraft_engine::favorites::load_favorites(&cfg).unwrap(),
+        [dir.join("b")],
+        "{}",
+        h.state().state.status
+    );
+    set_folder(&mut h, dir.join("a"));
+    h.get_by_label("Favorites").click();
+    h.run_steps(2);
+    h.get_by_label("b").click();
+    h.run_steps(3);
+    let now = h.ctx.data_mut(|m| m.get_temp::<file_access::View>(id)).unwrap().folder;
+    assert_eq!(now, Some(dir.join("b")), "went to the favourite");
+    h.get_by_label("Favorites").click();
+    h.run_steps(2);
+    h.get_by_label("Remove This Folder from Favorites").click();
+    h.run_steps(3);
+    assert!(markupcraft_engine::favorites::load_favorites(&cfg).unwrap().is_empty());
+}
+
 /// D-210: a file from the list becomes a link area that opens it.
 #[test]
 fn file_access_link_from_file_list() {
@@ -2938,6 +3971,49 @@ fn file_access_link_from_file_list() {
     assert!(
         format!("{links:?}").contains("Roof.pdf"),
         "a link that opens the file: {links:?}"
+    );
+}
+
+/// D-210: hover a file in the list and drag it out onto the page: the drop makes a link area
+/// there that opens the file.
+#[test]
+fn file_access_drag_a_file_out_as_a_link() {
+    let (_dir, files) = fa_files("fadrag");
+    let mut h = app();
+    let sample = h.state().state.doc().unwrap().uid;
+    h.state_mut().state.open_path(&files[1]);
+    h.run_steps(3);
+    let i = h.state().state.docs.iter().position(|d| d.uid == sample).unwrap();
+    h.state_mut().state.active = i;
+    h.run_steps(3);
+    show(&mut h, "file_access");
+    // The File Access row (the left panel), not the document tab of the same name.
+    let from = h
+        .get_all_by_label("Roof.pdf")
+        .map(|n| n.rect().center())
+        .min_by(|a, b| a.x.total_cmp(&b.x))
+        .unwrap();
+    let to = screen(&h, 300.0, 400.0);
+    h.hover_at(from);
+    h.step();
+    button(&mut h, from, true, egui::Modifiers::NONE);
+    for k in 1..=12 {
+        h.hover_at(from + (to - from) * (k as f32 / 12.0));
+        h.step();
+    }
+    button(&mut h, to, false, egui::Modifiers::NONE);
+    h.run_steps(4);
+    let d = h.state().state.doc().unwrap();
+    assert_eq!(d.uid, sample, "still on the sample");
+    let links = d.session.links();
+    let l = links
+        .iter()
+        .find(|l| format!("{:?}", l.target).contains("Roof.pdf"))
+        .unwrap_or_else(|| panic!("a link that opens Roof.pdf: {links:?} {}", h.state().state.status));
+    assert!(
+        l.rect.x0 < 300.0 && l.rect.x1 > 300.0 && l.rect.y0 < 400.0 && l.rect.y1 > 400.0,
+        "the link area is where it was dropped: {:?}",
+        l.rect
     );
 }
 

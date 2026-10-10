@@ -90,6 +90,109 @@ pub struct OcrOptions {
     pub detect_orientation: bool,
     /// Leave pages without images (vector drawings) alone.
     pub skip_vector_pages: bool,
+    /// Pages read at a time (0 = all at once): the renderer is rebuilt between chunks, which
+    /// bounds the memory a long document takes.
+    pub chunk_pages: usize,
+    /// Leave pages alone whose vector content (decoded page content streams) is larger than
+    /// this many KB (0 = no limit): heavy CAD linework is slow to read and rarely holds text
+    /// that is not already text.
+    pub max_vector_kb: usize,
+}
+
+/// Accuracy against speed: how finely pages are read.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum OcrAccuracy {
+    Speed,
+    #[default]
+    Balanced,
+    Accuracy,
+}
+
+impl OcrAccuracy {
+    pub fn from_name(s: &str) -> Option<Self> {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "speed" | "fast" => Some(Self::Speed),
+            "balanced" | "normal" => Some(Self::Balanced),
+            "accuracy" | "accurate" | "best" => Some(Self::Accuracy),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Speed => "speed",
+            Self::Balanced => "balanced",
+            Self::Accuracy => "accuracy",
+        }
+    }
+}
+
+/// What kind of document is read: drawings carry small, scattered text; text documents are
+/// set in larger type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum OcrDocType {
+    #[default]
+    Drawing,
+    TextDocument,
+}
+
+impl OcrDocType {
+    pub fn from_name(s: &str) -> Option<Self> {
+        match s.trim().to_ascii_lowercase().replace(['_', '-', ' '], "").as_str() {
+            "drawing" | "cad" | "caddrawing" => Some(Self::Drawing),
+            "text" | "textdocument" | "document" => Some(Self::TextDocument),
+            _ => None,
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Drawing => "drawing",
+            Self::TextDocument => "text_document",
+        }
+    }
+}
+
+/// The resolution a page is read at for an accuracy and document type (the recogniser's
+/// trade-off between speed and how small a letter it can read).
+pub fn preset_dpi(accuracy: OcrAccuracy, doc_type: OcrDocType) -> f64 {
+    match (accuracy, doc_type) {
+        (OcrAccuracy::Speed, OcrDocType::Drawing) => 200.0,
+        (OcrAccuracy::Balanced, OcrDocType::Drawing) => 300.0,
+        (OcrAccuracy::Accuracy, OcrDocType::Drawing) => 400.0,
+        (OcrAccuracy::Speed, OcrDocType::TextDocument) => 150.0,
+        (OcrAccuracy::Balanced, OcrDocType::TextDocument) => 200.0,
+        (OcrAccuracy::Accuracy, OcrDocType::TextDocument) => 300.0,
+    }
+}
+
+impl OcrOptions {
+    /// Set the resolution from an accuracy and document type.
+    pub fn with_preset(mut self, accuracy: OcrAccuracy, doc_type: OcrDocType) -> Self {
+        self.dpi = preset_dpi(accuracy, doc_type);
+        self
+    }
+
+    /// How many chunks `pages` pages are read in.
+    pub fn chunks(&self, pages: usize) -> usize {
+        if self.chunk_pages == 0 || pages == 0 {
+            usize::from(pages > 0)
+        } else {
+            pages.div_ceil(self.chunk_pages)
+        }
+    }
+}
+
+/// The size of a page's decoded content streams in bytes (`None` when it cannot be read;
+/// `usize::MAX` when it is larger than can be read).
+fn content_size(
+    cos: &markupcraft_revu::cos::Document,
+    pages: &[markupcraft_revu::cos::ObjRef],
+    page: usize,
+) -> Option<usize> {
+    let r = *pages.get(page)?;
+    let d = cos.dict(&markupcraft_revu::cos::Object::Ref(r))?;
+    Some(crate::overlay::page_content(cos, &d).map_or(usize::MAX, |c| c.len()))
 }
 
 impl Default for OcrOptions {
@@ -101,6 +204,8 @@ impl Default for OcrOptions {
             deskew: false,
             detect_orientation: false,
             skip_vector_pages: false,
+            chunk_pages: 0,
+            max_vector_kb: 0,
         }
     }
 }
@@ -231,15 +336,23 @@ pub fn ocr_recognize(
     if !(opts.dpi.is_finite() && (72.0..=600.0).contains(&opts.dpi)) {
         return Err(invalid("dpi must be from 72 to 600"));
     }
-    let doc = Renderable::new(bytes.clone(), true)?;
-    let cos = if opts.skip_vector_pages {
-        markupcraft_revu::cos::Document::open(bytes).ok()
+    let mut doc = Renderable::new(bytes.clone(), true)?;
+    let cos = if opts.skip_vector_pages || opts.max_vector_kb > 0 {
+        markupcraft_revu::cos::Document::open(bytes.clone()).ok()
     } else {
         None
     };
+    let page_refs = match &cos {
+        Some(c) if opts.max_vector_kb > 0 => crate::docutil::page_objs(c).unwrap_or_default(),
+        _ => Vec::new(),
+    };
     let mut found: OcrWords = Vec::new();
     let mut report = Vec::new();
-    for &page in pages {
+    for (k, &page) in pages.iter().enumerate() {
+        // A new chunk starts with a fresh renderer (its caches go with the old one).
+        if opts.chunk_pages > 0 && k > 0 && k % opts.chunk_pages == 0 {
+            doc = Renderable::new(bytes.clone(), true)?;
+        }
         let skip = |why: &str| OcrPage {
             page,
             words: 0,
@@ -250,12 +363,24 @@ pub fn ocr_recognize(
             report.push(skip("the page already has text"));
             continue;
         }
-        if let Some(c) = &cos
+        if opts.skip_vector_pages
+            && let Some(c) = &cos
             && pdfcraft_edit::page_images(c, page)
                 .map(|v| v.is_empty())
                 .unwrap_or(false)
         {
             report.push(skip("a vector page (no images)"));
+            continue;
+        }
+        if opts.max_vector_kb > 0
+            && let Some(c) = &cos
+            && let Some(n) = content_size(c, &page_refs, page)
+            && n > opts.max_vector_kb.saturating_mul(1024)
+        {
+            report.push(skip(&format!(
+                "its vector content is larger than {} KB",
+                opts.max_vector_kb
+            )));
             continue;
         }
         let img = doc.render_rgba(page, (opts.dpi / 72.0) as f32)?;

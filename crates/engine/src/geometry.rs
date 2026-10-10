@@ -2,7 +2,7 @@
 //! page space moves with the shape (cutouts, the popup window, a moved caption).
 
 use markupcraft_geom::{Point, Rect, bbox};
-use markupcraft_model::{Kind, Markup};
+use markupcraft_model::{Kind, Markup, turn};
 
 use crate::{Result, invalid};
 
@@ -103,17 +103,20 @@ pub fn center(m: &Markup) -> Option<Point> {
     Some(Point::new((b.x0 + b.x1) / 2.0, (b.y0 + b.y1) / 2.0))
 }
 
-/// Rotate counter-clockwise by `degrees` about `c` (PDF space, y up). Box kinds turn only by
-/// multiples of 90 degrees.
+/// Rotate counter-clockwise by `degrees` about `c` (PDF space, y up). Rectangles, ellipses,
+/// text boxes and stamps turn to any angle: their box moves with the turn and keeps the angle
+/// in `Markup::rotation` (an unturned rectangle or ellipse turned by quarter turns stays a
+/// plain box with its sides swapped).
 pub fn rotate(m: &mut Markup, degrees: f64, c: Point) -> Result<()> {
     if !degrees.is_finite() {
         return Err(invalid("degrees must be a number"));
     }
-    if is_box(m.kind) && degrees.rem_euclid(90.0).abs() > 1e-9 && (degrees.rem_euclid(90.0) - 90.0).abs() > 1e-9 {
-        return Err(invalid(format!(
-            "a {} turns only by multiples of 90 degrees",
-            m.kind.name()
-        )));
+    let quarter_turn = degrees.rem_euclid(90.0).abs() < 1e-9 || (degrees.rem_euclid(90.0) - 90.0).abs() < 1e-9;
+    if turn::free_rotates(m.kind)
+        && m.pts.len() >= 4
+        && !(is_box(m.kind) && quarter_turn && turn::norm_degrees(m.rotation) == 0.0)
+    {
+        return turn_box(m, degrees, c);
     }
     // Quarter turns exactly, so boxes stay on whole numbers.
     let quarter = [
@@ -142,11 +145,70 @@ pub fn rotate(m: &mut Markup, degrees: f64, c: Point) -> Result<()> {
     Ok(())
 }
 
+/// Turn a free-rotating box: its centre turns about `c`, its angle adds `degrees`.
+fn turn_box(m: &mut Markup, degrees: f64, c: Point) -> Result<()> {
+    let b = turn::frame(m).ok_or_else(|| invalid("the markup has no points"))?;
+    let mid = Point::new((b.x0 + b.x1) / 2.0, (b.y0 + b.y1) / 2.0);
+    let to = turn::turn_point(c, degrees.to_radians(), mid);
+    let (dx, dy) = (to.x - mid.x, to.y - mid.y);
+    check_finite(&[Point::new(b.x0 + dx, b.y0 + dy), Point::new(b.x1 + dx, b.y1 + dy)])?;
+    let mut angle = turn::norm_degrees(m.rotation + degrees);
+    let mut moved: Vec<Point> = m.pts.iter().map(|p| Point::new(p.x + dx, p.y + dy)).collect();
+    // a rectangle or ellipse turned to a quarter turn is a plain box again
+    if is_box(m.kind) {
+        let q = (angle / 90.0).round();
+        if (angle - q * 90.0).abs() < 1e-9 {
+            if (q as i64).rem_euclid(2) == 1 {
+                let (hw, hh) = (b.height() / 2.0, b.width() / 2.0);
+                moved = Rect::new(to.x - hw, to.y - hh, to.x + hw, to.y + hh).corners().to_vec();
+            }
+            angle = 0.0;
+        }
+    }
+    m.pts = moved;
+    m.rotation = angle;
+    if let Some(p) = &mut m.popup {
+        *p = Rect::new(p.x0 + dx, p.y0 + dy, p.x1 + dx, p.y1 + dy);
+    }
+    m.rect = turn::turned_bounds(m)
+        .unwrap_or_else(|| Rect::new(m.rect.x0 + dx, m.rect.y0 + dy, m.rect.x1 + dx, m.rect.y1 + dy));
+    normalize(m);
+    m.dirty = true;
+    Ok(())
+}
+
+/// Set a free-rotating box's angle (degrees counter-clockwise, about its own centre).
+pub fn set_rotation(m: &mut Markup, degrees: f64) -> Result<()> {
+    if !degrees.is_finite() {
+        return Err(invalid("degrees must be a number"));
+    }
+    if !turn::free_rotates(m.kind) {
+        return Err(invalid(format!(
+            "a {} has no angle of its own; turn it with rotate",
+            m.kind.name()
+        )));
+    }
+    let b = turn::frame(m).ok_or_else(|| invalid("the markup has no points"))?;
+    let to = turn::norm_degrees(degrees);
+    if (to - turn::norm_degrees(m.rotation)).abs() < 1e-12 {
+        return Ok(());
+    }
+    // turned about the centre of its box; the box itself stays (its sides are never swapped)
+    m.rotation = to;
+    m.rect = turn::turned_bounds(m).unwrap_or(b);
+    m.dirty = true;
+    Ok(())
+}
+
 /// Mirror the shape about the vertical line `x = axis` (`horizontal`) or the horizontal line
 /// `y = axis`. Text stays readable: only the outline, leader and caption offset mirror.
 pub fn flip(m: &mut Markup, horizontal: bool, axis: f64) -> Result<()> {
     if !axis.is_finite() {
         return Err(invalid("the flip axis must be a number"));
+    }
+    if turn::turn_of(m).is_some() {
+        // a turned box mirrors its angle too
+        m.rotation = turn::norm_degrees(-m.rotation);
     }
     let f = |p: Point| {
         if horizontal {
@@ -353,11 +415,42 @@ mod tests {
     }
 
     #[test]
-    fn box_rotates_by_quarters_only() {
+    fn box_rotates_to_any_angle() {
         let mut m = Markup::new(Kind::Rectangle, 0, Rect::new(0.0, 0.0, 4.0, 2.0).corners().to_vec());
-        assert!(rotate(&mut m, 45.0, Point::new(2.0, 1.0)).is_err());
         rotate(&mut m, 90.0, Point::new(2.0, 1.0)).unwrap();
-        assert_eq!(bbox(&m.pts).unwrap(), Rect::new(1.0, -1.0, 3.0, 3.0));
+        assert_eq!(
+            bbox(&m.pts).unwrap(),
+            Rect::new(1.0, -1.0, 3.0, 3.0),
+            "a quarter turn swaps the sides"
+        );
+        assert_eq!(m.rotation, 0.0);
+        rotate(&mut m, 45.0, Point::new(2.0, 1.0)).unwrap();
+        assert!((m.rotation - 45.0).abs() < 1e-9);
+        assert_eq!(
+            bbox(&m.pts).unwrap(),
+            Rect::new(1.0, -1.0, 3.0, 3.0),
+            "about its own centre"
+        );
+        // about another point the box moves with the turn
+        rotate(&mut m, 45.0, Point::new(0.0, 1.0)).unwrap();
+        assert_eq!(m.rotation, 0.0, "back to a quarter turn: a plain box");
+        let b = bbox(&m.pts).unwrap();
+        assert!(
+            (b.width() - 4.0).abs() < 1e-9 && (b.height() - 2.0).abs() < 1e-9,
+            "{b:?}"
+        );
+        set_rotation(&mut m, 30.0).unwrap();
+        assert!((m.rotation - 30.0).abs() < 1e-9);
+        flip(&mut m, true, 0.0).unwrap();
+        assert!((m.rotation - 330.0).abs() < 1e-9, "a flip mirrors the angle");
+        let mut t = Markup::new(Kind::Text, 0, Rect::new(0.0, 0.0, 4.0, 2.0).corners().to_vec());
+        rotate(&mut t, 90.0, Point::new(2.0, 1.0)).unwrap();
+        assert!(
+            (t.rotation - 90.0).abs() < 1e-9,
+            "a text box keeps its quarter turn as an angle"
+        );
+        let mut p = Markup::new(Kind::Polygon, 0, Rect::new(0.0, 0.0, 4.0, 2.0).corners().to_vec());
+        assert!(set_rotation(&mut p, 10.0).is_err());
     }
 
     #[test]

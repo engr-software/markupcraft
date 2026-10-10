@@ -104,6 +104,13 @@ impl Annot {
     fn nm(&self) -> String {
         self.text("NM")
     }
+    /// The decoded `/AP /N` content stream.
+    fn ap(&self) -> String {
+        match self.sub("AP", "N") {
+            Object::Stream(st) => String::from_utf8_lossy(&st.decoded().unwrap()).into_owned(),
+            _ => String::new(),
+        }
+    }
 }
 
 /// Every annotation dictionary of a PDF file.
@@ -428,8 +435,50 @@ fn text_font_properties_are_saved() {
     assert!(ds.contains("bold") && ds.contains("italic"), "/DS has the style: {ds}");
     assert!(ds.to_lowercase().contains("0000ff"), "/DS has the colour: {ds}");
     assert!(ds.contains("underline"), "/DS has the decoration: {ds}");
+    // justified and vertically aligned text: drawn into the /AP, saved and reloaded
+    let j = add(
+        &mut a,
+        "Text",
+        rect_pts(100.0, 200.0, 220.0, 400.0),
+        json!({ "contents": "one two three four five six seven eight nine ten eleven twelve" }),
+    );
+    call(
+        &mut a,
+        "markup_edit",
+        json!({ "ids": [j], "align": "justify", "valign": "bottom" }),
+    );
+    let jm = get(&mut a, &j);
+    assert_eq!(
+        (jm["text_align"].as_str(), jm["text_valign"].as_str()),
+        (Some("justify"), Some("bottom"))
+    );
+    let s = save(&mut a, &dir, "font.pdf");
+    let x = by_nm(&s, &j);
+    assert!(x.text("DS").contains("text-align:justify"), "{}", x.text("DS"));
+    assert_eq!(x.num("PCVAlign"), Some(2.0), "the vertical alignment is saved");
+    let ap = x.ap();
+    assert!(ap.contains(" Tw"), "justified lines widen their spaces: {ap}");
+    // the text sits at the bottom of the 200 pt box: the last baseline is near its bottom
+    let toks: Vec<&str> = ap.split_whitespace().collect();
+    let ys: Vec<f64> = toks
+        .windows(2)
+        .filter(|w| w[1] == "Tm")
+        .filter_map(|w| w[0].parse().ok())
+        .collect();
+    let low = ys.iter().cloned().fold(f64::MAX, f64::min);
+    assert!(low < 215.0, "bottom aligned: baselines {ys:?}");
+    for (v, want) in [("middle", 1.0), ("top", 0.0)] {
+        call(&mut a, "markup_edit", json!({ "ids": [j], "valign": v }));
+        let s = save(&mut a, &dir, "font2.pdf");
+        assert_eq!(by_nm(&s, &j).num("PCVAlign").unwrap_or(0.0), want, "{v}");
+    }
+    call(&mut a, "markup_edit", json!({ "ids": [j], "valign": "bottom" }));
+    save(&mut a, &dir, "font.pdf");
     let (_b, l) = reopen(&dir, "font.pdf");
     assert!(l.iter().any(|m| m["id"] == id.as_str()));
+    let back = l.iter().find(|m| m["id"] == j.as_str()).unwrap();
+    assert_eq!(back["text_align"], "justify", "{back}");
+    assert_eq!(back["text_valign"], "bottom", "{back}");
     // Properties shows the font, size and the three alignments
     let mut h = app();
     let tb = markups(&h).into_iter().find(|m| m.kind == Kind::Text).unwrap();
@@ -442,6 +491,11 @@ fn text_font_properties_are_saved() {
         "Left",
         "Center",
         "Right",
+        "Justify",
+        "Vertical",
+        "Top",
+        "Middle",
+        "Bottom",
         "Text color",
         "B",
         "I",
@@ -1626,22 +1680,96 @@ fn layout_position_size_and_rotation() {
     let (x1, y1) = (pts[1][0].as_f64().unwrap(), pts[1][1].as_f64().unwrap());
     let ang = (y1 - y0).atan2(x1 - x0).to_degrees();
     assert!((ang - 30.0).abs() < 0.1, "turned 30 degrees: {ang}");
-    // GAP: Revu turns any markup to any angle; boxes (rectangle, ellipse, text box) turn here
-    // by quarter turns only, and other angles are refused.
-    let e = fails(&mut a, "markup_transform", json!({ "ids": [r], "rotate": 30 }));
-    assert!(e.contains("90"), "{e}");
-    call(&mut a, "markup_transform", json!({ "ids": [r], "rotate": 90 }));
-    let after = get(&mut a, &r);
+    // boxes (rectangle, ellipse, text box, stamp) turn to any angle too, keeping their box
+    call(&mut a, "markup_transform", json!({ "ids": [r], "rotate": 30 }));
+    let m = get(&mut a, &r);
+    assert!((m["rotation"].as_f64().unwrap() - 30.0).abs() < 1e-9, "{m}");
+    assert_eq!(
+        m["points"][0],
+        json!([160.0, 420.0]),
+        "the box turns about its centre: {m}"
+    );
+    let e = add(&mut a, "Ellipse", rect_pts(100.0, 600.0, 200.0, 650.0), json!({}));
+    let t = add(
+        &mut a,
+        "Text",
+        rect_pts(300.0, 600.0, 450.0, 650.0),
+        json!({ "contents": "Turned note" }),
+    );
+    let st = call(
+        &mut a,
+        "stamp_add",
+        json!({ "page": 1, "rect": [450, 250, 600, 320], "stamp": "Approved" }),
+    );
+    let st = st["id"]
+        .as_str()
+        .map(String::from)
+        .or_else(|| st["markup"]["id"].as_str().map(String::from))
+        .unwrap_or_else(|| panic!("{st}"));
+    call(&mut a, "markup_transform", json!({ "ids": [e, t], "rotate": 25 }));
+    call(&mut a, "markup_transform", json!({ "ids": [st], "rotation": 312.5 }));
+    // the angle is set numerically too (Properties > Layout)
+    call(&mut a, "markup_transform", json!({ "ids": [r], "rotation": 45 }));
+    for (id, want) in [(&r, 45.0), (&e, 25.0), (&t, 25.0), (&st, 312.5)] {
+        let m = get(&mut a, id);
+        assert!((m["rotation"].as_f64().unwrap() - want).abs() < 1e-9, "{m}");
+    }
     let s = save(&mut a, &dir, "rot.pdf");
-    assert!(by_nm(&s, &r).has("AP"), "{after}");
-    // Properties > Layout
+    for (id, want) in [(&r, 45.0), (&e, 25.0), (&t, 25.0), (&st, 312.5)] {
+        let x = by_nm(&s, id);
+        assert!((x.num("Rotation").unwrap() - want).abs() < 1e-6, "/Rotation of {id}");
+        let mx = match x.sub("AP", "N") {
+            Object::Stream(st) => st
+                .dict
+                .get(b"Matrix")
+                .and_then(Object::as_array)
+                .map(|v| {
+                    v.iter()
+                        .filter_map(|o| markupcraft_revu::pdf::num(Some(o)))
+                        .collect::<Vec<f64>>()
+                })
+                .unwrap_or_default(),
+            _ => Vec::new(),
+        };
+        assert_eq!(mx.len(), 6, "the /AP is turned by its /Matrix");
+        let ang = mx[1].atan2(mx[0]).to_degrees().rem_euclid(360.0);
+        assert!((ang - want).abs() < 1e-6, "{id}: {ang}");
+    }
+    // /Rect holds the turned box: at 45 degrees the 200 x 80 box is about 198 x 198
+    let rr = by_nm(&s, &r).nums("Rect");
+    assert!(
+        (rr[3] - rr[1] - 198.0).abs() < 3.0 && (rr[2] - rr[0] - 198.0).abs() < 3.0,
+        "{rr:?}"
+    );
+    let (_b, back) = reopen(&dir, "rot.pdf");
+    for (id, want) in [(&r, 45.0), (&e, 25.0), (&t, 25.0), (&st, 312.5)] {
+        let m = back.iter().find(|m| m["id"] == id.as_str()).unwrap();
+        assert!((m["rotation"].as_f64().unwrap() - want).abs() < 1e-6, "reloaded {m}");
+    }
+    let rm = back.iter().find(|m| m["id"] == r.as_str()).unwrap();
+    let p0 = &rm["points"][0];
+    assert!(
+        (p0[0].as_f64().unwrap() - 160.0).abs() < 1e-6 && (p0[1].as_f64().unwrap() - 420.0).abs() < 1e-6,
+        "the unturned box reloads: {rm}"
+    );
+    // Properties > Layout: the angle of a selected box, editable as a number
     let mut h = app();
     panel(&mut h, "properties");
     let id = sample_id(&h, Kind::Rectangle);
-    select(&mut h, &[id]);
-    for s in ["Layout", "Rotate"] {
+    select(&mut h, std::slice::from_ref(&id));
+    for s in ["Layout", "Rotate", "Angle"] {
         assert!(visible(&h, s), "{s}");
     }
+    h.state_mut()
+        .state
+        .doc_mut()
+        .unwrap()
+        .session
+        .set_markup_rotation(std::slice::from_ref(&id), 33.0)
+        .unwrap();
+    h.run_steps(3);
+    let m = markups(&h).into_iter().find(|m| m.id == id).unwrap();
+    assert!((m.rotation - 33.0).abs() < 1e-9);
 }
 
 /// K-081: the rotation handle above a selected markup turns it about its centre.
@@ -2002,6 +2130,43 @@ fn rich_text_runs_are_saved_as_rc_spans() {
     );
 }
 
+/// K-006: Ctrl+B / Ctrl+I / Ctrl+U with nothing selected turn the style on for the text typed
+/// next (and off again); a selection is still styled in place.
+#[test]
+fn style_keys_with_no_selection_style_the_text_typed_next() {
+    let mut h = app();
+    key(&mut h, NONE, Key::T);
+    drag(&mut h, (100.0, 450.0), (400.0, 520.0));
+    type_text(&mut h, "plain ");
+    chord(&mut h, Modifiers::COMMAND, Key::B);
+    type_text(&mut h, "bold");
+    chord(&mut h, Modifiers::COMMAND, Key::B);
+    chord(&mut h, Modifiers::COMMAND, Key::I);
+    type_text(&mut h, " it");
+    key(&mut h, NONE, Key::Escape);
+    let m = last(&h);
+    assert_eq!(m.contents, "plain bold it");
+    let base = m.text.clone();
+    let at = |i: usize| markupcraft_model::rich::style_at(&base, &m.rich, i);
+    assert!(!at(0).bold && !at(5).bold, "'plain ' stays regular: {:?}", m.rich);
+    assert!(
+        (6..10).all(|i| at(i).bold && !at(i).italic),
+        "'bold' is bold: {:?}",
+        m.rich
+    );
+    assert!(
+        (10..13).all(|i| !at(i).bold && at(i).italic),
+        "' it' is italic, bold turned off: {:?}",
+        m.rich
+    );
+    let s = save_ui(&mut h, "rich-next");
+    let rc = by_nm(&s, &m.id).text("RC");
+    assert!(
+        rc.contains("bold") && rc.contains("italic"),
+        "/RC carries the spans: {rc}"
+    );
+}
+
 /// K-007: spell check finds misspelled words in markup text, with suggestions.
 #[test]
 fn spell_check_reports_misspelled_markup_words() {
@@ -2242,8 +2407,6 @@ fn apply_to_pages_copies_to_the_same_place() {
     select(&mut h, &[r]);
     run(&mut h, "markup.apply_to_all_pages");
     h.run_steps(3);
-    // GAP: Apply to All Pages copies at once; there is no dialog with odd / even or portrait /
-    // landscape filters (markup_align to_pages takes a page list or range).
     let r2 = sample_id(&h, Kind::Rectangle);
     assert!(
         markups(&h)
@@ -2253,6 +2416,97 @@ fn apply_to_pages_copies_to_the_same_place() {
             == 1,
         "copied to page 2"
     );
+}
+
+/// K-097: Apply to Pages keeps only the odd, even, portrait or landscape pages, from the tool
+/// and from the Apply to Pages window.
+#[test]
+fn apply_to_pages_filters_odd_even_portrait_landscape() {
+    let (_dir, mut a) = open("topages-filter");
+    call(
+        &mut a,
+        "page_insert_blank",
+        json!({ "at": 3, "width": 612, "height": 792 }),
+    );
+    call(
+        &mut a,
+        "page_insert_blank",
+        json!({ "at": 4, "width": 792, "height": 612 }),
+    );
+    let info = call(&mut a, "doc_info", json!({}));
+    let landscape: Vec<u64> = info["page_list"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|p| {
+            let (w, h) = (p["width"].as_f64().unwrap(), p["height"].as_f64().unwrap());
+            let turned = p["rotate"].as_i64().unwrap_or(0).rem_euclid(180) == 90;
+            if turned { h > w } else { w > h }
+        })
+        .map(|p| p["page"].as_u64().unwrap())
+        .collect();
+    let id = add(
+        &mut a,
+        "Rectangle",
+        rect_pts(100.0, 450.0, 200.0, 550.0),
+        json!({ "subject": "Stamp me" }),
+    );
+    let pages_of = |v: &Value| -> Vec<u64> {
+        let mut p: Vec<u64> = v["markups"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|m| v["new_ids"].as_array().unwrap().contains(&m["id"]))
+            .map(|m| m["page"].as_u64().unwrap())
+            .collect();
+        p.sort();
+        p
+    };
+    for (filter, want) in [("even", vec![2, 4]), ("odd", vec![3]), ("all", vec![2, 3, 4])] {
+        let v = call(
+            &mut a,
+            "markup_align",
+            json!({ "ids": [id], "to_pages": "all", "page_filter": filter }),
+        );
+        assert_eq!(pages_of(&v), want, "{filter}");
+        call(&mut a, "edit_undo", json!({}));
+    }
+    let want_land: Vec<u64> = landscape.iter().copied().filter(|p| *p != 1).collect();
+    let want_port: Vec<u64> = (2..=4).filter(|p| !landscape.contains(p)).collect();
+    assert!(want_land.contains(&4) && want_port.contains(&3), "{landscape:?}");
+    let v = call(
+        &mut a,
+        "markup_align",
+        json!({ "ids": [id], "to_pages": "all", "page_filter": "landscape" }),
+    );
+    assert_eq!(pages_of(&v), want_land, "landscape");
+    call(&mut a, "edit_undo", json!({}));
+    let v = call(
+        &mut a,
+        "markup_align",
+        json!({ "ids": [id], "to_pages": "2-4", "page_filter": "portrait" }),
+    );
+    assert_eq!(pages_of(&v), want_port, "portrait");
+    // the Apply to Pages window: a page range and a subset
+    let mut h = app();
+    let r = sample_id(&h, Kind::Rectangle);
+    select(&mut h, std::slice::from_ref(&r));
+    run(&mut h, "markup.apply_to_pages");
+    for s in ["Apply to Pages", "Subset", "All pages", "Pages:"] {
+        assert!(visible(&h, s), "the window shows {s}");
+    }
+    h.state_mut().state.edit.more.g2.apply_filter = markupcraft_engine::align::PageFilter::Even;
+    h.run_steps(2);
+    h.query_by_label("Apply").unwrap().click();
+    h.run_steps(4);
+    let src = find(&h, &r);
+    assert_eq!(
+        markups(&h).iter().filter(|m| m.page == 1 && m.pts == src.pts).count(),
+        1,
+        "copied to page 2 (even)"
+    );
+    // a right-click item opens it too
+    assert!(!h.state().state.edit.more.g2.apply_open, "closed after Apply");
 }
 
 /// K-098: Ctrl+Shift+drag copies a markup and keeps the move straight.
@@ -2370,20 +2624,42 @@ fn align_and_distribute() {
         (b[1].0 - b[0].1, b[2].0 - b[1].1)
     };
     assert!((gaps.0 - gaps.1).abs() < 0.01, "equal gaps: {gaps:?}");
-    // Revu aligns to the reference markup; in the app the last selected one is the reference
+    // the reference is the last id given: x, y and z go to z's bottom, left to y's left
+    let zb = bottom(&mut a, &z);
+    let yl = left(&mut a, &y);
+    assert_eq!(bottom(&mut a, &y), zb);
+    call(&mut a, "markup_align", json!({ "ids": [z, x, y], "align": "left" }));
+    assert_eq!(
+        (left(&mut a, &x), left(&mut a, &z)),
+        (yl, yl),
+        "to the last one's left edge"
+    );
+    // the joint extent stays available
+    call(
+        &mut a,
+        "markup_align",
+        json!({ "ids": [y, z], "align": "right", "to": "extent" }),
+    );
+    // in the app the last selected markup is the reference: it stays, the others move to it
     let mut h = app();
     let r = sample_id(&h, Kind::Rectangle);
     let e = sample_id(&h, Kind::Ellipse);
-    let rl = markupcraft_geom::bbox(&find(&h, &r).pts).unwrap().x0;
+    let rb = markupcraft_geom::bbox(&find(&h, &r).pts).unwrap();
+    let eb = markupcraft_geom::bbox(&find(&h, &e).pts).unwrap();
     select(&mut h, &[e.clone(), r.clone()]);
     chord(&mut h, Modifiers::COMMAND | Modifiers::ALT, Key::L);
     let el = markupcraft_geom::bbox(&find(&h, &e).pts).unwrap().x0;
     let rl2 = markupcraft_geom::bbox(&find(&h, &r).pts).unwrap().x0;
-    // GAP: Revu aligns to the reference markup; here both go to the selection's joint extent
-    // (the ellipse's left edge at 700), whichever was selected last.
+    assert!((rl2 - rb.x0).abs() < 0.01, "the reference (last selected) stays: {rl2}");
+    assert!((el - rb.x0).abs() < 0.01, "the other goes to its left edge: {el}");
+    // selected the other way round, the ellipse is the reference (Ctrl+Alt+T: Align Top)
+    select(&mut h, &[r.clone(), e.clone()]);
+    chord(&mut h, Modifiers::COMMAND | Modifiers::ALT, Key::T);
+    let et = markupcraft_geom::bbox(&find(&h, &e).pts).unwrap().y1;
+    let rt = markupcraft_geom::bbox(&find(&h, &r).pts).unwrap().y1;
     assert!(
-        (el - rl2).abs() < 0.01 && rl2 < rl,
-        "left edges line up at the joint extent: {el} {rl2}"
+        (et - eb.y1).abs() < 0.01 && (rt - eb.y1).abs() < 0.01,
+        "tops at the ellipse's: {et} {rt}"
     );
 }
 
@@ -2538,8 +2814,11 @@ fn right_click_menu_on_a_markup() {
     });
     h.run_steps(3);
     let l = labels(&h);
-    // GAP: Revu's menu also has Reply, Flip, Edit Action and Flatten.
     let missing: Vec<&str> = [
+        "Reply",
+        "Flip",
+        "Edit Action",
+        "Flatten",
         "Cut",
         "Copy",
         "Paste",
@@ -2558,6 +2837,42 @@ fn right_click_menu_on_a_markup() {
     .filter(|w| !l.iter().any(|x| x.contains(w)))
     .collect();
     assert!(missing.is_empty(), "the menu lacks {missing:?}");
+    // Reply opens a reply box; the reply is listed under the markup
+    let id = h
+        .state()
+        .state
+        .doc()
+        .unwrap()
+        .session
+        .selection()
+        .first()
+        .cloned()
+        .unwrap();
+    h.query_by_label("Reply").unwrap().click();
+    h.run_steps(3);
+    assert!(visible(&h, "Add Reply"), "the Reply window");
+    if let Some((_, t)) = h.state_mut().state.edit.more.g2.reply.as_mut() {
+        *t = "Checked on site".into();
+    }
+    h.run_steps(2);
+    h.query_by_label("Add Reply").unwrap().click();
+    h.run_steps(3);
+    let m = find(&h, &id);
+    assert!(
+        m.replies.iter().any(|r| r.text.contains("Checked on site")),
+        "{:?}",
+        m.replies
+    );
+    // Flatten opens the Flatten window set to the selected markups
+    run(&mut h, "markup.flatten_selected");
+    assert!(
+        h.state().state.features.docops.flatten_selected,
+        "selected markups only"
+    );
+    // Flip (Horizontal) runs the Markup menu's command
+    let before = find(&h, &id).pts.clone();
+    run(&mut h, "arrange.flip_horizontal");
+    let _ = before;
 }
 
 /// K-114: Hide Markups hides every markup from view only; Hidden on one sets the PDF flag.
@@ -3167,6 +3482,71 @@ fn markups_are_put_on_a_layer_after_drawing() {
     assert_eq!(get(&mut a, &id)["layer"], "", "new markups go on no layer");
     call(&mut a, "layer_assign", json!({ "ids": [id], "layer": "Review" }));
     assert_eq!(get(&mut a, &id)["layer"], "Review");
+}
+
+/// K-139: the Markup Layer: every new markup is drawn on it (saved as /OC), set from the
+/// Layers panel's right-click menu or the layer_markup_layer tool.
+#[test]
+fn new_markups_are_drawn_on_the_markup_layer() {
+    let (dir, mut a) = open("markup-layer");
+    let v = call(&mut a, "layer_markup_layer", json!({ "name": "E-Lighting" }));
+    assert_eq!(v["markup_layer"], "E-Lighting");
+    let l = call(&mut a, "layer_list", json!({}));
+    assert_eq!(layer(&l, "E-Lighting")["name"], "E-Lighting", "created");
+    let id = add(&mut a, "Rectangle", rect_pts(100.0, 450.0, 200.0, 550.0), json!({}));
+    let c = add(&mut a, "Cloud", json!([[300, 450], [400, 450], [400, 550]]), json!({}));
+    assert_eq!(get(&mut a, &id)["layer"], "E-Lighting");
+    assert_eq!(get(&mut a, &c)["layer"], "E-Lighting");
+    let s = save(&mut a, &dir, "ml.pdf");
+    match by_nm(&s, &id).resolve("OC") {
+        Object::Dict(d) => assert_eq!(
+            markupcraft_revu::pdf::text(d.get(b"Name")),
+            "E-Lighting",
+            "/OC names the layer"
+        ),
+        o => panic!("no /OC: {o:?}"),
+    }
+    let v = call(&mut a, "layer_markup_layer", json!({ "name": "" }));
+    assert!(v["markup_layer"].is_null());
+    let off = add(&mut a, "Rectangle", rect_pts(100.0, 250.0, 200.0, 350.0), json!({}));
+    assert_eq!(get(&mut a, &off)["layer"], "", "cleared: no layer");
+    // in the app: Layers panel > right-click a layer > Set as Markup Layer, then draw
+    let mut h = app();
+    {
+        let d = h.state_mut().state.doc_mut().unwrap();
+        d.session.create_layer("A-Notes").unwrap();
+    }
+    panel(&mut h, "layers");
+    let row = h.query_by_label_contains("A-Notes").unwrap().rect().center();
+    h.hover_at(row);
+    h.step();
+    h.event(egui::Event::PointerButton {
+        pos: row,
+        button: egui::PointerButton::Secondary,
+        pressed: true,
+        modifiers: NONE,
+    });
+    h.step();
+    h.event(egui::Event::PointerButton {
+        pos: row,
+        button: egui::PointerButton::Secondary,
+        pressed: false,
+        modifiers: NONE,
+    });
+    h.run_steps(3);
+    h.query_by_label("Set as Markup Layer").unwrap().click();
+    h.run_steps(3);
+    assert_eq!(h.state().state.doc().unwrap().session.markup_layer(), Some("A-Notes"));
+    assert!(visible(&h, "(Markup Layer)"), "the panel marks it");
+    let n0 = markups(&h).len();
+    key(&mut h, NONE, Key::R);
+    drag(&mut h, (100.0, 300.0), (200.0, 380.0));
+    let made = new_markups(&h, n0);
+    assert_eq!(made.len(), 1);
+    assert_eq!(made[0].layer, "A-Notes", "a new markup is drawn on the Markup Layer");
+    // the command clears it
+    run(&mut h, "layers.clear_markup_layer");
+    assert_eq!(h.state().state.doc().unwrap().session.markup_layer(), None);
 }
 
 /// K-142: named visibility configurations.

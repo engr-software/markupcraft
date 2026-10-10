@@ -267,6 +267,28 @@ impl<'a> Args<'a> {
             show_caption: self.opt_bool("show_caption")?,
             ..Default::default()
         };
+        if let Some(al) = self.opt_str("align")? {
+            p.align = Some(match al {
+                "left" => 0,
+                "center" | "centre" => 1,
+                "right" => 2,
+                "justify" => 3,
+                other => {
+                    return Err(wrong(
+                        "align",
+                        &format!("left, center, right or justify, not {other:?}"),
+                    ));
+                }
+            });
+        }
+        if let Some(al) = self.opt_str("valign")? {
+            p.valign = Some(match al {
+                "top" => 0,
+                "middle" => 1,
+                "bottom" => 2,
+                other => return Err(wrong("valign", &format!("top, middle or bottom, not {other:?}"))),
+            });
+        }
         // fill: a colour, or null / "none" for no fill. Present-and-null means "remove".
         if let Some(v) = self.v.get("fill") {
             p.fill = Some(match v {

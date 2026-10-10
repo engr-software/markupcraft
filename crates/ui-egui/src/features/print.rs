@@ -75,6 +75,20 @@ pub struct PrintState {
     /// Advanced: grayscale, print as image.
     pub advanced: markupcraft_engine::finish::print_more::PrintAdvanced,
     pub advanced_open: bool,
+    /// The live preview: shown, and the last sheet rendered (for the settings it was made from).
+    pub show_preview: bool,
+    pub preview: Option<Preview>,
+}
+
+/// The preview of the first sheet as the job prints it.
+pub struct Preview {
+    /// The settings it shows (a new one is made when they change).
+    pub key: String,
+    pub texture: Option<egui::TextureHandle>,
+    pub sheets: usize,
+    pub paper: (f64, f64),
+    pub margin: f64,
+    pub error: Option<String>,
 }
 
 impl Default for PrintState {
@@ -105,6 +119,8 @@ impl Default for PrintState {
             links: false,
             advanced: Default::default(),
             advanced_open: false,
+            show_preview: false,
+            preview: None,
         }
     }
 }
@@ -185,9 +201,14 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
         app.features.print.printers = list;
         app.features.print.printers_rx = None;
     }
+    refresh_preview(app, ctx);
     let (mut open, mut go, mut print, mut window, mut view) = (true, false, false, false, false);
     super::window("Print").open(&mut open).show(ctx, |ui| {
         let p = &mut app.features.print;
+        ui.checkbox(&mut p.show_preview, "Preview");
+        if p.show_preview {
+            preview_ui(ui, p.preview.as_ref());
+        }
         egui::Grid::new("print-grid").num_columns(2).show(ui, |ui| {
             ui.label("Printer");
             ui.horizontal(|ui| {
@@ -371,6 +392,94 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
             app.features.print.message = app.status.clone();
         }
     }
+}
+
+/// Make the preview again when the job's settings changed.
+fn refresh_preview(app: &mut AppState, ctx: &egui::Context) {
+    if !app.features.print.show_preview {
+        return;
+    }
+    let Some(d) = app.docs.get(app.active) else { return };
+    let job = app.features.print.job(d.view.current, d.session.page_count(), None);
+    let key = format!("{}|{:?}", d.uid, job);
+    if app.features.print.preview.as_ref().is_some_and(|p| p.key == key) {
+        return;
+    }
+    // The first sheet needs only the first pages (16 covers every N-up grid offered), which
+    // keeps the preview quick on a long set.
+    let made = job.and_then(|mut job| {
+        let count = d.session.page_count();
+        let pages = &mut job.settings.pages;
+        if pages.is_empty() {
+            *pages = (0..count.min(16)).collect();
+        } else {
+            pages.truncate(16);
+        }
+        job.copies = 1;
+        d.session.print_preview(&job, 0, 360).map_err(|e| e.to_string())
+    });
+    app.features.print.preview = Some(match made {
+        Ok(pv) => {
+            let img = egui::ColorImage::from_rgba_premultiplied([pv.width, pv.height], &pv.rgba);
+            Preview {
+                key,
+                texture: Some(ctx.load_texture("print-preview", img, egui::TextureOptions::LINEAR)),
+                sheets: pv.sheets,
+                paper: pv.paper,
+                margin: pv.margin,
+                error: None,
+            }
+        }
+        Err(e) => Preview {
+            key,
+            texture: None,
+            sheets: 0,
+            paper: (0.0, 0.0),
+            margin: 0.0,
+            error: Some(e),
+        },
+    });
+}
+
+/// The first sheet with its margins outlined.
+fn preview_ui(ui: &mut egui::Ui, p: Option<&Preview>) {
+    let Some(p) = p else { return };
+    if let Some(e) = &p.error {
+        ui.label(RichText::new(format!("Preview: {e}")).small());
+        return;
+    }
+    let Some(t) = &p.texture else { return };
+    let size = t.size_vec2();
+    let k = 220.0 / size.x.max(size.y).max(1.0);
+    let r = ui.add(egui::Image::new((t.id(), size * k)));
+    let rect = r.rect;
+    let painter = ui.painter_at(rect.expand(1.0));
+    painter.rect_stroke(
+        rect,
+        0.0,
+        egui::Stroke::new(1.0, egui::Color32::GRAY),
+        egui::StrokeKind::Outside,
+    );
+    if p.margin > 0.0 && p.paper.0 > 0.0 && p.paper.1 > 0.0 {
+        let mx = (p.margin / p.paper.0) as f32 * rect.width();
+        let my = (p.margin / p.paper.1) as f32 * rect.height();
+        let inner = egui::Rect::from_min_max(rect.min + egui::vec2(mx, my), rect.max - egui::vec2(mx, my));
+        painter.rect_stroke(
+            inner,
+            0.0,
+            egui::Stroke::new(1.0, egui::Color32::from_rgb(0, 120, 215)),
+            egui::StrokeKind::Middle,
+        );
+    }
+    ui.label(
+        RichText::new(format!(
+            "First sheet: {:.1} x {:.1} in, margins {:.2} in",
+            p.paper.0 / 72.0,
+            p.paper.1 / 72.0,
+            p.margin / 72.0
+        ))
+        .small(),
+    );
 }
 
 /// Get Window: the region to print was dragged.

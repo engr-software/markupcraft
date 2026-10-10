@@ -407,14 +407,15 @@ pub static FORM_AUTO_FIELDS: Tool = Tool {
 pub static COMBINE_FILES: Tool = Tool {
     name: "doc_combine_files",
     title: "Combine with options",
-    description: "Combine PDFs (`files`, in order) into `out` with options: bookmarks (one per file), attachments (carry every file's), properties (merge document properties), layers (keep every file's), labels_from_names (page labels from the file names). Signatures do not survive (reported in warnings).",
+    description: "Combine PDFs (`files`, in order) into `out` with options: `ranges` (each file's own page range, aligned with files: \"1-3,5\", \"\" or \"all\" = every page), bookmarks (one per file), attachments (carry every file's), properties (merge document properties), layers (keep every file's), labels_from_names (page labels from the file names). Signatures do not survive (reported in warnings).",
     read_only: false,
     destructive: true,
     schema: || {
         let b = || json!({ "type": "boolean" });
         schema_nodoc(
             files_schema(json!({
-                "bookmarks": b(), "attachments": b(), "properties": b(), "layers": b(), "labels_from_names": b()
+                "bookmarks": b(), "attachments": b(), "properties": b(), "layers": b(), "labels_from_names": b(),
+                "ranges": { "type": "array", "items": { "type": "string" }, "description": "Each file's page range (aligned with files)." }
             })),
             &["files", "out"],
         )
@@ -428,6 +429,7 @@ pub static COMBINE_FILES: Tool = Tool {
             properties: args.bool_or("properties", false)?,
             layers: args.bool_or("layers", false)?,
             labels_from_names: args.bool_or("labels_from_names", false)?,
+            pages: super::files::file_ranges(args, &files)?,
         };
         let (pages, warnings) = combine_with(&files, &out, &o)?;
         Ok(json!({ "pages": pages, "warnings": warnings, "path": out.display().to_string() }))

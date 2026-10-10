@@ -35,6 +35,10 @@ pub struct SummaryState {
     pub layout: PdfLayout,
     /// PDF extras: Spaces cover, status history, thumbnails, page content.
     pub extras: markupcraft_engine::finish::summary_more::SummaryExtras,
+    /// Keep columns that are empty in every row.
+    pub include_empty: bool,
+    /// The saved column configuration chosen (or the name to save under).
+    pub config_name: String,
 }
 
 impl Default for SummaryState {
@@ -59,6 +63,8 @@ impl Default for SummaryState {
             per_value: false,
             layout: PdfLayout::default(),
             extras: Default::default(),
+            include_empty: true,
+            config_name: String::new(),
         }
     }
 }
@@ -123,6 +129,8 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
         .map(|c| (c.id.clone(), c.header.clone(), c.visible_by_default))
         .collect();
     let name = d.name.trim_end_matches(".pdf").to_string();
+    let cfg = super::partials::config_dir(app);
+    let mut print = false;
     let s = &mut app.features.summary;
     if s.columns.is_empty() {
         s.columns = cols.iter().filter(|c| c.2).map(|c| c.0.clone()).collect();
@@ -156,6 +164,8 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                 .find(|c| c.0 == id)
                 .map_or_else(|| "(none)".to_string(), |c| c.1.clone())
         };
+        super::docs7::summary_order_ui(ui, s, &header_of);
+        super::docs7::summary_columns_ui(ui, s, cfg.as_deref());
         ui.horizontal(|ui| {
             ui.label("Group by:");
             egui::ComboBox::from_id_salt("summary-group")
@@ -266,8 +276,18 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                     save = Some(f);
                 }
             }
+            if ui
+                .button("Print Summary")
+                .on_hover_text("Send the summary report to the default printer")
+                .clicked()
+            {
+                print = true;
+            }
         });
     });
+    if print {
+        super::docs7::print_summary(app);
+    }
     if !open {
         app.features.summary.open = false;
     }
@@ -289,14 +309,14 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
 
 /// Write the summary of the active document.
 pub fn write(app: &mut AppState, f: SummaryFormat, out: &Path) {
-    let Some(d) = app.docs.get(app.active) else { return };
-    let o = match options(&app.features.summary, d.session.page_count()) {
+    let o = match super::docs7::summary_options(app) {
         Ok(o) => o,
         Err(e) => {
             app.features.summary.message = e;
             return;
         }
     };
+    let Some(d) = app.docs.get(app.active) else { return };
     if app.features.summary.per_value {
         let r = d.session.export_summary_per_value(out, Some(f), &o);
         app.status = actions::report(r, |files| format!("Wrote {}", actions::plural(files.len(), "report")));

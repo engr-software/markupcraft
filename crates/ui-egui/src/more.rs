@@ -61,6 +61,8 @@ pub struct MoreState {
     pub edit_action: Option<(String, String, String)>,
     /// View > Note Pop-ups: open note pop-ups are drawn on the page.
     pub popups: bool,
+    /// Apply to Pages, Reply and the Markup Layer (`markups_more.rs`).
+    pub g2: crate::markups_more::State,
 }
 
 impl Default for MoreState {
@@ -79,6 +81,7 @@ impl Default for MoreState {
             protected: std::collections::HashSet::new(),
             edit_action: None,
             popups: true,
+            g2: Default::default(),
         }
     }
 }
@@ -123,10 +126,13 @@ pub static COMMANDS: &[Command] = &[
 ];
 
 pub fn handles(id: &str) -> bool {
-    COMMANDS.iter().any(|c| c.id == id)
+    COMMANDS.iter().any(|c| c.id == id) || crate::markups_more::handles(id)
 }
 
 pub fn enabled(app: &AppState, id: &str) -> bool {
+    if crate::markups_more::handles(id) {
+        return crate::markups_more::enabled(app, id);
+    }
     let sel = |kind: Kind, n: usize| {
         app.doc().is_some_and(|d| {
             let k: Vec<&Markup> = d
@@ -149,6 +155,10 @@ pub fn enabled(app: &AppState, id: &str) -> bool {
 }
 
 pub fn run(app: &mut AppState, id: &str) {
+    if crate::markups_more::handles(id) {
+        crate::markups_more::run(app, id);
+        return;
+    }
     match id {
         "measure.tool" => {
             app.show_panel("measurements");
@@ -684,6 +694,7 @@ pub fn frame(app: &mut AppState, ctx: &egui::Context) {
         created(app, &m);
     }
     edit_action_window(app, ctx);
+    crate::markups_more::frame(app, ctx);
     if !app.edit.more.review_open {
         return;
     }

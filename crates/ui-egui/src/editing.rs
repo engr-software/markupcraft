@@ -193,6 +193,7 @@ pub fn paint_format(doc: &mut crate::DocTab, template: &Markup, id: &str, out: &
         patch.italic = None;
         patch.underline = None;
         patch.align = None;
+        patch.valign = None;
     }
     if !markupcraft_revu::kinds::kind_for(target.kind).closed && !target.kind.is_text() {
         patch.fill = None;

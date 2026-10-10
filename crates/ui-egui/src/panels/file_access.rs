@@ -4,7 +4,7 @@
 //! rename or unpin from their right-click menu); remove one or clear the list. The Explorer tab
 //! browses folders: a path box (Enter goes there), the drives, back / forward / up, sort by
 //! name, type, size or date, PDFs only or PDFs and images, a new folder, pin the folder's files;
-//! right-click a file to open it, open its folder, rename it, delete it from disk (asks first)
+//! a favourites list (add the folder, go to one, remove it); right-click a file to open it, open its folder, rename it, delete it from disk (asks first)
 //! or see its properties.
 
 use std::path::{Path, PathBuf};
@@ -113,7 +113,11 @@ fn row(app: &mut AppState, ui: &mut egui::Ui, path: &Path, detail: &str, view: &
         }
         let text = RichText::new(name_of(path)).color(if exists { t.text } else { t.text_faint });
         let r = ui
-            .add(egui::Button::new(text).frame(false))
+            .add(
+                egui::Button::new(text)
+                    .frame(false)
+                    .sense(egui::Sense::click_and_drag()),
+            )
             .on_hover_text(format!("{}\n{detail}", path.display()));
         if r.hovered() && exists && app.shell.ui.recents_preview {
             let ctx = ui.ctx().clone();
@@ -126,6 +130,15 @@ fn row(app: &mut AppState, ui: &mut egui::Ui, path: &Path, detail: &str, view: &
         if r.clicked() && exists {
             let bg = ui.input(|i| i.modifiers.command);
             open(app, path, bg);
+        }
+        // Drag the row out onto a page: a link area that opens the file.
+        if exists && app.has_doc() {
+            if r.drag_started() {
+                crate::features::docs7::start_file_drag(ui.ctx(), path);
+            }
+            if r.dragged() {
+                ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+            }
         }
         r.context_menu(|ui| {
             if ui.button("Open").clicked() {
@@ -542,6 +555,14 @@ fn explorer(app: &mut AppState, ui: &mut egui::Ui, view: &mut View) {
                     }
                 }
             });
+        let cfg = crate::features::partials::config_dir(app);
+        let (to, msg) = crate::features::docs7::favorites_ui(ui, cfg.as_deref(), &folder);
+        if let Some(m) = msg {
+            app.status = m;
+        }
+        if let Some(to) = to {
+            go(view, &folder, to);
+        }
     });
     let r = ui.add(
         egui::TextEdit::singleline(&mut view.path_text)

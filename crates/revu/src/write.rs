@@ -109,6 +109,21 @@ fn appearance(cos: &mut CosDoc, m: &mut Markup, ak: &AnnotKind) -> Object {
         None => bbox(&extent).unwrap_or_default().padded(m.line_width + 1.0),
     };
     m.rect = r;
+    // A turned box (rectangle, ellipse, text box, stamp) is drawn unturned and turned by the
+    // form's /Matrix about the centre of its box; /Rect is the turned appearance's bounds.
+    let matrix = markupcraft_model::turn::turn_of(m).map(|(c, rad)| {
+        let (s, co) = rad.sin_cos();
+        [co, s, -s, co, c.x - co * c.x + s * c.y, c.y - s * c.x - co * c.y]
+    });
+    if let Some(mx) = &matrix {
+        let corners: Vec<Point> = r
+            .corners()
+            .iter()
+            .map(|p| Point::new(mx[0] * p.x + mx[2] * p.y + mx[4], mx[1] * p.x + mx[3] * p.y + mx[5]))
+            .collect();
+        m.rect = bbox(&corners).unwrap_or(r);
+    }
+    let matrix_obj = matrix.map(|mx| Object::Array(mx.iter().map(|v| real(*v)).collect()));
 
     let gs = pdf::dict(&[
         ("Type", n("ExtGState")),
@@ -134,13 +149,16 @@ fn appearance(cos: &mut CosDoc, m: &mut Markup, ak: &AnnotKind) -> Object {
         ("Resources", Object::Dict(res)),
     ]);
     if !m.multiply {
+        if let Some(mx) = matrix_obj {
+            pdf::set(&mut d, "Matrix", mx);
+        }
         return Object::Stream(Stream::flate(d, &ap.bytes()));
     }
     // Multiply blend (Highlight, Revu's multiply fills), the way Revu writes it: an outer form
     // sets /BM /Multiply and draws the shape as a transparency-group form.
     pdf::set(&mut d, "Group", Object::Dict(pdf::dict(&[("S", n("Transparency"))])));
     let inner = cos.add(Object::Stream(Stream::flate(d, &ap.bytes())));
-    let outer = pdf::dict(&[
+    let mut outer = pdf::dict(&[
         ("Type", n("XObject")),
         ("Subtype", n("Form")),
         ("FormType", Object::Int(1)),
@@ -159,6 +177,9 @@ fn appearance(cos: &mut CosDoc, m: &mut Markup, ak: &AnnotKind) -> Object {
             ])),
         ),
     ]);
+    if let Some(mx) = matrix_obj {
+        pdf::set(&mut outer, "Matrix", mx);
+    }
     Object::Stream(Stream::flate(outer, b"/GSM gs /MForm Do\n"))
 }
 
@@ -318,6 +339,13 @@ pub fn write_annot(cos: &mut CosDoc, a: &mut Dict, m: &mut Markup, page: ObjRef)
     let ap_ref = cos.add(ap);
     pdf::set(a, "AP", Object::Dict(pdf::dict(&[("N", Object::Ref(ap_ref))])));
     pdf::set(a, "Rect", rect_arr(&m.rect));
+    if markupcraft_model::turn::free_rotates(m.kind) {
+        if markupcraft_model::turn::turn_of(m).is_some() {
+            pdf::set(a, "Rotation", real(markupcraft_model::turn::norm_degrees(m.rotation)));
+        } else {
+            pdf::remove(a, "Rotation");
+        }
+    }
     if let Some(fin) = ak.finish {
         fin(cos, a, m);
     }

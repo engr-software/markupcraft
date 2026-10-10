@@ -57,6 +57,10 @@ impl Xf {
 /// The handle positions of a markup (user space): its vertices, or its box corners (a
 /// Callout adds its leader tip and knee as handles 4 and 5).
 pub fn handles(m: &Markup) -> Vec<Point> {
+    if markupcraft_model::turn::turn_of(m).is_some() {
+        // a turned box is resized in Properties > Layout; its handle turns it
+        return Vec::new();
+    }
     if uses_rect(m.kind) {
         let mut h = box_of(m).corners().to_vec();
         if m.kind == Kind::Callout {
@@ -142,6 +146,10 @@ fn flatten(xf: &Xf, path: &[Seg]) -> Vec<Vec<Pos2>> {
 pub fn paint_markup(p: &Painter, xf: &Xf, m: &Markup) {
     let stroke = stroke_of(xf, m);
     let fill = fill_of(m);
+    if let Some(turn) = markupcraft_model::turn::turn_of(m) {
+        paint_turned(p, xf, m, turn, stroke, fill);
+        return;
+    }
     let screen = |pts: &[Point]| -> Vec<Pos2> { pts.iter().map(|q| xf.to_screen(*q)).collect() };
     match m.kind {
         Kind::Area | Kind::Perimeter | Kind::Polygon | Kind::Volume | Kind::Cloud => {
@@ -513,17 +521,25 @@ pub fn paint_text_lines(p: &Painter, xf: &Xf, m: &Markup, b: markupcraft_geom::R
         }
         return;
     }
+    let f = font_of(&m.text);
     for l in lines.iter().take(400) {
-        text_line(
-            &cp,
-            xf.to_screen(Point::new(l.x, l.y)),
-            &l.text,
-            size,
-            col,
-            family(m),
-            m.text.italic,
-            m.text.underline,
-        );
+        let pieces = if l.word_space == 0.0 {
+            vec![(l.text.clone(), 0.0)]
+        } else {
+            markupcraft_geom::text::spaced_words(&l.text, &f, l.word_space)
+        };
+        for (t, dx) in pieces {
+            text_line(
+                &cp,
+                xf.to_screen(Point::new(l.x + dx, l.y)),
+                &t,
+                size,
+                col,
+                family(m),
+                m.text.italic,
+                m.text.underline,
+            );
+        }
     }
 }
 
@@ -541,21 +557,29 @@ fn rich_line(p: &Painter, xf: &Xf, m: &Markup, l: &markupcraft_geom::text::TextL
             ..m.text.clone()
         });
         let col = color32(&cs.color, m.opacity);
-        let at = xf.to_screen(Point::new(x, l.y));
-        text_line(p, at, &t, size, col, family(m), cs.italic, cs.underline);
-        if cs.bold {
-            text_line(
-                p,
-                at + vec2((size / 24.0).max(0.5), 0.0),
-                &t,
-                size,
-                col,
-                family(m),
-                cs.italic,
-                false,
-            );
+        let pieces = if l.word_space == 0.0 {
+            vec![(t.clone(), 0.0)]
+        } else {
+            markupcraft_geom::text::spaced_words(&t, &f, l.word_space)
+        };
+        for (piece, dx) in pieces {
+            let at = xf.to_screen(Point::new(x + dx, l.y));
+            text_line(p, at, &piece, size, col, family(m), cs.italic, cs.underline);
+            if cs.bold {
+                text_line(
+                    p,
+                    at + vec2((size / 24.0).max(0.5), 0.0),
+                    &piece,
+                    size,
+                    col,
+                    family(m),
+                    cs.italic,
+                    false,
+                );
+            }
         }
-        x += markupcraft_geom::text::text_width(&t, &f);
+        let spaces = t.chars().filter(|c| *c == ' ').count() as f64;
+        x += markupcraft_geom::text::text_width(&t, &f) + spaces * l.word_space;
     }
 }
 
@@ -598,6 +622,108 @@ fn paint_stamp(p: &Painter, xf: &Xf, m: &Markup, stroke: Stroke, fill: Option<Co
             );
         }
     }
+}
+
+/// A turned rectangle, ellipse, text box or stamp: its outline turned about the centre of its
+/// box, and its text along the turned lines (the writer turns the /AP by its /Matrix).
+fn paint_turned(p: &Painter, xf: &Xf, m: &Markup, turn: (Point, f64), stroke: Stroke, fill: Option<Color32>) {
+    use markupcraft_model::turn::turn_point;
+    let (c, rad) = turn;
+    let b = box_of(m);
+    let outline: Vec<Point> = if m.kind == Kind::Ellipse {
+        measure_extras::ellipse_ring(c, b.width() / 2.0, b.height() / 2.0, 72)
+    } else {
+        b.corners().to_vec()
+    };
+    let turned: Vec<Point> = outline.iter().map(|q| turn_point(c, rad, *q)).collect();
+    let pts: Vec<Pos2> = turned.iter().map(|q| xf.to_screen(*q)).collect();
+    if let Some(f) = fill {
+        fill_polygon(p, &pts, f);
+    }
+    if stroke.width > 0.0 {
+        if m.kind == Kind::Rectangle && m.cloud > 0.0 {
+            for sub in flatten(xf, &shapes::cloud_path(&turned, m.cloud.clamp(0.0, 4.0))) {
+                stroke_path(p, &sub, false, stroke, &m.dash, xf);
+            }
+        } else {
+            stroke_path(p, &pts, true, stroke, &m.dash, xf);
+        }
+    }
+    // the angle on screen: the turned baseline against the unturned one
+    let o = xf.to_screen(c);
+    let along = xf.to_screen(turn_point(c, rad, Point::new(c.x + 1.0, c.y))) - o;
+    let flat = xf.to_screen(Point::new(c.x + 1.0, c.y)) - o;
+    let angle = along.angle() - flat.angle();
+    let col = color32(&m.text.color, m.opacity);
+    let font = font_of(&m.text);
+    let mut lines: Vec<(markupcraft_geom::text::TextLine, f64)> = Vec::new();
+    match m.kind {
+        Kind::Text => {
+            lines = markupcraft_revu::kinds::text::markup_lines(m, b)
+                .into_iter()
+                .map(|l| (l, m.text.size))
+                .collect();
+        }
+        Kind::Stamp => {
+            let text = if m.contents.is_empty() {
+                m.subject.clone()
+            } else {
+                m.contents.clone()
+            };
+            lines = stamp_lines(b, &text, &font, m.line_width);
+        }
+        _ => {}
+    }
+    for (l, size) in lines.iter().take(400) {
+        let s = xf.len(size.clamp(1.0, 400.0));
+        if s < 3.0 {
+            continue;
+        }
+        let f = font.with_size(*size);
+        let pieces = if l.word_space == 0.0 {
+            vec![(l.text.clone(), 0.0)]
+        } else {
+            markupcraft_geom::text::spaced_words(&l.text, &f, l.word_space)
+        };
+        for (t, dx) in pieces {
+            let at = xf.to_screen(turn_point(c, rad, Point::new(l.x + dx, l.y)));
+            turned_text(p, at, &t, s, col, family(m), m.text.italic, m.text.underline, angle);
+        }
+    }
+}
+
+/// One line of text turned by `angle` (screen radians, clockwise) about its baseline start.
+#[allow(clippy::too_many_arguments)]
+fn turned_text(
+    p: &Painter,
+    base: Pos2,
+    text: &str,
+    size: f32,
+    color: Color32,
+    fam: FontFamily,
+    italic: bool,
+    underline: bool,
+    angle: f32,
+) {
+    let mut job = LayoutJob::default();
+    job.append(
+        text,
+        0.0,
+        TextFormat {
+            font_id: FontId::new(size, fam),
+            color,
+            italics: italic,
+            underline: if underline {
+                Stroke::new((size / 14.0).max(1.0), color)
+            } else {
+                Stroke::NONE
+            },
+            ..Default::default()
+        },
+    );
+    let galley = p.layout_job(job);
+    let top = base + egui::emath::Rot2::from_angle(angle) * vec2(0.0, -(size * 0.78 + size * 0.1));
+    p.add(egui::epaint::TextShape::new(top, galley, color).with_angle(angle));
 }
 
 /// The measured value at the caption anchor.
@@ -941,6 +1067,12 @@ pub fn paint_selection(p: &Painter, xf: &Xf, m: &Markup, t: &Tokens, editable: b
 
 /// Hit test in user space; `tol` in PDF units.
 pub fn hit(m: &Markup, at: Point, tol: f64) -> bool {
+    if let Some((c, rad)) = markupcraft_model::turn::turn_of(m) {
+        // a turned box: test the point turned back against the unturned box
+        let mut flat = m.clone();
+        flat.rotation = 0.0;
+        return hit(&flat, markupcraft_model::turn::turn_point(c, -rad, at), tol);
+    }
     use markupcraft_geom::{dist_to_segment, point_in_polygon};
     let near_path = |pts: &[Point], closed: bool| {
         let w = m.line_width / 2.0 + tol;

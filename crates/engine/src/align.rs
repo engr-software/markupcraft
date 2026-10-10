@@ -38,8 +38,94 @@ impl Align {
     }
 }
 
-/// The box an arrange command lines up: the markup's points (its outline), else its `/Rect`.
+/// What markups align to: the reference markup (Revu's: the last one selected, the last id
+/// given) or the joint extent of them all.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum AlignTo {
+    #[default]
+    Reference,
+    Extent,
+}
+
+impl AlignTo {
+    pub fn from_name(s: &str) -> Option<AlignTo> {
+        Some(match s.to_ascii_lowercase().as_str() {
+            "reference" | "last" | "last_selected" => AlignTo::Reference,
+            "extent" | "selection" | "joint" => AlignTo::Extent,
+            _ => return None,
+        })
+    }
+}
+
+/// Which of the chosen pages Apply to Pages copies to (Revu's page subset filter).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PageFilter {
+    #[default]
+    All,
+    /// pages 1, 3, 5 ...
+    Odd,
+    /// pages 2, 4, 6 ...
+    Even,
+    /// taller than wide (as shown, after the page's rotation)
+    Portrait,
+    /// wider than tall
+    Landscape,
+}
+
+impl PageFilter {
+    pub fn from_name(s: &str) -> Option<PageFilter> {
+        Some(match s.to_ascii_lowercase().as_str() {
+            "all" => PageFilter::All,
+            "odd" => PageFilter::Odd,
+            "even" => PageFilter::Even,
+            "portrait" => PageFilter::Portrait,
+            "landscape" => PageFilter::Landscape,
+            _ => return None,
+        })
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            PageFilter::All => "All pages",
+            PageFilter::Odd => "Odd pages",
+            PageFilter::Even => "Even pages",
+            PageFilter::Portrait => "Portrait pages",
+            PageFilter::Landscape => "Landscape pages",
+        }
+    }
+
+    pub const ALL: [PageFilter; 5] = [
+        PageFilter::All,
+        PageFilter::Odd,
+        PageFilter::Even,
+        PageFilter::Portrait,
+        PageFilter::Landscape,
+    ];
+
+    /// Whether page `index` (0-based) of `pages` passes.
+    pub fn keeps(self, pages: &[markupcraft_model::PageInfo], index: usize) -> bool {
+        let shape = || {
+            pages.get(index).map(|p| {
+                let (w, h) = (p.crop.width().abs(), p.crop.height().abs());
+                if p.rotate.rem_euclid(180) == 90 { (h, w) } else { (w, h) }
+            })
+        };
+        match self {
+            PageFilter::All => true,
+            PageFilter::Odd => index.is_multiple_of(2),
+            PageFilter::Even => !index.is_multiple_of(2),
+            PageFilter::Portrait => shape().is_some_and(|(w, h)| h >= w),
+            PageFilter::Landscape => shape().is_some_and(|(w, h)| w > h),
+        }
+    }
+}
+
+/// The box an arrange command lines up: the markup's points (its outline; a turned box's
+/// turned corners), else its `/Rect`.
 pub fn extent(m: &Markup) -> Rect {
+    if let Some(b) = markupcraft_model::turn::turned_bounds(m) {
+        return b;
+    }
     let mut all: Vec<Point> = m.pts.clone();
     for h in &m.holes {
         all.extend(h.iter().copied());
@@ -65,15 +151,30 @@ impl Session {
             .collect())
     }
 
-    /// Line markups up on the selection's outer edge (Left, Right, Top, Bottom) or its centre
-    /// line (Center, Middle). Needs two or more markups; returns how many moved.
+    /// Line markups up on the reference markup's edge (Left, Right, Top, Bottom) or centre line
+    /// (Center, Middle): the reference is the last markup selected (the last of `ids`), as in
+    /// Revu. Needs two or more markups; returns how many moved.
     pub fn align_markups(&mut self, ids: &[String], how: Align) -> Result<usize> {
+        self.align_markups_to(ids, how, AlignTo::Reference)
+    }
+
+    /// [`Session::align_markups`] to the reference markup or to the joint extent of them all.
+    pub fn align_markups_to(&mut self, ids: &[String], how: Align, to: AlignTo) -> Result<usize> {
         let ext = self.extents(ids)?;
         if ext.len() < 2 {
             return Err(invalid("align needs at least two markups"));
         }
         let rects: Vec<Rect> = ext.iter().map(|(_, r)| *r).collect();
-        let all = union(&rects).ok_or_else(|| invalid("the markups have no extent"))?;
+        let all = match to {
+            AlignTo::Extent => union(&rects).ok_or_else(|| invalid("the markups have no extent"))?,
+            AlignTo::Reference => {
+                let last = ids.last().ok_or_else(|| invalid("align needs at least two markups"))?;
+                ext.iter()
+                    .find(|(id, _)| id == last)
+                    .map(|(_, r)| *r)
+                    .ok_or_else(|| invalid("the reference markup has no extent"))?
+            }
+        };
         let moves: Vec<(String, f64, f64)> = ext
             .into_iter()
             .map(|(id, r)| {
@@ -139,6 +240,12 @@ impl Session {
         })
     }
 
+    /// Turn rectangles, ellipses, text boxes and stamps to `degrees` (counter-clockwise, any
+    /// angle, about each one's centre; Properties > Layout Rotation). Returns how many changed.
+    pub fn set_markup_rotation(&mut self, ids: &[String], degrees: f64) -> Result<usize> {
+        self.geometry_edit(ids, "Rotate", |m| geometry::set_rotation(m, degrees))
+    }
+
     /// Mirror markups left-right (`horizontal`) or top-bottom about the centre of their joint
     /// extent. Returns how many changed.
     pub fn flip_markups(&mut self, ids: &[String], horizontal: bool) -> Result<usize> {
@@ -157,6 +264,17 @@ impl Session {
     /// Copies of markups at the same place on other pages (Apply to All Pages; Paste to
     /// pages). `pages` empty = every page but each markup's own. Returns the new ids.
     pub fn copy_to_pages(&mut self, ids: &[String], pages: &[usize]) -> Result<Vec<String>> {
+        self.copy_to_pages_filtered(ids, pages, PageFilter::All)
+    }
+
+    /// [`Session::copy_to_pages`] keeping only the pages `filter` passes (odd, even,
+    /// portrait, landscape).
+    pub fn copy_to_pages_filtered(
+        &mut self,
+        ids: &[String],
+        pages: &[usize],
+        filter: PageFilter,
+    ) -> Result<Vec<String>> {
         let idx = self.indices(ids)?;
         let items: Vec<Markup> = idx.iter().filter_map(|i| self.doc.markups.get(*i).cloned()).collect();
         let n = self.page_count();
@@ -173,6 +291,8 @@ impl Session {
         } else {
             pages.to_vec()
         };
+        let infos = &self.doc.pages;
+        let targets: Vec<usize> = targets.into_iter().filter(|p| filter.keeps(infos, *p)).collect();
         let mut copies = Vec::new();
         for m in &items {
             for &p in &targets {
@@ -249,12 +369,28 @@ mod tests {
             Rect::new(100.0, 50.0, 140.0, 70.0),
             Rect::new(300.0, 200.0, 310.0, 220.0),
         ]);
+        // to the reference markup: the last one given (the last selected)
         assert_eq!(s.align_markups(&ids, Align::Left).unwrap(), 2);
+        for id in &ids {
+            assert!((extent(s.markup(id).unwrap()).x0 - 300.0).abs() < 1e-9);
+        }
+        s.undo().unwrap();
+        let reordered = vec![ids[2].clone(), ids[1].clone(), ids[0].clone()];
+        s.align_markups(&reordered, Align::Right).unwrap();
+        for id in &ids {
+            assert!(
+                (extent(s.markup(id).unwrap()).x1 - 30.0).abs() < 1e-9,
+                "right to the first box"
+            );
+        }
+        s.undo().unwrap();
+        // the joint extent stays available
+        assert_eq!(s.align_markups_to(&ids, Align::Left, AlignTo::Extent).unwrap(), 2);
         for id in &ids {
             assert!((extent(s.markup(id).unwrap()).x0 - 10.0).abs() < 1e-9);
         }
         s.undo().unwrap();
-        s.align_markups(&ids, Align::Middle).unwrap();
+        s.align_markups_to(&ids, Align::Middle, AlignTo::Extent).unwrap();
         let mids: Vec<f64> = ids
             .iter()
             .map(|id| {
@@ -278,6 +414,12 @@ mod tests {
 
         let copies = s.copy_to_pages(&ids[..1], &[]).unwrap();
         assert_eq!(copies.len(), 1);
+        assert!(
+            s.copy_to_pages_filtered(&ids[..1], &[], PageFilter::Landscape).is_err(),
+            "no landscape pages"
+        );
+        let odd = s.copy_to_pages_filtered(&ids[..1], &[], PageFilter::Even).unwrap();
+        assert_eq!(odd.len(), 1, "page 2 is even");
         assert_eq!(s.markup(&copies[0]).unwrap().page, 1);
         assert!(s.copy_to_pages(&ids[..1], &[7]).is_err());
     }

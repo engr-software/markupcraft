@@ -712,18 +712,23 @@ pub struct CombineOptions {
     pub layers: bool,
     /// Page labels from the file names (`<name>` or `<name>-<n>`).
     pub labels_from_names: bool,
+    /// Each file's pages (0-based, in order; `None` or missing = every page).
+    pub pages: Vec<Option<Vec<usize>>>,
 }
 
 /// Combine PDFs with options. Returns the page count; signatures do not survive (the warning).
 pub fn combine_with(files: &[PathBuf], out: &Path, o: &CombineOptions) -> Result<(usize, Vec<String>)> {
-    let n = crate::combine::combine_files(files, out, o.bookmarks)?;
+    let n = crate::combine::combine_file_ranges(files, &o.pages, out, o.bookmarks)?;
     let mut warnings = Vec::new();
     let mut s = Session::open(out)?;
     if o.attachments || o.properties || o.labels_from_names || o.layers {
         let mut start = 0usize;
-        for f in files {
+        for (fi, f) in files.iter().enumerate() {
             let src = Session::open(f)?;
-            let count = src.page_count();
+            let count = match o.pages.get(fi) {
+                Some(Some(list)) => list.len(),
+                _ => src.page_count(),
+            };
             if o.attachments {
                 for a in src.attachments() {
                     let tmp = std::env::temp_dir().join(format!(
@@ -1179,6 +1184,7 @@ mod tests {
             properties: true,
             labels_from_names: true,
             layers: true,
+            pages: Vec::new(),
         };
         let comb = d.join("combined.pdf");
         let (n, _) = combine_with(&[a.clone(), b.clone()], &comb, &o).unwrap();

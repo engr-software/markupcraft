@@ -275,6 +275,9 @@ pub fn send_to_printer(pdf: &Path, printer: Option<&str>, copies: usize) -> Resu
         return Err(invalid(format!("{} is not a file", pdf.display())));
     }
     let (prog, args) = print_command(pdf, printer, copies);
+    if crate::print_seam::record(pdf, &prog, &args) {
+        return Ok(());
+    }
     std::process::Command::new(&prog)
         .args(&args)
         .stdin(std::process::Stdio::null())

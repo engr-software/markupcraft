@@ -53,8 +53,19 @@ fn markup_align_aligns_distributes_flips_and_copies_to_pages() {
         );
         ids.push(v["id"].as_str().unwrap().to_string());
     }
+    // to the reference: the last id (the last selected), as Revu does
     let v = call(&mut a, "markup_align", json!({ "ids": ids, "align": "left" }));
     assert_eq!(v["changed"], 2);
+    for id in &ids {
+        assert!((x0(&v, id) - 300.0).abs() < 1e-6);
+    }
+    call(&mut a, "edit_undo", json!({}));
+    // or to their joint extent
+    let v = call(
+        &mut a,
+        "markup_align",
+        json!({ "ids": ids, "align": "left", "to": "extent" }),
+    );
     for id in &ids {
         assert!((x0(&v, id) - 10.0).abs() < 1e-6);
     }
@@ -71,6 +82,20 @@ fn markup_align_aligns_distributes_flips_and_copies_to_pages() {
     assert_eq!(v["new_ids"].as_array().unwrap().len(), 2);
     let v = call(&mut a, "markup_align", json!({ "ids": [ids[1]], "to_pages": [3] }));
     assert_eq!(v["new_ids"].as_array().unwrap().len(), 1);
+    // only the even pages of the three
+    let v = call(
+        &mut a,
+        "markup_align",
+        json!({ "ids": [ids[2]], "to_pages": "all", "page_filter": "even" }),
+    );
+    assert_eq!(v["new_ids"].as_array().unwrap().len(), 1);
+    assert!(
+        a.call(
+            "markup_align",
+            &json!({ "ids": [ids[2]], "to_pages": "all", "page_filter": "sideways" })
+        )
+        .is_err()
+    );
     call(&mut a, "markup_group", json!({ "ids": [ids[0], ids[1], ids[2]] }));
     let v = call(
         &mut a,

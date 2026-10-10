@@ -11,7 +11,8 @@ use crate::{Result, Session, invalid};
 
 /// Header and footer settings. Tokens in the texts: `<<1>>` page number, `<<n>>` page count,
 /// `<<1 of n>>`, `<<Page 1 of n>>`, dates `<<m/d/yyyy>>`, `<<yyyy-mm-dd>>`, ..., and Bates
-/// numbers `<<Bates Number#digits#start#prefix#suffix>>`.
+/// numbers `<<Bates Number#digits#start#prefix#suffix>>`; file data `<<File Name>>`,
+/// `<<File Path>>`, `<<Author>>`, `<<Title>>`, `<<Subject>>` (see `hf_tokens`).
 #[derive(Debug, Clone, PartialEq)]
 pub struct HeaderFooter {
     /// Left, centre and right header, then left, centre and right footer.
@@ -158,7 +159,7 @@ impl Session {
             check_text(t)?;
         }
         let settings = pdfcraft_edit::HeaderFooter {
-            text: hf.text.clone(),
+            text: hf.text.clone().map(|t| self.expand_file_tokens(&t)),
             font_size: hf.font_size,
             color: rgb(hf.color),
             underline: hf.underline,

@@ -15,6 +15,7 @@ mod docfile;
 mod docprops;
 mod docs5b;
 mod docs6a;
+mod docs7;
 mod edit;
 mod export;
 mod files;
@@ -38,8 +39,10 @@ mod search;
 mod security;
 mod sets;
 mod sign;
+mod slip;
 mod spaces;
 mod spell;
+mod stamp_apply;
 mod stamps;
 mod summary;
 mod takeoff;
@@ -149,6 +152,12 @@ pub static TOOLS: &[&Tool] = &[
     &compare::OVERLAY,
     &visual::SEARCH,
     &ocr::OCR,
+    &docs7::HF_TOKENS,
+    &docs7::SUMMARY_COLUMNS,
+    &docs7::SUMMARY_PRINT,
+    &docs7::SEARCH_LINK,
+    &docs7::FAVORITES,
+    &docs7::PRINT_PREVIEW,
     &redact::MARK,
     &redact::LIST,
     &redact::APPLY,
@@ -171,6 +180,7 @@ pub static TOOLS: &[&Tool] = &[
     &layers::DELETE,
     &layers::SET,
     &layers::ASSIGN,
+    &layers::MARKUP_LAYER,
     &layers::MARKUPS,
     &spaces::LIST,
     &spaces::ADD,
@@ -258,7 +268,9 @@ pub static TOOLS: &[&Tool] = &[
     &batch::SET_SHEETS,
     &batch::SUMMARY,
     &batch::LINK,
-    &batch::SLIP,
+    &slip::SLIP,
+    &slip::BATCH_SLIP,
+    &stamp_apply::APPLY_STAMP,
     &batch::APPLY,
     &docfile::FROM_IMAGE,
     &docfile::REVISIONS,
@@ -449,6 +461,14 @@ pub(crate) fn markup_props(mut extra: Value) -> Value {
         o.insert("bold".into(), b("Bold text."));
         o.insert("italic".into(), b("Italic text."));
         o.insert("underline".into(), b("Underlined text."));
+        o.insert(
+            "align".into(),
+            json!({ "type": "string", "enum": ["left", "center", "right", "justify"], "description": "Text alignment." }),
+        );
+        o.insert(
+            "valign".into(),
+            json!({ "type": "string", "enum": ["top", "middle", "bottom"], "description": "Vertical text alignment in the box." }),
+        );
         o.insert("multiply".into(), b("Blend mode Multiply (true) or Normal (false)."));
         o.insert("hidden".into(), b("Hidden flag (not shown or printed)."));
         o.insert("print".into(), b("Print flag (printed with the page)."));
@@ -472,6 +492,25 @@ pub(crate) fn markup_props(mut extra: Value) -> Value {
 
 fn hex(c: &markupcraft_engine::Color) -> String {
     c.hex()
+}
+
+/// A text alignment as tools name it.
+fn text_align_name(a: i32) -> &'static str {
+    match a {
+        1 => "center",
+        2 => "right",
+        3 => "justify",
+        _ => "left",
+    }
+}
+
+/// A vertical text alignment as tools name it.
+fn text_valign_name(a: i32) -> &'static str {
+    match a {
+        1 => "middle",
+        2 => "bottom",
+        _ => "top",
+    }
 }
 
 /// A markup as tools report it (pages 1-based).
@@ -504,6 +543,9 @@ pub(crate) fn markup_json(m: &Markup) -> Value {
         "scale": m.scale.as_ref().map(|s| s.ratio.clone()),
         "columns": m.column_data,
         "hatch": m.hatch.map(|h| h.style.name()),
+        "rotation": m.rotation,
+        "text_align": text_align_name(m.text.align),
+        "text_valign": text_valign_name(m.text.valign),
         "unsaved": m.dirty,
     })
 }

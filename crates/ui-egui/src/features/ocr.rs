@@ -5,7 +5,9 @@
 use std::sync::mpsc::{Receiver, TryRecvError};
 
 use egui::RichText;
-use markupcraft_engine::ocr::{OcrOptions, OcrPage, OcrWords, ocr_recognize, recognizer};
+use markupcraft_engine::ocr::{
+    OcrAccuracy, OcrDocType, OcrOptions, OcrPage, OcrWords, ocr_recognize, preset_dpi, recognizer,
+};
 
 use crate::{AppState, actions};
 
@@ -21,6 +23,13 @@ pub struct OcrState {
     pub skip_vector_pages: bool,
     /// Text documents read at a lower resolution than drawings.
     pub text_document: bool,
+    /// Accuracy against speed (sets the resolution with the page type).
+    pub accuracy: OcrAccuracy,
+    /// Pages read at a time (0 = all at once).
+    pub chunk_pages: usize,
+    /// Skip pages whose vector content is larger than `max_vector_kb`.
+    pub limit_vector: bool,
+    pub max_vector_kb: usize,
     pub message: String,
     /// A run in progress: the document it is for and the worker's answer.
     pub running: Option<(u64, Receiver<Outcome>)>,
@@ -38,6 +47,10 @@ impl Default for OcrState {
             detect_orientation: o.detect_orientation,
             skip_vector_pages: o.skip_vector_pages,
             text_document: false,
+            accuracy: OcrAccuracy::default(),
+            chunk_pages: 0,
+            limit_vector: false,
+            max_vector_kb: 2_048,
             message: String::new(),
             running: None,
         }
@@ -97,15 +110,35 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
         let s = &mut app.features.ocr;
         ui.label("Recognize the text of scanned pages so they can be searched and selected.");
         super::pages_field(ui, &mut s.pages);
+        let doc_type = |t: bool| {
+            if t {
+                OcrDocType::TextDocument
+            } else {
+                OcrDocType::Drawing
+            }
+        };
         ui.horizontal(|ui| {
             ui.label("Page type");
             if ui.selectable_label(!s.text_document, "Drawing").clicked() {
                 s.text_document = false;
-                s.dpi = 300.0;
+                s.dpi = preset_dpi(s.accuracy, doc_type(false));
             }
             if ui.selectable_label(s.text_document, "Text document").clicked() {
                 s.text_document = true;
-                s.dpi = 200.0;
+                s.dpi = preset_dpi(s.accuracy, doc_type(true));
+            }
+        });
+        ui.horizontal(|ui| {
+            ui.label("Accuracy");
+            for (a, label) in [
+                (OcrAccuracy::Speed, "Speed"),
+                (OcrAccuracy::Balanced, "Balanced"),
+                (OcrAccuracy::Accuracy, "Accuracy"),
+            ] {
+                if ui.selectable_label(s.accuracy == a, label).clicked() {
+                    s.accuracy = a;
+                    s.dpi = preset_dpi(a, doc_type(s.text_document));
+                }
             }
         });
         ui.horizontal(|ui| {
@@ -117,6 +150,20 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
         ui.checkbox(&mut s.skip_vector_pages, "Skip vector pages (no scanned image)");
         ui.checkbox(&mut s.deskew, "Correct skew");
         ui.checkbox(&mut s.detect_orientation, "Detect orientation (and vertical text)");
+        ui.horizontal(|ui| {
+            ui.checkbox(&mut s.limit_vector, "Skip pages with vector content over");
+            ui.add_enabled(
+                s.limit_vector,
+                egui::DragValue::new(&mut s.max_vector_kb)
+                    .range(1..=1_000_000)
+                    .suffix(" KB"),
+            );
+        });
+        ui.horizontal(|ui| {
+            ui.label("Page chunk size");
+            ui.add(egui::DragValue::new(&mut s.chunk_pages).range(0..=10_000))
+                .on_hover_text("Pages read at a time (0 = all at once); smaller chunks use less memory");
+        });
         ui.label(
             RichText::new("Language: English and other Latin-script text")
                 .small()
@@ -168,6 +215,8 @@ pub fn run(app: &mut AppState) {
         deskew: s.deskew,
         detect_orientation: s.detect_orientation,
         skip_vector_pages: s.skip_vector_pages,
+        chunk_pages: s.chunk_pages,
+        max_vector_kb: if s.limit_vector { s.max_vector_kb } else { 0 },
     };
     let prepared = recognizer().and_then(|rec| {
         let pages = d.session.ocr_pages(&opts)?;

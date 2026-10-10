@@ -208,6 +208,9 @@ impl Session {
                 m.layer = new.clone();
                 n += 1;
             }
+            if s.doc.markup_layer == old {
+                s.doc.markup_layer = new.clone();
+            }
             Ok((n, true))
         })
     }
@@ -247,6 +250,9 @@ impl Session {
                 .filter(|&i| s.doc.markups.get(i).is_some_and(|m| m.layer == name))
                 .collect();
             let n = on.len();
+            if s.doc.markup_layer == name {
+                s.doc.markup_layer.clear();
+            }
             if delete_markups {
                 for i in on.into_iter().rev() {
                     let m = s.doc.markups.remove(i);

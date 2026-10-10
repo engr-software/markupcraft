@@ -342,6 +342,7 @@ pub fn all() -> impl Iterator<Item = &'static Command> {
         .chain(crate::shell::extra::COMMANDS)
         .chain(crate::shell::extra2::COMMANDS)
         .chain(crate::more::COMMANDS)
+        .chain(crate::markups_more::COMMANDS)
         .chain(crate::features::more6::COMMANDS)
 }
 

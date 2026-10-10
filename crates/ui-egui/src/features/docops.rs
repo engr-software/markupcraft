@@ -413,7 +413,12 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                     });
                 }
                 Tab::HeaderFooter => {
-                    ui.label(RichText::new("Tokens: <<1>> page, <<n>> count, <<Page 1 of n>>, <<m/d/yyyy>>").small());
+                    ui.label(
+                        RichText::new("Tokens: <<1>> page, <<n>> count, <<Page 1 of n>>, <<m/d/yyyy>>, <<File Name>>, <<Author>> ...")
+                            .small(),
+                    );
+                    let labels: Vec<&str> = SLOTS.iter().map(|(_, l)| *l).collect();
+                    super::docs7::hf_token_picker(ui, &mut s.hf, &labels);
                     egui::Grid::new("hf").num_columns(2).show(ui, |ui| {
                         for (i, (_, label)) in SLOTS.iter().enumerate() {
                             ui.label(*label);

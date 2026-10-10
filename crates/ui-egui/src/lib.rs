@@ -37,6 +37,7 @@ pub mod icon_data;
 pub mod icons;
 pub mod interact;
 pub mod keyprefs;
+pub mod markups_more;
 pub mod modkeys;
 pub mod more;
 pub mod painter;

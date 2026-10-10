@@ -139,11 +139,19 @@ pub static REPAIR: Tool = Tool {
     },
 };
 
+/// PDF/A-1b, which PdfCraft's preflight levels do not cover (the engine's `pdfa1`).
+fn is_1b(args: &crate::Args) -> crate::Result<bool> {
+    Ok(matches!(args.opt_str("level")?, Some("1b" | "a1b" | "A-1b")))
+}
+
 fn level(args: &crate::Args) -> crate::Result<PdfaLevel> {
+    if is_1b(args)? {
+        return Ok(PdfaLevel::A2b);
+    }
     match args.opt_str("level")?.unwrap_or("2b") {
         "2b" | "a2b" | "A-2b" => Ok(PdfaLevel::A2b),
         "3b" | "a3b" | "A-3b" => Ok(PdfaLevel::A3b),
-        l => Err(bad_args(format!("level {l:?}: use 2b or 3b"))),
+        l => Err(bad_args(format!("level {l:?}: use 1b, 2b or 3b"))),
     }
 }
 
@@ -156,30 +164,31 @@ fn issues(v: &[markupcraft_engine::archive::PdfaIssue]) -> Vec<Value> {
 pub static PDFA: Tool = Tool {
     name: "doc_pdfa",
     title: "Archive as PDF/A",
-    description: "action archive (default): convert the document to PDF/A (level 2b or 3b) as far as possible without changing how pages look (XMP identification, sRGB output intent, forbidden actions, annotation flags) and report what is left; verify: only check; unlock: remove the PDF/A identification so the file can be edited as an ordinary PDF. Archive and unlock are undoable until saved.",
+    description: "action archive (default): convert the document to PDF/A (level 1b, 2b or 3b; 1b is written as PDF 1.4 with a classic cross-reference table and no transparency groups, and transparency that cannot be removed is reported) as far as possible without changing how pages look (XMP identification, sRGB output intent, forbidden actions, annotation flags) and report what is left; verify: only check; unlock: remove the PDF/A identification so the file can be edited as an ordinary PDF. Archive and unlock are undoable until saved.",
     read_only: false,
     destructive: false,
     schema: || {
         schema(
             json!({
                 "action": { "type": "string", "enum": ["archive", "verify", "unlock"] },
-                "level": { "type": "string", "enum": ["2b", "3b"] }
+                "level": { "type": "string", "enum": ["1b", "2b", "3b"] }
             }),
             &[],
         )
     },
     run: |a, args| {
         let lv = level(args)?;
+        let one = is_1b(args)?;
         let (doc, s) = a.session(args)?;
         match args.opt_str("action")?.unwrap_or("archive") {
             "archive" => {
-                let r = s.archive_pdfa(lv)?;
+                let r = if one { s.archive_pdfa1b()? } else { s.archive_pdfa(lv)? };
                 Ok(
                     json!({ "fixed": r.fixed, "remaining": issues(&r.remaining), "conforming": r.remaining.is_empty(), "document": summary(doc, s) }),
                 )
             }
             "verify" => {
-                let v = s.pdfa_verify(lv);
+                let v = if one { s.pdfa1b_verify() } else { s.pdfa_verify(lv) };
                 Ok(
                     json!({ "declared": s.pdfa_declared().map(|d| format!("PDF/A-{}{}", d.0, d.1.to_lowercase())), "issues": issues(&v), "conforming": v.is_empty() }),
                 )

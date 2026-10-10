@@ -711,10 +711,15 @@ fn batch_combine_summary_and_slip_sheet() {
     assert_eq!(h.state().state.doc().unwrap().path.as_deref(), Some(a.as_path()));
     run(&mut h, "document.slip_sheet");
     h.state_mut().state.dialogs.scripted = Some(vec![b.clone()]);
-    press(&mut h, "Choose Revision...");
+    press(&mut h, "Add Revised Files...");
     press(&mut h, "Run");
     assert!(
-        h.state().state.features.batch.message.starts_with("Replaced 2 sheets"),
+        h.state()
+            .state
+            .features
+            .batch
+            .message
+            .starts_with("Slip-sheeted 2 sheets"),
         "{}",
         h.state().state.features.batch.message
     );

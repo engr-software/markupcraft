@@ -23,6 +23,8 @@ pub const SET_FORMAT: &str = "markupcraft-set";
 pub const MAX_FILES: usize = 2_000;
 /// Most links one Batch Link run adds.
 pub const MAX_LINKS: usize = 200_000;
+/// A label found on a page: (page, box, label).
+pub type LabelHit = (usize, Rect, String);
 /// Words joined to match a label with spaces.
 const MAX_LABEL_WORDS: usize = 4;
 
@@ -295,8 +297,64 @@ pub struct BatchLinkOptions {
     pub full_paths: bool,
     /// A highlight markup of this colour over each new link.
     pub highlight: Option<Color>,
-    /// A place that already has a link gets the new link anyway (else it is skipped).
+    /// A place that already has a link: the old link is deleted and the new one added.
     pub replace_existing: bool,
+    /// A place that already has a link gets the new link beside it (both kept).
+    pub add_overlapping: bool,
+    /// How the highlight over each new link looks.
+    pub highlight_style: HighlightStyle,
+    /// Flatten the highlights into the pages.
+    pub flatten_highlight: bool,
+}
+
+/// How Batch Link marks each new link.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum HighlightStyle {
+    /// A translucent filled box.
+    #[default]
+    Fill,
+    /// An outlined box.
+    Outline,
+    /// A text highlight (multiplied over the words).
+    Highlight,
+}
+
+impl HighlightStyle {
+    pub fn name(self) -> &'static str {
+        match self {
+            HighlightStyle::Fill => "fill",
+            HighlightStyle::Outline => "outline",
+            HighlightStyle::Highlight => "highlight",
+        }
+    }
+    pub fn from_name(s: &str) -> Option<Self> {
+        Some(match s.trim().to_ascii_lowercase().as_str() {
+            "fill" => HighlightStyle::Fill,
+            "outline" => HighlightStyle::Outline,
+            "highlight" => HighlightStyle::Highlight,
+            _ => return None,
+        })
+    }
+}
+
+/// Where a Batch Link term goes (`file` indexes the batch's files).
+#[derive(Debug, Clone, PartialEq)]
+pub enum TermDest {
+    /// A page of a file.
+    Page { file: usize, page: usize },
+    /// A file (opened at its first page; a non-PDF file is launched).
+    File { file: usize },
+    /// A named Place (destination) in a file.
+    Place { file: usize, name: String },
+    /// A web address.
+    Url(String),
+}
+
+/// A search term and its destination.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TermTarget {
+    pub term: String,
+    pub dest: TermDest,
 }
 
 /// Where Batch Link's search terms come from.
@@ -311,6 +369,8 @@ pub enum LinkTerms {
     Region(Rect),
     /// Typed or imported terms: (term, target file index, target page).
     Custom(Vec<(String, usize, usize)>),
+    /// Terms with any destination: a page, a file, a Place in a file or a web address.
+    Targets(Vec<TermTarget>),
 }
 
 /// Terms from CSV lines `term,file name,page` (the file matched by name among `files`).
@@ -358,6 +418,9 @@ impl Default for BatchLinkOptions {
             full_paths: false,
             highlight: None,
             replace_existing: false,
+            add_overlapping: false,
+            highlight_style: HighlightStyle::Fill,
+            flatten_highlight: false,
         }
     }
 }
@@ -367,8 +430,16 @@ pub struct BatchLinkReport {
     /// (file, links added)
     pub files: Vec<(PathBuf, usize)>,
     pub links: usize,
-    /// matches skipped because a link was already there
+    /// matches where a link was already there (skipped, replaced or kept beside)
     pub existing: usize,
+    /// old links deleted (replace_existing)
+    pub deleted: usize,
+    /// pages with no text to search (scanned pages), skipped
+    pub skipped_pages: usize,
+    /// highlights added
+    pub highlights: usize,
+    /// files that could not be opened
+    pub files_not_opened: usize,
     pub errors: Vec<String>,
 }
 
@@ -398,20 +469,33 @@ impl Session {
     /// Find sheet references on this document's pages: (page, rect, label) for every place
     /// a label of `labels` appears (whole words, up to four words long).
     pub fn find_labels(&self, labels: &[String], match_case: bool) -> Result<Vec<(usize, Rect, String)>> {
+        self.find_labels_counted(labels, match_case).map(|x| x.0)
+    }
+
+    /// As [`Session::find_labels`], with the number of pages that have no text to search.
+    pub fn find_labels_counted(&self, labels: &[String], match_case: bool) -> Result<(Vec<LabelHit>, usize)> {
         let wanted: HashMap<String, &String> = labels
             .iter()
             .filter(|l| !norm(l, match_case).is_empty())
             .map(|l| (norm(l, match_case), l))
             .collect();
         if wanted.is_empty() {
-            return Ok(Vec::new());
+            return Ok((Vec::new(), 0));
         }
         let r = self.renderable(true)?;
         let mut out = Vec::new();
+        let mut no_text = 0;
         for page in 0..self.page_count() {
-            let Some(text) = r.text(page) else { continue };
+            let Some(text) = r.text(page) else {
+                no_text += 1;
+                continue;
+            };
             let geom = r.geom(page)?;
             let words = crate::raster::words(&text, geom);
+            if words.is_empty() {
+                no_text += 1;
+                continue;
+            }
             let mut i = 0;
             while i < words.len() {
                 let mut hit = None;
@@ -442,7 +526,7 @@ impl Session {
                 }
             }
         }
-        Ok(out)
+        Ok((out, no_text))
     }
 
     /// Slip Sheet: replace this document's pages with the pages of `new_file` whose labels
@@ -554,8 +638,83 @@ pub struct SlipSheetReport {
     pub appended: usize,
 }
 
-/// Batch Link over `files`: every page label in the set becomes a link target; wherever a
-/// page shows another page's label, a link to it is added. Files are saved in place
+/// The search terms of a Batch Link run and where each goes (the term table: page labels, file
+/// names or region text read from the files, or the typed terms). Files that cannot be opened
+/// are named in the errors.
+pub fn batch_link_terms(files: &[PathBuf], opts: &BatchLinkOptions) -> Result<(Vec<TermTarget>, Vec<String>)> {
+    let mut opened = Vec::new();
+    let mut errors = Vec::new();
+    let terms = gather_terms(files, opts, &mut opened, &mut errors);
+    Ok((terms, errors))
+}
+
+fn gather_terms(
+    files: &[PathBuf],
+    opts: &BatchLinkOptions,
+    opened: &mut Vec<Option<Session>>,
+    errors: &mut Vec<String>,
+) -> Vec<TermTarget> {
+    let mut out: Vec<TermTarget> = Vec::new();
+    let mut seen: HashMap<String, ()> = HashMap::new();
+    let mut add = |term: &str, dest: TermDest, out: &mut Vec<TermTarget>| {
+        let t = filtered(term, opts.filter_char, opts.keep_start);
+        let k = norm(&t, opts.match_case);
+        if !k.is_empty() && !seen.contains_key(&k) {
+            seen.insert(k, ());
+            out.push(TermTarget { term: t, dest });
+        }
+    };
+    match &opts.terms {
+        LinkTerms::Custom(list) => {
+            for (t, fi, p) in list {
+                add(t, TermDest::Page { file: *fi, page: *p }, &mut out);
+            }
+        }
+        LinkTerms::Targets(list) => {
+            for t in list {
+                add(&t.term, t.dest.clone(), &mut out);
+            }
+        }
+        _ => {}
+    }
+    for (fi, f) in files.iter().enumerate() {
+        match Session::open(f) {
+            Ok(s) => {
+                match &opts.terms {
+                    LinkTerms::PageLabels => {
+                        for (p, info) in s.doc().pages.iter().enumerate() {
+                            add(&info.label, TermDest::Page { file: fi, page: p }, &mut out);
+                        }
+                    }
+                    LinkTerms::FileNames => {
+                        let stem = f
+                            .file_stem()
+                            .map(|n| n.to_string_lossy().into_owned())
+                            .unwrap_or_default();
+                        add(&stem, TermDest::Page { file: fi, page: 0 }, &mut out);
+                    }
+                    LinkTerms::Region(r) => {
+                        for p in 0..s.page_count() {
+                            let t = s.text_in_rect(p, *r).unwrap_or_default();
+                            add(&t, TermDest::Page { file: fi, page: p }, &mut out);
+                        }
+                    }
+                    LinkTerms::Custom(_) | LinkTerms::Targets(_) => {}
+                }
+                opened.push(Some(s));
+            }
+            Err(e) => {
+                errors.push(format!("{}: {e}", f.display()));
+                opened.push(None);
+            }
+        }
+    }
+    out
+}
+
+/// Batch Link over `files`: every term (page labels in the set by default) becomes a link
+/// target; wherever a page shows a term, a link to its destination (a page of this or another
+/// file, a file, a Place in a file, or a web address) is added. Files are saved in place
 /// (incrementally) when links were added.
 pub fn batch_link(files: &[PathBuf], opts: &BatchLinkOptions) -> Result<BatchLinkReport> {
     if files.is_empty() || files.len() > MAX_FILES {
@@ -564,57 +723,34 @@ pub fn batch_link(files: &[PathBuf], opts: &BatchLinkOptions) -> Result<BatchLin
     if !(opts.padding.is_finite() && (0.0..=36.0).contains(&opts.padding)) {
         return Err(invalid("padding: 0 to 36 points"));
     }
-    let mut report = BatchLinkReport::default();
-    // targets: label -> (file, page), first one wins
-    let mut targets: HashMap<String, (usize, usize)> = HashMap::new();
-    let mut labels: Vec<String> = Vec::new();
-    let mut opened: Vec<Option<Session>> = Vec::new();
-    let add_target =
-        |term: &str, fi: usize, p: usize, targets: &mut HashMap<String, (usize, usize)>, labels: &mut Vec<String>| {
-            let t = filtered(term, opts.filter_char, opts.keep_start);
-            let k = norm(&t, opts.match_case);
-            if !k.is_empty() && !targets.contains_key(&k) {
-                targets.insert(k, (fi, p));
-                labels.push(t);
-            }
-        };
-    if let LinkTerms::Custom(list) = &opts.terms {
-        for (t, fi, p) in list {
-            add_target(t, *fi, *p, &mut targets, &mut labels);
-        }
-    }
-    for (fi, f) in files.iter().enumerate() {
-        match Session::open(f) {
-            Ok(s) => {
-                match &opts.terms {
-                    LinkTerms::PageLabels => {
-                        for (p, info) in s.doc().pages.iter().enumerate() {
-                            add_target(&info.label, fi, p, &mut targets, &mut labels);
-                        }
-                    }
-                    LinkTerms::FileNames => {
-                        let stem = f
-                            .file_stem()
-                            .map(|n| n.to_string_lossy().into_owned())
-                            .unwrap_or_default();
-                        add_target(&stem, fi, 0, &mut targets, &mut labels);
-                    }
-                    LinkTerms::Region(r) => {
-                        for p in 0..s.page_count() {
-                            let t = s.text_in_rect(p, *r).unwrap_or_default();
-                            add_target(&t, fi, p, &mut targets, &mut labels);
-                        }
-                    }
-                    LinkTerms::Custom(_) => {}
+    if let LinkTerms::Targets(list) = &opts.terms {
+        for t in list {
+            match &t.dest {
+                TermDest::Page { file, .. } | TermDest::File { file } | TermDest::Place { file, .. }
+                    if *file >= files.len() =>
+                {
+                    return Err(invalid(format!(
+                        "term {:?}: file {} is not one of the files",
+                        t.term,
+                        file + 1
+                    )));
                 }
-                opened.push(Some(s));
-            }
-            Err(e) => {
-                report.errors.push(format!("{}: {e}", f.display()));
-                opened.push(None);
+                TermDest::Url(u) if u.trim().is_empty() => {
+                    return Err(invalid(format!("term {:?}: the web address is empty", t.term)));
+                }
+                _ => {}
             }
         }
     }
+    let mut report = BatchLinkReport::default();
+    let mut opened: Vec<Option<Session>> = Vec::new();
+    let terms = gather_terms(files, opts, &mut opened, &mut report.errors);
+    report.files_not_opened = report.errors.len();
+    let targets: HashMap<String, TermDest> = terms
+        .iter()
+        .map(|t| (norm(&t.term, opts.match_case), t.dest.clone()))
+        .collect();
+    let labels: Vec<String> = terms.iter().map(|t| t.term.clone()).collect();
     let look = LinkLook {
         width: opts.width,
         color: opts.color,
@@ -622,54 +758,80 @@ pub fn batch_link(files: &[PathBuf], opts: &BatchLinkOptions) -> Result<BatchLin
     for (fi, slot) in opened.iter_mut().enumerate() {
         let Some(s) = slot else { continue };
         let Some(path) = files.get(fi) else { continue };
-        let hits = match s.find_labels(&labels, opts.match_case) {
+        let (hits, no_text) = match s.find_labels_counted(&labels, opts.match_case) {
             Ok(h) => h,
             Err(e) => {
                 report.errors.push(format!("{}: {e}", path.display()));
                 continue;
             }
         };
+        report.skipped_pages += no_text;
         let mut existing: Vec<(usize, Rect)> = s.links().iter().map(|l| (l.page, l.rect)).collect();
         let mut added = 0;
+        let mut highlights: Vec<String> = Vec::new();
         for (page, rect, label) in hits {
             if report.links >= MAX_LINKS {
                 break;
             }
-            let Some(&(tf, tp)) = targets.get(&norm(&label, opts.match_case)) else {
+            let Some(dest) = targets.get(&norm(&label, opts.match_case)) else {
                 continue;
             };
-            if tf == fi && tp == page {
+            if matches!(dest, TermDest::Page { file, page: p } if *file == fi && *p == page) {
                 continue;
             }
             let r = rect.padded(opts.padding);
             let area = (r.width() * r.height()).max(1e-9);
             if existing.iter().any(|(p, e)| *p == page && overlap(e, &r) > 0.5 * area) {
                 report.existing += 1;
-                if !opts.replace_existing {
+                if opts.replace_existing {
+                    let old: Vec<String> = s
+                        .links()
+                        .into_iter()
+                        .filter(|l| l.page == page && overlap(&l.rect, &r) > 0.5 * area)
+                        .map(|l| l.id)
+                        .collect();
+                    if !old.is_empty() {
+                        report.deleted += s.delete_links(&old).unwrap_or(0);
+                    }
+                } else if !opts.add_overlapping {
                     continue;
                 }
-                let old: Vec<String> = s
-                    .links()
-                    .into_iter()
-                    .filter(|l| l.page == page && overlap(&l.rect, &r) > 0.5 * area)
-                    .map(|l| l.id)
-                    .collect();
-                if !old.is_empty() {
-                    let _ = s.delete_links(&old);
-                }
             }
-            let target = if tf == fi {
-                LinkTarget::Page(tp)
-            } else {
-                let Some(to) = files.get(tf) else { continue };
-                LinkTarget::File {
-                    path: if opts.full_paths {
-                        to.display().to_string()
-                    } else {
-                        link_path(path, to)
-                    },
-                    page: Some(tp),
+            let file_path = |tf: usize| -> Option<String> {
+                let to = files.get(tf)?;
+                Some(if opts.full_paths {
+                    to.display().to_string()
+                } else {
+                    link_path(path, to)
+                })
+            };
+            let target = match dest {
+                TermDest::Page { file, page: tp } if *file == fi => LinkTarget::Page(*tp),
+                TermDest::Page { file, page: tp } => {
+                    let Some(p) = file_path(*file) else { continue };
+                    LinkTarget::File {
+                        path: p,
+                        page: Some(*tp),
+                    }
                 }
+                TermDest::File { file } if *file == fi => LinkTarget::Page(0),
+                TermDest::File { file } => {
+                    let Some(p) = file_path(*file) else { continue };
+                    let pdf = p.to_ascii_lowercase().ends_with(".pdf");
+                    LinkTarget::File {
+                        path: p,
+                        page: pdf.then_some(0),
+                    }
+                }
+                TermDest::Place { file, name } if *file == fi => LinkTarget::Place(name.clone()),
+                TermDest::Place { file, name } => {
+                    let Some(p) = file_path(*file) else { continue };
+                    LinkTarget::FilePlace {
+                        path: p,
+                        name: name.clone(),
+                    }
+                }
+                TermDest::Url(u) => LinkTarget::Url(u.clone()),
             };
             match s.add_link(page, r, &target, look) {
                 Ok(_) => {
@@ -677,24 +839,26 @@ pub fn batch_link(files: &[PathBuf], opts: &BatchLinkOptions) -> Result<BatchLin
                     report.links += 1;
                     existing.push((page, r));
                     if let Some(c) = opts.highlight {
-                        let mut m = markupcraft_model::Markup::new(
-                            markupcraft_model::Kind::Rectangle,
-                            page,
-                            r.corners().to_vec(),
-                        );
-                        m.color = c;
-                        m.fill = Some(c);
-                        m.fill_opacity = 0.3;
-                        m.opacity = 0.5;
-                        m.line_width = 0.0;
-                        m.subject = "Link".into();
-                        let _ = s.add_markup(m);
+                        let m = highlight_markup(page, r, c, opts.highlight_style);
+                        if let Ok(id) = s.add_markup(m) {
+                            highlights.push(id);
+                        }
                     }
                 }
                 Err(e) => report.errors.push(format!("{} page {}: {e}", path.display(), page + 1)),
             }
         }
-        if added > 0
+        report.highlights += highlights.len();
+        if opts.flatten_highlight
+            && !highlights.is_empty()
+            && let Err(e) = s.flatten_markups(&crate::flatten::FlattenFilter {
+                ids: highlights,
+                ..Default::default()
+            })
+        {
+            report.errors.push(format!("{}: {e}", path.display()));
+        }
+        if (added > 0 || report.deleted > 0)
             && let Err(e) = s.save(false)
         {
             report.errors.push(format!("{}: {e}", path.display()));
@@ -702,6 +866,345 @@ pub fn batch_link(files: &[PathBuf], opts: &BatchLinkOptions) -> Result<BatchLin
         report.files.push((path.clone(), added));
     }
     Ok(report)
+}
+
+/// The mark Batch Link puts over a new link.
+fn highlight_markup(page: usize, r: Rect, c: Color, style: HighlightStyle) -> markupcraft_model::Markup {
+    use markupcraft_model::{Kind, Markup, Point};
+    match style {
+        HighlightStyle::Fill => {
+            let mut m = Markup::new(Kind::Rectangle, page, r.corners().to_vec());
+            m.color = c;
+            m.fill = Some(c);
+            m.fill_opacity = 0.3;
+            m.opacity = 0.5;
+            m.line_width = 0.0;
+            m.subject = "Link".into();
+            m
+        }
+        HighlightStyle::Outline => {
+            let mut m = Markup::new(Kind::Rectangle, page, r.corners().to_vec());
+            m.color = c;
+            m.fill = None;
+            m.line_width = 1.5;
+            m.subject = "Link".into();
+            m
+        }
+        HighlightStyle::Highlight => {
+            let q = vec![
+                Point::new(r.x0, r.y1),
+                Point::new(r.x1, r.y1),
+                Point::new(r.x0, r.y0),
+                Point::new(r.x1, r.y0),
+            ];
+            let mut m = Markup::new(Kind::TextHighlight, page, q);
+            m.color = c;
+            m.subject = "Link".into();
+            m
+        }
+    }
+}
+
+// ---- the term table and saved runs -------------------------------------------------------------
+
+fn file_label(files: &[PathBuf], i: usize) -> String {
+    files
+        .get(i)
+        .and_then(|f| f.file_name())
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default()
+}
+
+/// The term table as CSV: `Term,File,Page,Place,URL` (a page from 1).
+pub fn link_terms_to_csv(terms: &[TermTarget], files: &[PathBuf]) -> String {
+    let mut out = String::from("Term,File,Page,Place,URL\r\n");
+    for t in terms {
+        let (file, page, place, url) = match &t.dest {
+            TermDest::Page { file, page } => (
+                file_label(files, *file),
+                (page + 1).to_string(),
+                String::new(),
+                String::new(),
+            ),
+            TermDest::File { file } => (file_label(files, *file), String::new(), String::new(), String::new()),
+            TermDest::Place { file, name } => (file_label(files, *file), String::new(), name.clone(), String::new()),
+            TermDest::Url(u) => (String::new(), String::new(), String::new(), u.clone()),
+        };
+        out.push_str(&format!(
+            "{},{},{},{},{}\r\n",
+            csv_q(&t.term),
+            csv_q(&file),
+            page,
+            csv_q(&place),
+            csv_q(&url)
+        ));
+    }
+    out
+}
+
+/// Terms from a term table CSV (`Term,File,Page,Place,URL`, a header row optional; the file
+/// matched by name among `files`). Rows whose file is not in the list are skipped.
+pub fn link_terms_from_csv(text: &str, files: &[PathBuf]) -> Vec<TermTarget> {
+    let find = |name: &str| {
+        files.iter().position(|f| {
+            f.file_name()
+                .is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case(name))
+                || f.file_stem()
+                    .is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case(name))
+        })
+    };
+    parse_csv(text)
+        .into_iter()
+        .filter(|r| !r.first().is_some_and(|c| c.trim().eq_ignore_ascii_case("term")))
+        .filter_map(|r| {
+            let cell = |i: usize| r.get(i).map(|c| c.trim().to_string()).unwrap_or_default();
+            let term = cell(0);
+            if term.is_empty() {
+                return None;
+            }
+            let (file, page, place, url) = (cell(1), cell(2), cell(3), cell(4));
+            let dest = if !url.is_empty() {
+                TermDest::Url(url)
+            } else {
+                let fi = find(&file)?;
+                if !place.is_empty() {
+                    TermDest::Place { file: fi, name: place }
+                } else {
+                    match page.parse::<usize>() {
+                        Ok(p) => TermDest::Page {
+                            file: fi,
+                            page: p.saturating_sub(1),
+                        },
+                        Err(_) => TermDest::File { file: fi },
+                    }
+                }
+            };
+            Some(TermTarget { term, dest })
+        })
+        .take(MAX_LINKS)
+        .collect()
+}
+
+/// A Batch Link run to save and run again: the files and every option.
+#[derive(Debug, Clone, PartialEq)]
+pub struct BatchLinkRun {
+    pub files: Vec<PathBuf>,
+    pub options: BatchLinkOptions,
+}
+
+pub const LINK_RUN_FORMAT: &str = "markupcraft-batch-link";
+
+fn hex(c: Color) -> String {
+    let b = |v: f64| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
+    format!("#{:02X}{:02X}{:02X}", b(c.r), b(c.g), b(c.b))
+}
+
+fn unhex(s: &str) -> Option<Color> {
+    let s = s.trim().trim_start_matches('#');
+    if s.len() != 6 {
+        return None;
+    }
+    let v = |i: usize| -> Option<f64> { Some(f64::from(u8::from_str_radix(s.get(i..i + 2)?, 16).ok()?) / 255.0) };
+    Some(Color::rgb(v(0)?, v(2)?, v(4)?))
+}
+
+fn xml_esc(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
+/// The run as XML (our own schema).
+pub fn link_run_xml(run: &BatchLinkRun) -> String {
+    let o = &run.options;
+    let mut x =
+        format!("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<BatchLink format=\"{LINK_RUN_FORMAT}\" version=\"1\">\n");
+    for f in &run.files {
+        x.push_str(&format!("  <File path=\"{}\"/>\n", xml_esc(&f.display().to_string())));
+    }
+    x.push_str(&format!(
+        "  <Options matchCase=\"{}\" width=\"{}\" color=\"{}\" padding=\"{}\" filter=\"{}\" keepStart=\"{}\" fullPaths=\"{}\" highlight=\"{}\" highlightStyle=\"{}\" flattenHighlight=\"{}\" replaceExisting=\"{}\" addOverlapping=\"{}\"/>\n",
+        o.match_case,
+        o.width,
+        hex(o.color),
+        o.padding,
+        xml_esc(&o.filter_char.map(String::from).unwrap_or_default()),
+        o.keep_start,
+        o.full_paths,
+        o.highlight.map(hex).unwrap_or_default(),
+        o.highlight_style.name(),
+        o.flatten_highlight,
+        o.replace_existing,
+        o.add_overlapping
+    ));
+    let (source, region) = match &o.terms {
+        LinkTerms::PageLabels => ("page_labels", None),
+        LinkTerms::FileNames => ("file_names", None),
+        LinkTerms::Region(r) => ("region", Some(*r)),
+        LinkTerms::Custom(_) | LinkTerms::Targets(_) => ("terms", None),
+    };
+    match region {
+        Some(r) => x.push_str(&format!(
+            "  <Terms source=\"{source}\" region=\"{} {} {} {}\">\n",
+            r.x0, r.y0, r.x1, r.y1
+        )),
+        None => x.push_str(&format!("  <Terms source=\"{source}\">\n")),
+    }
+    let list: Vec<TermTarget> = match &o.terms {
+        LinkTerms::Custom(l) => l
+            .iter()
+            .map(|(t, f, p)| TermTarget {
+                term: t.clone(),
+                dest: TermDest::Page { file: *f, page: *p },
+            })
+            .collect(),
+        LinkTerms::Targets(l) => l.clone(),
+        _ => Vec::new(),
+    };
+    for t in &list {
+        let attrs = match &t.dest {
+            TermDest::Page { file, page } => format!("to=\"page\" file=\"{file}\" page=\"{page}\""),
+            TermDest::File { file } => format!("to=\"file\" file=\"{file}\""),
+            TermDest::Place { file, name } => format!("to=\"place\" file=\"{file}\" place=\"{}\"", xml_esc(name)),
+            TermDest::Url(u) => format!("to=\"url\" url=\"{}\"", xml_esc(u)),
+        };
+        x.push_str(&format!("    <Term text=\"{}\" {attrs}/>\n", xml_esc(&t.term)));
+    }
+    x.push_str("  </Terms>\n</BatchLink>\n");
+    x
+}
+
+/// Read a run from its XML.
+pub fn link_run_from_xml(text: &str) -> Result<BatchLinkRun> {
+    let doc = roxmltree::Document::parse(text).map_err(|e| invalid(format!("not a Batch Link run: {e}")))?;
+    let root = doc.root_element();
+    if root.tag_name().name() != "BatchLink" || root.attribute("format") != Some(LINK_RUN_FORMAT) {
+        return Err(invalid("not a MarkupCraft Batch Link run"));
+    }
+    let mut run = BatchLinkRun {
+        files: Vec::new(),
+        options: BatchLinkOptions::default(),
+    };
+    let b = |n: &roxmltree::Node, k: &str, d: bool| n.attribute(k).map_or(d, |v| v == "true");
+    let f = |n: &roxmltree::Node, k: &str| {
+        n.attribute(k)
+            .and_then(|v| v.parse::<f64>().ok())
+            .filter(|v| v.is_finite())
+    };
+    let u = |n: &roxmltree::Node, k: &str| n.attribute(k).and_then(|v| v.parse::<usize>().ok());
+    for n in root.children().filter(|n| n.is_element()) {
+        match n.tag_name().name() {
+            "File" => {
+                if run.files.len() >= MAX_FILES {
+                    return Err(invalid(format!("a run holds at most {MAX_FILES} files")));
+                }
+                run.files.push(PathBuf::from(n.attribute("path").unwrap_or_default()));
+            }
+            "Options" => {
+                let o = &mut run.options;
+                o.match_case = b(&n, "matchCase", false);
+                o.width = f(&n, "width").unwrap_or(0.0).clamp(0.0, 12.0);
+                o.color = n.attribute("color").and_then(unhex).unwrap_or(o.color);
+                o.padding = f(&n, "padding").unwrap_or(1.0).clamp(0.0, 36.0);
+                o.filter_char = n.attribute("filter").and_then(|s| s.chars().next());
+                o.keep_start = b(&n, "keepStart", true);
+                o.full_paths = b(&n, "fullPaths", false);
+                o.highlight = n.attribute("highlight").and_then(unhex);
+                o.highlight_style = n
+                    .attribute("highlightStyle")
+                    .and_then(HighlightStyle::from_name)
+                    .unwrap_or_default();
+                o.flatten_highlight = b(&n, "flattenHighlight", false);
+                o.replace_existing = b(&n, "replaceExisting", false);
+                o.add_overlapping = b(&n, "addOverlapping", false);
+            }
+            "Terms" => {
+                let mut list = Vec::new();
+                for t in n.children().filter(|t| t.has_tag_name("Term")).take(MAX_LINKS) {
+                    let term = t.attribute("text").unwrap_or_default().to_string();
+                    let file = u(&t, "file").unwrap_or(0);
+                    let dest = match t.attribute("to").unwrap_or("page") {
+                        "file" => TermDest::File { file },
+                        "place" => TermDest::Place {
+                            file,
+                            name: t.attribute("place").unwrap_or_default().to_string(),
+                        },
+                        "url" => TermDest::Url(t.attribute("url").unwrap_or_default().to_string()),
+                        _ => TermDest::Page {
+                            file,
+                            page: u(&t, "page").unwrap_or(0),
+                        },
+                    };
+                    list.push(TermTarget { term, dest });
+                }
+                run.options.terms = match n.attribute("source").unwrap_or("page_labels") {
+                    "file_names" => LinkTerms::FileNames,
+                    "region" => {
+                        let v: Vec<f64> = n
+                            .attribute("region")
+                            .unwrap_or_default()
+                            .split_whitespace()
+                            .filter_map(|x| x.parse().ok())
+                            .collect();
+                        match v.as_slice() {
+                            [a, b, c, d] => LinkTerms::Region(Rect::new(*a, *b, *c, *d)),
+                            _ => return Err(invalid("the run's region is not four numbers")),
+                        }
+                    }
+                    "terms" => LinkTerms::Targets(list),
+                    _ => LinkTerms::PageLabels,
+                };
+            }
+            _ => {}
+        }
+    }
+    Ok(run)
+}
+
+/// Save a run: as XML, or into a Set file (`.pcset`, kept beside its file list).
+pub fn save_link_run(path: &Path, run: &BatchLinkRun) -> Result<()> {
+    let xml = link_run_xml(run);
+    if path.extension().is_some_and(|e| e.eq_ignore_ascii_case("pcset")) {
+        let mut v: serde_json::Value = if path.exists() {
+            let text = std::fs::read_to_string(path).map_err(io(path))?;
+            serde_json::from_str(&text).map_err(|e| invalid(format!("not a set file: {e}")))?
+        } else {
+            let set = DrawingSet {
+                name: path
+                    .file_stem()
+                    .map(|s| s.to_string_lossy().into_owned())
+                    .unwrap_or_default(),
+                files: run.files.clone(),
+                ..Default::default()
+            };
+            save_set(path, &set)?;
+            let text = std::fs::read_to_string(path).map_err(io(path))?;
+            serde_json::from_str(&text).map_err(|e| invalid(e.to_string()))?
+        };
+        let obj = v.as_object_mut().ok_or_else(|| invalid("not a set file"))?;
+        obj.insert("batch_link".into(), serde_json::Value::String(xml));
+        let text = serde_json::to_string_pretty(&v).map_err(|e| invalid(e.to_string()))?;
+        return crate::write_atomic(path, text.as_bytes());
+    }
+    crate::write_atomic(path, xml.as_bytes())
+}
+
+/// Load a run saved with [`save_link_run`] (XML, or the run inside a Set file).
+pub fn load_link_run(path: &Path) -> Result<BatchLinkRun> {
+    if std::fs::metadata(path).map_err(io(path))?.len() > 32 << 20 {
+        return Err(invalid("the run file is too large"));
+    }
+    let text = std::fs::read_to_string(path).map_err(io(path))?;
+    if path.extension().is_some_and(|e| e.eq_ignore_ascii_case("pcset")) {
+        let v: serde_json::Value = serde_json::from_str(&text).map_err(|e| invalid(format!("not a set file: {e}")))?;
+        let xml = v
+            .get("batch_link")
+            .and_then(|x| x.as_str())
+            .ok_or_else(|| invalid("the set holds no Batch Link run"))?;
+        return link_run_from_xml(xml);
+    }
+    link_run_from_xml(&text)
 }
 
 #[cfg(test)]

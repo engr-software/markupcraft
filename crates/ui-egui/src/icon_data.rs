@@ -53,6 +53,7 @@ pub static ICONS: &[(&str, &[u8])] = &[
     ),
     ("align-center", include_bytes!("../assets/icons/align-center.svg")),
     ("align-left", include_bytes!("../assets/icons/align-left.svg")),
+    ("align-justify", include_bytes!("../assets/icons/align-justify.svg")),
     ("align-right", include_bytes!("../assets/icons/align-right.svg")),
     (
         "arrow-left-right",

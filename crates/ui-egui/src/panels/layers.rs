@@ -53,6 +53,8 @@ enum Act {
     Preview(Option<LayerPreview>),
     Import,
     ExportLayer(String),
+    /// Set (or with `None` clear) the Markup Layer new markups are drawn on.
+    MarkupLayer(Option<String>),
 }
 
 fn ui(app: &mut AppState, ui: &mut egui::Ui) {
@@ -70,6 +72,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
         .map(|l| (l.name.clone(), d.session.layer_export(&l.name).unwrap_or(true)))
         .collect();
     let selected_markups = d.selection().len();
+    let markup_layer = d.session.markup_layer().map(String::from);
     let mut f = std::mem::take(&mut app.features.layers);
     let mut act = None;
     ui.horizontal(|ui| {
@@ -203,8 +206,25 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                     }
                     let sel = f.selected.as_deref() == Some(l.name.as_str());
                     let depth = if f.alphabetical { 0 } else { depth_of(&l.name) };
-                    let label = format!("{}{}", "    ".repeat(depth.min(8)), l.name);
+                    let is_markup_layer = markup_layer.as_deref() == Some(l.name.as_str());
+                    let label = format!(
+                        "{}{}{}",
+                        "    ".repeat(depth.min(8)),
+                        l.name,
+                        if is_markup_layer { "  (Markup Layer)" } else { "" }
+                    );
                     let r = ui.add(egui::Button::selectable(sel, label).sense(Sense::click_and_drag()));
+                    r.context_menu(|ui| {
+                        if is_markup_layer {
+                            if ui.button("Clear Markup Layer").clicked() {
+                                act = Some(Act::MarkupLayer(None));
+                                ui.close();
+                            }
+                        } else if ui.button("Set as Markup Layer").clicked() {
+                            act = Some(Act::MarkupLayer(Some(l.name.clone())));
+                            ui.close();
+                        }
+                    });
                     r.dnd_set_drag_payload(l.name.clone());
                     if let Some(dragged) = r.dnd_release_payload::<String>()
                         && *dragged != l.name
@@ -247,6 +267,14 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                     .clicked()
                 {
                     act = Some(Act::Delete(name.clone()));
+                }
+                if markup_layer.as_deref() != Some(name.as_str())
+                    && ui
+                        .button("Set as Markup Layer")
+                        .on_hover_text("New markups are drawn on this layer")
+                        .clicked()
+                {
+                    act = Some(Act::MarkupLayer(Some(name.clone())));
                 }
                 if ui.button("Top Level").on_hover_text("Out of its parent").clicked() {
                     act = Some(Act::Nest(name.clone(), None));
@@ -307,7 +335,10 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
             let _ = s.set_layer_state(c, *st);
         }
     }
-    let rerender = !matches!(act, Act::Create(_) | Act::Select(_) | Act::Assign(_));
+    let rerender = !matches!(
+        act,
+        Act::Create(_) | Act::Select(_) | Act::Assign(_) | Act::MarkupLayer(_)
+    );
     let status = match act {
         Act::Nest(n, p) => actions::report(s.nest_layer(&n, p.as_deref(), None), |_| match &p {
             Some(p) => format!("{n} is now under {p}"),
@@ -322,6 +353,10 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
         }),
         Act::Preview(None) => actions::report(s.end_layer_preview(), |_| "Preview ended".into()),
         Act::Import | Act::ExportLayer(_) => String::new(),
+        Act::MarkupLayer(n) => actions::report(s.set_markup_layer(n.as_deref()), |_| match &n {
+            Some(n) => format!("New markups go on layer {n}"),
+            None => "New markups go on no layer".into(),
+        }),
         Act::State(n, st) => actions::report(s.set_layer_state(&n, st), |_| format!("Layer {n} changed")),
         Act::Create(n) => actions::report(s.create_layer(&n), |_| format!("Layer {n} created")),
         Act::Rename(a, b) => actions::report(s.rename_layer(&a, &b), |_| format!("Renamed {a} to {b}")),

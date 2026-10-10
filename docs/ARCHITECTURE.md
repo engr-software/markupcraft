@@ -59,12 +59,16 @@ Measurements are ordinary annotations plus Revu keys:
   Revu always reduces fractions and strips trailing decimal zeros, even with `/FD true`.
 - Page scale: `/VP [<< /Type /Viewport /BBox /Measure /NM >>]`, BBox relative to the media box corner.
 - `/CO` caption offset (Area/Perimeter: from the vertex mean; Length: [along, perpendicular]).
-- `/AP /N` is required, or Revu shows nothing. Revu keys written on measurements: `/DS`,
+- `/AP /N` is required, or Revu shows nothing.
+- A turned rectangle, ellipse, text box or stamp keeps its unturned box and `Markup::rotation`; it is
+  written as `/Rotation` plus an `/AP /N /Matrix` that turns the appearance about the box's centre
+  (`/BBox` the unturned box, `/Rect` the turned bounds) and read back from them (`model::turn`). Revu keys written on measurements: `/DS`,
   `/DepthUnit`, `/Cap`, `/SlopeType`, `/PitchRun`, `/AlignOnSegment`, `/LE`, `/LL`, `/LLE`.
 - MarkupCraft's own keys (when Revu's storage is not known yet): `/PCCutouts`, `/PCCountSymbol`,
   `/PCSymbolScale`, `/PCCountShape`, `/PCSegmentValues`, `/PCRiseDrop`, `/PCCaptionOffset`,
   `/PCArcs`, `/PCColumns`, `/PCColumnData`, `/PCStamp`, `/PCSlope` (with Revu's `/SlopeType`), `/PCCaption`
-  (caption contents), `/PCCapLeader`, `/PCCentroid`; our intents `/PCDimension` (a `/Line` with `/LL` `/LLE`)
+  (caption contents), `/PCCapLeader`, `/PCCentroid`, `/PCVAlign` (a text box's vertical alignment: 1 middle,
+  2 bottom; justified text is Revu's `text-align:justify` in `/DS`); our intents `/PCDimension` (a `/Line` with `/LL` `/LLE`)
   and `/PCArc` (a three-point `/PolyLine`).
 
 ## The interface (`crates/ui-egui`)

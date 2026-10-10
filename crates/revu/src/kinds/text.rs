@@ -75,6 +75,7 @@ pub fn text_css(s: &TextStyle) -> String {
     let align = match s.align {
         1 => "center",
         2 => "right",
+        3 => "justify",
         _ => "left",
     };
     let mut css = format!(
@@ -169,6 +170,7 @@ pub fn parse_text_css(css: &str, s: &mut TextStyle) {
                 s.align = match lval.as_str() {
                     "center" => 1,
                     "right" => 2,
+                    "justify" => 3,
                     _ => 0,
                 }
             }
@@ -425,7 +427,15 @@ pub fn markup_inset(m: &Markup) -> f64 {
 /// A text markup's lines laid out in box `b` (its margin and line spacing applied).
 pub fn markup_lines(m: &Markup, b: Rect) -> Vec<markupcraft_geom::text::TextLine> {
     let f = font_of(&m.text);
-    markupcraft_geom::text::layout_text_spaced(b, &m.contents, &f, m.text.align, markup_inset(m), m.text.line_spacing)
+    markupcraft_geom::text::layout_text_full(
+        b,
+        &m.contents,
+        &f,
+        m.text.align,
+        m.text.valign,
+        markup_inset(m),
+        m.text.line_spacing,
+    )
 }
 
 fn height_for(m: &Markup, f: &markupcraft_geom::text::Font, width: f64, inset: f64) -> f64 {
@@ -518,7 +528,14 @@ fn draw_text(ap: &mut Ap, m: &Markup, extent: &mut Vec<Point>) {
     ap.fill_rgb(&st.color).newline();
     for l in lines.iter().filter(|l| !l.text.is_empty()) {
         ap.op("1 0 0 1 ").nums(&[l.x, l.y], "Tm");
+        if l.word_space != 0.0 {
+            // justified: widen the spaces (Tw applies to the single-byte space)
+            ap.nums(&[l.word_space], "Tw");
+        }
         ap.op(&format!("({}) Tj\n", Ap::text_literal(&to_win_ansi(&l.text))));
+        if l.word_space != 0.0 {
+            ap.op("0 Tw\n");
+        }
     }
     ap.op("ET\n");
     if st.underline {
@@ -566,6 +583,9 @@ fn draw_rich_lines(ap: &mut Ap, m: &Markup, lines: &[markupcraft_geom::text::Tex
         let n = l.text.chars().count();
         let chars: Vec<char> = l.text.chars().collect();
         let mut x = l.x;
+        if l.word_space != 0.0 {
+            ap.nums(&[l.word_space], "Tw").newline();
+        }
         for (s, e, cs) in rich::segments(st, &m.rich, *s0, s0 + n) {
             let t: String = chars.get(s - s0..e - s0).unwrap_or_default().iter().collect();
             let f = font_of(&TextStyle {
@@ -576,12 +596,16 @@ fn draw_rich_lines(ap: &mut Ap, m: &Markup, lines: &[markupcraft_geom::text::Tex
             ap.op("/").op(f.res_name()).op(" ").nums(&[st.size], "Tf");
             ap.fill_rgb(&cs.color).op(" 1 0 0 1 ").nums(&[x, l.y], "Tm");
             ap.op(&format!("({}) Tj\n", Ap::text_literal(&to_win_ansi(&t))));
-            let w = markupcraft_geom::text::text_width(&t, &f);
+            let spaces = t.chars().filter(|c| *c == ' ').count() as f64;
+            let w = markupcraft_geom::text::text_width(&t, &f) + spaces * l.word_space;
             if cs.underline {
                 let y = l.y - st.size * 0.12;
                 unders.push((Point::new(x, y), Point::new(x + w, y), cs.color));
             }
             x += w;
+        }
+        if l.word_space != 0.0 {
+            ap.op("0 Tw\n");
         }
     }
     ap.op("ET\n");
@@ -621,6 +645,13 @@ fn write_text(a: &mut Dict, m: &Markup) {
         markupcraft_geom::text::spacing_of(m.text.line_spacing) != 1.0,
         crate::pdf::real(m.text.line_spacing),
     );
+    // vertical alignment: MarkupCraft's own key (Revu's storage is not known)
+    super::common::set_or_remove(
+        a,
+        "PCVAlign",
+        matches!(m.text.valign, 1 | 2),
+        Object::Int(i64::from(m.text.valign)),
+    );
     if has_leader(m)
         && let (Some(tip), Some(knee)) = (m.pts.get(4), m.pts.get(5))
     {
@@ -650,6 +681,12 @@ fn read_text(cos: &CosDoc, a: &Dict, m: &mut Markup) {
     m.text.line_spacing = pdf::num(a.get(b"PCLineSpacing"))
         .map(markupcraft_geom::text::spacing_of)
         .unwrap_or(1.0);
+    // vertical alignment: 1 middle, 2 bottom (anything else is the top)
+    m.text.valign = match a.int(b"PCVAlign") {
+        Some(1) => 1,
+        Some(2) => 2,
+        _ => 0,
+    };
     if !border {
         m.color = m.text.color;
     }

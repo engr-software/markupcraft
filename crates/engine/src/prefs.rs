@@ -190,11 +190,22 @@ fn merge(base: &mut serde_json::Value, patch: &serde_json::Value, depth: usize) 
     }
 }
 
+/// `MARKUPCRAFT_CONFIG_DIR` with `{pid}` replaced by this process's id, so every test process
+/// (and every development run) gets its own settings folder and none leaks into another.
+pub fn expand_config_dir(d: &std::path::Path) -> PathBuf {
+    let s = d.to_string_lossy();
+    if s.contains("{pid}") {
+        PathBuf::from(s.replace("{pid}", &std::process::id().to_string()))
+    } else {
+        d.to_path_buf()
+    }
+}
+
 /// The user's config folder (see the module docs).
 pub fn default_config_dir() -> Option<PathBuf> {
     let env = |k: &str| std::env::var_os(k).filter(|v| !v.is_empty()).map(PathBuf::from);
     if let Some(d) = env("MARKUPCRAFT_CONFIG_DIR") {
-        return Some(d);
+        return Some(expand_config_dir(&d));
     }
     if cfg!(windows) {
         return env("APPDATA").map(|d| d.join("MarkupCraft"));

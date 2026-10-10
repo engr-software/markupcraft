@@ -22,6 +22,7 @@ pub mod measure_extras;
 pub mod rich;
 pub mod spaces;
 pub mod table;
+pub mod turn;
 
 use std::collections::BTreeMap;
 
@@ -217,8 +218,10 @@ pub struct TextStyle {
     pub bold: bool,
     pub italic: bool,
     pub underline: bool,
-    /// 0 left, 1 center, 2 right
+    /// 0 left, 1 center, 2 right, 3 justified
     pub align: i32,
+    /// vertical alignment in the box: 0 top, 1 middle, 2 bottom (`/PCVAlign`)
+    pub valign: i32,
     pub color: Color,
     /// text box margin beyond the frame's own (points; `/PCTextMargin`)
     pub margin: f64,
@@ -239,6 +242,7 @@ impl Default for TextStyle {
             italic: false,
             underline: false,
             align: 0,
+            valign: 0,
             color: Color::RED,
             margin: 0.0,
             line_spacing: 1.0,
@@ -430,6 +434,9 @@ pub struct Markup {
     /// Perimeter / Area / Volume: the caption sits along the last segment instead of at the
     /// vertex mean (`/PCCaptionLastSeg`)
     pub caption_last_segment: bool,
+    /// Rectangle, ellipse, text box, stamp: turned this many degrees counter-clockwise about
+    /// the centre of their box (`/Rotation` + the `/AP` `/Matrix`; see `turn`)
+    pub rotation: f64,
 }
 
 impl Default for Markup {
@@ -506,6 +513,7 @@ impl Default for Markup {
             attachment_name: String::new(),
             attachment_data: None,
             caption_last_segment: false,
+            rotation: 0.0,
         }
     }
 }
@@ -722,6 +730,8 @@ pub struct Document {
     pub page_labels_changed: bool,
     /// z-order edited, not yet saved
     pub order_changed: bool,
+    /// the Markup Layer: new markups are drawn on it ("" = none)
+    pub markup_layer: String,
 }
 
 impl Document {

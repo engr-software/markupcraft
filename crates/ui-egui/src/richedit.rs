@@ -166,6 +166,63 @@ pub fn restyle(
     }
 }
 
+/// The style waiting for the text typed next: (cursor position it was chosen at, style).
+pub type Pending = Option<(usize, rich::CharStyle)>;
+
+/// A style command in the editor: with a selection it styles the selected characters; with
+/// none it turns the style on (or off) for the text typed next at the cursor.
+pub fn restyle_or_pend(
+    ctx: &egui::Context,
+    id: egui::Id,
+    text: &str,
+    base: &TextStyle,
+    runs: &[TextRun],
+    change: StyleChange,
+    pending: &mut Pending,
+) -> Vec<TextRun> {
+    if selection(ctx, id).is_some() {
+        *pending = None;
+        return restyle(ctx, id, text, base, runs, change);
+    }
+    let at = cursor(ctx, id).unwrap_or_else(|| text.chars().count());
+    let now = match pending {
+        Some((p, s)) if *p == at => *s,
+        _ => rich::style_for_insert(base, runs, at),
+    };
+    *pending = Some((at, change.applied(now)));
+    runs.to_vec()
+}
+
+/// After the editor ran: characters typed at the pending position take the pending style, and
+/// it follows the cursor while typing goes on; moving the cursor or any other edit drops it.
+pub fn follow_pending(
+    before: &str,
+    after: &str,
+    cursor_now: Option<usize>,
+    base: &TextStyle,
+    runs: Vec<TextRun>,
+    pending: &mut Pending,
+) -> Vec<TextRun> {
+    let Some((at, style)) = *pending else { return runs };
+    let Some(now) = cursor_now else { return runs };
+    if before == after {
+        if now != at {
+            *pending = None;
+        }
+        return runs;
+    }
+    let (b, a): (Vec<char>, Vec<char>) = (before.chars().collect(), after.chars().collect());
+    let typed = a.len().saturating_sub(b.len());
+    let inserted_at_cursor =
+        typed > 0 && at.checked_add(typed) == Some(now) && a.get(..at) == b.get(..at) && a.get(now..) == b.get(at..);
+    if !inserted_at_cursor {
+        *pending = None;
+        return runs;
+    }
+    *pending = Some((now, style));
+    rich::set_style(base, &runs, a.len(), at, now, style)
+}
+
 /// Put the cursor of editor `id` at `at` (after a replacement).
 pub fn set_cursor(ctx: &egui::Context, id: egui::Id, at: usize) {
     if let Some(mut state) = egui::TextEdit::load_state(ctx, id) {

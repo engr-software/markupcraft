@@ -279,6 +279,7 @@ pub static COMMANDS: &[Command] = &[
     c("window.auto_hide_tabs", "Auto-Hide Tabs", "Window", 31, None, ""),
     c("window.bottom_full_width", "Bottom Panel Across the Window", "Window", 31, None, ""),
     c("window.detach", "Detach Tab to New Window", "Window", 32, None, ""),
+    c("window.detach_copy", "Detach a Copy of the Tab", "Window", 32, None, ""),
     c("window.reattach", "Reattach All Windows", "Window", 32, None, ""),
     // Help
     c("help.shortcut_reference", "Shortcut Reference (PDF)...", "Help", 30, None, "printer"),
@@ -404,6 +405,7 @@ pub fn run(app: &mut AppState, id: &str, ctx: &egui::Context) -> bool {
             app.shell.extra.dock_ops.push(DockOp::Arrange);
         }
         "window.detach" => super::detach::detach(app),
+        "window.detach_copy" => super::detach::detach_with(app, true),
         "window.reattach" => app.shell.extra.detached.clear(),
         "help.shortcut_reference" => app.dialogs.save(
             Purpose::Shell {

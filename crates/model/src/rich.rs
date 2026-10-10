@@ -144,6 +144,51 @@ pub fn apply(
     normalize(base, &one, len)
 }
 
+impl StyleChange {
+    /// `s` with this change applied: Bold, Italic and Underline flip, Color sets.
+    pub fn applied(self, s: CharStyle) -> CharStyle {
+        let mut s = s;
+        match self {
+            StyleChange::Bold => s.bold = !s.bold,
+            StyleChange::Italic => s.italic = !s.italic,
+            StyleChange::Underline => s.underline = !s.underline,
+            StyleChange::Color(c) => s.color = c,
+        }
+        s
+    }
+}
+
+/// The style a char typed at `at` takes when nothing else is chosen: the char before it (the
+/// first char at the start, the base for empty text).
+pub fn style_for_insert(base: &TextStyle, runs: &[TextRun], at: usize) -> CharStyle {
+    style_at(base, runs, at.saturating_sub(1))
+}
+
+/// Give chars `from..to` exactly `style` (the pending style for text typed next).
+pub fn set_style(
+    base: &TextStyle,
+    runs: &[TextRun],
+    len: usize,
+    from: usize,
+    to: usize,
+    style: CharStyle,
+) -> Vec<TextRun> {
+    let (from, to) = (from.min(len), to.min(len));
+    if from >= to {
+        return normalize(base, runs, len);
+    }
+    let mut out = runs.to_vec();
+    out.push(TextRun {
+        start: from,
+        end: to,
+        bold: style.bold,
+        italic: style.italic,
+        underline: style.underline,
+        color: style.color,
+    });
+    normalize(base, &out, len)
+}
+
 /// Keep runs on the same characters after the text changed from `old` to `new` (the edit is
 /// the middle part between their common prefix and suffix; inserted chars take the style of
 /// the char before them).
@@ -224,5 +269,16 @@ mod tests {
         );
         let r4 = rebase(&r, "hello world", "hello ");
         assert!(r4.is_empty());
+    }
+
+    #[test]
+    fn pending_style_for_typed_text() {
+        let b = base();
+        let s = StyleChange::Bold.applied(style_for_insert(&b, &[], 6));
+        assert!(s.bold);
+        let r = set_style(&b, &[], 10, 6, 10, s);
+        assert_eq!(r.len(), 1);
+        assert_eq!((r[0].start, r[0].end, r[0].bold), (6, 10, true));
+        assert!(style_for_insert(&b, &r, 10).bold, "after a bold run, typing stays bold");
     }
 }

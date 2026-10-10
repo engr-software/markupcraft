@@ -21,6 +21,7 @@ pub(crate) fn target_json(t: &LinkTarget) -> Value {
         LinkTarget::FileView { path, page, rect } => {
             json!({ "file": path, "file_page": page + 1, "view": rect.as_array() })
         }
+        LinkTarget::FilePlace { path, name } => json!({ "file": path, "place": name }),
         LinkTarget::Other(o) => json!({ "other": o }),
     }
 }

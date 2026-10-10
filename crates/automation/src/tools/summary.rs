@@ -40,7 +40,9 @@ pub static EXPORT: Tool = Tool {
                 "pdf_spaces_cover": { "type": "boolean", "description": "PDF: a cover sheet of the Spaces and their markup counts." },
                 "pdf_status_history": { "type": "boolean", "description": "PDF: each markup's status history (review replies)." },
                 "pdf_thumbnails": { "type": "integer", "minimum": 48, "maximum": 400, "description": "PDF: markup thumbnails of this many pixels, on contact sheets with an index." },
-                "pdf_page_content": { "type": "boolean", "description": "PDF: the summarized pages themselves after the report." }
+                "pdf_page_content": { "type": "boolean", "description": "PDF: the summarized pages themselves after the report." },
+                "column_config": { "type": "string", "description": "Use a saved column configuration (summary_columns) instead of `columns`." },
+                "include_empty": { "type": "boolean", "description": "Keep columns that are empty in every row (default true; a saved configuration says its own)." }
             }),
             &["out"],
         )
@@ -111,7 +113,17 @@ pub static EXPORT: Tool = Tool {
             layout.logo = Some(a.resolve(l, false)?);
         }
         o.layout = layout;
+        let config = match args.opt_str("column_config")? {
+            Some(n) => Some(markupcraft_engine::summary_cols::find_config(&a.config_dir()?, n)?),
+            None => None,
+        };
         let (doc, s) = a.session_ref(args)?;
+        if let Some(c) = &config {
+            o.use_columns(s.doc(), c);
+        }
+        if !args.bool_or("include_empty", true)? {
+            o.drop_empty_columns(s.doc());
+        }
         if args.bool_or("per_value", false)? {
             let files = s.export_summary_per_value(&out, format, &o)?;
             return Ok(

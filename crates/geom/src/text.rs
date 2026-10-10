@@ -176,6 +176,8 @@ pub struct TextLine {
     pub x: f64,
     pub y: f64,
     pub width: f64,
+    /// extra width added to each space (justified text; PDF `Tw`), 0 otherwise
+    pub word_space: f64,
 }
 
 /// Revu's line height: 1.15 x the font size.
@@ -244,16 +246,27 @@ fn wrap(para: &str, width: f64, f: &Font) -> Vec<String> {
 
 /// The wrapped lines of `contents` in a box `box_width` wide.
 pub fn wrapped_lines(contents: &str, f: &Font, box_width: f64, inset: f64) -> Vec<String> {
+    wrapped_lines_marked(contents, f, box_width, inset)
+        .into_iter()
+        .map(|(l, _)| l)
+        .collect()
+}
+
+/// [`wrapped_lines`], each with whether it ends its paragraph (justified text leaves those
+/// lines as they are).
+pub fn wrapped_lines_marked(contents: &str, f: &Font, box_width: f64, inset: f64) -> Vec<(String, bool)> {
     let avail = (box_width - 2.0 * inset).max(1.0);
-    let mut out: Vec<String> = Vec::new();
+    let mut out: Vec<(String, bool)> = Vec::new();
     for p in paragraphs(contents) {
-        out.extend(wrap(&p, avail, f));
+        let lines = wrap(&p, avail, f);
+        let n = lines.len();
+        out.extend(lines.into_iter().enumerate().map(|(i, l)| (l, i + 1 == n)));
         if out.len() >= MAX_LINES {
             break;
         }
     }
     // Revu keeps trailing empty paragraphs in /Contents but they take no space at the end.
-    while out.len() > 1 && out.last().is_some_and(String::is_empty) {
+    while out.len() > 1 && out.last().is_some_and(|(l, _)| l.is_empty()) {
         out.pop();
     }
     out
@@ -267,19 +280,83 @@ pub fn layout_text(b: Rect, contents: &str, f: &Font, align: i32, inset: f64) ->
 
 /// [`layout_text`] with lines `spacing` times Revu's line height apart.
 pub fn layout_text_spaced(b: Rect, contents: &str, f: &Font, align: i32, inset: f64, spacing: f64) -> Vec<TextLine> {
+    layout_text_full(b, contents, f, align, 0, inset, spacing)
+}
+
+/// [`layout_text_spaced`] with every alignment: `align` 0 left, 1 centre, 2 right, 3 justified
+/// (every line but a paragraph's last stretched to the box by widening its spaces); `valign`
+/// 0 top, 1 middle, 2 bottom (the text block placed inside the inset box; text taller than the
+/// box starts at the top).
+pub fn layout_text_full(
+    b: Rect,
+    contents: &str,
+    f: &Font,
+    align: i32,
+    valign: i32,
+    inset: f64,
+    spacing: f64,
+) -> Vec<TextLine> {
     let b = b.normalized();
     let lh = line_height(f.size) * spacing_of(spacing);
-    let mut y = b.y1 - inset - 0.7762 * f.size;
+    let lines = wrapped_lines_marked(contents, f, b.x1 - b.x0, inset);
+    let block = lines.len().saturating_sub(1) as f64 * lh + f.size;
+    let room = (b.y1 - b.y0) - 2.0 * inset - block;
+    let drop = match valign {
+        1 if room > 0.0 => room / 2.0,
+        2 if room > 0.0 => room,
+        _ => 0.0,
+    };
+    let avail = (b.x1 - b.x0 - 2.0 * inset).max(0.0);
+    let mut y = b.y1 - inset - 0.7762 * f.size - drop;
     let mut out = Vec::new();
-    for l in wrapped_lines(contents, f, b.x1 - b.x0, inset) {
-        let width = text_width(&l, f);
+    for (l, last) in lines {
+        let mut width = text_width(&l, f);
+        let mut word_space = 0.0;
+        let spaces = l.trim_end_matches(' ').chars().filter(|c| *c == ' ').count();
+        if align == 3 && !last && spaces > 0 && avail > width {
+            word_space = (avail - width) / spaces as f64;
+            width = avail;
+        }
         let x = match align {
             1 => (b.x0 + b.x1 - width) / 2.0,
             2 => b.x1 - inset - width,
             _ => b.x0 + inset,
         };
-        out.push(TextLine { text: l, x, y, width });
+        out.push(TextLine {
+            text: l,
+            x,
+            y,
+            width,
+            word_space,
+        });
         y -= lh;
+    }
+    out
+}
+
+/// The words of a laid-out line with their x offsets from the line start, spaces widened by
+/// `word_space` (how a justified line is drawn piece by piece).
+pub fn spaced_words(text: &str, f: &Font, word_space: f64) -> Vec<(String, f64)> {
+    let mut out = Vec::new();
+    let mut cur = String::new();
+    let (mut x, mut start) = (0.0, 0.0);
+    let space = text_width(" ", f) + if word_space.is_finite() { word_space } else { 0.0 };
+    for c in text.chars() {
+        if c == ' ' {
+            if !cur.is_empty() {
+                out.push((std::mem::take(&mut cur), start));
+            }
+            x += space;
+        } else {
+            if cur.is_empty() {
+                start = x;
+            }
+            cur.push(c);
+            x += f64::from(char_width(c, f)) * f.size / 1000.0;
+        }
+    }
+    if !cur.is_empty() {
+        out.push((cur, start));
     }
     out
 }
@@ -355,6 +432,7 @@ pub fn stamp_lines(b: Rect, contents: &str, f: &Font, line_width: f64) -> Vec<(T
                 x: (b.x0 + b.x1 - width) / 2.0,
                 y,
                 width,
+                word_space: 0.0,
             },
             size,
         ));

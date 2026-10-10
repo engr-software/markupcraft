@@ -12,10 +12,12 @@
 pub mod batch;
 pub mod batch_compare;
 pub mod batch_list;
+pub mod batch_more;
 pub mod canvas;
 pub mod compare;
 pub mod docops;
 pub mod docs5b;
+pub mod docs7;
 pub mod export;
 pub mod fill;
 pub mod flatten_ui;
@@ -152,6 +154,7 @@ pub static COMMANDS: &[Command] = &[
     c("tools.clear_certification", "Clear Certification", "Tools", 22, None, ""),
     c("batch.split", "Split...", "Batch", 22, None, ""),
     c("batch.script", "Run Script...", "Batch", 22, None, ""),
+    c("batch.apply_stamp", "Apply Stamp...", "Batch", 22, None, ""),
 ];
 
 /// Panels these features add (for the Window menu keys see the panel rows).
@@ -193,6 +196,7 @@ pub fn enabled(app: &AppState, id: &str) -> bool {
         | "markup.profile_columns"
         | "tools.digital_ids"
         | "batch.script"
+        | "batch.apply_stamp"
         | "file.email_templates" => true,
         _ => app.has_doc(),
     }
@@ -219,6 +223,7 @@ pub fn run(app: &mut AppState, id: &str, _ctx: &egui::Context) {
         "batch.print" => f.batch.open(batch::Kind::Print),
         "batch.split" => f.batch.open(batch::Kind::Split),
         "batch.script" => f.batch.open(batch::Kind::Script),
+        "batch.apply_stamp" => f.batch.open(batch::Kind::ApplyStamp),
         "document.slip_sheet" => f.batch.open(batch::Kind::SlipSheet),
         "batch.sets" => app.show_panel("sets"),
         "file.overlay" => f.overlay.open = true,
@@ -459,6 +464,7 @@ pub enum Ask {
     StatusReportCsv,
     IdImport,
     IdExportCert,
+    BatchExtra(batch_more::Extra),
 }
 
 pub const IMAGES: crate::dialogs::Filter = ("Images", &["png", "jpg", "jpeg"]);
@@ -533,6 +539,7 @@ pub fn answer(app: &mut AppState, ask: Ask, paths: Vec<PathBuf>) {
             Err(e) => app.features.batch.message = e.to_string(),
         },
         Ask::BatchScript => app.features.batch.more.script = Some(first),
+        Ask::BatchExtra(e) => batch_more::chosen(app, e, &first),
         Ask::IdImport => partials_more3::ids_file(app, true, &first),
         Ask::IdExportCert => partials_more3::ids_file(app, false, &first),
         Ask::StatusReportPdf => partials_more2::status_file(app, true, &first),
@@ -644,6 +651,7 @@ pub struct FeatureState {
     pub quantity: docs5b::QuantityState,
     pub more6: more6::More6State,
     pub partials: partials::PartialsState,
+    pub docs7: docs7::Docs7State,
 }
 
 /// Ask the user to pick on the active document's canvas.
@@ -679,6 +687,7 @@ pub fn frame(app: &mut AppState, ctx: &egui::Context) {
         }
         picked(app, what, p.page, p.pts);
     }
+    docs7::frame(app, ctx);
     // While the user picks on the page, dialogs step aside (they come back after the pick).
     if app.features.pick.is_some() {
         fill::window(app, ctx);

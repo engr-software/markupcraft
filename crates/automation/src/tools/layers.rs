@@ -141,6 +141,29 @@ pub static SET: Tool = Tool {
     },
 };
 
+pub static MARKUP_LAYER: Tool = Tool {
+    name: "layer_markup_layer",
+    title: "Markup Layer",
+    description: "The Markup Layer: every new markup is drawn on it (saved as /OC). `name` sets it (the layer is created when new), \"\" clears it; without `name` it is only reported.",
+    read_only: false,
+    destructive: false,
+    schema: || {
+        schema(
+            json!({ "name": name_arg("The layer new markups go on; \"\" = none.") }),
+            &[],
+        )
+    },
+    run: |a, args| {
+        let name = args.opt_string("name")?;
+        let (doc, s) = a.session(args)?;
+        if let Some(n) = &name {
+            s.set_markup_layer(Some(n.as_str()))?;
+        }
+        let now = s.markup_layer().map(String::from);
+        Ok(json!({ "markup_layer": now, "document": summary(doc, s) }))
+    },
+};
+
 pub static ASSIGN: Tool = Tool {
     name: "layer_assign",
     title: "Put markups on a layer",

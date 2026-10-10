@@ -85,7 +85,7 @@ fn ctrl_click(app: &mut AppState, ctx: &egui::Context) {
     };
     use markupcraft_engine::links::LinkTarget;
     match &link.target {
-        LinkTarget::File { path, .. } | LinkTarget::FileView { path, .. } => {
+        LinkTarget::File { path, .. } | LinkTarget::FileView { path, .. } | LinkTarget::FilePlace { path, .. } => {
             let base = d
                 .path
                 .as_ref()

@@ -1130,16 +1130,16 @@ fn dynamic_fill_drag_boundaries_polylength_and_volume() {
     h.state_mut().open_bytes("rooms.pdf", None, bytes).unwrap();
     h.run_steps(6);
     run(&mut h, "measure.dynamic_fill");
-    press(&mut h, "Drag across regions to fill each one");
+    press(&mut h, "Drag across regions to fill them as one");
     assert!(matches!(
         h.state().state.features.pick,
         Some((_, markupcraft_ui_egui::features::Pick::FillDrag))
     ));
     drag(&mut h, (150.0, 250.0), (450.0, 250.0));
     let areas = markups(&h).iter().filter(|m| m.kind == Kind::Area).count();
-    assert_eq!(areas, 2, "{}", h.state().state.features.fill.message);
+    assert_eq!(areas, 1, "one fill: {}", h.state().state.features.fill.message);
     // Back to clicks: a Volume, then a Polylength split by a boundary line.
-    press(&mut h, "Drag across regions to fill each one");
+    press(&mut h, "Drag across regions to fill them as one");
     press(&mut h, "Volume");
     h.state_mut().state.features.fill.depth = 2.5;
     h.run_steps(1);

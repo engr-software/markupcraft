@@ -19,6 +19,7 @@ pub mod hatch;
 pub mod kinds;
 pub mod layers;
 pub mod pdf;
+pub mod pdfa1;
 pub mod read;
 pub mod scale;
 pub mod spaces;
@@ -90,16 +91,22 @@ pub enum SaveMode {
 pub fn save(file: &mut PdfFile, doc: &mut Document, out: impl AsRef<Path>, mode: SaveMode) -> Result<(), RevuError> {
     let out = out.as_ref();
     write::apply(&mut file.cos, doc);
+    // A PDF/A-1 file is PDF 1.4: a classic cross-reference table and a 1.4 header.
+    let pdfa1 = pdfa1::declares_part1(&file.cos);
     let opts = SaveOptions {
         mod_date: Some(pdf_date_now()),
+        object_streams: !pdfa1,
         ..Default::default()
     };
-    let incremental = mode == SaveMode::Incremental && !file.cos.full_save_required();
-    let bytes = if incremental {
+    let incremental = mode == SaveMode::Incremental && !file.cos.full_save_required() && !pdfa1;
+    let mut bytes = if incremental {
         pdfcraft_cos::write_incremental(&file.cos, &opts)?
     } else {
         pdfcraft_cos::write_full(&file.cos, &opts)?
     };
+    if pdfa1 {
+        pdfa1::header_14(&mut bytes);
+    }
     let mut tmp = out.as_os_str().to_owned();
     tmp.push(".markupcraft-tmp");
     let tmp = PathBuf::from(tmp);

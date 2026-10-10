@@ -3,4 +3,5 @@ xtask = "run -p xtask --"
 
 # Tests and dev runs keep their settings out of the user's real config folder.
 [env]
-MARKUPCRAFT_CONFIG_DIR = { value = "target/dev-config", relative = true }
+# {pid}: each test process gets its own folder, so no test sees settings another saved.
+MARKUPCRAFT_CONFIG_DIR = { value = "target/dev-config/{pid}", relative = true }

@@ -25,7 +25,7 @@ pub static DYNAMIC_FILL: Tool = Tool {
                 "point": point_arg("A point inside the region"),
                 "output": { "type": "string", "enum": ["area", "polygon", "perimeter", "polylength", "volume", "space"] },
                 "depth": { "type": "number", "minimum": 0, "description": "Output volume: the depth (scale units)." },
-                "path": points_arg("Fill by dragging: every region this path passes through (instead of point)"),
+                "path": points_arg("Fill by dragging: one fill covering every region this path passes through (instead of point)"),
                 "space_name": { "type": "string", "description": "The new space's name (output space)." },
                 "gap": { "type": "number", "minimum": 0, "maximum": 72, "description": "Close gaps up to this many points (default 0.5)." },
                 "cutouts": { "type": "boolean", "description": "Islands inside become cutouts (default true)." },
@@ -112,8 +112,13 @@ pub static DYNAMIC_FILL: Tool = Tool {
         };
         patch.apply(&mut look).map_err(crate::failed)?;
         if let Some(path) = path {
+            // every region the drag passed through, joined into one fill
+            let regions = s.dynamic_fill_path(page, &path, &opts)?.len();
             let ids = s.dynamic_fill_path_create(page, &path, &opts, &output, Some(look))?;
-            return Ok(json!({ "created": ids, "regions": ids.len(), "document": summary(doc, s) }));
+            let markups: Vec<Value> = ids.iter().filter_map(|id| s.markup(id).ok()).map(markup_json).collect();
+            return Ok(json!({
+                "created": ids, "regions": regions, "markups": markups, "document": summary(doc, s),
+            }));
         }
         let (id, r) = s.dynamic_fill_create(page, seed, &opts, &output, Some(look))?;
         let created = match output {

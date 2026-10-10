@@ -112,6 +112,9 @@ impl Session {
         if m.author.is_empty() {
             m.author = self.author.clone();
         }
+        if m.layer.is_empty() {
+            m.layer = self.doc.markup_layer.clone();
+        }
         if m.subject.is_empty() {
             m.subject = props::default_subject(m.kind);
         }

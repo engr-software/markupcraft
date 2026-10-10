@@ -1149,6 +1149,74 @@ fn detach_a_tab_into_its_own_window_and_reattach() {
     assert!(h.state().state.shell.extra.detached.is_empty());
 }
 
+/// D-056: detaching MOVES the tab out of the main window (a Ctrl-drag or Detach a Copy leaves
+/// it there too); a floating window holds a tab bar of several documents.
+#[test]
+fn detached_window_holds_tabs_and_detach_moves_the_tab() {
+    use markupcraft_ui_egui::shell::detach;
+    let dir = temp_dir("doca-detach-tabs");
+    let other = sample_pdf(&dir, "other.pdf");
+    let third = sample_pdf(&dir, "third.pdf");
+    let mut h = app();
+    let sample = h.state().state.doc().unwrap().uid;
+    open(&mut h, &other);
+    open(&mut h, &third);
+    let uid_of =
+        |h: &Harness<'_, MarkupCraftApp>, n: &str| h.state().state.docs.iter().find(|d| d.name == n).unwrap().uid;
+    let (other_uid, third_uid) = (uid_of(&h, "other.pdf"), uid_of(&h, "third.pdf"));
+    // Detach the sample: its tab leaves the main window.
+    let i = h.state().state.docs.iter().position(|d| d.uid == sample).unwrap();
+    h.state_mut().state.active = i;
+    run(&mut h, "window.detach");
+    h.run_steps(4);
+    let st = &h.state().state;
+    assert_eq!(st.shell.extra.detached.len(), 1);
+    assert!(!detach::main_window_docs(st).contains(&sample), "moved, not copied");
+    assert!(detach::main_window_docs(st).contains(&other_uid));
+    // The window's tab bar: Add Tab moves other.pdf in.
+    h.get_by_label("Add Tab").click();
+    h.run_steps(3);
+    h.get_all_by_label("other.pdf").last().unwrap().click();
+    h.run_steps(4);
+    let st = &h.state().state;
+    assert_eq!(
+        st.shell.extra.detached[0].uids(),
+        [sample, other_uid],
+        "two tabs in one window"
+    );
+    assert_eq!(
+        detach::main_window_docs(st),
+        [third_uid],
+        "the main window keeps the rest"
+    );
+    assert_eq!(st.shell.extra.detached[0].uid(), other_uid, "the added tab shows");
+    // Switch tabs in the window.
+    let tab = h.get_all_by_label("sample.pdf").last().unwrap().rect().center();
+    h.hover_at(tab);
+    h.step();
+    button(&mut h, tab, true, Modifiers::NONE);
+    button(&mut h, tab, false, Modifiers::NONE);
+    h.run_steps(3);
+    assert_eq!(
+        h.state().state.shell.extra.detached[0].uid(),
+        sample,
+        "clicked tab shows"
+    );
+    // The main window still shows its own document while the window's is active.
+    h.run_steps(3);
+    assert_eq!(active_name(&h), "sample.pdf", "the window's document is active");
+    // Reattach: every tab comes back.
+    run(&mut h, "window.reattach");
+    h.run_steps(3);
+    assert_eq!(detach::main_window_docs(&h.state().state).len(), 3);
+    // Detach a copy (what Ctrl-drag does): the main window keeps the tab.
+    run(&mut h, "window.detach_copy");
+    h.run_steps(3);
+    let st = &h.state().state;
+    assert_eq!(st.shell.extra.detached.len(), 1);
+    assert_eq!(detach::main_window_docs(st).len(), 3, "a copy leaves the tab here");
+}
+
 // ---------------------------------------------------------------- thumbnails
 
 fn geoms(h: &Harness<'_, MarkupCraftApp>) -> Vec<markupcraft_render::PageGeom> {
@@ -2350,6 +2418,99 @@ fn split_document_by_page_count_and_bookmarks() {
     assert_eq!(n, 4, "one part per top-level bookmark");
 }
 
+/// D-095 split by file size (MB); names with a prefix / suffix where # is the part number, or
+/// the bookmark names; a subfolder; links updated to the other parts; unused layers dropped.
+#[test]
+fn split_document_by_size_names_subfolder_links_and_layers() {
+    let dir = temp_dir("doca-splitmore");
+    labelled_set(&dir, "sp.pdf");
+    let mut a = automation(&dir);
+    call(&mut a, "doc_open", json!({ "path": "sp.pdf" }));
+    call(
+        &mut a,
+        "link_add",
+        json!({ "page": 1, "rect": [50, 50, 150, 80], "to_page": 4 }),
+    );
+    call(&mut a, "layer_create", json!({ "name": "Spare" }));
+    call(&mut a, "doc_save", json!({ "full": true }));
+    for d in ["size", "named", "bm", "linked"] {
+        std::fs::create_dir_all(dir.join(d)).unwrap();
+    }
+    // by size: every part within the limit unless it is a single page
+    let one_page = {
+        call(&mut a, "doc_split", json!({ "dir": "linked", "pages_per_file": 1 }));
+        std::fs::read_dir(dir.join("linked"))
+            .unwrap()
+            .map(|e| e.unwrap().metadata().unwrap().len())
+            .max()
+            .unwrap()
+    };
+    for e in std::fs::read_dir(dir.join("linked")).unwrap() {
+        std::fs::remove_file(e.unwrap().path()).unwrap();
+    }
+    let limit = (one_page + 64) as f64;
+    let v = call(
+        &mut a,
+        "doc_split",
+        json!({ "dir": "size", "by": "size", "max_mb": limit / 1_048_576.0, "prefix": "Part ##-", "subfolder": true }),
+    );
+    let files = v["files"].as_array().unwrap();
+    assert!(files.len() >= 2 && files.len() <= 4, "{v}");
+    for f in files {
+        let p = std::path::PathBuf::from(f["path"].as_str().unwrap());
+        assert!(p.parent().unwrap().ends_with("sp"), "in the subfolder: {p:?}");
+        let pages = f["pages"].as_array().unwrap().len();
+        assert!(
+            pages == 1 || std::fs::metadata(&p).unwrap().len() as f64 <= limit,
+            "{p:?} too large"
+        );
+    }
+    assert!(dir.join("size/sp/Part 01-sp.pdf").exists(), "{v}");
+    // suffix with # and the bookmark names
+    let v = call(
+        &mut a,
+        "doc_split",
+        json!({ "dir": "named", "pages_per_file": 2, "suffix": " (#)" }),
+    );
+    let vs = v.to_string();
+    assert!(vs.contains("sp (1).pdf") && vs.contains("sp (2).pdf"), "{v}");
+    call(
+        &mut a,
+        "doc_split",
+        json!({ "dir": "bm", "by": "bookmarks", "bookmark_names": true }),
+    );
+    let mut names: Vec<String> = std::fs::read_dir(dir.join("bm"))
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    names.sort();
+    assert!(
+        names.iter().any(|n| n == "Page 1.pdf"),
+        "named after the bookmarks: {names:?}"
+    );
+    // links to a page in another part open that part; the unused layer is dropped
+    let v = call(
+        &mut a,
+        "doc_split",
+        json!({ "dir": "linked", "pages_per_file": 2, "update_links": true, "drop_empty_layers": true }),
+    );
+    let first = v["files"][0]["path"].as_str().unwrap().to_string();
+    let second = v["files"][1]["path"].as_str().unwrap().to_string();
+    call(&mut a, "doc_open", json!({ "path": first }));
+    let l = call(&mut a, "link_list", json!({})).to_string();
+    let second_name = std::path::Path::new(&second)
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
+    assert!(
+        l.contains(&second_name) && l.contains("\"file_page\":2"),
+        "link goes to part 2, page 2: {l}"
+    );
+    let layers = call(&mut a, "layer_list", json!({})).to_string();
+    assert!(!layers.contains("Spare"), "unused layer dropped: {layers}");
+}
+
 /// D-096 crop pages by margins (Shift+Alt+O). D-097 page setup: new media size, content
 /// scaled to it or placed, offset, rotation. D-098 deskew by two points.
 #[test]
@@ -2475,13 +2636,27 @@ fn combine_pdfs_with_ranges_and_options() {
     assert_eq!(tags(&mut a), ["B 1", "B 2", "A 1", "A 2", "A 3"]);
     let t = titles(&mut a);
     assert_eq!(t.len(), 2, "one bookmark per file: {t:?}");
-    // Revu gives each file its own page range; MarkupCraft combines whole files only.
-    let e = fails(
+    // Each file in the list gets its own page range ("" = every page).
+    call(
         &mut a,
         "doc_combine_files",
-        json!({ "files": [{ "path": "a.pdf", "pages": "2-3" }, "b.pdf"], "out": "ranges.pdf" }),
+        json!({ "files": ["a.pdf", "b.pdf"], "ranges": ["2-3", ""], "out": "ranges.pdf" }),
     );
-    assert!(e.contains("list of strings"), "{e}");
+    call(&mut a, "doc_open", json!({ "path": "ranges.pdf" }));
+    assert_eq!(tags(&mut a), ["A 2", "A 3", "B 1", "B 2"]);
+    call(
+        &mut a,
+        "doc_combine",
+        json!({ "files": ["b.pdf", "a.pdf"], "ranges": ["2", "1,3"], "out": "r2.pdf" }),
+    );
+    call(&mut a, "doc_open", json!({ "path": "r2.pdf" }));
+    assert_eq!(tags(&mut a), ["B 2", "A 1", "A 3"]);
+    let e = fails(
+        &mut a,
+        "doc_combine",
+        json!({ "files": ["a.pdf", "b.pdf"], "ranges": ["9", ""], "out": "bad.pdf" }),
+    );
+    assert!(e.contains('9') || e.contains("page"), "{e}");
     let v = call(
         &mut a,
         "doc_combine_files",

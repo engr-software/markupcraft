@@ -60,6 +60,9 @@ pub fn box_of(m: &Markup) -> Rect {
 
 /// The user-space bounding box of a markup (its points, its box, else its `/Rect`).
 pub fn markup_bbox(m: &Markup) -> Rect {
+    if let Some(b) = markupcraft_model::turn::turned_bounds(m) {
+        return b;
+    }
     if uses_rect(m.kind) {
         let mut b = box_of(m);
         if m.kind == Kind::Callout {
@@ -133,6 +136,7 @@ pub fn patch_from(template: &Markup) -> MarkupPatch {
         italic: Some(template.text.italic),
         underline: Some(template.text.underline),
         align: Some(template.text.align),
+        valign: Some(template.text.valign),
         subject: Some(template.subject.clone()),
         label: Some(template.label.clone()),
         layer: Some(template.layer.clone()),

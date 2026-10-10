@@ -15,6 +15,7 @@
 use std::collections::{BTreeMap, HashSet};
 
 use markupcraft_geom::text::{Font, FontFamily, text_width, to_win_ansi};
+use markupcraft_model::table::MarkupTable;
 use markupcraft_model::{Color, Document, Kind, Markup, ObjId, Point, Rect, format_value};
 use markupcraft_revu::ap::Ap;
 use markupcraft_revu::cos::{Dict, Document as CosDoc, ObjRef, Object, PdfString, Stream};
@@ -80,7 +81,9 @@ pub struct LegendOptions {
     pub ids: Vec<String>,
     /// Show every subject in `subjects` even with no markups (a Tool Chest set's legend).
     pub show_empty: bool,
-    /// Custom Markups List columns (ids) shown after `columns`; their values split rows.
+    /// More Markups List columns shown after `columns`, their values splitting rows: any
+    /// column of the list by id or header (Layer, Author, Measurement, Status, Label, ...) or a
+    /// custom column's id or name.
     pub custom_columns: Vec<String>,
     /// Look: border and fill colours, opacity, border width, symbol size (1 = 100%),
     /// the header row.
@@ -334,8 +337,72 @@ fn legend_objs(cos: &CosDoc, doc: &Document) -> HashSet<ObjId> {
         .collect()
 }
 
+/// A legend column after the fixed ones: a custom column (by id or name), else any Markups List
+/// column (by id or header).
+enum ListColumn {
+    Custom(String),
+    Table(usize),
+    Unknown,
+}
+
+fn list_column(doc: &Document, table: Option<&MarkupTable<'_>>, c: &str) -> ListColumn {
+    let c = c.trim();
+    if let Some(cc) = doc
+        .columns
+        .iter()
+        .find(|cc| cc.id == c)
+        .or_else(|| doc.columns.iter().find(|cc| cc.name.eq_ignore_ascii_case(c)))
+    {
+        return ListColumn::Custom(cc.id.clone());
+    }
+    match table.and_then(|t| {
+        t.columns()
+            .iter()
+            .position(|tc| tc.id.eq_ignore_ascii_case(c) || tc.header.eq_ignore_ascii_case(c))
+    }) {
+        Some(i) => ListColumn::Table(i),
+        None => ListColumn::Unknown,
+    }
+}
+
+/// The header a legend shows for column `c` of `custom_columns`.
+pub fn column_header(doc: &Document, c: &str) -> String {
+    // the columns only (no markups: no cells to compute)
+    let shape = Document {
+        columns: doc.columns.clone(),
+        ..Default::default()
+    };
+    let table = MarkupTable::new(&shape);
+    match list_column(doc, Some(&table), c) {
+        ListColumn::Custom(id) => doc
+            .columns
+            .iter()
+            .find(|cc| cc.id == id)
+            .map_or_else(|| c.to_string(), |cc| cc.name.clone()),
+        ListColumn::Table(i) => table
+            .columns()
+            .get(i)
+            .map_or_else(|| c.to_string(), |tc| tc.header.clone()),
+        ListColumn::Unknown => c.to_string(),
+    }
+}
+
+/// `o` with its extra columns named by their headers (what the table shows).
+fn shown_options(doc: &Document, o: &LegendOptions) -> LegendOptions {
+    let mut s = o.clone();
+    s.custom_columns = o.custom_columns.iter().map(|c| column_header(doc, c)).collect();
+    s
+}
+
 /// The rows a legend on `page` shows now.
 pub fn compute_rows(doc: &Document, legends: &HashSet<ObjId>, page: usize, o: &LegendOptions) -> Vec<LegendRow> {
+    // Markups List columns beyond the custom ones read the list's cells.
+    let table = (!o.custom_columns.is_empty()).then(|| MarkupTable::new(doc));
+    let extra: Vec<ListColumn> = o
+        .custom_columns
+        .iter()
+        .map(|c| list_column(doc, table.as_ref(), c))
+        .collect();
     struct Acc<'a> {
         first: &'a Markup,
         markups: usize,
@@ -345,7 +412,7 @@ pub fn compute_rows(doc: &Document, legends: &HashSet<ObjId>, page: usize, o: &L
         measured: bool,
     }
     let mut groups: BTreeMap<String, Acc> = BTreeMap::new();
-    for m in &doc.markups {
+    for (row, m) in doc.markups.iter().enumerate() {
         if legends.contains(&m.obj) && m.in_file() {
             continue;
         }
@@ -373,10 +440,15 @@ pub fn compute_rows(doc: &Document, legends: &HashSet<ObjId>, page: usize, o: &L
         if !o.subjects.is_empty() && !o.subjects.iter().any(|s| s.eq_ignore_ascii_case(&subject)) {
             continue;
         }
-        let custom: Vec<String> = o
-            .custom_columns
+        let custom: Vec<String> = extra
             .iter()
-            .map(|c| m.column_data.get(c).cloned().unwrap_or_default())
+            .zip(&o.custom_columns)
+            .map(|(c, name)| match c {
+                ListColumn::Custom(id) => m.column_data.get(id).cloned().unwrap_or_default(),
+                ListColumn::Table(i) => table.as_ref().map(|t| t.cell(row, *i).text.clone()).unwrap_or_default(),
+                // a column the document does not declare: the markup's own value under that id
+                ListColumn::Unknown => m.column_data.get(name.trim()).cloned().unwrap_or_default(),
+            })
             .collect();
         let key = format!(
             "{}\u{0}{}\u{0}{}",
@@ -714,8 +786,9 @@ fn rect_obj(r: &Rect) -> Object {
 }
 
 /// Write a legend's appearance, rectangle and contents onto annotation `a`.
-fn apply_look(cos: &mut CosDoc, a: &mut Dict, o: &LegendOptions, rows: &[LegendRow], at: Point) {
-    let (bytes, r) = draw(o, rows, at);
+fn apply_look(cos: &mut CosDoc, doc: &Document, a: &mut Dict, o: &LegendOptions, rows: &[LegendRow], at: Point) {
+    let shown = shown_options(doc, o);
+    let (bytes, r) = draw(&shown, rows, at);
     let mut fonts = Dict::new();
     fonts.set(b"Helv".to_vec(), font("Helvetica"));
     fonts.set(b"HeBo".to_vec(), font("Helvetica-Bold"));
@@ -741,7 +814,7 @@ fn apply_look(cos: &mut CosDoc, a: &mut Dict, o: &LegendOptions, rows: &[LegendR
     a.set(b"Rect".to_vec(), rect_obj(&r));
     a.set(
         b"Contents".to_vec(),
-        Object::String(PdfString::text(&plain_text(o, rows))),
+        Object::String(PdfString::text(&plain_text(&shown, rows))),
     );
     a.set(b"PCLegend".to_vec(), o.object());
 }
@@ -778,7 +851,7 @@ impl Session {
             let now = markupcraft_revu::pdf_date_now();
             a.set(b"CreationDate".to_vec(), Object::String(PdfString::text(&now)));
             a.set(b"M".to_vec(), Object::String(PdfString::text(&now)));
-            apply_look(cos, &mut a, &o, &rows, at);
+            apply_look(cos, doc, &mut a, &o, &rows, at);
             let r = cos.add(Object::Dict(a));
             let mut list = annots_of(cos, pref);
             list.push(Object::Ref(r));
@@ -889,7 +962,7 @@ impl Session {
                     .unwrap_or(m.rect)
                     .normalized();
                 let rows = compute_rows(doc, &set, m.page, &o);
-                apply_look(cos, &mut a, &o, &rows, Point::new(rect.x0, rect.y1));
+                apply_look(cos, doc, &mut a, &o, &rows, Point::new(rect.x0, rect.y1));
                 cos.set(r, Object::Dict(a));
                 n += 1;
             }

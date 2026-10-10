@@ -29,8 +29,11 @@ pub struct FillState {
     pub depth: f64,
     /// Extra boundary lines (Add Boundary) used by every fill until cleared.
     pub boundaries: Vec<Vec<Point>>,
-    /// Drag across regions to fill each one (else click inside one).
+    /// Drag across regions to make one fill of them all (else click inside one).
     pub drag: bool,
+    /// The last fill made (Clear Fill takes it away): markup ids, or a space's id.
+    pub last: Vec<String>,
+    pub last_space: bool,
     pub gap: f64,
     pub cutouts: bool,
     pub space_name: String,
@@ -54,6 +57,8 @@ impl Default for FillState {
             depth: 1.0,
             boundaries: Vec::new(),
             drag: false,
+            last: Vec::new(),
+            last_space: false,
             gap: o.gap.max(2.0),
             cutouts: o.cutouts,
             space_name: "Room".into(),
@@ -83,7 +88,7 @@ pub fn restart(app: &mut AppState) {
         super::start_pick(
             app,
             Pick::FillDrag,
-            "Dynamic Fill: drag across the regions to fill; Esc when done",
+            "Dynamic Fill: drag across the regions to fill as one; Esc when done",
         );
     } else {
         start(app);
@@ -144,22 +149,65 @@ pub fn picked(app: &mut AppState, what: Pick, page: usize, pts: &[Point]) {
             .cloned()
             .or_else(|| crate::tools::new_markup(k, page, &[seed, seed, seed]))
     });
+    let is_space = matches!(output, FillOutput::Space(_));
     let Some(d) = app.doc_mut() else { return };
-    if drag {
+    let mut made: Vec<String> = Vec::new();
+    let msg = if drag {
         let r = d.session.dynamic_fill_path_create(page, pts, &opts, &output, look);
-        let msg = actions::report(r, |ids| format!("Filled {}", actions::plural(ids.len(), "region")));
-        app.status = msg.clone();
-        app.features.fill.message = msg;
-        return;
+        actions::report(r, |ids| {
+            made = ids;
+            "Filled the regions the drag passed through as one".to_string()
+        })
+    } else {
+        let r = d.session.dynamic_fill_create(page, seed, &opts, &output, look);
+        actions::report(r, |(id, region)| {
+            made = vec![id];
+            format!(
+                "Filled a region of {} sq pt with {}",
+                region.area.round(),
+                actions::plural(region.holes.len(), "cutout")
+            )
+        })
+    };
+    let f = &mut app.features.fill;
+    if !made.is_empty() {
+        f.last = made;
+        f.last_space = is_space;
     }
-    let r = d.session.dynamic_fill_create(page, seed, &opts, &output, look);
-    let msg = actions::report(r, |(_, region)| {
-        format!(
-            "Filled a region of {} sq pt with {}",
-            region.area.round(),
-            actions::plural(region.holes.len(), "cutout")
-        )
-    });
+    app.status = msg.clone();
+    f.message = msg;
+}
+
+/// Clear Fill: take the last fill away (Clear All also clears the boundaries).
+pub fn clear_fill(app: &mut AppState, all: bool) {
+    let ids = std::mem::take(&mut app.features.fill.last);
+    let space = app.features.fill.last_space;
+    if all {
+        app.features.fill.boundaries.clear();
+    }
+    let mut msg = if all {
+        "Boundaries cleared".to_string()
+    } else {
+        String::new()
+    };
+    if !ids.is_empty()
+        && let Some(d) = app.doc_mut()
+    {
+        let r = if space {
+            d.session.delete_spaces(&ids)
+        } else {
+            d.session.delete_markups(&ids, false)
+        };
+        msg = actions::report(r, |_| {
+            if all {
+                "The last fill and the boundaries are cleared".into()
+            } else {
+                "The last fill is cleared".into()
+            }
+        });
+    } else if !all {
+        msg = "No fill to clear".into();
+    }
     app.status = msg.clone();
     app.features.fill.message = msg;
 }
@@ -175,6 +223,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
         let mut hatch = None;
         let mut done = false;
         let mut boundary = false;
+        let mut clear: Option<bool> = None;
         let was_drag = app.features.fill.drag;
         egui::Window::new("Dynamic Fill")
             .collapsible(false)
@@ -197,7 +246,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                         ui.add(egui::DragValue::new(&mut f.depth).range(0.0..=100_000.0).speed(0.1));
                     }
                 });
-                ui.checkbox(&mut f.drag, "Drag across regions to fill each one");
+                ui.checkbox(&mut f.drag, "Drag across regions to fill them as one");
                 ui.horizontal(|ui| {
                     if ui.button("Add Boundary").clicked() {
                         boundary = true;
@@ -208,6 +257,26 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                             .clicked()
                         {
                             f.boundaries.clear();
+                        }
+                    });
+                });
+                ui.horizontal(|ui| {
+                    ui.add_enabled_ui(!f.last.is_empty(), |ui| {
+                        if ui
+                            .button("Clear Fill")
+                            .on_hover_text("Take the last fill away")
+                            .clicked()
+                        {
+                            clear = Some(false);
+                        }
+                    });
+                    ui.add_enabled_ui(!f.last.is_empty() || !f.boundaries.is_empty(), |ui| {
+                        if ui
+                            .button("Clear All")
+                            .on_hover_text("Take the last fill away and clear the boundaries")
+                            .clicked()
+                        {
+                            clear = Some(true);
                         }
                     });
                 });
@@ -265,6 +334,9 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                     actions::report(r, |n| format!("Hatch on {}", actions::plural(n, "markup")));
             }
         }
+        if let Some(all) = clear {
+            clear_fill(app, all);
+        }
         if done {
             super::end_pick(app);
         } else if boundary {
@@ -285,6 +357,17 @@ fn legend_window(app: &mut AppState, ctx: &egui::Context) {
         return;
     }
     let (mut open, mut place, mut update) = (true, false, false);
+    let custom: Vec<(String, String)> = app
+        .doc()
+        .map(|d| {
+            d.session
+                .doc()
+                .columns
+                .iter()
+                .map(|c| (c.id.clone(), c.name.clone()))
+                .collect()
+        })
+        .unwrap_or_default();
     super::window("Legend").open(&mut open).show(ctx, |ui| {
         let l = &mut app.features.fill.legend;
         ui.horizontal(|ui| {
@@ -312,6 +395,33 @@ fn legend_window(app: &mut AppState, ctx: &egui::Context) {
                         l.columns.retain(|x| *x != c);
                     }
                 }
+            }
+        });
+        // more columns: any Markups List column (their values split the rows)
+        ui.horizontal_wrapped(|ui| {
+            ui.label("Add column");
+            egui::ComboBox::from_id_salt("legend-add-column")
+                .selected_text("Markups List column")
+                .show_ui(ui, |ui| {
+                    for c in markupcraft_model::columns::standard_columns() {
+                        if ui
+                            .selectable_label(l.custom_columns.contains(&c.id), &c.header)
+                            .clicked()
+                            && !l.custom_columns.contains(&c.id)
+                        {
+                            l.custom_columns.push(c.id.clone());
+                        }
+                    }
+                    for c in &custom {
+                        if ui.selectable_label(l.custom_columns.contains(&c.0), &c.1).clicked()
+                            && !l.custom_columns.contains(&c.0)
+                        {
+                            l.custom_columns.push(c.0.clone());
+                        }
+                    }
+                });
+            if !l.custom_columns.is_empty() && ui.small_button("Clear columns").clicked() {
+                l.custom_columns.clear();
             }
         });
         ui.horizontal(|ui| {

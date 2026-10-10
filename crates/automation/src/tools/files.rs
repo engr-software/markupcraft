@@ -2,7 +2,7 @@
 //! page boxes (crop) and page size.
 
 use markupcraft_engine::boxes::{Anchor, BoxChange, PageBox};
-use markupcraft_engine::combine::{SplitBy, combine_files};
+use markupcraft_engine::combine::SplitBy;
 use markupcraft_engine::printing::{PrintJob, send_to_printer};
 use markupcraft_engine::printout::{PrintLayout, PrintSettings, paper_size};
 use markupcraft_engine::reduce::ReduceSettings;
@@ -100,129 +100,11 @@ pub static PRINT: Tool = Tool {
     description: "Lay the pages (default all, in the order given) out on paper and write the sheets as a new PDF at `out`: layout fit (default), actual, shrink, percent (with `percent`), nup (`cols` x `rows` per sheet, optional `border`) or tile (each page at `percent` over several sheets with `overlap` points and `cut_marks`). paper: letter, legal, tabloid, ansi_c..e, arch_a..e, a0..a5, or [width, height] in points. markups: false prints page content only. The document is not changed.",
     read_only: false,
     destructive: true,
-    schema: || {
-        schema(
-            json!({
-                "out": path_arg("The print-ready PDF"),
-                "pages": { "type": ["array", "string"], "items": { "type": "integer", "minimum": 1 }, "description": "Pages in print order: [3, 1, 2] or a range like \"1-3\"." },
-                "paper": { "type": ["string", "array"] },
-                "orientation": { "type": "string", "enum": ["auto", "portrait", "landscape"] },
-                "layout": { "type": "string", "enum": ["fit", "actual", "shrink", "percent", "nup", "tile"] },
-                "percent": { "type": "number" },
-                "cols": { "type": "integer", "minimum": 1 },
-                "rows": { "type": "integer", "minimum": 1 },
-                "border": { "type": "boolean" },
-                "overlap": { "type": "number", "minimum": 0 },
-                "cut_marks": { "type": "boolean" },
-                "markups": { "type": "boolean" },
-                "markups_only": { "type": "boolean", "description": "Print only the markups." },
-                "region": { "type": "array", "items": { "type": "number" }, "minItems": 5, "maxItems": 5, "description": "Get Window: [page, x0, y0, x1, y1] prints only that box." },
-                "copies": { "type": "integer", "minimum": 1, "maximum": 999 },
-                "collate": { "type": "boolean" },
-                "reverse": { "type": "boolean" },
-                "margin": { "type": "number", "minimum": 0, "description": "Fit/reduce to margins: points on every side." },
-                "offset": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2, "description": "Manual position: [dx, dy] from the centre, points." },
-                "dim_content": { "type": "boolean" },
-                "dim_except": { "type": "array", "items": { "type": "string" }, "description": "Markup ids printed at full strength; others dimmed." },
-                "spaces": { "type": "boolean" },
-                "links": { "type": "boolean" },
-                "printer": { "type": "string", "description": "Also send the sheets to this printer (\"\" = the default printer) with the system's print command." }
-            }),
-            &["out"],
-        )
-    },
+    schema: || schema(print_props(), &["out"]),
     run: |a, args| {
         let out = a.resolve(args.str("out")?, true)?;
-        let paper = match args.get("paper") {
-            None => (612.0, 792.0),
-            Some(Value::String(name)) => paper_size(name).ok_or_else(|| bad_args(format!("unknown paper {name:?}")))?,
-            Some(Value::Array(v)) => match v.as_slice() {
-                [w, h] => (
-                    w.as_f64().ok_or_else(|| bad_args("paper width must be a number"))?,
-                    h.as_f64().ok_or_else(|| bad_args("paper height must be a number"))?,
-                ),
-                _ => return Err(bad_args("paper must be a name or [width, height]")),
-            },
-            Some(_) => return Err(bad_args("paper must be a name or [width, height]")),
-        };
-        let landscape = match args.opt_str("orientation")?.unwrap_or("auto") {
-            "auto" => None,
-            "portrait" => Some(false),
-            "landscape" => Some(true),
-            o => return Err(bad_args(format!("unknown orientation {o:?}"))),
-        };
-        let percent = args.opt_num("percent")?;
-        let layout = match args.opt_str("layout")?.unwrap_or("fit") {
-            "fit" => PrintLayout::Fit,
-            "actual" => PrintLayout::ActualSize,
-            "shrink" => PrintLayout::Shrink,
-            "percent" => PrintLayout::Percent(percent.ok_or_else(|| bad_args("layout percent needs `percent`"))?),
-            "nup" => PrintLayout::NUp {
-                cols: args.opt_u64("cols")?.unwrap_or(2) as usize,
-                rows: args.opt_u64("rows")?.unwrap_or(2) as usize,
-                border: args.bool_or("border", false)?,
-            },
-            "tile" => PrintLayout::Tile {
-                percent: percent.unwrap_or(100.0),
-                overlap: args.opt_num("overlap")?.unwrap_or(18.0),
-                cut_marks: args.bool_or("cut_marks", true)?,
-            },
-            l => return Err(bad_args(format!("unknown layout {l:?}"))),
-        };
-        let markups = args.bool_or("markups", true)?;
         let (doc, s) = a.session_ref(args)?;
-        // Print order is the order given, so a list is not sorted.
-        let pages: Vec<usize> = match args.get("pages") {
-            Some(Value::Array(v)) => v
-                .iter()
-                .map(|x| match x.as_u64() {
-                    Some(p) if p >= 1 => Ok(p as usize - 1),
-                    _ => Err(bad_args("pages must be page numbers from 1")),
-                })
-                .collect::<crate::Result<_>>()?,
-            Some(_) => args.pages("pages", s.page_count())?,
-            None => Vec::new(),
-        };
-        let settings = PrintSettings {
-            pages,
-            paper,
-            landscape,
-            layout,
-            markups,
-        };
-        let region = match args.get("region").and_then(Value::as_array) {
-            Some(v) => {
-                let n: Vec<f64> = v.iter().filter_map(Value::as_f64).collect();
-                match n.as_slice() {
-                    [p, x0, y0, x1, y1] if *p >= 1.0 => {
-                        Some((*p as usize - 1, markupcraft_engine::Rect::new(*x0, *y0, *x1, *y1)))
-                    }
-                    _ => return Err(bad_args("region: [page, x0, y0, x1, y1]")),
-                }
-            }
-            None => None,
-        };
-        let offset = match args.get("offset").and_then(Value::as_array) {
-            Some(v) => match v.iter().filter_map(Value::as_f64).collect::<Vec<_>>().as_slice() {
-                [x, y] => (*x, *y),
-                _ => return Err(bad_args("offset: [dx, dy]")),
-            },
-            None => (0.0, 0.0),
-        };
-        let job = PrintJob {
-            settings,
-            markups_only: args.bool_or("markups_only", false)?,
-            region,
-            copies: args.opt_u64("copies")?.unwrap_or(1) as usize,
-            collate: args.bool_or("collate", true)?,
-            reverse: args.bool_or("reverse", false)?,
-            margin: args.opt_num("margin")?.unwrap_or(0.0),
-            offset,
-            dim_content: args.bool_or("dim_content", false)?,
-            dim_except: args.opt_strings("dim_except")?,
-            spaces: args.bool_or("spaces", false)?,
-            links: args.bool_or("links", false)?,
-        };
+        let job = print_job(args, s)?;
         let sheets = s.print_job_to_pdf(&out, &job)?;
         let mut sent = false;
         if let Some(p) = args.opt_str("printer")? {
@@ -236,7 +118,7 @@ pub static PRINT: Tool = Tool {
 pub static SPLIT: Tool = Tool {
     name: "doc_split",
     title: "Split a document",
-    description: "Split the document into PDFs in folder `dir`, named <name>-<part>.pdf: every `pages_per_file` pages, at each top-level bookmark (by: \"bookmarks\"), or into `ranges` ([\"1-3\", \"4-9\"]). Markups go with their pages. The document is not changed.",
+    description: "Split the document into PDFs in folder `dir`: every `pages_per_file` pages, at each top-level bookmark (by: \"bookmarks\"), into `ranges` ([\"1-3\", \"4-9\"]), or into parts of at most `max_mb` megabytes (by: \"size\"). Parts are named <name>-<part>.pdf, or `prefix` + name + `suffix` where # is the part number (### pads it), or after their bookmarks (`bookmark_names`); `subfolder` puts them in a folder named after the document; `update_links` makes links to pages in other parts open those parts; `drop_empty_layers` removes layers a part does not use. Markups go with their pages. The document is not changed.",
     read_only: false,
     destructive: true,
     schema: || {
@@ -244,8 +126,15 @@ pub static SPLIT: Tool = Tool {
             json!({
                 "dir": path_arg("The folder for the parts"),
                 "pages_per_file": { "type": "integer", "minimum": 1 },
-                "by": { "type": "string", "enum": ["pages", "bookmarks", "ranges"] },
-                "ranges": { "type": "array", "items": { "type": "string" } }
+                "by": { "type": "string", "enum": ["pages", "bookmarks", "ranges", "size"] },
+                "ranges": { "type": "array", "items": { "type": "string" } },
+                "max_mb": { "type": "number", "description": "by: size: the largest part in megabytes." },
+                "prefix": { "type": "string" },
+                "suffix": { "type": "string" },
+                "bookmark_names": { "type": "boolean" },
+                "subfolder": { "type": "boolean" },
+                "update_links": { "type": "boolean" },
+                "drop_empty_layers": { "type": "boolean" }
             }),
             &["dir"],
         )
@@ -255,7 +144,15 @@ pub static SPLIT: Tool = Tool {
         let by_name = args.opt_str("by")?;
         let (doc, s) = a.session_ref(args)?;
         let n = s.page_count();
+        let max_mb = args.opt_num("max_mb")?;
         let by = match (by_name, args.get("ranges"), args.opt_u64("pages_per_file")?) {
+            (Some("size") | None, None, None) if max_mb.is_some() => {
+                let mb = max_mb.unwrap_or(0.0);
+                if !(mb.is_finite() && mb > 0.0 && mb <= 100_000.0) {
+                    return Err(bad_args("max_mb is a size in megabytes"));
+                }
+                SplitBy::Size((mb * 1_048_576.0) as u64)
+            }
             (Some("bookmarks"), None, None) => SplitBy::Bookmarks,
             (None | Some("ranges"), Some(r), None) => {
                 let list = r
@@ -272,10 +169,19 @@ pub static SPLIT: Tool = Tool {
             }
             (None | Some("pages"), None, Some(k)) => SplitBy::Pages(k as usize),
             _ => {
-                return Err(bad_args("doc_split: give pages_per_file, ranges, or by: \"bookmarks\""));
+                return Err(bad_args(
+                    "doc_split: give pages_per_file, ranges, max_mb, or by: \"bookmarks\"",
+                ));
             }
         };
-        let parts = s.split_document(&dir, &by)?;
+        let mut o = markupcraft_engine::combine::SplitOptions::new(by);
+        o.prefix = args.opt_string("prefix")?.unwrap_or_default();
+        o.suffix = args.opt_string("suffix")?.unwrap_or_default();
+        o.bookmark_names = args.bool_or("bookmark_names", false)?;
+        o.subfolder = args.bool_or("subfolder", false)?;
+        o.update_links = args.bool_or("update_links", false)?;
+        o.drop_empty_layers = args.bool_or("drop_empty_layers", false)?;
+        let parts = s.split_document_with(&dir, &o)?;
         let files: Vec<Value> = parts
             .iter()
             .map(|p| {
@@ -286,10 +192,30 @@ pub static SPLIT: Tool = Tool {
     },
 };
 
+/// The `ranges` argument: one page range per file ("" or "all" = every page).
+pub(crate) fn file_ranges(args: &crate::Args, files: &[std::path::PathBuf]) -> crate::Result<Vec<Option<Vec<usize>>>> {
+    let list = args.opt_strings("ranges")?.unwrap_or_default();
+    if list.len() > files.len() {
+        return Err(bad_args("ranges: one page range per file at most"));
+    }
+    let mut out = Vec::with_capacity(list.len());
+    for (r, f) in list.iter().zip(files) {
+        let t = r.trim();
+        if t.is_empty() || t.eq_ignore_ascii_case("all") {
+            out.push(None);
+            continue;
+        }
+        let n = markupcraft_engine::pages::ForeignPdf::open(f)?.page_count();
+        let pages = crate::parse_range(t, n).map_err(|e| bad_args(format!("{}: {e}", f.display())))?;
+        out.push(Some(pages));
+    }
+    Ok(out)
+}
+
 pub static COMBINE: Tool = Tool {
     name: "doc_combine",
     title: "Combine PDFs",
-    description: "Combine PDFs (in order, with their markups and page labels) into a new PDF at `out`. bookmarks: true (default) gives it one bookmark per file. No document needs to be open; open the result with doc_open.",
+    description: "Combine PDFs (in order, with their markups and page labels) into a new PDF at `out`, each file with its own page range (`ranges`, aligned with files: \"2-4\", \"1,3\"; \"\" or \"all\" = every page). bookmarks: true (default) gives it one bookmark per file. No document needs to be open; open the result with doc_open.",
     read_only: false,
     destructive: true,
     schema: || {
@@ -297,7 +223,8 @@ pub static COMBINE: Tool = Tool {
             json!({
                 "files": { "type": "array", "items": { "type": "string" }, "description": "The PDFs to combine (relative to --root when one is set)." },
                 "out": path_arg("The combined PDF"),
-                "bookmarks": { "type": "boolean" }
+                "bookmarks": { "type": "boolean" },
+                "ranges": { "type": "array", "items": { "type": "string" }, "description": "Each file's page range, aligned with files (\"\" = all)." }
             }),
             &["files", "out"],
         )
@@ -309,7 +236,9 @@ pub static COMBINE: Tool = Tool {
             .map(|f| a.resolve(f, false))
             .collect::<crate::Result<Vec<_>>>()?;
         let out = a.resolve(args.str("out")?, true)?;
-        let pages = combine_files(&files, &out, args.bool_or("bookmarks", true)?)?;
+        let ranges = file_ranges(args, &files)?;
+        let pages =
+            markupcraft_engine::combine::combine_file_ranges(&files, &ranges, &out, args.bool_or("bookmarks", true)?)?;
         Ok(json!({ "out": out.display().to_string(), "pages": pages, "files": files.len() }))
     },
 };
@@ -477,3 +406,127 @@ pub static RESIZE: Tool = Tool {
         Ok(json!({ "pages": pages.len(), "document": summary(doc, s) }))
     },
 };
+
+/// The arguments print_pdf and print_preview share.
+pub(super) fn print_props() -> Value {
+    json!({
+        "out": path_arg("The print-ready PDF"),
+        "pages": { "type": ["array", "string"], "items": { "type": "integer", "minimum": 1 }, "description": "Pages in print order: [3, 1, 2] or a range like \"1-3\"." },
+        "paper": { "type": ["string", "array"] },
+        "orientation": { "type": "string", "enum": ["auto", "portrait", "landscape"] },
+        "layout": { "type": "string", "enum": ["fit", "actual", "shrink", "percent", "nup", "tile"] },
+        "percent": { "type": "number" },
+        "cols": { "type": "integer", "minimum": 1 },
+        "rows": { "type": "integer", "minimum": 1 },
+        "border": { "type": "boolean" },
+        "overlap": { "type": "number", "minimum": 0 },
+        "cut_marks": { "type": "boolean" },
+        "markups": { "type": "boolean" },
+        "markups_only": { "type": "boolean", "description": "Print only the markups." },
+        "region": { "type": "array", "items": { "type": "number" }, "minItems": 5, "maxItems": 5, "description": "Get Window: [page, x0, y0, x1, y1] prints only that box." },
+        "copies": { "type": "integer", "minimum": 1, "maximum": 999 },
+        "collate": { "type": "boolean" },
+        "reverse": { "type": "boolean" },
+        "margin": { "type": "number", "minimum": 0, "description": "Fit/reduce to margins: points on every side." },
+        "offset": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2, "description": "Manual position: [dx, dy] from the centre, points." },
+        "dim_content": { "type": "boolean" },
+        "dim_except": { "type": "array", "items": { "type": "string" }, "description": "Markup ids printed at full strength; others dimmed." },
+        "spaces": { "type": "boolean" },
+        "links": { "type": "boolean" },
+        "printer": { "type": "string", "description": "Also send the sheets to this printer (\"\" = the default printer) with the system's print command." }
+    })
+}
+
+/// The print job the arguments describe.
+pub(super) fn print_job(args: &crate::Args, s: &markupcraft_engine::Session) -> crate::Result<PrintJob> {
+    let paper = match args.get("paper") {
+        None => (612.0, 792.0),
+        Some(Value::String(name)) => paper_size(name).ok_or_else(|| bad_args(format!("unknown paper {name:?}")))?,
+        Some(Value::Array(v)) => match v.as_slice() {
+            [w, h] => (
+                w.as_f64().ok_or_else(|| bad_args("paper width must be a number"))?,
+                h.as_f64().ok_or_else(|| bad_args("paper height must be a number"))?,
+            ),
+            _ => return Err(bad_args("paper must be a name or [width, height]")),
+        },
+        Some(_) => return Err(bad_args("paper must be a name or [width, height]")),
+    };
+    let landscape = match args.opt_str("orientation")?.unwrap_or("auto") {
+        "auto" => None,
+        "portrait" => Some(false),
+        "landscape" => Some(true),
+        o => return Err(bad_args(format!("unknown orientation {o:?}"))),
+    };
+    let percent = args.opt_num("percent")?;
+    let layout = match args.opt_str("layout")?.unwrap_or("fit") {
+        "fit" => PrintLayout::Fit,
+        "actual" => PrintLayout::ActualSize,
+        "shrink" => PrintLayout::Shrink,
+        "percent" => PrintLayout::Percent(percent.ok_or_else(|| bad_args("layout percent needs `percent`"))?),
+        "nup" => PrintLayout::NUp {
+            cols: args.opt_u64("cols")?.unwrap_or(2) as usize,
+            rows: args.opt_u64("rows")?.unwrap_or(2) as usize,
+            border: args.bool_or("border", false)?,
+        },
+        "tile" => PrintLayout::Tile {
+            percent: percent.unwrap_or(100.0),
+            overlap: args.opt_num("overlap")?.unwrap_or(18.0),
+            cut_marks: args.bool_or("cut_marks", true)?,
+        },
+        l => return Err(bad_args(format!("unknown layout {l:?}"))),
+    };
+    let markups = args.bool_or("markups", true)?;
+    // Print order is the order given, so a list is not sorted.
+    let pages: Vec<usize> = match args.get("pages") {
+        Some(Value::Array(v)) => v
+            .iter()
+            .map(|x| match x.as_u64() {
+                Some(p) if p >= 1 => Ok(p as usize - 1),
+                _ => Err(bad_args("pages must be page numbers from 1")),
+            })
+            .collect::<crate::Result<_>>()?,
+        Some(_) => args.pages("pages", s.page_count())?,
+        None => Vec::new(),
+    };
+    let settings = PrintSettings {
+        pages,
+        paper,
+        landscape,
+        layout,
+        markups,
+    };
+    let region = match args.get("region").and_then(Value::as_array) {
+        Some(v) => {
+            let n: Vec<f64> = v.iter().filter_map(Value::as_f64).collect();
+            match n.as_slice() {
+                [p, x0, y0, x1, y1] if *p >= 1.0 => {
+                    Some((*p as usize - 1, markupcraft_engine::Rect::new(*x0, *y0, *x1, *y1)))
+                }
+                _ => return Err(bad_args("region: [page, x0, y0, x1, y1]")),
+            }
+        }
+        None => None,
+    };
+    let offset = match args.get("offset").and_then(Value::as_array) {
+        Some(v) => match v.iter().filter_map(Value::as_f64).collect::<Vec<_>>().as_slice() {
+            [x, y] => (*x, *y),
+            _ => return Err(bad_args("offset: [dx, dy]")),
+        },
+        None => (0.0, 0.0),
+    };
+    let job = PrintJob {
+        settings,
+        markups_only: args.bool_or("markups_only", false)?,
+        region,
+        copies: args.opt_u64("copies")?.unwrap_or(1) as usize,
+        collate: args.bool_or("collate", true)?,
+        reverse: args.bool_or("reverse", false)?,
+        margin: args.opt_num("margin")?.unwrap_or(0.0),
+        offset,
+        dim_content: args.bool_or("dim_content", false)?,
+        dim_except: args.opt_strings("dim_except")?,
+        spaces: args.bool_or("spaces", false)?,
+        links: args.bool_or("links", false)?,
+    };
+    Ok(job)
+}

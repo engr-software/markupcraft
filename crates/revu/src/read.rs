@@ -138,7 +138,44 @@ pub fn read_annot(cos: &CosDoc, a: &Dict, page: usize, obj: (u32, u16)) -> Marku
     }
     extras::read_markup(cos, a, &mut m);
     read_markup_keys(cos, a, ap_n.as_deref(), &mut m);
+    read_box_turn(a, ap_n.as_deref(), &mut m);
     m
+}
+
+/// A turned rectangle, ellipse, text box or stamp we draw: `/Rotation` with an `/AP /N`
+/// `/Matrix` that turns the unturned box (its `/BBox`) about the centre of `/Rect`. The points
+/// get the unturned box back and `rotation` the angle.
+fn read_box_turn(a: &Dict, ap_n: Option<&Object>, m: &mut Markup) {
+    if !markupcraft_model::turn::free_rotates(m.kind)
+        || !a.contains(b"Rotation")
+        || !kinds::app_draws(&m.subtype, &m.intent, !m.stamp.is_empty(), m.foreign_look)
+    {
+        return;
+    }
+    let Some(Object::Stream(st)) = ap_n else { return };
+    let Some(mx) = st.dict.get(b"Matrix").and_then(Object::as_array) else {
+        return;
+    };
+    if mx.len() != 6 {
+        return;
+    }
+    let t = pdf::num_or(mx.get(1), 0.0).atan2(pdf::num_or(mx.first(), 1.0));
+    let Some(bb) = pdf::rect(st.dict.get(b"BBox")).map(|r| r.normalized()) else {
+        return;
+    };
+    let deg = markupcraft_model::turn::norm_degrees(t.to_degrees());
+    if deg == 0.0 || !t.is_finite() || bb.width() <= 0.0 || bb.height() <= 0.0 {
+        return;
+    }
+    let file_rect = m.rect;
+    let (cx, cy) = ((file_rect.x0 + file_rect.x1) / 2.0, (file_rect.y0 + file_rect.y1) / 2.0);
+    let (hw, hh) = (bb.width() / 2.0, bb.height() / 2.0);
+    m.rect = Rect::new(cx - hw, cy - hh, cx + hw, cy + hh);
+    let rest: Vec<Point> = m.pts.iter().skip(4).copied().collect();
+    kinds::common::box_from_rd(a, m);
+    m.pts.extend(rest);
+    m.rect = file_rect;
+    m.rotation = deg;
 }
 
 /// Keys several kinds share (`/BS /D`, `/LE`, `/BE`, `/BM`, `/PCStamp`), then the kind's own.

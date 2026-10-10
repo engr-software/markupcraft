@@ -164,6 +164,11 @@ impl LinksState {
                 self.file = path.clone();
                 self.file_page = page + 1;
             }
+            LinkTarget::FilePlace { path, .. } => {
+                self.kind = TargetKind::File;
+                self.file = path.clone();
+                self.file_page = 0;
+            }
             LinkTarget::Other(_) => {}
         }
     }
@@ -189,6 +194,7 @@ pub fn describe(t: &LinkTarget) -> String {
             None => path.clone(),
         },
         LinkTarget::FileView { path, page, .. } => format!("{path} (page {}, view)", page + 1),
+        LinkTarget::FilePlace { path, name } => format!("{path} (Place {name})"),
         LinkTarget::Other(s) => s.clone(),
     }
 }
@@ -275,6 +281,7 @@ pub fn follow_target(app: &mut AppState, t: &LinkTarget, ctx: &egui::Context) {
         LinkTarget::Url(u) => super::more6::web::follow_url(app, ctx, u),
         LinkTarget::File { path, page } => open_file(app, path, *page, None, ctx),
         LinkTarget::FileView { path, page, rect } => open_file(app, path, Some(*page), Some(*rect), ctx),
+        LinkTarget::FilePlace { path, .. } => open_file(app, path, None, None, ctx),
         LinkTarget::Other(s) => app.status = format!("This link runs {s}"),
     }
 }

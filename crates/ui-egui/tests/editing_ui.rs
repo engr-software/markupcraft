@@ -136,10 +136,10 @@ fn align_distribute_and_flip_from_the_keyboard() {
     let c = add_rect(&mut h, Rect::new(250.0, 650.0, 270.0, 700.0));
     let ids = vec![a.clone(), b.clone(), c.clone()];
     select(&mut h, &ids);
-    // Ctrl+Alt+L: Align Left.
+    // Ctrl+Alt+L: Align Left, to the last selected markup (Revu's reference).
     keys(&mut h, Modifiers::COMMAND | Modifiers::ALT, Key::L);
     for id in &ids {
-        assert!((ext(&h, id).x0 - 60.0).abs() < 1e-6, "{}", status(&h));
+        assert!((ext(&h, id).x0 - 250.0).abs() < 1e-6, "{}", status(&h));
     }
     keys(&mut h, Modifiers::COMMAND, Key::Z);
     // Ctrl+Alt+T: Align Top.

@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use egui::RichText;
 use markupcraft_engine::Session;
 use markupcraft_engine::batch::{
-    BatchLinkOptions, LinkTerms, SlipSheetOptions, batch_link, batch_summary_csv, link_terms_csv,
+    BatchLinkOptions, LinkTerms, TermDest, TermTarget, batch_link, batch_summary_csv, link_terms_from_csv,
 };
 use markupcraft_engine::docs_more::{
     CombineOptions, combine_with, create_pdf_from_files, layered_pdf, merge_form_data,
@@ -37,6 +37,8 @@ pub enum Kind {
     Split,
     /// Run a script's tool steps on every file.
     Script,
+    /// One stamp at one spot on many pages of many files.
+    ApplyStamp,
 }
 
 impl Kind {
@@ -54,6 +56,7 @@ impl Kind {
             Kind::FormMerge => "Merge Form Data",
             Kind::Split => "Batch Split",
             Kind::Script => "Batch Script",
+            Kind::ApplyStamp => "Batch Apply Stamp",
         }
     }
 }
@@ -72,7 +75,8 @@ pub struct BatchState {
     pub link_filter: String,
     pub link_highlight: bool,
     pub combine: CombineOptions,
-    pub slip: SlipSheetOptions,
+    /// Slip Sheet, Combine ranges, Split naming, Batch Link runs, Apply Stamp.
+    pub extra: super::batch_more::BatchMore,
     pub message: String,
     /// Batch Print: also send the sheets to the printer chosen in the Print dialog.
     pub print_send: bool,
@@ -97,10 +101,7 @@ impl Default for BatchState {
                 bookmarks: true,
                 ..Default::default()
             },
-            slip: SlipSheetOptions {
-                append_unmatched: true,
-                ..Default::default()
-            },
+            extra: Default::default(),
             message: String::new(),
             print_send: false,
             more: Default::default(),
@@ -120,9 +121,6 @@ impl BatchState {
 
     pub fn add_files(&mut self, paths: &[PathBuf]) {
         for p in paths {
-            if self.kind == Kind::SlipSheet {
-                self.files.clear();
-            }
             if !self.files.contains(p) {
                 self.files.push(p.clone());
             }
@@ -145,6 +143,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
     let open_docs: Vec<PathBuf> = app.docs.iter().filter_map(|d| d.path.clone()).collect();
     let set_files = app.features.sets.set.files.clone();
     let mut want = None;
+    let mut extra_want = None;
     super::window(kind.title()).open(&mut open).default_width(500.0).show(ctx, |ui| {
         let b = &mut app.features.batch;
         ui.label(match kind {
@@ -152,7 +151,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
             Kind::Link => "Link sheet references: wherever a page shows another sheet's number, it links to that sheet. Files are saved in place.",
             Kind::Summary => "The Markups List of every file in one CSV (a File column first).",
             Kind::Flatten => "Flatten every markup of these files into their pages. Files are saved in place.",
-            Kind::SlipSheet => "Replace the active document's sheets with the matching sheets (by page label) of a newer revision; markups stay.",
+            Kind::SlipSheet => "Pair the active document's sheets with the sheets of the revised files and replace them, or insert the revisions ahead; markups come forward.",
             Kind::Unflatten => "Restore the markups flattened with recovery in these files. Files are saved in place.",
             Kind::Print => "Print these PDFs in list order with the Print dialog's settings: each laid out as a print-ready PDF in the folder you choose, then sent to the chosen printer.",
             Kind::Create => "Make one PDF from these files in order: images (PNG, JPEG, TIFF, BMP) and text files become pages, PDFs are appended.",
@@ -160,13 +159,18 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
             Kind::FormMerge => "Collect the form field values of these PDFs into one CSV: a row per file.",
             Kind::Split => "Split each PDF into parts (every N pages, or at its top-level bookmarks) in a folder you choose.",
             Kind::Script => "Run a script's tool steps (a JSON list of {\"tool\", \"params\"}) on each PDF; files are saved in place.",
+            Kind::ApplyStamp => "Place one stamp at the same spot on the chosen pages of each PDF; files are saved in place.",
         });
+
         let mut action = None;
         let mut moved = None;
         egui::ScrollArea::vertical().max_height(200.0).show(ui, |ui| {
             for (i, f) in b.files.iter().enumerate() {
                 ui.horizontal(|ui| {
                     super::batch_list::row(ui, i, f, &mut moved);
+                    if kind == Kind::Combine {
+                        super::batch_more::range_cell(ui, &mut b.extra, f);
+                    }
                     if matches!(kind, Kind::Combine | Kind::Print | Kind::Create | Kind::Layered) {
                         if ui.small_button("Up").clicked() {
                             action = Some((i, 0));
@@ -194,7 +198,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
         }
         if ui
             .button(if kind == Kind::SlipSheet {
-                "Choose Revision..."
+                "Add Revised Files..."
             } else {
                 "Add Files..."
             })
@@ -227,6 +231,14 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                     ui.add(egui::DragValue::new(&mut b.more.split_pages).range(0..=10_000));
                     ui.label(RichText::new("0 = at top-level bookmarks").weak());
                 });
+                super::batch_more::split_ui(ui, &mut b.extra);
+            }
+            Kind::ApplyStamp => {
+                let ids: Vec<String> = markupcraft_engine::stamps::builtin_stamps()
+                    .into_iter()
+                    .map(|e| e.id)
+                    .collect();
+                super::batch_more::stamp_ui(ui, &mut b.extra, &ids);
             }
             Kind::Script => {
                 ui.horizontal(|ui| {
@@ -269,6 +281,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                     ui.add(egui::DragValue::new(&mut b.link.width).range(0.0..=12.0));
                     super::color_edit(ui, &mut b.link.color);
                 });
+                extra_want = super::batch_more::link_ui(ui, &mut b.link, b.link_highlight);
             }
             Kind::Summary => {
                 ui.checkbox(&mut b.measurements_only, "Measurements only");
@@ -277,18 +290,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
             Kind::Print => {
                 ui.checkbox(&mut b.print_send, "Send to the printer");
             }
-            Kind::SlipSheet => {
-                ui.horizontal(|ui| {
-                    ui.label("Match the label before");
-                    ui.add(
-                        egui::TextEdit::singleline(&mut b.slip.number_filter)
-                            .desired_width(60.0)
-                            .hint_text("e.g.  - "),
-                    );
-                });
-                ui.checkbox(&mut b.slip.match_case, "Match case");
-                ui.checkbox(&mut b.slip.append_unmatched, "Append new sheets that match nothing");
-            }
+            Kind::SlipSheet => super::batch_more::slip_ui(ui, &mut b.extra),
         }
         if !b.message.is_empty() {
             ui.label(RichText::new(&b.message).small());
@@ -296,7 +298,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
         ui.horizontal(|ui| {
             let ready = match kind {
                 Kind::Combine => b.files.len() >= 2,
-                Kind::SlipSheet => b.files.len() == 1 && has_doc,
+                Kind::SlipSheet => !b.files.is_empty() && has_doc,
                 Kind::Script => !b.files.is_empty() && b.more.script.is_some(),
                 _ => !b.files.is_empty(),
             };
@@ -315,8 +317,10 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
     }
     if add {
         let filter = if kind == Kind::Create { super::ANY } else { PDF };
-        app.dialogs
-            .open(Purpose::Feature(Ask::BatchFiles), filter, kind != Kind::SlipSheet);
+        app.dialogs.open(Purpose::Feature(Ask::BatchFiles), filter, true);
+    }
+    if let Some(e) = extra_want {
+        super::batch_more::ask(app, e);
     }
     if want == Some(super::batch_list::Want::Folder) {
         app.dialogs.folder(Purpose::Feature(Ask::BatchFolder));
@@ -345,7 +349,21 @@ pub fn run(app: &mut AppState) {
     let kind = app.features.batch.kind;
     let more = app.features.batch.more.clone();
     match kind {
-        Kind::Combine => app.dialogs.save(Purpose::Feature(Ask::BatchOut), PDF, "Combined.pdf"),
+        Kind::Combine => {
+            let b = &mut app.features.batch;
+            match super::batch_more::combine_pages(&b.extra, &b.files) {
+                Ok(p) => {
+                    b.combine.pages = p;
+                    app.dialogs.save(Purpose::Feature(Ask::BatchOut), PDF, "Combined.pdf");
+                }
+                Err(e) => b.message = e,
+            }
+        }
+        Kind::ApplyStamp => {
+            let b = &mut app.features.batch;
+            b.message = super::batch_more::stamp_all(&b.files, &b.extra, None);
+            app.status = b.message.clone();
+        }
         Kind::Create if more.each && more.beside_source => {
             let r = markupcraft_engine::finish::create::create_each(&app.features.batch.files, None);
             app.features.batch.message = actions::report(r, |v| {
@@ -397,15 +415,8 @@ pub fn run(app: &mut AppState) {
         }
         Kind::Link => {
             let b = &mut app.features.batch;
-            let mut o = b.link.clone();
-            o.terms = match b.link_source {
-                1 => LinkTerms::FileNames,
-                2 => LinkTerms::Custom(link_terms_csv(&b.link_custom, &b.files)),
-                _ => LinkTerms::PageLabels,
-            };
-            o.filter_char = b.link_filter.trim().chars().next();
-            o.highlight = b.link_highlight.then_some(markupcraft_model::Color::rgb(1.0, 1.0, 0.0));
-            if matches!(&o.terms, LinkTerms::Custom(l) if l.is_empty()) {
+            let o = link_options(b);
+            if matches!(&o.terms, LinkTerms::Targets(l) if l.is_empty()) {
                 b.message =
                     "Custom terms: one line per term, as term, file name, page (the file must be in the list)".into();
                 return;
@@ -446,35 +457,36 @@ pub fn run(app: &mut AppState) {
                 b.message.push_str(&format!("; {}", errors.join("; ")));
             }
         }
-        Kind::SlipSheet => {
-            let threads = app.threads;
-            let Some(f) = app.features.batch.files.first().cloned() else {
-                return;
-            };
-            let opts = app.features.batch.slip.clone();
-            let redirect = app.shell.ui.extra2.redirect_slip_links;
-            let Some(d) = app.doc_mut() else { return };
-            let r = d.session.slip_sheet(&f, &opts);
-            // Preferences > Document: without redirection, links to a slip-sheeted page go
-            // with the superseded sheet.
-            if !redirect && let Ok(rep) = &r {
-                let _ = crate::shell::extra2::drop_slip_links(&mut d.session, rep);
-            }
-            d.sync_pages(threads);
-            d.rerender(threads);
-            let msg = actions::report(r, |r| {
-                format!(
-                    "Replaced {}, appended {}; {} old and {} new sheets did not match",
-                    actions::plural(r.matched.len(), "sheet"),
-                    r.appended,
-                    r.unmatched_old.len(),
-                    r.unmatched_new.len()
-                )
-            });
-            app.status = msg.clone();
-            app.features.batch.message = msg;
-        }
+        Kind::SlipSheet => super::batch_more::slip_run(app),
     }
+}
+
+/// The Batch Link options the dialog runs with: its terms (custom lines are
+/// `term, file, page[, Place[, URL]]`), filter and highlight.
+pub fn link_options(b: &BatchState) -> BatchLinkOptions {
+    let mut o = b.link.clone();
+    o.terms = match b.link_source {
+        1 => LinkTerms::FileNames,
+        2 => {
+            let mut list: Vec<TermTarget> = link_terms_from_csv(&b.link_custom, &b.files);
+            if list.is_empty() {
+                list = markupcraft_engine::batch::link_terms_csv(&b.link_custom, &b.files)
+                    .into_iter()
+                    .map(|(term, file, page)| TermTarget {
+                        term,
+                        dest: TermDest::Page { file, page },
+                    })
+                    .collect();
+            }
+            LinkTerms::Targets(list)
+        }
+        _ => LinkTerms::PageLabels,
+    };
+    o.filter_char = b.link_filter.trim().chars().next();
+    o.highlight = b
+        .link_highlight
+        .then_some(o.highlight.unwrap_or(markupcraft_model::Color::rgb(1.0, 1.0, 0.0)));
+    o
 }
 
 /// Where a batch writes was chosen.
@@ -488,7 +500,7 @@ pub fn output(app: &mut AppState, out: &Path) {
             });
         }
         Kind::Split => {
-            let (n, errors) = super::batch_list::split_all(&b.files, out, b.more.split_pages);
+            let (n, errors) = super::batch_more::split_all(&b.files, out, b.more.split_pages, &b.extra);
             let mut m = format!("Split into {} in {}", actions::plural(n, "part"), out.display());
             if !errors.is_empty() {
                 m.push_str(&format!("; {}", errors.join("; ")));

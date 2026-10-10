@@ -133,7 +133,7 @@ pub static EDIT: Tool = Tool {
 pub static TRANSFORM: Tool = Tool {
     name: "markup_transform",
     title: "Move, rotate, resize or reshape markups",
-    description: "One geometry change per call: move [dx, dy] (ids or selection); rotate degrees counter-clockwise about center or each markup's own centre; resize one markup's box to [x0, y0, x1, y1]; points replaces one markup's vertices; move_vertex / insert_vertex {index (1-based), point}; delete_vertex index. Locked markups are refused. Undoable.",
+    description: "One geometry change per call: move [dx, dy] (ids or selection); rotate degrees counter-clockwise about center or each markup's own centre (any angle; rectangles, ellipses, text boxes and stamps keep their angle); rotation sets the angle of rectangles, ellipses, text boxes and stamps (degrees counter-clockwise about their centre); resize one markup's box to [x0, y0, x1, y1]; points replaces one markup's vertices; move_vertex / insert_vertex {index (1-based), point}; delete_vertex index. Locked markups are refused. Undoable.",
     read_only: false,
     destructive: false,
     schema: || {
@@ -143,6 +143,7 @@ pub static TRANSFORM: Tool = Tool {
                 "ids": ids_arg(),
                 "move": point_arg("Offset [dx, dy]"),
                 "rotate": { "type": "number", "description": "Degrees, counter-clockwise." },
+                "rotation": { "type": "number", "description": "Angle to set on boxes (rectangle, ellipse, text box, stamp), degrees counter-clockwise." },
                 "center": point_arg("Centre of rotation"),
                 "resize": rect_arg("New box of the markup's points"),
                 "points": points_arg("New vertices"),
@@ -157,6 +158,7 @@ pub static TRANSFORM: Tool = Tool {
         let ops = [
             "move",
             "rotate",
+            "rotation",
             "resize",
             "points",
             "move_vertex",
@@ -201,6 +203,9 @@ pub static TRANSFORM: Tool = Tool {
             }
             "rotate" => {
                 s.rotate_markups(&ids, args.num("rotate")?, center)?;
+            }
+            "rotation" => {
+                s.set_markup_rotation(&ids, args.num("rotation")?)?;
             }
             "resize" => {
                 let r = args

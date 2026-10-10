@@ -623,8 +623,22 @@ impl Session {
         Ok(found)
     }
 
-    /// Fill by dragging and make each region found `output` (see `dynamic_fill_create`).
-    /// Returns the new ids. Undoable (one step per region).
+    /// Fill by dragging: ONE region covering every closed region the dragged `path` passes
+    /// through (Revu's drag-to-encircle fill): the lines between them are left out and the
+    /// outline of them all is traced.
+    pub fn dynamic_fill_union(&self, page: usize, path: &[Point], opts: &FillOptions) -> Result<FillRegion> {
+        let mut regions = self.dynamic_fill_path(page, path, opts)?;
+        if regions.len() == 1
+            && let Some(r) = regions.pop()
+        {
+            return Ok(r);
+        }
+        let lw = self.page_linework(page)?;
+        union_of(&lw.segments, &regions, opts)
+    }
+
+    /// Fill by dragging and make the one region covering everything the drag passed through
+    /// `output` (see `dynamic_fill_create`). Returns the new id (in a list). Undoable.
     pub fn dynamic_fill_path_create(
         &mut self,
         page: usize,
@@ -633,16 +647,9 @@ impl Session {
         output: &FillOutput,
         look: Option<Markup>,
     ) -> Result<Vec<String>> {
-        let regions = self.dynamic_fill_path(page, path, opts)?;
-        let mut ids = Vec::new();
-        for r in regions {
-            // Seed each region at a point inside it: the centre of a small triangle at a vertex
-            // works for convex corners; fall back to probing the bounding box.
-            let seed = inner_point(&r).ok_or_else(|| invalid("a filled region has no inside"))?;
-            let (id, _) = self.dynamic_fill_create(page, seed, opts, output, look.clone())?;
-            ids.push(id);
-        }
-        Ok(ids)
+        let region = self.dynamic_fill_union(page, path, opts)?;
+        let id = self.fill_region_create(page, region, output, look)?;
+        Ok(vec![id])
     }
 
     /// Dynamic Fill and make the result: an Area (with cutouts), a Polygon, a Perimeter or a
@@ -657,10 +664,22 @@ impl Session {
         look: Option<Markup>,
     ) -> Result<(String, FillRegion)> {
         let r = self.dynamic_fill(page, seed, opts)?;
+        let id = self.fill_region_create(page, r.clone(), output, look)?;
+        Ok((id, r))
+    }
+
+    /// Make a traced region `output` (an Area with its cutouts, a Polygon, a Perimeter, a
+    /// Polylength, a Volume or a Space). Returns the new markup's or space's id. Undoable.
+    pub fn fill_region_create(
+        &mut self,
+        page: usize,
+        r: FillRegion,
+        output: &FillOutput,
+        look: Option<Markup>,
+    ) -> Result<String> {
         let kind = match output {
             FillOutput::Space(name) => {
-                let id = self.add_space(page, name, r.outer.clone(), None, None)?;
-                return Ok((id, r));
+                return self.add_space(page, name, r.outer.clone(), None, None);
             }
             FillOutput::Area => Kind::Area,
             FillOutput::Polygon => Kind::Polygon,
@@ -693,12 +712,84 @@ impl Session {
             m.fill = Some(m.color);
             m.fill_opacity = 0.3;
         }
-        let id = self.add_markup(m).map_err(|e| match e {
+        self.add_markup(m).map_err(|e| match e {
             EngineError::Invalid(s) => invalid(format!("the filled region could not be made a markup: {s}")),
             other => other,
-        })?;
-        Ok((id, r))
+        })
     }
+}
+
+/// Whether `p` is inside one of `regions` (not in its cutouts).
+fn in_any(regions: &[FillRegion], p: Point) -> bool {
+    regions
+        .iter()
+        .any(|r| point_in_polygon(p, &r.outer) && !r.holes.iter().any(|h| point_in_polygon(p, h)))
+}
+
+/// One region covering `regions`: every piece of linework (and boundary) with one of them on
+/// both sides is a line between them and is left out; the outline is traced again from inside
+/// the first.
+fn union_of(segs: &[(Point, Point)], regions: &[FillRegion], opts: &FillOptions) -> Result<FillRegion> {
+    let first = regions.first().ok_or_else(|| invalid("nothing to fill"))?;
+    let pts: Vec<Point> = regions.iter().flat_map(|r| r.outer.iter().copied()).collect();
+    let b = markupcraft_geom::bbox(&pts).ok_or_else(|| invalid("the regions have no outline"))?;
+    let near = b.padded(4.0);
+    let mut all: Vec<(Point, Point)> = segs.to_vec();
+    for l in &opts.boundaries {
+        for w in l.windows(2) {
+            if let [a, c] = w {
+                all.push((*a, *c));
+            }
+        }
+    }
+    // the sides of a line are tested this far out (past the gap a fill closes)
+    let eps = 0.75;
+    let mut kept: Vec<(Point, Point)> = Vec::with_capacity(all.len());
+    for (a, c) in all {
+        let touches =
+            a.x.max(c.x) >= near.x0 && a.x.min(c.x) <= near.x1 && a.y.max(c.y) >= near.y0 && a.y.min(c.y) <= near.y1;
+        let len = ((c.x - a.x).powi(2) + (c.y - a.y).powi(2)).sqrt();
+        if !touches || len.is_nan() || len <= 1e-9 || kept.len() > MAX_FILL_SEGMENTS * 4 {
+            kept.push((a, c));
+            continue;
+        }
+        let (nx, ny) = (-(c.y - a.y) / len, (c.x - a.x) / len);
+        let pieces = (len / 2.0).ceil().clamp(1.0, 256.0) as usize;
+        let at = |t: f64| Point::new(a.x + (c.x - a.x) * t, a.y + (c.y - a.y) * t);
+        let mut run_start: Option<f64> = None;
+        for i in 0..pieces {
+            let (t0, t1) = (i as f64 / pieces as f64, (i + 1) as f64 / pieces as f64);
+            let m = at((t0 + t1) / 2.0);
+            let between = in_any(regions, Point::new(m.x + nx * eps, m.y + ny * eps))
+                && in_any(regions, Point::new(m.x - nx * eps, m.y - ny * eps));
+            match (between, run_start) {
+                (false, None) => run_start = Some(t0),
+                (true, Some(s)) => {
+                    kept.push((at(s), at(t0)));
+                    run_start = None;
+                }
+                _ => {}
+            }
+        }
+        if let Some(s) = run_start {
+            kept.push((at(s), c));
+        }
+    }
+    let seed = inner_point(first).ok_or_else(|| invalid("a filled region has no inside"))?;
+    let o = FillOptions {
+        boundaries: Vec::new(),
+        ..opts.clone()
+    };
+    let r = fill_region(&kept, seed, &o)?;
+    // every region the drag found must be inside the result
+    let covered = regions
+        .iter()
+        .filter_map(inner_point)
+        .all(|p| point_in_polygon(p, &r.outer));
+    if !covered {
+        return Err(invalid("the regions the drag passed through do not join into one fill"));
+    }
+    Ok(r)
 }
 
 /// A point strictly inside a region (not in a cutout): probes a grid over its bounds.
@@ -758,6 +849,24 @@ mod tests {
     }
 
     #[test]
+    fn a_drag_across_two_rooms_is_one_fill() {
+        let p = plan();
+        let opts = FillOptions::default();
+        let left = fill_region(&p, Point::new(30.0, 80.0), &opts).unwrap();
+        let right = fill_region(&p, Point::new(150.0, 50.0), &opts).unwrap();
+        let u = union_of(&p, &[left.clone(), right.clone()], &opts).unwrap();
+        assert!(
+            (u.area - (left.area + right.area)).abs() < 1.0,
+            "{} vs {}",
+            u.area,
+            left.area + right.area
+        );
+        assert!(point_in_polygon(Point::new(30.0, 80.0), &u.outer));
+        assert!(point_in_polygon(Point::new(150.0, 50.0), &u.outer));
+        assert_eq!(u.holes.len(), 1, "the column stays a cutout");
+    }
+
+    #[test]
     fn fill_by_dragging_polylength_and_volume_outputs() {
         let content = format!(
             "{}{}{}{}{}",
@@ -782,7 +891,10 @@ mod tests {
                 None,
             )
             .unwrap();
-        assert_eq!(ids.len(), 2);
+        assert_eq!(ids.len(), 1, "one fill covering both rooms");
+        let both = s.markup(&ids[0]).unwrap();
+        let area = markupcraft_geom::polygon_area(&both.pts).abs();
+        assert!((area - 20_000.0).abs() < 1.0, "{area}");
         let (pl, _) = s
             .dynamic_fill_create(0, Point::new(50.0, 50.0), &o, &FillOutput::Polylength, None)
             .unwrap();

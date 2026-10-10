@@ -185,8 +185,10 @@ pub struct MarkupPatch {
     /// custom column id -> value ("" removes the value)
     pub columns: BTreeMap<String, String>,
     pub underline: Option<bool>,
-    /// 0 left, 1 center, 2 right
+    /// 0 left, 1 center, 2 right, 3 justified
     pub align: Option<i32>,
+    /// vertical alignment: 0 top, 1 middle, 2 bottom
+    pub valign: Option<i32>,
     pub count_symbol: Option<CountSymbol>,
     pub symbol_scale: Option<f64>,
     /// Show Segment Values
@@ -312,10 +314,17 @@ impl MarkupPatch {
             text_len(name, v)?;
         }
         if let Some(a) = self.align
+            && !(0..=3).contains(&a)
+        {
+            return Err(invalid(format!(
+                "align must be 0 (left), 1 (center), 2 (right) or 3 (justify) (got {a})"
+            )));
+        }
+        if let Some(a) = self.valign
             && !(0..=2).contains(&a)
         {
             return Err(invalid(format!(
-                "align must be 0 (left), 1 (center) or 2 (right) (got {a})"
+                "valign must be 0 (top), 1 (middle) or 2 (bottom) (got {a})"
             )));
         }
         if let Some(v) = self.symbol_scale
@@ -479,6 +488,9 @@ impl MarkupPatch {
         }
         if let Some(v) = self.align {
             m.text.align = v;
+        }
+        if let Some(v) = self.valign {
+            m.text.valign = v;
         }
         if let Some(v) = self.count_symbol {
             m.count_symbol = v;

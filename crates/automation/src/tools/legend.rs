@@ -37,7 +37,7 @@ fn options_schema(mut props: Value) -> Value {
         o.insert("show_empty".into(), json!({ "type": "boolean", "description": "List every subject in `subjects` even with no markups (a tool set's legend)." }));
         o.insert(
             "custom_columns".into(),
-            json!({ "type": "array", "items": { "type": "string" }, "description": "Custom column ids shown after the columns; their values split rows." }),
+            json!({ "type": "array", "items": { "type": "string" }, "description": "More Markups List columns shown after the columns, their values splitting rows: any list column by id or header (Layer, Author, Measurement, Status, Label, ...) or a custom column's id or name." }),
         );
         o.insert("border_color".into(), json!({ "type": ["string", "array"] }));
         o.insert(

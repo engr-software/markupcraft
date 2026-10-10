@@ -37,6 +37,8 @@ pub struct ExportState {
     /// A region picked for Export to Excel.
     pub region: Option<(usize, Rect)>,
     pub pdfa_3b: bool,
+    /// PDF/A-1b (PDF 1.4, no transparency) instead of 2b / 3b.
+    pub pdfa_1b: bool,
     pub pdfa_report: Vec<String>,
     pub color_mode: usize,
     pub tint: Color,
@@ -57,6 +59,7 @@ impl Default for ExportState {
             doc_format: 3,
             region: None,
             pdfa_3b: false,
+            pdfa_1b: false,
             pdfa_report: Vec::new(),
             color_mode: 0,
             tint: Color::rgb(0.2, 0.4, 0.8),
@@ -162,8 +165,18 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
             Dialog::Pdfa => {
                 ui.label("Make the document a PDF/A archive (identification, colour profile, no forbidden actions); Verify only checks; Unlock removes the PDF/A claim so it can be edited.");
                 ui.horizontal(|ui| {
-                    ui.selectable_value(&mut e.pdfa_3b, false, "PDF/A-2b");
-                    ui.selectable_value(&mut e.pdfa_3b, true, "PDF/A-3b");
+                    if ui.selectable_label(e.pdfa_1b, "PDF/A-1b").clicked() {
+                        e.pdfa_1b = true;
+                        e.pdfa_3b = false;
+                    }
+                    if ui.selectable_label(!e.pdfa_1b && !e.pdfa_3b, "PDF/A-2b").clicked() {
+                        e.pdfa_1b = false;
+                        e.pdfa_3b = false;
+                    }
+                    if ui.selectable_label(!e.pdfa_1b && e.pdfa_3b, "PDF/A-3b").clicked() {
+                        e.pdfa_1b = false;
+                        e.pdfa_3b = true;
+                    }
                 });
                 egui::ScrollArea::vertical().max_height(160.0).show(ui, |ui| {
                     for l in &e.pdfa_report {
@@ -351,23 +364,36 @@ fn pdfa_run(app: &mut AppState, what: u8) {
     } else {
         PdfaLevel::A2b
     };
+    let one = app.features.export.pdfa_1b;
+    let label = if one { "PDF/A-1b" } else { level.label() };
     let Some(d) = app.docs.get_mut(app.active) else { return };
     let mut report = Vec::new();
     let msg = match what {
-        0 => actions::report(d.session.archive_pdfa(level), |r| {
-            report.extend(r.fixed.iter().map(|f| format!("Fixed: {f}")));
-            report.extend(r.remaining.iter().map(|i| format!("{} {}", i.clause, i.message)));
-            if r.remaining.is_empty() {
-                format!("{} ready; save to write it", level.label())
+        0 => {
+            let archived = if one {
+                d.session.archive_pdfa1b()
             } else {
-                format!("{} problems remain", r.remaining.len())
-            }
-        }),
+                d.session.archive_pdfa(level)
+            };
+            actions::report(archived, |r| {
+                report.extend(r.fixed.iter().map(|f| format!("Fixed: {f}")));
+                report.extend(r.remaining.iter().map(|i| format!("{} {}", i.clause, i.message)));
+                if r.remaining.is_empty() {
+                    format!("{label} ready; save to write it")
+                } else {
+                    format!("{} problems remain", r.remaining.len())
+                }
+            })
+        }
         1 => {
-            let v = d.session.pdfa_verify(level);
+            let v = if one {
+                d.session.pdfa1b_verify()
+            } else {
+                d.session.pdfa_verify(level)
+            };
             report.extend(v.iter().map(|i| format!("{} {}", i.clause, i.message)));
             if v.is_empty() {
-                format!("The document conforms to {}", level.label())
+                format!("The document conforms to {label}")
             } else {
                 format!("{} problems", v.len())
             }

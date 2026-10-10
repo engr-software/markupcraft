@@ -460,6 +460,25 @@ pub fn document_area(app: &mut AppState, ui: &mut egui::Ui) {
         });
         return;
     }
+    // The main window shows its own tab when the active document is in a detached window.
+    let area = ui.max_rect();
+    let restore = crate::shell::detach::enter_main(app, ui);
+    if restore == crate::shell::detach::MainView::Empty {
+        let rect = ui.available_rect_before_wrap();
+        ui.painter().rect_filled(rect, 0.0, t.workspace);
+        ui.scope_builder(egui::UiBuilder::new().max_rect(rect), |ui| {
+            ui.vertical_centered(|ui| {
+                ui.add_space(rect.height() * 0.4);
+                ui.label(
+                    RichText::new("Every open document is in a detached window.").color(egui::Color32::from_gray(235)),
+                );
+                if ui.button("Reattach All Windows").clicked() {
+                    app.shell.extra.detached.clear();
+                }
+            });
+        });
+        return;
+    }
     nav_bar(app, ui);
     // Document tabs (not in presentation), then one canvas or the split panes.
     if app.shell.screen != crate::shell::Screen::Presentation {
@@ -471,6 +490,7 @@ pub fn document_area(app: &mut AppState, ui: &mut egui::Ui) {
         }
     }
     crate::shell::split::show(app, ui);
+    crate::shell::detach::leave_main(app, ui, area, restore);
 }
 
 /// Help > Keyboard Shortcuts, Help > About, Document Properties.

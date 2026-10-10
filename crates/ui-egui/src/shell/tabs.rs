@@ -1,7 +1,8 @@
 //! Document tabs: one per open file, names truncated at the end or the start (preference),
 //! drag a tab to reorder (or onto the split view's second pane to show it there), right-click for
-//! Close / Close Others / Close All / Save / Open in Split View / Detach to New Window / Copy
-//! Path, Ctrl+Tab cycles. File > Close All and Save All.
+//! Close / Close Others / Close All / Save / Open in Split View / Detach to New Window (moves the
+//! tab; with Ctrl held, or Detach a Copy, the tab stays here too) / Copy Path, Ctrl+Tab cycles.
+//! Tabs moved to a detached window are not shown here. File > Close All and Save All.
 
 use egui::{RichText, vec2};
 
@@ -81,6 +82,10 @@ pub fn tab_bar(app: &mut AppState, ui: &mut egui::Ui) {
     let mut to_pane: Option<u64> = None;
     let mut dragging = false;
     let mut detach_out: Option<usize> = None;
+    // Tabs moved to a detached window are not in the main window's bar.
+    let moved = super::detach::moved_out(app);
+    // Ctrl held: a detached tab leaves a copy here.
+    let copy = ui.input(|i| i.modifiers.command);
     let pane_rect = app.shell.extra.pane_rect;
     let (max, from_start) = (app.shell.ui.tab_max_chars, app.shell.ui.tab_truncate_start);
     egui::Frame::NONE
@@ -97,6 +102,9 @@ pub fn tab_bar(app: &mut AppState, ui: &mut egui::Ui) {
                         let mut rects = Vec::with_capacity(app.docs.len());
                         for i in 0..app.docs.len() {
                             let Some(d) = app.docs.get(i) else { continue };
+                            if moved.contains(&d.uid) {
+                                continue;
+                            }
                             let mut base = truncate(&d.name, max, from_start);
                             if let Some(b) = crate::features::partials_more3::tab_badge(ui.ctx(), d) {
                                 base = format!("[{b}] {base}");
@@ -162,6 +170,7 @@ pub fn tab_bar(app: &mut AppState, ui: &mut egui::Ui) {
                                     ("save", "Save"),
                                     ("split", "Open in Split View"),
                                     ("detach", "Detach to New Window"),
+                                    ("detach_copy", "Detach a Copy to New Window"),
                                     ("copy_path", "Copy Path"),
                                 ] {
                                     if ui.button(label).clicked() {
@@ -187,7 +196,7 @@ pub fn tab_bar(app: &mut AppState, ui: &mut egui::Ui) {
     app.shell.extra.dragging_tab = dragging;
     if let Some(i) = detach_out {
         app.active = i.min(app.docs.len().saturating_sub(1));
-        super::detach::detach(app);
+        super::detach::detach_with(app, copy);
         return;
     }
     if let Some(uid) = to_pane {
@@ -219,7 +228,11 @@ pub fn tab_bar(app: &mut AppState, ui: &mut egui::Ui) {
             }
             "detach" => {
                 app.active = i;
-                super::detach::detach(app);
+                super::detach::detach_with(app, copy);
+            }
+            "detach_copy" => {
+                app.active = i;
+                super::detach::detach_with(app, true);
             }
             "copy_path" => {
                 if let Some(p) = app.docs.get(i).and_then(|d| d.path.clone()) {

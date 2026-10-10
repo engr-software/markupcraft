@@ -1,6 +1,6 @@
 //! Search (Alt+1): text search of the page text and markup comments, and Visual Search for a
 //! symbol picked on the page. Results list with check boxes, Previous/Next, hits highlighted on
-//! the pages, and bulk actions (highlight, count, redact).
+//! the pages, and bulk actions (highlight, count, redact, hyperlinks).
 
 use egui::RichText;
 
@@ -183,6 +183,7 @@ fn visual_ui(app: &mut AppState, ui: &mut egui::Ui) {
 fn results_ui(app: &mut AppState, ui: &mut egui::Ui) {
     ui.separator();
     let (mut goto, mut stepv, mut bulk, mut clear) = (None, 0isize, None, false);
+    let mut link = false;
     // Visual results show a thumbnail of each match (made on first show, at most 200).
     let thumbs: Vec<Option<egui::TextureHandle>> = if app.features.search.visual {
         let n = app.features.search.visual_hits.len().min(200);
@@ -254,6 +255,14 @@ fn results_ui(app: &mut AppState, ui: &mut egui::Ui) {
                 {
                     bulk = Some(Bulk::Redact);
                 }
+                if !s.visual
+                    && ui
+                        .small_button("Link")
+                        .on_hover_text("Make a hyperlink over each checked result")
+                        .clicked()
+                {
+                    link = true;
+                }
             });
         });
         ui.horizontal(|ui| {
@@ -323,6 +332,9 @@ fn results_ui(app: &mut AppState, ui: &mut egui::Ui) {
     }
     if let Some(b) = bulk {
         search::apply(app, b);
+    }
+    if link {
+        crate::features::docs7::start_link(app);
     }
     if clear {
         search::clear(app);

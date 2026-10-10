@@ -118,6 +118,8 @@ pub struct TextEditor {
     pub text: String,
     /// rich text runs of the text being typed (char offsets into `text`)
     pub rich: Vec<markupcraft_model::rich::TextRun>,
+    /// Ctrl+B / I / U with nothing selected: the style for the text typed next
+    pub pending: crate::richedit::Pending,
     /// focus was requested
     pub opened: bool,
 }
@@ -1305,6 +1307,7 @@ pub(crate) fn open_new_editor(doc: &mut DocTab, tool: &'static ToolDef, markup: 
             group_with,
         },
         page,
+        pending: None,
         opened: false,
     });
 }
@@ -1322,6 +1325,7 @@ pub fn edit_existing(doc: &mut DocTab, id: &str) -> bool {
         rich: m.rich.clone(),
         target: EditTarget::Existing(id.to_string()),
         page: m.page,
+        pending: None,
         opened: false,
     });
     true
@@ -1366,12 +1370,13 @@ fn editor_ui(ix: &mut Input<'_>, doc: &mut DocTab, out: &mut CanvasOut) {
     };
     let mut text = ed.text.clone();
     let mut runs = ed.rich.clone();
+    let mut pending = ed.pending;
     let id = egui::Id::new("markupcraft-text-editor");
     let edit_id = id.with("edit");
     let ctx = ix.ui.ctx().clone();
     crate::richedit::load_dictionary();
     let rich_ok = m.kind.is_text();
-    // Ctrl+B / Ctrl+I / Ctrl+U style the selection.
+    // Ctrl+B / Ctrl+I / Ctrl+U style the selection, or with none the text typed next.
     if rich_ok {
         use markupcraft_model::rich::StyleChange;
         for (k, change) in [
@@ -1380,7 +1385,7 @@ fn editor_ui(ix: &mut Input<'_>, doc: &mut DocTab, out: &mut CanvasOut) {
             (egui::Key::U, StyleChange::Underline),
         ] {
             if ctx.input_mut(|i| i.consume_key(egui::Modifiers::COMMAND, k)) {
-                runs = crate::richedit::restyle(&ctx, edit_id, &text, &m.text, &runs, change);
+                runs = crate::richedit::restyle_or_pend(&ctx, edit_id, &text, &m.text, &runs, change, &mut pending);
             }
         }
     }
@@ -1407,7 +1412,15 @@ fn editor_ui(ix: &mut Input<'_>, doc: &mut DocTab, out: &mut CanvasOut) {
                                     _ => egui::RichText::new(letter).underline(),
                                 };
                                 if ui.button(rt).on_hover_text(tip).clicked() {
-                                    runs = crate::richedit::restyle(&ctx, edit_id, &text, &m.text, &runs, change);
+                                    runs = crate::richedit::restyle_or_pend(
+                                        &ctx,
+                                        edit_id,
+                                        &text,
+                                        &m.text,
+                                        &runs,
+                                        change,
+                                        &mut pending,
+                                    );
                                     keep_open = true;
                                 }
                             }
@@ -1422,13 +1435,14 @@ fn editor_ui(ix: &mut Input<'_>, doc: &mut DocTab, out: &mut CanvasOut) {
                                 let resp = resp.on_hover_text(format!("{name} text"));
                                 resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, name));
                                 if resp.clicked() {
-                                    runs = crate::richedit::restyle(
+                                    runs = crate::richedit::restyle_or_pend(
                                         &ctx,
                                         edit_id,
                                         &text,
                                         &m.text,
                                         &runs,
                                         StyleChange::Color(c),
+                                        &mut pending,
                                     );
                                     keep_open = true;
                                 }
@@ -1511,12 +1525,15 @@ fn editor_ui(ix: &mut Input<'_>, doc: &mut DocTab, out: &mut CanvasOut) {
     if text != before {
         runs = markupcraft_model::rich::rebase(&runs, &before, &text);
     }
+    let cursor_now = crate::richedit::cursor(&ctx, edit_id);
+    runs = crate::richedit::follow_pending(&before, &text, cursor_now, &m.text, runs, &mut pending);
     if keep_open || bar_hovered {
         ctx.memory_mut(|mem| mem.request_focus(edit_id));
     }
     if let Some(e) = doc.view.editor.as_mut() {
         e.text = text;
         e.rich = runs;
+        e.pending = pending;
         if !e.opened {
             resp.request_focus();
             e.opened = true;
@@ -2145,11 +2162,12 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
 /// Screen distance of the rotation handle above the selection's top edge.
 const ROTATE_GAP: f32 = 22.0;
 
-/// Kinds turned with the handle: free rotation for outlines; boxes by quarter turns.
+/// Kinds turned with the handle: outlines turn their points; rectangles, ellipses, text boxes
+/// and stamps keep an angle of their own.
 fn rotatable(m: &Markup) -> bool {
     movable(m)
         && !m.pts.is_empty()
-        && (!uses_rect(m.kind) || markupcraft_engine::geometry::is_box(m.kind))
+        && (!uses_rect(m.kind) || markupcraft_model::turn::free_rotates(m.kind))
         && !matches!(
             m.kind,
             Kind::TextHighlight | Kind::Underline | Kind::Strikeout | Kind::Squiggly | Kind::Count
@@ -2190,7 +2208,7 @@ fn paint_rotate_handle(ix: &Input<'_>, doc: &DocTab) {
 }
 
 /// Degrees to turn for a drag from angle `a0` to `a1` (radians, counter-clockwise): steps of
-/// 15 degrees (Revu), Shift frees it to whole degrees; boxes turn by quarter turns.
+/// 15 degrees (Revu), Shift frees it to whole degrees.
 pub fn rotation_degrees(m: &Markup, a0: f64, a1: f64, shift: bool) -> f64 {
     let mut d = (a1 - a0).to_degrees();
     while d > 180.0 {
@@ -2199,9 +2217,7 @@ pub fn rotation_degrees(m: &Markup, a0: f64, a1: f64, shift: bool) -> f64 {
     while d < -180.0 {
         d += 360.0;
     }
-    let step = if markupcraft_engine::geometry::is_box(m.kind) {
-        90.0
-    } else if m.kind.is_measurement() {
+    let step = if m.kind.is_measurement() {
         // measurements snap to 15 degrees; Shift turns them by single degrees (Revu)
         if shift { 1.0 } else { 15.0 }
     } else if shift {

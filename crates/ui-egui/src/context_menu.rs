@@ -80,6 +80,7 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, out: &mut CanvasOut) {
     command(ui, out, "Duplicate", "edit.duplicate", writable);
     command(ui, out, "Delete", "edit.delete", true);
     ui.separator();
+    command(ui, out, "Reply", "markup.reply", single);
     if ui.button("Properties").clicked() {
         out.actions.push(CanvasAction::ShowPanel("properties"));
         ui.close();
@@ -128,7 +129,8 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, out: &mut CanvasOut) {
         command(ui, out, "Bring Forward", "arrange.bring_forward", true);
         command(ui, out, "Send Backward", "arrange.send_backward", true);
         command(ui, out, "Send to Back", "arrange.send_to_back", true);
-        ui.separator();
+    });
+    ui.menu_button("Flip", |ui| {
         command(ui, out, "Flip Horizontal", "arrange.flip_horizontal", writable);
         command(ui, out, "Flip Vertical", "arrange.flip_vertical", writable);
     });
@@ -162,7 +164,10 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, out: &mut CanvasOut) {
         });
     }
     command(ui, out, "Apply to All Pages", "markup.apply_to_all_pages", writable);
+    command(ui, out, "Apply to Pages...", "markup.apply_to_pages", writable);
     command(ui, out, "Format Painter", "markup.format_painter", single && writable);
+    command(ui, out, "Edit Action...", "markup.edit_action", single);
+    command(ui, out, "Flatten...", "markup.flatten_selected", writable);
 
     // Measurement and vertex items.
     if writable && !m.locked() {
