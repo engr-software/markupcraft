@@ -37,17 +37,22 @@ impl egui::DroppedFile for Dropped {
 }
 
 /// The label of a command's default key (`Ctrl+Shift+S`), if it has one.
+/// A key label in Revu's Windows wording (macOS shows Cmd and Option for Ctrl and Alt).
+fn windows_label(label: String) -> String {
+    label.replace("Cmd+", "Ctrl+").replace("Option+", "Alt+")
+}
+
 fn shortcut(id: &str) -> Option<String> {
     markupcraft_ui_egui::commands::find(id)
         .and_then(|c| c.keys)
-        .map(|k| k.label())
+        .map(|k| windows_label(k.label()))
 }
 
 /// The command bound to a key label, if any.
 fn bound(label: &str) -> Option<String> {
     markupcraft_ui_egui::commands::bindings()
         .into_iter()
-        .find(|(k, _)| k.label() == label)
+        .find(|(k, _)| windows_label(k.label()) == label)
         .map(|(_, id)| id)
 }
 
