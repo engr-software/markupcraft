@@ -4,6 +4,18 @@ MarkupCraft's goal is identical behavior to Revu 21 for the features in
 [revu_features/](revu_features/). "Matches the help pages" is not proof. A feature
 counts as **proven** only when a recording of real Revu and MarkupCraft agree.
 
+There are three levels of evidence, weakest first:
+
+| Level | What it shows | Where |
+|---|---|---|
+| **have** | built, with an end-to-end test written by whoever built it | `evidence` in `parity/revu-features.toml` |
+| **accepted** | a second, blind test written from the inventory text by someone who did not build it | `accepted` / `acceptance` in the same table; tests in `crates/acceptance` |
+| **proven** | a recording of real Revu and MarkupCraft agree | the scorecard, `tests/revu_recordings/` |
+
+Every in-scope row has a blind acceptance verdict; only measurement quantities and page scales
+are **proven** so far. The file-format choices still waiting for a recording are listed under
+[Guesses still needing a Revu recording](#guesses-still-needing-a-revu-recording).
+
 ## Status per feature
 
 Each inventory row gets one of:
@@ -23,6 +35,110 @@ Already proven (from Revu-made files, no live session needed):
 | Re-saving Revu markups (geometry, text, colors, style) | 187/187 non-measurement markups, 410/410 measurements (`resave`, `markupcheck`) |
 | Appearance of re-saved markups | PDFium render of 32 marked pages vs Revu's own appearance streams |
 | Measurement caption offset `/CO` on areas | 37 captions in the reference set |
+
+## Blind acceptance testing
+
+Builders cannot audit their own work: a test written by the person who built a feature tends to
+test what was built, not what was asked for. So every in-scope row of the parity table also has an
+**acceptance test**, written in a separate pass:
+
+1. **Blind.** The tester reads only the inventory row (`docs/revu_features/*.md`: Revu's public
+   help, in our words) and writes down what a Revu user would expect: the command, its
+   defaults, the numbers it should produce. Expected quantities are worked out by hand from the
+   scale rules (72 pt = 1 paper inch), not copied from MarkupCraft's output.
+2. **Through the front doors.** Tests drive the product the way a user or an agent would: the
+   automation tool table (`Automation::call`, the same table as `markupcraft-cli run` and the
+   MCP server) and the real interface, headlessly (`egui_kittest`: menus, keys, clicks and drags
+   on the canvas, dialogs, panels).
+3. **Synthetic inputs only.** Tests build their documents in code (the synthetic sample plan,
+   blank pages from `doc_new`) and write only to a fresh temporary folder, so they run on any
+   machine and never touch a project drawing.
+4. **A verdict per row.** The row records its tests and the outcome:
+
+   ```toml
+   accepted = ["calibrate_derives_the_page_scale_from_a_known_length"]
+   acceptance = "pass"     # or "fixed", or "gap"
+   ```
+
+   | Verdict | Meaning |
+   |---|---|
+   | `pass` | the feature behaved as the inventory describes the first time |
+   | `fixed` | the test found a bug; it was fixed, with a regression test, and the row's notes say what changed ("Acceptance fix: ...") |
+   | `gap` | the behavior still differs from the inventory; the row's notes say how ("Acceptance: ...") |
+
+`cargo xtask parity --check` rejects an `accepted` test name that does not exist and any verdict
+other than these three. [FEATURES.md](../FEATURES.md) shows the verdict on every row and the
+pass / fixed / gap totals per area.
+
+| File in `crates/acceptance/` | Covers |
+|---|---|
+| `src/lib.rs` | shared helpers: a tool table in a temporary folder, the sample plan, a headless app |
+| `tests/measurement.rs` | scales, viewports, every measurement tool, Dynamic Fill, snapping, Spaces, legends, reports |
+| `tests/markups.rs` | every markup tool, Properties, Tool Chest, layers, Markups List |
+| `tests/documents_a.rs`, `tests/documents_b.rs` | opening, tabs, pages, bookmarks, combining; batch, summary, print, stamps, OCR, forms, signatures, security, redaction, flatten, export |
+| `tests/review.rs` | compare, overlay, search, visual search, Spaces, links, signatures |
+| `tests/interface.rs` | the interface, preferences, views, the mouse and every default shortcut |
+| `tests/real_world.rs` | an estimator's whole takeoff day on a real Revu-marked set, read from `MARKUPCRAFT_REF_PDF` (skipped when unset; see [hardening.md](hardening.md)) |
+| `tests/smoke.rs` | the harness itself |
+
+Run them with `cargo test -p markupcraft-acceptance`. Interface tests take turns on one GPU
+context, so they are slower than the unit tests.
+
+An acceptance verdict is not a recording. `pass` means MarkupCraft does what Revu's
+documentation says; whether Revu itself does exactly that, down to the stored keys, is known
+only once a recording exists.
+
+## Guesses still needing a Revu recording
+
+Where Revu's storage or on-screen behavior is neither in its public help nor in any Revu-made
+file we have read, MarkupCraft made a choice. Each choice is consistent (MarkupCraft reads what it
+writes, and the scorecard confirms it never disturbs Revu's own markups), but it may not be what
+Revu writes, so a markup made in MarkupCraft may look or list differently when the file is opened
+in Revu. Each needs a recording (see the queue below) before its row can be **proven**.
+
+**Measurement captions**
+
+- **Label-first captions.** A number format with `/O /P` (ISO 32000: the unit label before the
+  number) is read and written, and our caption then puts the label first. Whether Revu's
+  caption follows `/O` is not recorded.
+- **Perimeter and Polylength captions on the last segment.** Their value is drawn along the last
+  segment (below it without Show Segment Values, beside the running total with them). Area and
+  Volume center at the vertex mean, which *is* proven (`/CO` on 37 Area captions). Asking an Area
+  or Volume for its caption on the last segment is stored as `/PCCaptionLastSeg`.
+- **Moved captions of Polylength and Count** are stored as `/PCCaptionOffset`; Revu's `/CO` is
+  proven only for Area, Perimeter and Length. Caption templates (`/PCCaption`), caption leaders
+  (`/PCCapLeader`) and the centroid mark (`/PCCentroid`) are ours too.
+
+**Measurement storage**
+
+| Markup | What MarkupCraft writes | Status |
+|---|---|---|
+| Perimeter | `/Polygon` `/IT /PolygonDimension`, `/MeasurementTypes 130` | guess (Area's layout with the length code) |
+| Count | `/PolyLine` `/IT /PolyLineCount`, code 128; symbol in `/PCCountSymbol`, `/PCCountShape`, `/PCSymbolScale`, item sizes in `/PCCountDims` | guess |
+| Volume | `/Polygon` `/IT /PolygonDimension`, code 132, depth in `/PCDepth` beside Revu's `/DepthUnit` | layout seen, depth key ours |
+| Diameter | `/Circle`, code 384, `/Vertices` = the two ends of a diameter | guess |
+| Radius | `/Circle` `/IT /CircleRadius`, code 384, `/Vertices` = [center, a point on the circle] | guess |
+| Angle | `/PolyLine` `/IT /PolyLineAngle`, code 1152, `/Vertices` = [arm end, vertex, arm end] | guess |
+| Dimension | `/Line` `/IT /PCDimension`, `/LL` the offset, `/LLE` the extension past it | our own intent |
+| Arc | `/PolyLine` `/IT /PCArc`, `/Vertices` = [start, a point on the arc, end] | our own intent |
+| Arc segments inside a measurement | `/PCArcs` | ours |
+| Cutouts (holes in an Area or Volume) | `/PCCutouts` | ours |
+| Show Segment Values, Rise/Drop, slope value | `/PCSegmentValues`, `/PCRiseDrop`, `/PCSlope` (beside Revu's `/SlopeType`) | ours |
+
+**Other markups and document data**
+
+| What | What MarkupCraft writes |
+|---|---|
+| Custom column definitions and values | catalog `/PCColumns`, annotation `/PCColumnData` (Revu's `/BSIColumnData` is undocumented; it is kept untouched when present) |
+| Text box vertical alignment, margin, line spacing | `/PCVAlign`, `/PCTextMargin`, `/PCLineSpacing` |
+| Text stamps, hatch patterns, legends | `/PCStamp`, `/PCHatch`, `/PCLegend` |
+| Spaces | page `/PCSpaces` |
+| Tool sets | MarkupCraft's own `.mctools` JSON (Revu's `.btx` has no public specification) |
+| Markup export | XFDF and FDF (Revu's BAX is not written) |
+
+Review status and checkmarks (`/Text` replies with `/StateModel`) and groups (`/IRT` with
+`/RT /Group`) follow ISO 32000-1; whether Revu stores them the same way is items 8 and 9 of the
+queue.
 
 ## Recording a feature in Revu
 

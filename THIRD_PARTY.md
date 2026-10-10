@@ -17,6 +17,7 @@ MarkupCraft is written in Rust; dependencies keep their own licenses (`cargo tre
 | [egui / eframe](https://github.com/emilk/egui) with wgpu | user interface, GPU canvas | MIT OR Apache-2.0 |
 | en_US dictionary from [SCOWL](http://wordlist.aspell.net/) via [wooorm/dictionaries](https://github.com/wooorm/dictionaries) | spell check word list, `assets/dictionaries/en_US.*` | SCOWL permissive (MIT-like); text in `assets/dictionaries/en_US.LICENSE.txt` |
 | MarkupCraft logo (`assets/logo*.svg`, `.png`, `.ico`) | app icon | contributor-original, MIT OR Apache-2.0 |
+| README screenshots (`docs/images/markupcraft-*.png`) | screenshots of MarkupCraft's own interface, rendered headlessly by the `shot` example on the synthetic sample plan generated in `crates/render/src/synthetic.rs` (no project drawing); the toolbar icons shown in them are the Lucide icons listed in this table | contributor-original, MIT OR Apache-2.0 |
 | [egui_dock](https://github.com/anhosh/egui_dock) | docking panels | MIT |
 | [Lucide](https://lucide.dev) icons (`crates/ui-egui/assets/icons/*.svg`) | toolbar, menu and panel icons | ISC; text in `crates/ui-egui/assets/icons/LICENSE-lucide.txt` |
 | Code adapted from PdfCraft's `ui-egui` (icon tinting in `icons.rs`, design tokens in `theme.rs`, the headless `shot` example, the tile scheduling in `canvas.rs`) and `apps/pdfcraft/build.rs` | interface | MIT OR Apache-2.0 |

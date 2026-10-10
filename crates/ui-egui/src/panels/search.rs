@@ -123,11 +123,12 @@ fn text_ui(app: &mut AppState, ui: &mut egui::Ui) {
             ui.checkbox(&mut s.fallback, "Font fallback")
                 .on_hover_text("Lines whose font cannot show the new text use Helvetica (else they are skipped)");
             let can = !s.hits.is_empty() && !s.query.trim().is_empty();
-            ui.add_enabled_ui(can, |ui| {
-                if ui.button("Replace Checked").clicked() {
-                    replace = true;
-                }
-            });
+            // A plain button keeps its label on one line (a nested enabled-UI got the row's
+            // leftover width and wrapped one letter per line).
+            let button = egui::Button::new("Replace Checked").wrap_mode(egui::TextWrapMode::Extend);
+            if ui.add_enabled(can, button).clicked() {
+                replace = true;
+            }
         });
     }
     if go {

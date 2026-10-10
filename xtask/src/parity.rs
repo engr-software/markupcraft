@@ -353,26 +353,38 @@ fn features_md(rows: &[Row]) -> String {
          (`docs/EQUIVALENCE.md`), **have** = built and tested from documentation, **partial** = some of it \
          (often the file format and engine without UI), **missing** = not started. *C++* is what the C++ \
          reference build had, the port backlog. Excluded rows (Studio server, Bluebeam Cloud, DMS, \
-         Office/CAD plugins, 3D PDF) are out of scope and not counted.\n"
+         Office/CAD plugins, 3D PDF) are out of scope and not counted.\n\n\
+         *Accepted* is the blind acceptance verdict (`crates/acceptance`, `docs/EQUIVALENCE.md`): a test \
+         written from the inventory text by someone who did not build the feature. **pass** = it passed \
+         as built, **fixed** = it found a bug that was then fixed (with a regression test), **gap** = \
+         the behavior still differs from the inventory and the notes say how.\n"
     );
     let _ = writeln!(o, "## Totals\n");
     let _ = writeln!(
         o,
-        "| Area | Rows | Proven | Have | Partial | Missing | Excluded | C++ have | C++ partial |"
+        "| Area | Rows | Proven | Have | Partial | Missing | Excluded | Accepted: pass | fixed | gap | C++ have | C++ partial |"
     );
-    let _ = writeln!(o, "|---|---|---|---|---|---|---|---|---|");
+    let _ = writeln!(o, "|---|---|---|---|---|---|---|---|---|---|---|---|");
     let line = |o: &mut String, label: &str, sel: &[&Row]| {
         let (by, ex) = counts(sel.iter().copied());
         let g = |s: &str| by.get(s).copied().unwrap_or(0);
         let cpp = |s: &str| sel.iter().filter(|r| !r.excluded && r.cpp == s).count();
+        let acc = |s: &str| {
+            sel.iter()
+                .filter(|r| !r.excluded && !r.accepted.is_empty() && r.acceptance == s)
+                .count()
+        };
         let _ = writeln!(
             o,
-            "| {label} | {} | {} | {} | {} | {} | {ex} | {} | {} |",
+            "| {label} | {} | {} | {} | {} | {} | {ex} | {} | {} | {} | {} | {} |",
             sel.len(),
             g("proven"),
             g("have"),
             g("partial"),
             g("missing"),
+            acc("pass"),
+            acc("fixed"),
+            acc("gap"),
             cpp("have"),
             cpp("partial")
         );
@@ -407,13 +419,18 @@ fn features_md(rows: &[Row]) -> String {
             if section != Some(r.section.as_str()) {
                 section = Some(r.section.as_str());
                 let _ = writeln!(o, "\n### {}\n", md_cell(&r.section));
-                let _ = writeln!(o, "| ID | Feature | Pri | Status | C++ | Evidence / notes |");
-                let _ = writeln!(o, "|---|---|---|---|---|---|");
+                let _ = writeln!(o, "| ID | Feature | Pri | Status | Accepted | C++ | Evidence / notes |");
+                let _ = writeln!(o, "|---|---|---|---|---|---|---|");
             }
             let status = if r.excluded {
                 "excluded".to_string()
             } else {
                 r.status.clone()
+            };
+            let accepted = if r.excluded || r.accepted.is_empty() {
+                "-"
+            } else {
+                r.acceptance.as_str()
             };
             let mut ev: Vec<String> = r.evidence.iter().map(|e| format!("`{e}`")).collect();
             if !r.notes.is_empty() {
@@ -421,7 +438,7 @@ fn features_md(rows: &[Row]) -> String {
             }
             let _ = writeln!(
                 o,
-                "| {} | {} | {} | {status} | {} | {} |",
+                "| {} | {} | {} | {status} | {accepted} | {} | {} |",
                 r.id,
                 md_cell(&r.name),
                 r.priority,
@@ -446,6 +463,7 @@ mod tests {
         assert!(problems.is_empty(), "{problems:#?}");
         let md = features_md(&rows);
         assert!(md.contains("| **All** |"));
+        assert!(md.contains("Accepted: pass"));
         assert!(totals_text(&rows).contains("total"));
     }
 
