@@ -517,7 +517,10 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                                         edit => {
                                             let mut rt = RichText::new(&cell.text);
                                             if col.markup_color {
-                                                rt = rt.color(color32(&m.color, 1.0));
+                                                rt = rt.color(crate::theme::readable(
+                                                    color32(&m.color, 1.0),
+                                                    ui.visuals().dark_mode,
+                                                ));
                                             }
                                             if cell.error {
                                                 rt = rt.color(Color32::from_rgb(0xB0, 0x20, 0x20));

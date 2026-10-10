@@ -92,7 +92,7 @@ mod tests {
 
     #[test]
     fn layout_round_trips_and_rejects_junk() {
-        let mut dock = crate::dock::default_layout();
+        let mut dock = crate::dock::all_docked();
         crate::dock::toggle_panel(&mut dock, "bookmarks");
         let v = save(&dock).unwrap();
         let back = load(&v).unwrap_or_else(|| panic!("{v:#}"));

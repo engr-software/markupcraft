@@ -1156,6 +1156,11 @@ fn detached_window_splits_and_syncs() {
 fn toolbars_dock_on_the_sides_and_new_toolbars() {
     use markupcraft_ui_egui::shell::toolbars_more::{Dock, at};
     let mut h = harness();
+    // The icon toolbars start hidden; Window > Toolbars shows them.
+    assert!(!shows(&h, "Main toolbar"));
+    for id in ["window.toolbar_main", "window.toolbar_markup", "window.toolbar_measure"] {
+        run(&mut h, id);
+    }
     assert!(
         shows(&h, "Main toolbar") && shows(&h, "Measure toolbar"),
         "each toolbar has a grip"

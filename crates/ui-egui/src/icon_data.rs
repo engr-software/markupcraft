@@ -1,5 +1,6 @@
 //! Lucide icons (ISC licence, `assets/icons/LICENSE-lucide.txt`), embedded and tinted at run time.
-//! One line per icon: add the SVG to `crates/ui-egui/assets/icons/` and a line here.
+//! One line per icon: add the SVG to `crates/ui-egui/assets/icons/` and a line here. A few
+//! icons Lucide has no match for are MarkupCraft's own, in `assets/icons-own/`.
 
 pub static ICONS: &[(&str, &[u8])] = &[
     ("pencil-ruler", include_bytes!("../assets/icons/pencil-ruler.svg")),
@@ -180,4 +181,7 @@ pub static ICONS: &[(&str, &[u8])] = &[
     ("x", include_bytes!("../assets/icons/x.svg")),
     ("zoom-in", include_bytes!("../assets/icons/zoom-in.svg")),
     ("zoom-out", include_bytes!("../assets/icons/zoom-out.svg")),
+    // MarkupCraft's own icons (contributor-original, `assets/icons-own/`).
+    ("contrast", include_bytes!("../assets/icons-own/contrast.svg")),
+    ("picture", include_bytes!("../assets/icons-own/picture.svg")),
 ];

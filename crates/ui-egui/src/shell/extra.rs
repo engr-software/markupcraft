@@ -85,7 +85,7 @@ impl Default for ExtraPrefs {
             thin_lines: false,
             reply_indicators: false,
             auto_hide_tabs: false,
-            panel_bars: false,
+            panel_bars: true,
             bottom_full_width: true,
             properties_toolbar: false,
             alt_menus: false,

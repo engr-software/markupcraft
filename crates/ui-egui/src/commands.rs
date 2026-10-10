@@ -150,7 +150,8 @@ const fn with_alias(c: Command, alias: Option<Keys>) -> Command {
     Command { alias, ..c }
 }
 
-/// The menu bar, in order.
+/// Every menu a command row may name. The menu bar shows [`MENU_BAR`]; the Markup and Measure
+/// menus are submenus of Tools ([`TOOLS_SUBMENUS`]).
 pub const MENUS: &[&str] = &[
     "MarkupCraft",
     "File",
@@ -164,6 +165,22 @@ pub const MENUS: &[&str] = &[
     "Window",
     "Help",
 ];
+
+/// The menu bar, in order (the application menu first, as Revu users expect).
+pub const MENU_BAR: &[&str] = &[
+    "MarkupCraft",
+    "File",
+    "Edit",
+    "View",
+    "Document",
+    "Batch",
+    "Tools",
+    "Window",
+    "Help",
+];
+
+/// Menus shown as submenus at the top of Tools.
+pub const TOOLS_SUBMENUS: &[&str] = &["Markup", "Measure"];
 
 #[rustfmt::skip]
 pub static COMMANDS: &[Command] = &[
@@ -290,6 +307,8 @@ pub static COMMANDS: &[Command] = &[
     cmd("window.menu_bar", "Menu Bar", "Window", 8, key(Key::F9), ""),
     cmd("window.nav_bar", "Navigation Bar", "Window", 8, key(Key::F4), ""),
     cmd("window.status_bar", "Status Bar", "Window", 8, key(Key::F8), ""),
+    cmd("window.document_bar", "Document Bar", "Window", 8, None, ""),
+    cmd("window.tool_strip", "Tool Strip", "Window", 8, None, ""),
     cmd("window.full_screen", "Full Screen", "Window", 8, key(Key::F11), "maximize"),
     cmd("window.presentation", "Presentation", "Window", 8, ctrl(Key::Enter), ""),
     cmd("window.always_on_top", "Always on Top", "Window", 8, ctrl(Key::F12), "pin"),
@@ -405,6 +424,20 @@ mod tests {
         assert!(twice.is_empty(), "{twice:#?}");
         for id in MAIN_TOOLBAR.iter().filter(|i| **i != "|") {
             assert!(describe(id).is_some(), "toolbar id {id}");
+        }
+    }
+
+    /// Every menu a row names is reachable: on the bar, or as a submenu of Tools.
+    #[test]
+    fn every_menu_is_on_the_bar_or_under_tools() {
+        for m in MENUS {
+            assert!(
+                MENU_BAR.contains(m) != TOOLS_SUBMENUS.contains(m),
+                "menu {m} must be on the bar or under Tools (not both)"
+            );
+        }
+        for m in MENU_BAR.iter().chain(TOOLS_SUBMENUS) {
+            assert!(MENUS.contains(m), "{m}");
         }
     }
 

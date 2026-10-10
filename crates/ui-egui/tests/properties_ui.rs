@@ -21,6 +21,9 @@ fn harness() -> Harness<'static, MarkupCraftApp> {
             app.state.threads = 0;
             app.open_bytes("sample.pdf", None, markupcraft_render::synthetic::sample_pdf())
                 .unwrap();
+            // These tests edit through the Properties panel: show it in the left panel area
+            // (the default layout shows Thumbnails there).
+            app.state.show_panel("properties");
             app
         });
     h.run_steps(6);

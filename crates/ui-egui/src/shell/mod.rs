@@ -10,6 +10,7 @@
 pub mod admin_prefs;
 pub mod deskew;
 pub mod detach;
+pub mod docbar;
 pub mod edges;
 pub mod extra;
 pub mod extra2;
@@ -29,6 +30,7 @@ pub mod split;
 pub mod tabs;
 pub mod toolbars;
 pub mod toolbars_more;
+pub mod toolstrip;
 pub mod workspace;
 
 use std::collections::HashMap;
@@ -136,9 +138,21 @@ pub struct UiPrefs {
     pub show_menu: bool,
     pub show_nav_bar: bool,
     pub show_status_bar: bool,
+    /// The document bar under the menu (name, page count, properties).
+    pub show_document_bar: bool,
+    /// The tool strip on the right edge.
+    pub show_tool_strip: bool,
     pub toolbars: toolbars::ToolbarPrefs,
     /// The dock layout (panels), as saved by [`layout::save`].
     pub layout: Option<serde_json::Value>,
+    /// The panel shown in the left panel area (a panel id; `None` = collapsed).
+    pub left_panel: Option<String>,
+    /// The panel shown under the canvas (the Markups List; `None` = closed).
+    pub bottom_panel: Option<String>,
+    /// The default window layout this file was written for. A file from an older layout (or
+    /// without the field) takes the new default arrangement once ([`migrate_layout`]).
+    #[serde(default)]
+    pub layout_version: u32,
     /// Workspace, panels, startup, snapping and other preferences of `extra`.
     pub extra: extra::ExtraPrefs,
     /// Preferences of `extra2`.
@@ -179,8 +193,13 @@ impl Default for UiPrefs {
             show_menu: true,
             show_nav_bar: true,
             show_status_bar: true,
+            show_document_bar: true,
+            show_tool_strip: true,
             toolbars: toolbars::ToolbarPrefs::default(),
             layout: None,
+            left_panel: Some("thumbnails".into()),
+            bottom_panel: Some("markups".into()),
+            layout_version: LAYOUT_VERSION,
             extra: extra::ExtraPrefs::default(),
             extra2: extra2::Prefs2::default(),
             render: render_prefs::RenderPrefs::default(),
@@ -205,6 +224,11 @@ impl UiPrefs {
         }
         if !["page", "width"].contains(&self.default_fit.as_str()) {
             self.default_fit = "page".into();
+        }
+        for side in [&mut self.left_panel, &mut self.bottom_panel] {
+            if side.as_deref().is_some_and(|id| crate::panels::find(id).is_none()) {
+                *side = None;
+            }
         }
         self.toolbars.sanitize();
         self.extra.sanitize();
@@ -390,8 +414,36 @@ pub fn load_ui(store: &PrefStore) -> UiPrefs {
         .and_then(|b| serde_json::from_slice::<UiPrefs>(&b).ok())
         .or_else(|| extra2::shipped_ui(&store.active()))
         .unwrap_or_default();
+    migrate_layout(&mut p);
     p.sanitize();
     p
+}
+
+/// The default window layout's version: 2 is the arrangement of `docs/UI_LAYOUT.md` (panel bar
+/// and one left panel, tool strip, bottom bar, no icon toolbars). Bump it when the default
+/// arrangement changes so every profile takes the new one once.
+pub const LAYOUT_VERSION: u32 = 2;
+
+/// A profile saved for an older default layout takes the current one: the dock layout, the
+/// side panels, the bars and the toolbars go back to their defaults (Window > Reset Panel
+/// Layout and Window > Toolbars still change them afterwards). Other preferences are kept.
+pub fn migrate_layout(p: &mut UiPrefs) {
+    if p.layout_version >= LAYOUT_VERSION {
+        return;
+    }
+    let d = UiPrefs::default();
+    p.layout = None;
+    p.left_panel = d.left_panel;
+    p.bottom_panel = d.bottom_panel;
+    p.show_nav_bar = true;
+    p.show_status_bar = true;
+    p.show_document_bar = true;
+    p.show_tool_strip = true;
+    p.extra.panel_bars = true;
+    p.toolbars.show_main = d.toolbars.show_main;
+    p.toolbars.show_markup = d.toolbars.show_markup;
+    p.toolbars.show_measure = d.toolbars.show_measure;
+    p.layout_version = LAYOUT_VERSION;
 }
 
 /// Command id prefixes the shell answers.
@@ -433,6 +485,8 @@ const OWN: &[&str] = &[
     "window.menu_bar",
     "window.nav_bar",
     "window.status_bar",
+    "window.document_bar",
+    "window.tool_strip",
     "window.preferences",
     "window.toolbar_main",
     "window.toolbar_markup",
@@ -513,6 +567,8 @@ pub fn checked(app: &AppState, id: &str) -> Option<bool> {
         "window.menu_bar" => s.ui.show_menu,
         "window.nav_bar" => s.ui.show_nav_bar,
         "window.status_bar" => s.ui.show_status_bar,
+        "window.document_bar" => s.ui.show_document_bar,
+        "window.tool_strip" => s.ui.show_tool_strip,
         "window.toolbar_main" => s.ui.toolbars.show_main,
         "window.toolbar_markup" => s.ui.toolbars.show_markup,
         "window.toolbar_measure" => s.ui.toolbars.show_measure,
@@ -646,6 +702,8 @@ pub fn run(app: &mut AppState, id: &str, ctx: &egui::Context) -> bool {
         "window.menu_bar" => toggle_ui(app, |u| &mut u.show_menu),
         "window.nav_bar" => toggle_ui(app, |u| &mut u.show_nav_bar),
         "window.status_bar" => toggle_ui(app, |u| &mut u.show_status_bar),
+        "window.document_bar" => toggle_ui(app, |u| &mut u.show_document_bar),
+        "window.tool_strip" => toggle_ui(app, |u| &mut u.show_tool_strip),
         "window.toolbar_main" => toggle_ui(app, |u| &mut u.toolbars.show_main),
         "window.toolbar_markup" => toggle_ui(app, |u| &mut u.toolbars.show_markup),
         "window.toolbar_measure" => toggle_ui(app, |u| &mut u.toolbars.show_measure),
@@ -888,6 +946,36 @@ pub fn end_frame(app: &mut AppState, ctx: &egui::Context) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A settings file from before the new default layout takes it once; a current one keeps
+    /// the user's arrangement.
+    #[test]
+    fn old_layout_files_take_the_new_default_once() {
+        let old = serde_json::json!({
+            "layout": {"surfaces": []},
+            "left_panel": null,
+            "show_nav_bar": false,
+            "toolbars": {"show_main": true, "show_markup": true},
+            "dimmer_pct": 30.0
+        });
+        let mut p: UiPrefs = serde_json::from_value(old).unwrap();
+        assert_eq!(p.layout_version, 0, "a file without the field is from the old layout");
+        migrate_layout(&mut p);
+        assert_eq!(p.layout_version, LAYOUT_VERSION);
+        assert!(p.layout.is_none());
+        assert_eq!(p.left_panel.as_deref(), Some("thumbnails"));
+        assert_eq!(p.bottom_panel.as_deref(), Some("markups"));
+        assert!(p.show_nav_bar && p.show_tool_strip && p.extra.panel_bars);
+        assert!(!p.toolbars.show_main && !p.toolbars.show_markup);
+        assert_eq!(p.dimmer_pct, 30.0, "other preferences are kept");
+        // Saved again, the user's choices stay.
+        p.left_panel = None;
+        p.toolbars.show_main = true;
+        let mut back: UiPrefs = serde_json::from_value(serde_json::to_value(&p).unwrap()).unwrap();
+        migrate_layout(&mut back);
+        assert_eq!(back.left_panel, None);
+        assert!(back.toolbars.show_main);
+    }
 
     #[test]
     fn default_layout_rule_by_page_size() {

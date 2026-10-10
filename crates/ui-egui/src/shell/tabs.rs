@@ -93,105 +93,122 @@ pub fn tab_bar(app: &mut AppState, ui: &mut egui::Ui) {
         .inner_margin(egui::Margin::symmetric(4, 2))
         .show(ui, |ui| {
             ui.set_min_width(ui.available_width());
-            egui::ScrollArea::horizontal()
-                .id_salt("doc-tabs")
-                .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
-                .show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        ui.spacing_mut().item_spacing.x = 2.0;
-                        let mut rects = Vec::with_capacity(app.docs.len());
-                        for i in 0..app.docs.len() {
-                            let Some(d) = app.docs.get(i) else { continue };
-                            if moved.contains(&d.uid) {
-                                continue;
-                            }
-                            let mut base = truncate(&d.name, max, from_start);
-                            if let Some(b) = crate::features::partials_more3::tab_badge(ui.ctx(), d) {
-                                base = format!("[{b}] {base}");
-                            }
-                            let name = if d.session.is_dirty() {
-                                format!("{base} *")
-                            } else {
-                                base
-                            };
-                            let active = i == app.active;
-                            let r = ui
-                                .add(
-                                    egui::Button::new(RichText::new(name).size(12.0))
-                                        .selected(active)
-                                        .min_size(vec2(80.0, 22.0)),
-                                )
-                                .on_hover_text(
-                                    d.path
-                                        .as_ref()
-                                        .map_or_else(|| d.name.clone(), |p| p.display().to_string()),
-                                );
-                            rects.push(r.rect);
-                            // Dragging uses an id that follows the document, not the position.
-                            // It covers the button, so it takes the clicks too (a right-click on a tab
-                            // opens its menu).
-                            let dr =
-                                ui.interact(r.rect, egui::Id::new(("doc-tab", d.uid)), egui::Sense::click_and_drag());
-                            if r.clicked() || dr.clicked() || dr.drag_started() {
-                                app.active = i;
-                            }
-                            if dr.dragged()
-                                && let Some(p) = dr.interact_pointer_pos()
-                            {
-                                dragging = true;
-                                if pane_rect.is_some_and(|r| r.contains(p)) {
-                                    // Over the second pane: it shows the document on release.
+            ui.horizontal(|ui| {
+                // The tabs scroll; the dropdown of open documents stays at the right end.
+                let tabs_width = (ui.available_width() - 26.0).max(40.0);
+                egui::ScrollArea::horizontal()
+                    .id_salt("doc-tabs")
+                    .max_width(tabs_width)
+                    .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
+                    .show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            ui.spacing_mut().item_spacing.x = 2.0;
+                            let mut rects = Vec::with_capacity(app.docs.len());
+                            for i in 0..app.docs.len() {
+                                let Some(d) = app.docs.get(i) else { continue };
+                                if moved.contains(&d.uid) {
+                                    continue;
+                                }
+                                let mut base = truncate(&d.name, max, from_start);
+                                if let Some(b) = crate::features::partials_more3::tab_badge(ui.ctx(), d) {
+                                    base = format!("[{b}] {base}");
+                                }
+                                let name = if d.session.is_dirty() {
+                                    format!("{base} *")
                                 } else {
-                                    drag_x = Some((i, p.x));
+                                    base
+                                };
+                                let active = i == app.active;
+                                let r = ui
+                                    .add(
+                                        egui::Button::new(RichText::new(name).size(12.0))
+                                            .selected(active)
+                                            .min_size(vec2(80.0, 22.0)),
+                                    )
+                                    .on_hover_text(
+                                        d.path
+                                            .as_ref()
+                                            .map_or_else(|| d.name.clone(), |p| p.display().to_string()),
+                                    );
+                                rects.push(r.rect);
+                                // Dragging uses an id that follows the document, not the position.
+                                // It covers the button, so it takes the clicks too (a right-click on a tab
+                                // opens its menu).
+                                let dr = ui.interact(
+                                    r.rect,
+                                    egui::Id::new(("doc-tab", d.uid)),
+                                    egui::Sense::click_and_drag(),
+                                );
+                                if r.clicked() || dr.clicked() || dr.drag_started() {
+                                    app.active = i;
                                 }
-                            }
-                            if dr.drag_stopped()
-                                && let Some(p) = ui.input(|inp| inp.pointer.latest_pos())
-                                && pane_rect.is_some_and(|r| r.contains(p))
-                            {
-                                to_pane = Some(d.uid);
-                            }
-                            // Dragged out of the window (or released far below the tab bar onto
-                            // the edge of the screen): the document gets a window of its own.
-                            if dr.drag_stopped() {
-                                let screen = ui.ctx().content_rect();
-                                let out = ui
-                                    .input(|inp| inp.pointer.latest_pos())
-                                    .is_none_or(|p| !screen.shrink(2.0).contains(p));
-                                if out {
-                                    detach_out = Some(i);
-                                }
-                            }
-                            r.union(dr.clone()).context_menu(|ui| {
-                                for (id, label) in [
-                                    ("close", "Close"),
-                                    ("close_others", "Close Others"),
-                                    ("close_all", "Close All"),
-                                    ("save", "Save"),
-                                    ("split", "Open in Split View"),
-                                    ("detach", "Detach to New Window"),
-                                    ("detach_copy", "Detach a Copy to New Window"),
-                                    ("copy_path", "Copy Path"),
-                                ] {
-                                    if ui.button(label).clicked() {
-                                        cmd = Some((i, id));
-                                        ui.close();
+                                if dr.dragged()
+                                    && let Some(p) = dr.interact_pointer_pos()
+                                {
+                                    dragging = true;
+                                    if pane_rect.is_some_and(|r| r.contains(p)) {
+                                        // Over the second pane: it shows the document on release.
+                                    } else {
+                                        drag_x = Some((i, p.x));
                                     }
                                 }
-                            });
-                            if icons::button(ui, "x", 18.0, false, "Close").clicked() {
-                                close = Some(i);
+                                if dr.drag_stopped()
+                                    && let Some(p) = ui.input(|inp| inp.pointer.latest_pos())
+                                    && pane_rect.is_some_and(|r| r.contains(p))
+                                {
+                                    to_pane = Some(d.uid);
+                                }
+                                // Dragged out of the window (or released far below the tab bar onto
+                                // the edge of the screen): the document gets a window of its own.
+                                if dr.drag_stopped() {
+                                    let screen = ui.ctx().content_rect();
+                                    let out = ui
+                                        .input(|inp| inp.pointer.latest_pos())
+                                        .is_none_or(|p| !screen.shrink(2.0).contains(p));
+                                    if out {
+                                        detach_out = Some(i);
+                                    }
+                                }
+                                r.union(dr.clone()).context_menu(|ui| {
+                                    for (id, label) in [
+                                        ("close", "Close"),
+                                        ("close_others", "Close Others"),
+                                        ("close_all", "Close All"),
+                                        ("save", "Save"),
+                                        ("split", "Open in Split View"),
+                                        ("detach", "Detach to New Window"),
+                                        ("detach_copy", "Detach a Copy to New Window"),
+                                        ("copy_path", "Copy Path"),
+                                    ] {
+                                        if ui.button(label).clicked() {
+                                            cmd = Some((i, id));
+                                            ui.close();
+                                        }
+                                    }
+                                });
+                                if icons::button(ui, "x", 18.0, false, "Close").clicked() {
+                                    close = Some(i);
+                                }
+                                ui.add_space(6.0);
                             }
-                            ui.add_space(6.0);
-                        }
-                        // A dragged tab goes where the pointer is.
-                        if let Some((from, x)) = drag_x {
-                            let to = rects.iter().position(|r| x < r.center().x).unwrap_or(rects.len());
-                            let to = if to > from { to - 1 } else { to };
-                            drag_to = Some((from, to.min(rects.len().saturating_sub(1))));
-                        }
+                            // A dragged tab goes where the pointer is.
+                            if let Some((from, x)) = drag_x {
+                                let to = rects.iter().position(|r| x < r.center().x).unwrap_or(rects.len());
+                                let to = if to > from { to - 1 } else { to };
+                                drag_to = Some((from, to.min(rects.len().saturating_sub(1))));
+                            }
+                        });
                     });
+                let gap = ui.available_width() - 22.0;
+                if gap > 0.0 {
+                    ui.add_space(gap);
+                }
+                let r = icons::button(ui, "chevron-down", 20.0, false, "Open documents");
+                egui::Popup::menu(&r).show(|ui| {
+                    ui.set_min_width(220.0);
+                    super::docbar::open_documents(app, ui);
                 });
+            });
         });
     app.shell.extra.dragging_tab = dragging;
     if let Some(i) = detach_out {

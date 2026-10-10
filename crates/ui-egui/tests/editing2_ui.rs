@@ -22,6 +22,9 @@ fn harness() -> Harness<'static, MarkupCraftApp> {
             app.state.threads = 0;
             app.open_bytes("sample.pdf", None, markupcraft_render::synthetic::sample_pdf())
                 .unwrap();
+            // These tests edit through the Properties panel: show it in the left panel area
+            // (the default layout shows Thumbnails there).
+            app.state.show_panel("properties");
             app
         });
     h.run_steps(6);
@@ -141,12 +144,13 @@ fn run(h: &mut Harness<'_, MarkupCraftApp>, id: &str) {
     h.run_steps(3);
 }
 
-/// The leftmost widget with this label (a canvas menu opens over the page, left of the panels).
+/// The rightmost widget with this label (a canvas menu opens over the page, right of the left
+/// panel area).
 fn menu_item(h: &Harness<'_, MarkupCraftApp>, label: &str) {
     let items: Vec<_> = h.get_all_by_label(label).collect();
     let item = items
         .iter()
-        .min_by(|a, b| a.rect().left().total_cmp(&b.rect().left()))
+        .max_by(|a, b| a.rect().left().total_cmp(&b.rect().left()))
         .unwrap_or_else(|| panic!("no {label} in the menu"));
     item.click();
 }

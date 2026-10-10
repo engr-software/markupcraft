@@ -737,9 +737,16 @@ fn ocr_dialog_reports_without_crashing() {
 
 #[test]
 fn feature_menus_and_panels_are_listed() {
-    let h = harness();
-    let panels = &h.state().state.open_panels;
+    // Each feature panel has a button on the panel bar and opens in its side area.
+    let mut h = harness();
     for p in ["search", "layers", "spaces", "links", "signatures", "sets", "compare"] {
-        assert!(panels.contains(&p), "{p} is in the default layout");
+        let title = markupcraft_ui_egui::panels::find(p).unwrap().title;
+        let button = h
+            .query_all_by_label_contains(title)
+            .next()
+            .unwrap_or_else(|| panic!("{p} is on the panel bar"));
+        button.click();
+        h.run_steps(3);
+        assert!(h.state().state.open_panels.contains(&p), "{p} opens from the panel bar");
     }
 }

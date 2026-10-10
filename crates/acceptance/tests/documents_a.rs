@@ -1709,7 +1709,8 @@ fn page_labels_number_pages_text_labels_and_clearing() {
     open(&mut h, &dir.join("l.pdf"));
     assert_eq!(labels(&h), ["i", "ii", "C-5", "B", "C-6"]);
     key(&mut h, Modifiers::NONE, Key::End);
-    assert!(shows(&h, "(C-6) of 5"), "label in the navigation bar");
+    assert!(shows(&h, "(5 of 5)"), "position in the bottom bar");
+    assert_eq!(h.state().state.page_entry, "C-6", "label in the page box");
     // Text-only label and clearing.
     call(
         &mut a,

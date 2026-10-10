@@ -351,7 +351,7 @@ fn middle_drag_pans_and_double_click_recentres() {
     // Middle double-click brings the clicked point to the middle of the view.
     h.run_steps(30);
     let centre = view(&h).viewport().center();
-    let p = centre + vec2(150.0, 100.0);
+    let p = centre + vec2(-100.0, 100.0);
     let off = view(&h).offset;
     h.hover_at(p);
     h.step();
@@ -361,7 +361,7 @@ fn middle_drag_pans_and_double_click_recentres() {
     }
     h.run_steps(2);
     let moved = view(&h).offset - off;
-    assert!((moved - vec2(150.0, 100.0)).length() < 1.0, "{moved:?}");
+    assert!((moved - vec2(-100.0, 100.0)).length() < 1.0, "{moved:?}");
     // Holding Space pans with the left button whatever the tool, and keeps the tool.
     h.state_mut().state.set_tool("rectangle");
     h.run_steps(30);
@@ -527,8 +527,9 @@ fn full_screen_presentation_always_on_top_and_bars() {
     assert!(!h.state().state.shell.ui.show_nav_bar);
     keys(&mut h, Modifiers::NONE, Key::F8);
     assert!(!h.state().state.shell.ui.show_status_bar);
+    // The default layout shows Thumbnails on the left and the Markups List below.
     let open = h.state().state.open_panels.len();
-    assert!(open > 3);
+    assert!(open >= 2);
     keys(&mut h, S, Key::F4);
     h.run_steps(2);
     assert!(h.state().state.open_panels.is_empty());
@@ -542,8 +543,11 @@ fn toolbars_show_hide_customize_and_lock() {
     let mut h = harness();
     let tb = h.state().state.shell.ui.toolbars.clone();
     assert!(tb.main.iter().any(|i| i == "tool.zoom"));
+    // The icon toolbars start hidden (the tool strip is on the right); Window > Toolbars
+    // shows them.
+    assert!(!tb.show_main && !tb.show_markup && !tb.show_measure);
     run(&mut h, "window.toolbar_markup");
-    assert!(!h.state().state.shell.ui.toolbars.show_markup);
+    assert!(h.state().state.shell.ui.toolbars.show_markup);
     // Customize: add and remove a command.
     assert!(shell::toolbars::add(&mut h.state_mut().state, "view.rulers"));
     h.run_steps(2);
@@ -649,15 +653,18 @@ fn layout_persists_and_a_new_session_restores_it() {
     let dir = temp_dir("layout");
     {
         let mut h = store_app(&dir);
-        assert!(h.state().state.open_panels.contains(&"bookmarks"));
+        // Thumbnails shows in the left panel area; Alt+B puts Bookmarks there instead.
+        assert!(h.state().state.open_panels.contains(&"thumbnails"));
+        assert!(!h.state().state.open_panels.contains(&"bookmarks"));
         keys(&mut h, A, Key::B);
         h.run_steps(3);
-        assert!(!h.state().state.open_panels.contains(&"bookmarks"));
+        assert!(h.state().state.open_panels.contains(&"bookmarks"));
+        assert!(!h.state().state.open_panels.contains(&"thumbnails"));
     }
     let mut h = store_app(&dir);
     h.run_steps(3);
-    assert!(!h.state().state.open_panels.contains(&"bookmarks"));
-    assert!(h.state().state.open_panels.contains(&"thumbnails"));
+    assert!(h.state().state.open_panels.contains(&"bookmarks"));
+    assert!(!h.state().state.open_panels.contains(&"thumbnails"));
     let _ = std::fs::remove_dir_all(&dir);
 }
 

@@ -1254,6 +1254,14 @@ fn labels(h: &H) -> Vec<String> {
 
 /// Open a top-level menu by its label.
 fn open_menu(h: &mut H, name: &str) {
+    // Markup and Measure are submenus of Tools: open Tools, then hover the submenu (a submenu
+    // button's label ends with its arrow).
+    if markupcraft_ui_egui::commands::TOOLS_SUBMENUS.contains(&name) {
+        open_menu(h, "Tools");
+        h.get_by_label(&format!("{name} \u{23f5}")).hover();
+        h.run_steps(4);
+        return;
+    }
     h.query_all_by_label(name)
         .next()
         .unwrap_or_else(|| panic!("no menu {name}"))
@@ -1347,6 +1355,23 @@ fn ui_menu_bar_and_application_menu() {
     ] {
         assert!(h.query_all_by_label(m).next().is_some(), "menu {m}");
     }
+    // In that order, left to right; Markup and Measure are submenus of Tools, not on the bar.
+    let xs: Vec<f32> = markupcraft_ui_egui::commands::MENU_BAR
+        .iter()
+        .map(|m| h.query_all_by_label(m).next().unwrap().rect().left())
+        .collect();
+    assert!(xs.windows(2).all(|w| w[0] < w[1]), "menu order {xs:?}");
+    assert!(
+        h.query_all_by_label("Measure").next().is_none(),
+        "no Measure menu on the bar"
+    );
+    open_menu(&mut h, "Tools");
+    assert!(
+        has(&h, "Markup \u{23f5}") && has(&h, "Measure \u{23f5}"),
+        "Tools > Markup / Measure"
+    );
+    h.key_press(Key::Escape);
+    h.run_steps(3);
     open_menu(&mut h, "MarkupCraft");
     for item in [
         "About",
@@ -1448,9 +1473,15 @@ fn ui_toolbars_show_hide_customize_lock() {
     );
     h.run_steps(3);
     assert!(has(&h, "Shapes toolbar"), "docked on the left");
+    // The icon toolbars start hidden (the tool strip is on the right): checking Markup Tools
+    // shows the Markup toolbar, unchecking hides it again.
     let mut h = app();
+    assert!(!has(&h, "Markup toolbar"), "hidden in the default layout");
     submenu(&mut h, "Window", "Toolbars");
+    click_contains(&mut h, "Markup Tools");
+    h.run_steps(2);
     assert!(has(&h, "Markup toolbar"), "ui-075 the Markup toolbar shows");
+    submenu(&mut h, "Window", "Toolbars");
     click_contains(&mut h, "Markup Tools");
     h.run_steps(2);
     assert!(!has(&h, "Markup toolbar"), "ui-076 unchecking hides the toolbar");
@@ -1547,7 +1578,7 @@ fn ui_page_scale_on_bar() {
     assert!(has(&h, "1/8 in = 1 ft"), "page 1's scale shows");
     press(&mut h, mods(true, false, false), Key::ArrowRight);
     assert!(
-        has(&h, "not set") || has(&h, "Not set"),
+        has(&h, "Scale Not Set"),
         "page 2 has no scale: {:?}",
         labels(&h).iter().filter(|l| l.contains("cale")).collect::<Vec<_>>()
     );
@@ -1621,6 +1652,16 @@ fn ui_layout_persistence() {
     assert_ne!(panel_open(&h, "bookmarks"), was, "the layout came back after a restart");
 }
 
+/// The app with every panel docked around the document in its slot (a saved layout of that
+/// shape; by default the panels show in the left panel area and under the canvas instead).
+fn docked_app() -> H {
+    let mut h = app();
+    let docked = markupcraft_ui_egui::shell::layout::save(&markupcraft_ui_egui::dock::all_docked());
+    h.state_mut().state.shell.apply_layout = docked;
+    h.run_steps(4);
+    h
+}
+
 /// The screen point on panel `id`'s dock tab (first tab of its group only), and its group's tabs.
 fn dock_tab(h: &H, id: &'static str) -> Option<(egui::Pos2, Vec<markupcraft_ui_egui::dock::Tab>)> {
     use markupcraft_ui_egui::dock::Tab;
@@ -1663,7 +1704,7 @@ fn ui_panel_tab_context_menu_and_split() {
     // The app keeps snap and preference state process-wide: tests take turns.
     let _serial = serial();
     use markupcraft_ui_egui::dock::Tab;
-    let mut h = app();
+    let mut h = docked_app();
     let first = markupcraft_ui_egui::panels::PANELS
         .iter()
         .map(|p| p.id)
@@ -1693,13 +1734,13 @@ fn ui_panel_tab_context_menu_and_split() {
     let Tab::Panel(other) = rest else { panic!() };
     assert!(!group_of(&h, other).contains(&Tab::Panel(first)), "both show at once");
     // Hide
-    let mut h = app();
+    let mut h = docked_app();
     let (at, _) = dock_tab(&h, first).unwrap();
     right_click_at(&mut h, at);
     click_label(&mut h, "Hide");
     assert!(!panel_open(&h, first), "ui-085 Hide closes the panel");
-    // Attach to another side: it joins a different group
-    let mut h = app();
+    // Attach to another side: it joins a different group (Attach Left: the left panel area)
+    let mut h = docked_app();
     let before = group_of(&h, first);
     let (at, _) = dock_tab(&h, first).unwrap();
     right_click_at(&mut h, at);
@@ -1959,8 +2000,11 @@ fn ui_profiles() {
     let mut h = app_with_store(&dir);
     let items = submenu(&mut h, "MarkupCraft", "Profiles");
     assert!(!items.is_empty(), "ui-100 Profiles lists profiles: {items:?}");
-    // Create "Review" with the markup toolbar hidden, switch back: the toolbar returns.
+    // Show the markup toolbar in this profile, create "Review" with it hidden, switch back:
+    // the toolbar returns.
     let first = st(&h).shell.store.as_ref().unwrap().active();
+    h.state_mut().state.shell.ui.toolbars.show_markup = true;
+    h.state_mut().state.shell.save_ui();
     prefs_on(&mut h, "Admin");
     h.query_all_by_label("New Profile").next().expect("New Profile button");
     // type the name into the field beside the button
@@ -4415,15 +4459,16 @@ fn ui_middle_button_pan_and_recenter() {
     assert_ne!(view(&h).offset, off, "middle-drag panned");
     assert_eq!(markups(&h).len(), n, "and drew nothing");
     assert_eq!(st(&h).tool, "rectangle", "the tool stays");
-    // double-click the middle button on a point: it moves to the centre
-    let at = screen(&h, 450.0, 350.0);
+    // double-click the middle button on a point near the middle of the plan (not where the
+    // view would have to scroll past the page edge): it moves to the centre
+    let at = screen(&h, 600.0, 350.0);
     for _ in 0..2 {
         pointer_button(&mut h, at, egui::PointerButton::Middle, true, Modifiers::NONE);
         pointer_button(&mut h, at, egui::PointerButton::Middle, false, Modifiers::NONE);
     }
     h.run_steps(3);
     let c = st(&h).shell.extra.doc_area.unwrap().center();
-    let now = screen(&h, 450.0, 350.0);
+    let now = screen(&h, 600.0, 350.0);
     assert!(
         now.distance(c) < now.distance(at).max(1.0) + 40.0 && now.distance(c) < 60.0,
         "re-centred: {now:?} vs centre {c:?}"

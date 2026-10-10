@@ -564,21 +564,53 @@ fn dark_mode_line_weights_and_reply_indicators() {
 #[test]
 fn panel_access_bars_tab_menu_bottom_layout_and_auto_hide_tabs() {
     let mut h = harness();
+    // The panel bar is on by default. Its Bookmarks button shows Bookmarks in the left panel
+    // area (in place of Thumbnails); a second click collapses the area.
+    let bar_button = |h: &Harness<'_, MarkupCraftApp>| {
+        h.query_all_by_label_contains("Bookmarks (")
+            .next()
+            .expect("bookmarks bar button")
+            .rect()
+            .center()
+    };
+    assert!(h.state().state.open_panels.contains(&"thumbnails"));
+    assert!(!h.state().state.open_panels.contains(&"bookmarks"));
+    let at = bar_button(&h);
+    h.query_all_by_label_contains("Bookmarks (").next().unwrap().click();
+    h.run_steps(3);
+    assert!(h.state().state.open_panels.contains(&"bookmarks"));
+    assert!(
+        !h.state().state.open_panels.contains(&"thumbnails"),
+        "one left panel at a time"
+    );
+    assert_eq!(bar_button(&h), at, "the bar stays at the window's edge");
+    h.query_all_by_label_contains("Bookmarks (").next().unwrap().click();
+    h.run_steps(3);
+    assert!(
+        !h.state().state.open_panels.contains(&"bookmarks"),
+        "the active icon collapses it"
+    );
     run(&mut h, "window.panel_bars");
     h.run_steps(2);
-    assert!(h.state().state.open_panels.contains(&"bookmarks"));
-    h.query_all_by_label_contains("Bookmarks (")
-        .next()
-        .expect("bookmarks bar button")
-        .click();
-    h.run_steps(3);
-    assert!(!h.state().state.open_panels.contains(&"bookmarks"));
-    h.query_all_by_label_contains("Bookmarks (")
-        .next()
-        .expect("bookmarks bar button")
-        .click();
-    h.run_steps(3);
-    assert!(h.state().state.open_panels.contains(&"bookmarks"));
+    assert!(
+        h.query_all_by_label_contains("Bookmarks (").next().is_none(),
+        "the bar hides"
+    );
+    run(&mut h, "window.panel_bars");
+    h.run_steps(2);
+    // Docked panels: Properties and Thumbnails attached on the right share a tab group.
+    for id in ["thumbnails", "properties"] {
+        h.state_mut()
+            .state
+            .shell
+            .extra
+            .dock_ops
+            .push(shell::extra::DockOp::Attach(
+                id,
+                markupcraft_ui_egui::panels::Slot::Right,
+            ));
+        h.run_steps(3);
+    }
     // The panel tab's menu (right-click the Thumbnails tab, over its panel): Hide, then Attach Right.
     let leaf = {
         let dock = h.state().dock();

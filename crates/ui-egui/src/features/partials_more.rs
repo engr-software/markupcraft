@@ -147,9 +147,15 @@ pub fn takeoff_profile(app: &mut AppState) {
         }
         saved = app.shell.store.as_ref().is_some_and(|s| s.active() == "Takeoff");
     }
-    for p in ["measurements", "markups", "toolchest"] {
+    // The Tool Chest in the left panel area, the Markups List under the canvas and the
+    // Measurements panel docked on the right, so all three show at once.
+    for p in ["markups", "toolchest"] {
         app.show_panel(p);
     }
+    app.shell.extra.dock_ops.push(crate::shell::extra::DockOp::Attach(
+        "measurements",
+        crate::panels::Slot::Right,
+    ));
     let t = app.edit.more.measure_tool;
     app.set_tool(t);
     app.shell.save_ui();

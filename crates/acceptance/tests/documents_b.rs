@@ -1253,7 +1253,7 @@ fn set_create_navigate_and_sort() {
 }
 
 fn open_panels(h: &Harness<'_, MarkupCraftApp>) -> Vec<&'static str> {
-    markupcraft_ui_egui::dock::open_panels(h.state().dock())
+    h.state().state.open_panels.clone()
 }
 
 /// Pressing Alt+`k` flips whether panel `id` is open (twice: back as it was).

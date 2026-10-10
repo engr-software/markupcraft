@@ -29,7 +29,7 @@
 <p align="center">
   <img src="docs/images/markupcraft-takeoff.png" alt="MarkupCraft with the built-in sample floor plan open: a length, a polylength, a perimeter, an area and a five-item count drawn on the plan, the Measurements panel showing the 1/8 in = 1 ft page scale, and the Markups List grouped by subject with a total of 5 ea, 265.56 ft and 629.63 sf" width="100%">
   <br>
-  <sub>A takeoff on the built-in sample plan: Measurements panel on the right, the Markups List grouped by subject with running totals below.</sub>
+  <sub>A takeoff on the built-in sample plan: the Measurements panel in the left panel area, the tool strip on the right, the Markups List grouped by subject with running totals below.</sub>
 </p>
 
 > [!NOTE]
@@ -116,7 +116,7 @@ Every screenshot here is MarkupCraft itself, captured headlessly from the real i
 
 <table>
 <tr>
-<td width="50%"><img src="docs/images/markupcraft-markups.png" alt="The sample plan with a cloud around the kitchen, a callout pointing into it, a text highlight on BATH and an APPROVED stamp in the living room, with the Tool Chest open on the right showing recent tools and the Markup tool set"></td>
+<td width="50%"><img src="docs/images/markupcraft-markups.png" alt="The sample plan with a cloud around the kitchen, a callout pointing into it and an APPROVED stamp in the living room, with the Tool Chest open in the left panel area showing recent tools and the Markup tool set, and the markup tools in the strip on the right edge"></td>
 <td width="50%"><img src="docs/images/markupcraft-properties.png" alt="An Area measurement selected on the sample plan, with its right-click menu (Cut, Copy, Duplicate, Reply, Status, Checkmark, Lock, Arrange, Flip, Apply to All Pages, Format Painter, Flatten, Show Segment Values, Set as Default, Add to Tool Chest) and the Properties panel showing its subject, author, layer, status, color, fill, opacity and line style"></td>
 </tr>
 <tr>
@@ -209,6 +209,10 @@ interface. The full list, one row per feature with its test and its acceptance v
 
 ### Interface
 
+- The window laid out where Revu users look for things ([docs/UI_LAYOUT.md](docs/UI_LAYOUT.md)):
+  the panel bar on the left edge opening one panel at a time, the markup and measurement tools
+  in a strip on the right edge, the Markups List under the canvas and one bottom bar for pages,
+  view layout, snapping, theme and scale; dark by default, with a light theme.
 - Revu's menus, toolbars, panels and **every default keyboard shortcut**, a shortcut editor, named
   toolbars, detached and docked panels, saved layouts and shipped profiles.
 - Preferences pages for General, Document, Navigation, Grid and Snap, Interface, Tools, Window,
@@ -411,7 +415,22 @@ cargo run -p markupcraft-ui-egui --example shot -- docs/images/markupcraft-takeo
   --then-tool select --key Escape --hover 700,60
 ```
 
-Points are PDF user space on the current page. `--panel`, `--tool`, `--show N` (select markup N),
+The other screenshots:
+
+```sh
+shot docs/images/markupcraft-markups.png --zoom fit-page --panel toolchest \
+  --tool cloud --drag 600,520,1020,690 \
+  --then-tool callout --click 560,470 --click 760,600 --type "Verify layout" --key Escape \
+  --then-tool stamp --click 300,450 --then-tool select --key Escape --hover 700,60
+shot docs/images/markupcraft-properties.png --zoom fit-page --panel properties \
+  --tool area --click 600,520 --click 1020,520 --click 1020,690 --click 600,690 --dblclick 600,690 \
+  --then-tool select --key Escape --rclick 800,600
+shot docs/images/markupcraft-split.png --zoom fit-page --panel thumbnails --run view.split_vertical
+shot docs/images/markupcraft-preferences.png --zoom fit-page --run window.preferences
+```
+
+(`shot` is `cargo run -p markupcraft-ui-egui --example shot --`.) Points are PDF user space on
+the current page. `--panel`, `--tool`, `--show N` (select markup N),
 `--rclick X,Y`, `--drag X1,Y1,X2,Y2`, `--type TEXT` and `--run COMMAND` (for example
 `window.preferences` or `view.split_vertical`) cover the rest. Set `MARKUPCRAFT_USER` (and
 `USERNAME` / `USER`) to a neutral name first, since new markups carry the author's name.

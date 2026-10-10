@@ -30,10 +30,12 @@ impl Default for ToolbarPrefs {
         if let Some(i) = main.iter().position(|s| s == "tool.pan") {
             main.insert(i + 1, "tool.zoom".into());
         }
+        // The icon toolbars start hidden: the default layout has the tool strip on the right
+        // and the bottom bar instead (Window > Toolbars shows them).
         Self {
-            show_main: true,
-            show_markup: true,
-            show_measure: true,
+            show_main: false,
+            show_markup: false,
+            show_measure: false,
             locked: false,
             main,
             more: Default::default(),

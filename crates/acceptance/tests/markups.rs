@@ -180,6 +180,15 @@ fn panel(h: &mut Harness<'_, MarkupCraftApp>, id: &'static str) {
     h.run_steps(4);
 }
 
+/// Open Tools > Markup (the Markup commands are a submenu of Tools; a submenu button's label
+/// ends with its arrow).
+fn tools_markup_menu(h: &mut Harness<'_, MarkupCraftApp>) {
+    h.get_by_label("Tools").click();
+    h.run_steps(3);
+    h.get_by_label("Markup \u{23f5}").hover();
+    h.run_steps(4);
+}
+
 /// Whether any widget's label or value contains `text` (values count too).
 fn visible(h: &Harness<'_, MarkupCraftApp>, text: &str) -> bool {
     labels(h).iter().any(|l| l.contains(text))
@@ -365,7 +374,8 @@ fn text_markup_tools_mark_page_text() {
     let (y, x0, x1) = ((w[1] + w[3]) / 2.0, w[0] + 1.0, w[2] - 1.0);
     let mut h = app();
     let n0 = markups(&h).len();
-    h.get_by_label("Highlight Text").click();
+    // Tools > Markup > Highlight Text (no button for it on the default tool strip).
+    run(&mut h, "tool.texthighlight");
     h.run_steps(3);
     drag(&mut h, (x0, y), (x1, y));
     key(&mut h, NONE, Key::U);
@@ -390,7 +400,7 @@ fn text_markup_tools_mark_page_text() {
         );
     }
     let n1 = markups(&h).len();
-    h.get_by_label("Insert / Replace Text").click();
+    run(&mut h, "tool.inserttext");
     h.run_steps(3);
     click(&mut h, 150.0, 650.0);
     type_text(&mut h, "insert me");
@@ -805,7 +815,7 @@ fn eraser_splits_ink_strokes() {
     // the UI tool is on Shift+E
     let mut h = app();
     key(&mut h, SHIFT, Key::E);
-    assert!(visible(&h, "Eraser"));
+    assert_eq!(h.state().state.tool, "eraser");
 }
 
 /// K-032: Shift locks a line to 0/45/90 degrees and the pen to horizontal / vertical.
@@ -1139,8 +1149,7 @@ fn image_stamps_and_image_markups() {
     }
     // Markup > Image is on I
     let mut h = app();
-    h.query_all_by_label("Markup").next().unwrap().click();
-    h.run_steps(3);
+    tools_markup_menu(&mut h);
     assert!(visible(&h, "Image..."), "Markup > Image...");
     assert!(visible(&h, "Image From Scanner..."), "Markup > Image From Scanner...");
 }
@@ -3933,8 +3942,7 @@ fn custom_columns_saved_to_the_profile() {
             .iter()
             .any(|c| c.name == "Unit Cost")
     );
-    h.query_all_by_label("Markup").next().unwrap().click();
-    h.run_steps(3);
+    tools_markup_menu(&mut h);
     assert!(visible(&h, "Profile Columns"), "Markup > Profile Columns");
 }
 

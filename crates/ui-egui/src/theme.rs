@@ -1,4 +1,5 @@
-//! Design tokens and the egui style: neutral grey chrome, white panels, one blue accent, a mid
+//! Design tokens and the egui style: dark charcoal chrome by default (a light theme with grey
+//! chrome and white panels is in Preferences and on the bottom bar), one blue accent, a mid
 //! grey workspace behind the pages (a drawing reads best on grey). Every custom widget reads
 //! [`Tokens::get`]. Token layout adapted from PdfCraft's `theme.rs` (MIT OR Apache-2.0).
 
@@ -76,13 +77,13 @@ impl Tokens {
 
     pub fn get(ctx: &egui::Context) -> Self {
         ctx.data(|d| d.get_temp::<Tokens>(egui::Id::new("markupcraft-theme")))
-            .unwrap_or(Self::LIGHT)
+            .unwrap_or(Self::DARK)
     }
 }
 
-/// Install the tokens and the matching egui visuals.
+/// Install the default (dark) tokens and the matching egui visuals.
 pub fn apply(ctx: &egui::Context) {
-    apply_mode(ctx, false);
+    apply_mode(ctx, true);
 }
 
 /// Install the light or dark tokens and visuals.
@@ -118,8 +119,38 @@ pub fn apply_mode(ctx: &egui::Context, dark: bool) {
     });
 }
 
+/// A markup's colour as text on the panels: on the dark theme a dark colour (pure blue, purple)
+/// is lifted toward white until it reads on the panel, keeping its hue.
+pub fn readable(c: Color32, dark: bool) -> Color32 {
+    if !dark {
+        return c;
+    }
+    let luma = 0.2126 * f32::from(c.r()) + 0.7152 * f32::from(c.g()) + 0.0722 * f32::from(c.b());
+    if luma >= 140.0 {
+        return c;
+    }
+    let t = ((140.0 - luma) / 140.0).clamp(0.0, 1.0) * 0.65;
+    let lift = |v: u8| (f32::from(v) + (255.0 - f32::from(v)) * t).round() as u8;
+    Color32::from_rgb(lift(c.r()), lift(c.g()), lift(c.b()))
+}
+
 /// An egui colour from a model colour and an opacity in 0..=1.
 pub fn color32(c: &markupcraft_model::Color, alpha: f64) -> Color32 {
     let ch = |v: f64| (v.clamp(0.0, 1.0) * 255.0).round() as u8;
     Color32::from_rgba_unmultiplied(ch(c.r), ch(c.g), ch(c.b), ch(alpha))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dark_markup_colours_are_lifted_on_the_dark_theme_only() {
+        let blue = Color32::from_rgb(0, 0, 255);
+        assert_eq!(readable(blue, false), blue);
+        let lifted = readable(blue, true);
+        assert!(lifted.r() > 100 && lifted.b() == 255, "{lifted:?}");
+        let yellow = Color32::from_rgb(255, 230, 0);
+        assert_eq!(readable(yellow, true), yellow, "light colours stay");
+    }
 }

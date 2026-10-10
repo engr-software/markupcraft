@@ -75,6 +75,26 @@ Measurements are ordinary annotations plus Revu keys:
 
 ## The interface (`crates/ui-egui`)
 
+- The window follows the layout Revu users know (`docs/UI_LAYOUT.md`), drawn in this order each
+  frame (`MarkupCraftApp::ui`): the menu bar (`chrome::menu_bar`: the MarkupCraft application
+  menu, File, Edit, View, Document, Batch, Tools, Window, Help, from `commands::MENU_BAR`; the
+  Markup and Measure command rows keep their own menu names and appear as submenus of Tools,
+  `commands::TOOLS_SUBMENUS`), the document bar (`shell/docbar.rs`: document dropdown, name,
+  page count, Document Properties), the optional icon toolbars (hidden by default, Window >
+  Toolbars), the bottom bar (`chrome::bottom_bar`: Markups List toggle and thumbnail size,
+  status toggles (F8), page layout and navigation (F4), theme switch, page size and scale), the
+  panel bar on the left edge and the tool strip on the right edge (`shell/toolstrip.rs`), the
+  bottom panel, the left panel area, then the document area (tabs over the canvas only, with a
+  dropdown of open documents at the right end).
+- Panels open in one place each (`shell/panelbars.rs`): the left panel area shows one panel at
+  a time (the panel bar or `panel.<id>` picks it; the active one again collapses it), the
+  Markups List and Compare open under the canvas, and a panel the user attaches to the right or
+  floats goes into the dock (`dock.rs`, egui_dock), which by default holds only the document
+  area. `AppState::open_panels` is the union. The interface preferences remember the side
+  panels and the dock; `shell::LAYOUT_VERSION` is bumped when the default arrangement changes
+  so every profile takes it once (`shell::migrate_layout`). The default theme is dark
+  (`theme::Tokens::DARK`); light stays in Preferences and on the bottom bar.
+
 - Every edit is a `markupcraft_engine::Session` call, the session automation drives, so undo,
   the command table, the clipboard and page operations are shared. A gesture that edits many
   times (a slider drag, typing) runs under a merge key and is one undo step

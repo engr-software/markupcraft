@@ -1390,7 +1390,8 @@ impl eframe::App for MarkupCraftApp {
         }
         self.state.take_dialogs();
         shell::begin_frame(&mut self.state, &ctx);
-        self.state.open_panels = dock::open_panels(&self.dock);
+        shell::panelbars::dedupe(&mut self.state, &self.dock);
+        self.state.open_panels = shell::panelbars::open(&self.state, &self.dock);
         // The Thumbnails panel says each frame whether it is showing; the canvas requests
         // thumbnails while it is.
         self.state.thumbs_wanted_last = self.state.thumbs_wanted;
@@ -1414,21 +1415,37 @@ impl eframe::App for MarkupCraftApp {
             self.title = title;
         }
 
+        // The default arrangement (docs/UI_LAYOUT.md): menu bar, document bar, optional
+        // toolbars; the bottom bar under everything; the panel bar on the left edge and the
+        // tool strip on the right; the bottom panel, the left panel area, then the document.
         chrome::menu_bar(&mut self.state, ui);
+        shell::docbar::bar(&mut self.state, ui);
         chrome::toolbar(&mut self.state, ui);
         shell::proptoolbar::bar(&mut self.state, ui);
-        shell::toolbars_more::strips(&mut self.state, ui);
-        chrome::status_bar(&mut self.state, ui);
+        chrome::bottom_bar(&mut self.state, ui);
         shell::panelbars::bars(&mut self.state, ui);
+        shell::toolstrip::strip(&mut self.state, ui);
+        shell::panelbars::bottom_area(&mut self.state, ui, true);
+        shell::toolbars_more::strips(&mut self.state, ui);
+        shell::panelbars::left_area(&mut self.state, ui);
+        shell::panelbars::bottom_area(&mut self.state, ui, false);
         shell::edges::strips(&mut self.state, ui);
-        egui::CentralPanel::default().frame(egui::Frame::NONE).show(ui, |ui| {
-            let style = egui_dock::Style::from_egui(ui.style().as_ref());
-            DockArea::new(&mut self.dock)
-                .style(style)
-                .show_leaf_collapse_buttons(true)
-                .show_leaf_close_all_buttons(false)
-                .show_inside(ui, &mut dock::Viewer { app: &mut self.state });
-        });
+        let chrome_fill = theme::Tokens::get(&ctx).chrome;
+        egui::CentralPanel::default()
+            .frame(egui::Frame::NONE.fill(chrome_fill))
+            .show(ui, |ui| {
+                // With nothing docked the document area fills the middle (no dock tab over it).
+                if self.dock.iter_all_tabs().all(|(_, t)| *t == Tab::Document) {
+                    chrome::document_area(&mut self.state, ui);
+                    return;
+                }
+                let style = egui_dock::Style::from_egui(ui.style().as_ref());
+                DockArea::new(&mut self.dock)
+                    .style(style)
+                    .show_leaf_collapse_buttons(true)
+                    .show_leaf_close_all_buttons(false)
+                    .show_inside(ui, &mut dock::Viewer { app: &mut self.state });
+            });
         chrome::windows(&mut self.state, &ctx);
         windows::show(&mut self.state, &ctx);
         shell::windows(&mut self.state, &ctx);
@@ -1442,16 +1459,18 @@ impl eframe::App for MarkupCraftApp {
             self.state.run(&id, &ctx);
         }
         for p in std::mem::take(&mut self.state.panel_toggles) {
-            dock::toggle_panel(&mut self.dock, p);
+            shell::panelbars::toggle(&mut self.state, &mut self.dock, p);
         }
         for p in std::mem::take(&mut self.state.panel_shows) {
-            if !dock::open_panels(&self.dock).contains(&p) {
-                dock::toggle_panel(&mut self.dock, p);
-            }
-            dock::focus_panel(&mut self.dock, p);
+            shell::panelbars::show(&mut self.state, &mut self.dock, p);
         }
         if std::mem::take(&mut self.state.reset_layout) {
             self.dock = dock::default_layout();
+            let d = shell::UiPrefs::default();
+            self.state.shell.ui.left_panel = d.left_panel;
+            self.state.shell.ui.bottom_panel = d.bottom_panel;
+            self.state.shell.panels_hidden = false;
+            self.state.shell.layout_dirty = true;
         }
         shell::dock_frame(&mut self.state, &mut self.dock);
         shell::end_frame(&mut self.state, &ctx);

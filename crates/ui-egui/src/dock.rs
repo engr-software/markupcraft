@@ -1,7 +1,7 @@
-//! The docking layout (egui_dock, MIT): the document area in the middle, panels around it in
-//! Revu's default arrangement (Thumbnails and Bookmarks left, Properties and Tool Chest right,
-//! Markups List at the bottom). Panels can be dragged, stacked, split, undocked and closed;
-//! Window menu entries reopen them.
+//! The docking layout (egui_dock, MIT): the document area in the middle and the panels the user
+//! docks around it (Attach Right, Float, a saved layout). By default no panel is docked: the
+//! left panel area and the bottom panel (`shell::panelbars`) show them. Docked panels can be
+//! dragged, stacked, split, undocked and closed; Window menu entries reopen them.
 
 use egui_dock::{DockState, NodeIndex, SurfaceIndex, TabViewer};
 
@@ -22,8 +22,16 @@ fn slot_tabs(slot: Slot) -> Vec<Tab> {
         .collect()
 }
 
-/// Revu's default arrangement.
+/// The default dock: the document area alone. The default panels live outside the dock, in
+/// the left panel area and under the canvas (`shell::panelbars`); the dock holds the panels the
+/// user attaches to the right or floats, and the arrangement of [`crate::shell::panelbars::arranged`].
 pub fn default_layout() -> DockState<Tab> {
+    DockState::new(vec![Tab::Document])
+}
+
+/// Every panel in its slot around the document (Window > Bottom Panel Across the Window
+/// rearranges the docked panels this way; tests use it as a fully docked layout).
+pub fn all_docked() -> DockState<Tab> {
     let mut dock = DockState::new(vec![Tab::Document]);
     let tree = dock.main_surface_mut();
     let mut center = NodeIndex::root();
@@ -159,8 +167,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn default_layout_has_every_panel_and_toggles() {
-        let mut dock = default_layout();
+    fn docked_layout_has_every_panel_and_toggles() {
+        assert!(open_panels(&default_layout()).is_empty(), "no panel docked by default");
+        let mut dock = all_docked();
         let open = open_panels(&dock);
         assert_eq!(open.len(), PANELS.len());
         toggle_panel(&mut dock, "bookmarks");

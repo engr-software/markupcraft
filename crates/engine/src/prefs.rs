@@ -85,7 +85,7 @@ pub struct Preferences {
     /// `incremental` or `full`
     pub save_mode: String,
     pub recent_files: u32,
-    /// UI theme: `light`, `dark` or `system`
+    /// UI theme: `light`, `dark` (the default) or `system`
     pub theme: String,
     /// Interface language: one of [`LANGUAGES`] (`en` English, `es` Spanish).
     pub language: String,
@@ -105,7 +105,7 @@ impl Default for Preferences {
             autosave_minutes: 10,
             save_mode: "incremental".into(),
             recent_files: 20,
-            theme: "system".into(),
+            theme: "dark".into(),
             language: "en".into(),
             more: Default::default(),
         }

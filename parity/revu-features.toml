@@ -9360,10 +9360,10 @@ priority = "P0"
 source = "docs/revu_features/04_compare_ui_collab.md:170"
 status = "have"
 cpp = "partial"
-evidence = ["full_screen_presentation_always_on_top_and_bars", "default_layout_has_every_panel_and_toggles"]
+evidence = ["full_screen_presentation_always_on_top_and_bars", "docked_layout_has_every_panel_and_toggles"]
 accepted = ["ui_panels_and_access_bars"]
 acceptance = "pass"
-notes = "Docking panels left, right and bottom; Window menu toggles; Hide Panels (Shift+F4)."
+notes = "The panel bar opens one panel at a time in the left panel area (the Markups List under the canvas); panels attach left, right or bottom, dock and float; Window menu toggles; Hide Panels (Shift+F4)."
 
 [[feature]]
 id = "ui-084"

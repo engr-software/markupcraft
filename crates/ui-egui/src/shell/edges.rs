@@ -34,9 +34,20 @@ pub fn toggle(app: &mut AppState, slot: Slot) {
     } else {
         &[Slot::Right, Slot::Bottom]
     };
+    // The left edge: the left panel area's panel and left-docked panels; the right edge: the
+    // other docked panels.
+    let side = super::panelbars::left(app);
+    let bottom = super::panelbars::bottom(app);
     let open: Vec<&'static str> = PANELS
         .iter()
-        .filter(|p| slots.contains(&p.slot) && app.open_panels.contains(&p.id))
+        .filter(|p| app.open_panels.contains(&p.id) && Some(p.id) != bottom)
+        .filter(|p| {
+            if Some(p.id) == side {
+                slot == Slot::Left
+            } else {
+                slots.contains(&p.slot)
+            }
+        })
         .map(|p| p.id)
         .collect();
     if open.is_empty() {
@@ -71,10 +82,13 @@ pub fn strips(app: &mut AppState, ui: &mut egui::Ui) {
             Slot::Left => !app.shell.extra.edges.left.is_empty(),
             _ => !app.shell.extra.edges.right.is_empty(),
         };
+        // Inside the panel bar and the tool strip (which stay at the window's edges).
+        let bar = if app.shell.ui.extra.panel_bars { 34.0 } else { 0.0 };
+        let strip = if app.shell.ui.show_tool_strip { 34.0 } else { 0.0 };
         let x = if slot == Slot::Left {
-            screen.left()
+            screen.left() + bar
         } else {
-            screen.right() - 5.0
+            screen.right() - 5.0 - strip
         };
         let rect = egui::Rect::from_min_max(egui::pos2(x, top), egui::pos2(x + 5.0, bottom));
         let label = match (slot, collapsed) {

@@ -23,6 +23,9 @@ fn harness() -> Harness<'static, MarkupCraftApp> {
             app.state.threads = 0;
             app.open_bytes("sample.pdf", None, markupcraft_render::synthetic::sample_pdf())
                 .unwrap();
+            // These tests edit through the Properties panel: show it in the left panel area
+            // (the default layout shows Thumbnails there).
+            app.state.show_panel("properties");
             app
         });
     h.run_steps(6);
@@ -172,7 +175,13 @@ fn shift_constrains_a_line_and_a_drag_makes_an_arrow() {
     click_mod(&mut h, 300.0, 112.0, Modifiers::SHIFT);
     let m = last(&h);
     assert_eq!(m.kind, Kind::Line);
-    assert!((m.pts[1].y - 100.0).abs() < 1e-6, "{:?}", m.pts);
+    // Horizontal: the second point takes the first one's y (a click lands within a thousandth
+    // of a point of where it was aimed at this zoom).
+    assert!(
+        (m.pts[1].y - m.pts[0].y).abs() < 1e-6 && (m.pts[0].y - 100.0).abs() < 1e-3,
+        "{:?}",
+        m.pts
+    );
     assert!(m.pts[1].x > 290.0);
 
     key(&mut h, Key::A);
@@ -515,10 +524,10 @@ fn context_menu_saves_a_look_to_the_tool_chest() {
     // The menu's item (the Properties panel has one too).
     let items: Vec<_> = h.get_all_by_label("Add to Tool Chest").collect();
     assert_eq!(items.len(), 2, "the menu is open");
-    // The menu opens at the pointer, over the canvas (the panel is on the right).
+    // The menu opens at the pointer, over the canvas (the panel is on the left).
     let menu = items
         .iter()
-        .min_by(|a, b| a.rect().left().total_cmp(&b.rect().left()))
+        .max_by(|a, b| a.rect().left().total_cmp(&b.rect().left()))
         .unwrap();
     menu.click();
     h.run_steps(3);
@@ -684,7 +693,7 @@ fn segment_values_toggle_from_the_menu() {
     let items: Vec<_> = h.get_all_by_label("Show Segment Values").collect();
     let menu = items
         .iter()
-        .min_by(|a, b| a.rect().left().total_cmp(&b.rect().left()))
+        .max_by(|a, b| a.rect().left().total_cmp(&b.rect().left()))
         .unwrap();
     menu.click();
     h.run_steps(3);

@@ -6,6 +6,23 @@ each version is published as three releases, one per operating system
 [Releases page](https://github.com/engr-software/markupcraft/releases).
 Feature status per row is in [FEATURES.md](FEATURES.md).
 
+## Unreleased
+
+### Interface
+
+- The default window layout follows the one Revu users know ([docs/UI_LAYOUT.md](docs/UI_LAYOUT.md)):
+  the MarkupCraft menu, then File, Edit, View, Document, Batch, Tools, Window and Help, with the
+  Markup and Measure commands under Tools; a document bar (documents, name, page count,
+  properties); a panel bar on the left edge that opens one panel at a time in the left panel
+  area; the markup and measurement tools in a strip on the right edge; one bottom bar (Markups
+  List toggle, thumbnail size, snapping, view layout, navigation tools, page box "label (n of N)",
+  theme switch, page size and scale); the Markups List under the canvas; and a dropdown of open
+  documents at the end of the tab strip. The icon toolbars are hidden by default (Window >
+  Toolbars). Command ids and shortcuts are unchanged.
+- Dark theme by default; the light theme is in Preferences and on the bottom bar.
+- Saved profiles take the new layout once (layout version 2); Window > Reset Panel Layout
+  restores it later.
+
 ## 0.4.0 (2026-10-09)
 
 Every in-scope Revu feature now has a **blind acceptance verdict**: a second test, written from
