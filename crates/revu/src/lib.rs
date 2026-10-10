@@ -63,9 +63,31 @@ pub fn open(path: impl AsRef<Path>) -> Result<(PdfFile, Document), RevuError> {
     open_bytes(Arc::new(data), path)
 }
 
+/// Object numbers from here up are refused: ISO 32000-1 (Annex C) caps a file at 8,388,607
+/// objects, and an object numbered near `u32::MAX` leaves the object layer no number for the
+/// next new object (it would wrap to 0 and the next save would write a broken file).
+pub const MAX_OBJECT_NUMBER: u32 = 1 << 30;
+
+/// [`CosDoc::open`] for untrusted bytes: a panic in the object layer is an error, and a file
+/// whose object numbers leave no room for new objects is refused instead of being saved broken.
+pub fn open_cos(data: Arc<Vec<u8>>) -> Result<CosDoc, CosError> {
+    let refused = |detail: &str| CosError::Syntax {
+        offset: 0,
+        detail: detail.to_string(),
+    };
+    let cos = std::panic::catch_unwind(|| CosDoc::open(data))
+        .map_err(|_| refused("the object layer could not read the file"))??;
+    // The next new object is numbered after the highest object and after the trailer's /Size.
+    let size = cos.trailer().int(b"Size").unwrap_or(0);
+    if size >= i64::from(MAX_OBJECT_NUMBER) || cos.object_numbers().last().is_some_and(|&n| n >= MAX_OBJECT_NUMBER) {
+        return Err(refused("an object number is out of range (the file is damaged)"));
+    }
+    Ok(cos)
+}
+
 /// Load from bytes already in memory (`path` is recorded, not read).
 pub fn open_bytes(data: Arc<Vec<u8>>, path: &Path) -> Result<(PdfFile, Document), RevuError> {
-    let cos = CosDoc::open(data)?;
+    let cos = open_cos(data)?;
     let doc = read::load(&cos, &path.display().to_string());
     Ok((
         PdfFile {

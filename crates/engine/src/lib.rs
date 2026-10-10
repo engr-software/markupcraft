@@ -207,6 +207,8 @@ pub struct Session {
     merge: Option<String>,
     /// The merge key of the last undo step, until [`Session::seal`].
     last_merge: Option<String>,
+    /// Page text read for search, kept while the bytes it came from are current.
+    text_cache: std::sync::Mutex<search::TextCache>,
 }
 
 impl Session {
@@ -248,6 +250,7 @@ impl Session {
             author: String::new(),
             merge: None,
             last_merge: None,
+            text_cache: search::TextCache::new(),
         }
     }
 

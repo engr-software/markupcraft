@@ -231,6 +231,12 @@ impl RenderDoc {
         self.pool.try_recv()
     }
 
+    /// Give up on a render after `limit` (default 20 s): the pool's watchdog then answers it
+    /// with an error and replaces the stuck worker (pools with worker threads only).
+    pub fn set_stuck_after(&mut self, limit: std::time::Duration) {
+        self.pool.set_stuck_after(limit);
+    }
+
     /// `true` when there are no worker threads.
     pub fn is_inline(&self) -> bool {
         self.pool.is_inline()

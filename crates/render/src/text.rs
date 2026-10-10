@@ -25,8 +25,18 @@ pub struct TextExtractor {
 
 impl TextExtractor {
     pub fn new(bytes: Arc<Vec<u8>>) -> Self {
+        Self::with_markups(bytes, true)
+    }
+
+    /// `markups: false` leaves the text of markup annotations' appearances out (the page's
+    /// own text only; links and form fields still count).
+    pub fn with_markups(bytes: Arc<Vec<u8>>, markups: bool) -> Self {
+        let config = RenderConfig {
+            hide_comments: !markups,
+            ..RenderConfig::default()
+        };
         Self {
-            renderer: PageRenderer::new(bytes, RenderConfig::default()),
+            renderer: PageRenderer::new(bytes, config),
             cache: HashMap::new(),
         }
     }

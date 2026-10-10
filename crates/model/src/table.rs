@@ -8,6 +8,7 @@
 
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use crate::columns::{ColumnType, CustomColumn, TableColumn, review_statuses, standard_columns};
 use crate::formula::{Formula, formula_key};
@@ -145,8 +146,8 @@ pub struct View {
 pub struct MarkupTable<'a> {
     doc: &'a Document,
     cols: Vec<TableColumn>,
-    /// [markup][column]
-    cells: Vec<Vec<Cell>>,
+    /// [markup][column], shared so a view can keep them while the document is unchanged
+    cells: Arc<Vec<Vec<Cell>>>,
 }
 
 impl<'a> MarkupTable<'a> {
@@ -156,13 +157,14 @@ impl<'a> MarkupTable<'a> {
         let mut t = MarkupTable {
             doc,
             cols,
-            cells: Vec::new(),
+            cells: Arc::default(),
         };
-        t.cells = doc
-            .markups
-            .iter()
-            .map(|m| t.cols.iter().map(|c| t.plain_cell(m, c)).collect())
-            .collect();
+        t.cells = Arc::new(
+            doc.markups
+                .iter()
+                .map(|m| t.cols.iter().map(|c| t.plain_cell(m, c)).collect())
+                .collect(),
+        );
         // Formula columns read the plain cells (and other formulas, depth-limited).
         let formulas: Vec<(usize, Formula)> = t
             .cols
@@ -180,13 +182,33 @@ impl<'a> MarkupTable<'a> {
                     computed.push((mi, *ci, t.formula_cell(mi, *ci, f, &formulas, 0)));
                 }
             }
+            // The only holder of the cells here, so this does not copy them.
+            let cells = Arc::make_mut(&mut t.cells);
             for (mi, ci, cell) in computed {
-                if let Some(slot) = t.cells.get_mut(mi).and_then(|r| r.get_mut(ci)) {
+                if let Some(slot) = cells.get_mut(mi).and_then(|r| r.get_mut(ci)) {
                     *slot = cell;
                 }
             }
         }
         t
+    }
+
+    /// The table of `doc` with cells computed earlier by [`Self::new`] on the same, unchanged
+    /// document (see [`Self::shared_cells`]); cells of another shape are computed again.
+    pub fn with_cells(doc: &'a Document, cells: Arc<Vec<Vec<Cell>>>) -> Self {
+        let mut cols = standard_columns();
+        cols.extend(doc.columns.iter().map(TableColumn::custom));
+        let fits = cells.len() == doc.markups.len() && cells.iter().all(|r| r.len() == cols.len());
+        if !fits {
+            return Self::new(doc);
+        }
+        MarkupTable { doc, cols, cells }
+    }
+
+    /// The computed cells, to rebuild this table cheaply with [`Self::with_cells`] while the
+    /// document has not changed (the Markups List panel keeps them across frames).
+    pub fn shared_cells(&self) -> Arc<Vec<Vec<Cell>>> {
+        self.cells.clone()
     }
 
     pub fn document(&self) -> &Document {

@@ -7,12 +7,13 @@
 
 use std::collections::BTreeSet;
 use std::path::Path;
+use std::sync::Arc;
 
 use egui::{Color32, RichText, Sense};
 use egui_extras::{Column, TableBuilder};
 use markupcraft_model::csv::{group_name, table_csv, table_xml, totals_csv};
 use markupcraft_model::{
-    CellEdit, ColumnType, CustomColumn, Group, MarkupTable, Scope, View, default_visible_columns, make_column_id,
+    Cell, CellEdit, ColumnType, CustomColumn, Group, MarkupTable, Scope, View, default_visible_columns, make_column_id,
 };
 
 use super::{PanelDef, Slot};
@@ -40,6 +41,35 @@ pub struct ListState {
     pub columns_editor: Option<Vec<CustomColumn>>,
     /// Saved views and column widths.
     pub prefs: super::list_views::ListPrefs,
+    /// The last frame's cells, for the document state they were computed from.
+    cells: Option<(CellsKey, Arc<Vec<Vec<Cell>>>)>,
+}
+
+/// A document tab and the state of its document: (tab uid, state version, unsaved).
+type CellsKey = (u64, u64, bool);
+
+/// The document's Markups List table. Computing every cell of every markup takes milliseconds
+/// on a large takeoff, so the cells are kept while the document is unchanged instead of being
+/// computed again every frame.
+fn table_of<'d>(cache: &mut Option<(CellsKey, Arc<Vec<Vec<Cell>>>)>, doc: &'d DocTab) -> MarkupTable<'d> {
+    let key = (doc.uid, doc.session.state_version(), doc.session.is_dirty());
+    if let Some((k, cells)) = cache.as_ref()
+        && *k == key
+    {
+        return MarkupTable::with_cells(doc.session.doc(), cells.clone());
+    }
+    let table = MarkupTable::new(doc.session.doc());
+    *cache = Some((key, table.shared_cells()));
+    table
+}
+
+/// The table of `doc`, reusing the panel's cells when they are current (read-only callers).
+pub fn current_table<'d>(list: &ListState, doc: &'d DocTab) -> MarkupTable<'d> {
+    let key = (doc.uid, doc.session.state_version(), doc.session.is_dirty());
+    match list.cells.as_ref() {
+        Some((k, cells)) if *k == key => MarkupTable::with_cells(doc.session.doc(), cells.clone()),
+        _ => MarkupTable::new(doc.session.doc()),
+    }
 }
 
 impl Default for ListState {
@@ -52,6 +82,7 @@ impl Default for ListState {
             editing: None,
             columns_editor: None,
             prefs: Default::default(),
+            cells: None,
         }
     }
 }
@@ -125,6 +156,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     let list = &mut app.list;
     let mut acts: Vec<Act> = Vec::new();
     let mut export: Option<Purpose> = None;
+    let table = table_of(&mut list.cells, doc);
 
     // ---- toolbar ------------------------------------------------------------------------
     ui.horizontal(|ui| {
@@ -154,7 +186,6 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                     list.view.scope = Scope::Selected(BTreeSet::new());
                 }
             });
-        let table = MarkupTable::new(doc.session.doc());
         let header_of = |id: &str| {
             table
                 .column_index(id)
@@ -238,7 +269,6 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
 
     // ---- the table ----------------------------------------------------------------------
     let view = scoped(&list.view, doc);
-    let table = MarkupTable::new(doc.session.doc());
     let root = table.build(&view);
     let cols: Vec<usize> = view.visible.iter().filter_map(|id| table.column_index(id)).collect();
     let mut lines = Vec::new();
@@ -1013,5 +1043,37 @@ mod tests {
         export(&mut app, &Purpose::ExportTotals, &tot);
         assert!(std::fs::read_to_string(&tot).unwrap().starts_with("Group,Count"));
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The list keeps its cells across frames while the document is unchanged, and computes
+    /// them again after an edit, an undo or a save.
+    #[test]
+    fn cells_are_kept_until_the_document_changes() {
+        let mut app = AppState {
+            threads: 0,
+            ..Default::default()
+        };
+        app.open_bytes("sample.pdf", None, markupcraft_render::synthetic::sample_pdf())
+            .unwrap();
+        let mut cache = None;
+        let doc = app.docs.first_mut().unwrap();
+        let first = table_of(&mut cache, doc).shared_cells();
+        let again = table_of(&mut cache, doc).shared_cells();
+        assert!(Arc::ptr_eq(&first, &again), "an unchanged document reuses the cells");
+        let id = doc.session.doc().markups[0].id.clone();
+        let x = |t: &MarkupTable<'_>| t.cell(0, t.column_index("x").unwrap()).text.clone();
+        let before = x(&table_of(&mut cache, doc));
+        doc.session.move_markups(std::slice::from_ref(&id), 72.0, 0.0).unwrap();
+        let moved = table_of(&mut cache, doc);
+        assert!(
+            !Arc::ptr_eq(&first, &moved.shared_cells()),
+            "an edit computes them again"
+        );
+        assert_ne!(x(&moved), before, "and the list shows the edit");
+        doc.session.undo().unwrap();
+        assert_eq!(x(&table_of(&mut cache, doc)), before, "undo too");
+        // Cells of another document shape are never reused.
+        let other = MarkupTable::with_cells(doc.session.doc(), Arc::new(Vec::new()));
+        assert_eq!(x(&other), before);
     }
 }

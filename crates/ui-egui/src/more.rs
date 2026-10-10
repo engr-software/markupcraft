@@ -855,7 +855,7 @@ pub fn filtered_out(app: &AppState) -> std::collections::HashSet<String> {
         return Default::default();
     }
     let doc = d.session.doc();
-    let table = markupcraft_model::MarkupTable::new(doc);
+    let table = crate::panels::markups_list::current_table(&app.list, d);
     let view = markupcraft_model::View {
         scope: markupcraft_model::Scope::AllPages,
         ..v.clone()

@@ -1244,4 +1244,36 @@ mod tests {
         let empty = diff(&canvas(0, 0), &b, &opt);
         assert!(empty.is_empty());
     }
+
+    /// Found on a real drawing set: the text comparison read the labels of measurement markups
+    /// (their appearance text), so the same sheet with and without a takeoff showed "removed"
+    /// text, although markups are left out of the comparison by default.
+    #[test]
+    fn markup_text_is_not_a_text_change_unless_markups_are_included() {
+        use crate::synthetic::{SyntheticPage, pdf, text};
+        use markupcraft_model::Point;
+        let plain = pdf(&[SyntheticPage::new(612.0, 792.0, text(72.0, 700.0, 12.0, "FLOOR PLAN"))]);
+        let mut marked = Session::from_bytes(plain.clone(), "marked.pdf").unwrap();
+        let mut m = Markup::new(Kind::Text, 0, vec![Point::new(200.0, 300.0), Point::new(400.0, 340.0)]);
+        m.contents = "TAKEOFF NOTE".into();
+        marked.add_markup(m).unwrap();
+        let old = marked.current_bytes().unwrap();
+        let mut s = Session::from_bytes(plain, "plain.pdf").unwrap();
+        let text_only = CompareOptions {
+            mode: CompareMode::Text,
+            ..Default::default()
+        };
+        let r = s.compare_with(old.clone(), &text_only).unwrap();
+        assert!(r.regions.is_empty(), "markup text is not page text: {:?}", r.regions);
+        let with_markups = CompareOptions {
+            include_markups: true,
+            ..text_only
+        };
+        let r = s.compare_with(old, &with_markups).unwrap();
+        assert!(
+            r.regions.iter().any(|g| g.text.contains("TAKEOFF")),
+            "included on request: {:?}",
+            r.regions
+        );
+    }
 }

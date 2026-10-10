@@ -282,8 +282,21 @@ fn gcd(a: i64, b: i64) -> i64 {
     a.max(1)
 }
 
+/// Values from this magnitude up have no fractional digits left in an `f64`, and the whole
+/// part no longer fits the integer arithmetic below: they are shown as whole numbers, capped.
+const MAX_FORMATTED: f64 = 1e15;
+
 /// `v` is already rounded to this unit's precision and non-negative.
 fn format_last(v: f64, f: &NumberFormat) -> String {
+    // A damaged /Measure (a huge conversion factor or precision) can make any value huge.
+    if !v.is_finite() || v.abs() >= MAX_FORMATTED {
+        let w = if v.is_nan() {
+            0
+        } else {
+            v.clamp(-MAX_FORMATTED, MAX_FORMATTED) as i64
+        };
+        return group_thousands(w, &f.thousands);
+    }
     match f.fmt {
         Fmt::Fraction => {
             let den = f.den.max(1);
@@ -466,6 +479,28 @@ mod tests {
         assert_eq!(format_value(0.5, &ft_in()), "0'-6\"");
         // halves reduce even with /FD true; zero whole inches are omitted before a fraction
         assert_eq!(format_value(1.0 + 0.5 / 12.0, &ft_in()), "1'-1/2\"");
+    }
+
+    /// fuzz: a damaged /Measure made a quantity so large that formatting it overflowed an
+    /// integer (a panic in debug builds, nonsense digits in release).
+    #[test]
+    fn huge_values_format_without_overflow() {
+        let a = Scale::architectural(0.125, 1.0).area;
+        for v in [9.3e18, 1e300, f64::MAX, -1e300] {
+            let s = format_value(v, &a);
+            assert!(s.ends_with(" sf") && s.contains("000,000,000"), "{v}: {s}");
+        }
+        assert_eq!(format_value(f64::INFINITY, &a), "");
+        for v in [9.3e18, 1e300, f64::MAX] {
+            assert!(!format_value(v, &ft_in()).is_empty());
+        }
+        let mut huge = ft_in();
+        if let Some(f) = huge.get_mut(1) {
+            f.conv = 1e308;
+            f.den = i64::MAX;
+        }
+        let _ = format_value(10.0, &huge);
+        let _ = format_value(1e300, &huge);
     }
 
     #[test]

@@ -10,8 +10,10 @@ use markupcraft_render::{PageGeom, RenderDoc, RenderOptions, page_request};
 
 use crate::{Result, Session, invalid};
 
-/// Renders asked of one inline pool before giving up (each poll renders one request).
-const MAX_POLLS: usize = 64;
+/// How long one page render may take. Renders run on a worker whose watchdog reports a page
+/// stuck after 20 s (a hostile page, say a dashed line billions of dashes long, must not hang a
+/// feature); this is the backstop after it.
+const RENDER_DEADLINE: std::time::Duration = std::time::Duration::from_secs(40);
 
 /// A grayscale image: row-major, 0 = black, 255 = white.
 #[derive(Debug, Clone, Default, PartialEq)]
@@ -189,18 +191,36 @@ impl RgbImage {
 pub struct Renderable {
     pub bytes: Arc<Vec<u8>>,
     doc: RenderDoc,
+    hide_markups: bool,
+    /// The text layer, parsed once and cached per page (a large set re-parsed per page made
+    /// comparing or exporting it quadratic).
+    text: std::sync::Mutex<Option<TextExtractor>>,
+    /// Tags requests, so a late result of an earlier one is never taken for this one.
+    tag: std::sync::atomic::AtomicU64,
 }
 
 impl Renderable {
     /// `hide_markups`: leave markup annotations out (fields and links still draw).
     pub fn new(bytes: Arc<Vec<u8>>, hide_markups: bool) -> Result<Self> {
+        // One worker rather than rendering inline: its watchdog gives up on a stuck page.
         let opts = RenderOptions {
-            threads: 0,
+            threads: 1,
             hide_all_markups: hide_markups,
             ..Default::default()
         };
         let doc = RenderDoc::open(bytes.clone(), &opts).map_err(|e| invalid(e.to_string()))?;
-        Ok(Self { bytes, doc })
+        Ok(Self {
+            bytes,
+            doc,
+            hide_markups,
+            text: std::sync::Mutex::new(None),
+            tag: std::sync::atomic::AtomicU64::new(1),
+        })
+    }
+
+    /// Give up on a page render after `limit` instead of the default 20 s.
+    pub fn set_stuck_after(&mut self, limit: std::time::Duration) {
+        self.doc.set_stuck_after(limit);
     }
 
     pub fn page_count(&self) -> usize {
@@ -247,24 +267,34 @@ impl Renderable {
     ) -> Result<(markupcraft_render::RenderedPage, PageGeom)> {
         let geom = self.geom(page)?.clone();
         let scale = scale.min(geom.scale_for_side(max_side)).max(0.01);
-        let tag = page as u64;
+        let tag = self.tag.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         self.doc.request(vec![page_request(page, scale, tag)]);
-        for _ in 0..MAX_POLLS {
-            let Some(r) = self.doc.poll() else { continue };
-            if r.request.page != page {
-                continue;
+        let start = std::time::Instant::now();
+        loop {
+            match self.doc.poll() {
+                Some(r) if r.request.tag == tag && r.request.page == page => {
+                    if let Some(e) = r.error {
+                        return Err(invalid(format!("page {} could not be rendered: {e}", page + 1)));
+                    }
+                    return Ok((r, geom));
+                }
+                Some(_) => {}
+                None if start.elapsed() > RENDER_DEADLINE => {
+                    return Err(invalid(format!(
+                        "page {} could not be rendered (it took too long)",
+                        page + 1
+                    )));
+                }
+                None => std::thread::sleep(std::time::Duration::from_micros(500)),
             }
-            if let Some(e) = r.error {
-                return Err(invalid(format!("page {} could not be rendered: {e}", page + 1)));
-            }
-            return Ok((r, geom));
         }
-        Err(invalid(format!("page {} could not be rendered", page + 1)))
     }
 
-    /// The text layer of `page`.
+    /// The text layer of `page`: without markup text when the markups are hidden.
     pub fn text(&self, page: usize) -> Option<Arc<PageText>> {
-        TextExtractor::new(self.bytes.clone()).page_text(page)
+        let mut t = self.text.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        t.get_or_insert_with(|| TextExtractor::with_markups(self.bytes.clone(), !self.hide_markups))
+            .page_text(page)
     }
 }
 
@@ -354,5 +384,29 @@ mod tests {
         assert_eq!(g.rotated(4), g);
         let d = Gray::new(4, 4, 0).downsample(2);
         assert_eq!((d.w, d.h, d.px[0]), (2, 2, 0));
+    }
+
+    /// fuzz: a dashed line billions of points long makes the renderer stroke hundreds of
+    /// millions of dashes. Rendering inline, compare / export / OCR on such a page never
+    /// returned; now the render worker's watchdog gives up on it and the feature gets an error.
+    #[test]
+    fn a_page_that_never_finishes_rendering_is_an_error_not_a_hang() {
+        use crate::synthetic::{SyntheticPage, pdf};
+        let hostile = "0 0 0 RG 0.5 w [6 3] 0 d 60 350 m 4294967295 350 l S";
+        let bytes = pdf(&[
+            SyntheticPage::new(612.0, 792.0, hostile),
+            SyntheticPage::new(612.0, 792.0, "0 0 0 RG 10 10 m 100 100 l S"),
+        ]);
+        let mut r = Renderable::new(Arc::new(bytes), true).unwrap();
+        r.set_stuck_after(std::time::Duration::from_millis(500));
+        let t = std::time::Instant::now();
+        let Err(e) = r.render(0, 0.15, 400.0) else {
+            panic!("the stuck page is an error")
+        };
+        let e = e.to_string();
+        assert!(e.contains("took longer"), "given up by the watchdog: {e}");
+        assert!(t.elapsed() < std::time::Duration::from_secs(15), "{:?}", t.elapsed());
+        // The next page still renders (on the watchdog's replacement worker).
+        assert!(r.render(1, 0.15, 400.0).is_ok());
     }
 }

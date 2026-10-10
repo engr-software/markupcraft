@@ -158,6 +158,8 @@ fn run_cases<T>(cases: &[(&'static str, T)], f: impl Fn(&T)) {
 /// Each single-key or Shift/Alt tool shortcut makes that tool the active one.
 #[test]
 fn shortcut_keys_activate_tools() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     const N: (bool, bool, bool) = (false, false, false);
     const S: (bool, bool, bool) = (false, true, false);
     const SA: (bool, bool, bool) = (false, true, true);
@@ -210,6 +212,8 @@ fn shortcut_keys_activate_tools() {
 /// V returns to Select from any tool; Shift+Z toggles the Zoom tool on and back off.
 #[test]
 fn shortcut_select_and_toggle_zoom() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     press(&mut h, mods(false, false, false), Key::R);
     assert_eq!(st(&h).tool, "rectangle");
@@ -225,6 +229,8 @@ fn shortcut_select_and_toggle_zoom() {
 /// Tools that are not a plain draw tool in our table: their key still starts them.
 #[test]
 fn shortcut_special_tools_start() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let cases: &[(&str, ((bool, bool, bool), Key))] = &[
         ("key-028 Hyperlink", ((false, true, false), Key::H)),
         ("key-036 Dynamic Fill", ((false, false, false), Key::J)),
@@ -253,6 +259,8 @@ fn rect_of(h: &H, id: &str) -> markupcraft_geom::Rect {
 /// Ctrl+Alt+B/E/L/M/R/T line the selected markups up on one edge or centre.
 #[test]
 fn shortcut_align() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     type Edge = fn(&markupcraft_geom::Rect) -> f64;
     // PDF user space: y grows up, so Bottom is the smaller y.
     let cases: &[(&str, (Key, Edge))] = &[
@@ -276,6 +284,8 @@ fn shortcut_align() {
 /// Ctrl+Alt+H / Ctrl+Alt+V mirror the selected markup.
 #[test]
 fn shortcut_flip() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let cases: &[(&str, (Key, bool))] = &[
         ("key-024 Flip Horizontal", (Key::H, true)),
         ("key-025 Flip Vertical", (Key::V, false)),
@@ -317,6 +327,8 @@ fn order(h: &H, page: usize) -> Vec<String> {
 /// Ctrl+] / Ctrl+Shift+] / Ctrl+[ / Ctrl+Shift+[ restack the selected markup.
 #[test]
 fn shortcut_arrange() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let cases: &[(&str, ((bool, bool, bool), Key, &str))] = &[
         (
             "key-010 Bring Forward",
@@ -355,6 +367,8 @@ fn shortcut_arrange() {
 /// Ctrl+G groups, Ctrl+Shift+Alt+G takes one markup out of its group, Ctrl+Shift+G ungroups.
 #[test]
 fn shortcut_group_ungroup_remove() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     select(&mut h, &[SQUARE, CIRCLE, TEXTBOX]);
     press(&mut h, mods(true, false, false), Key::G);
@@ -377,6 +391,8 @@ fn shortcut_group_ungroup_remove() {
 /// Ctrl+Shift+L locks the selected markup (it can no longer be moved), and unlocks it.
 #[test]
 fn shortcut_lock() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     select(&mut h, &[SQUARE]);
     press(&mut h, mods(true, true, false), Key::L);
@@ -392,6 +408,8 @@ fn shortcut_lock() {
 /// Alt+Z fits the text box to its text.
 #[test]
 fn shortcut_autosize_text_box() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     select(&mut h, &[TEXTBOX]);
     let before = mk(&h, TEXTBOX).pts;
@@ -403,6 +421,8 @@ fn shortcut_autosize_text_box() {
 /// Del deletes; Ctrl+Z undoes; Ctrl+Y redoes; Ctrl+A selects all markups on the page.
 #[test]
 fn shortcut_delete_undo_redo_select_all() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     let n = markups(&h).len();
     select(&mut h, &[SQUARE]);
@@ -424,6 +444,8 @@ fn shortcut_delete_undo_redo_select_all() {
 /// Ctrl+C / Ctrl+X / Ctrl+V / Ctrl+Shift+V, delivered as the platform's clipboard events.
 #[test]
 fn shortcut_copy_cut_paste_paste_in_place() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     let n = markups(&h).len();
     let kind = mk(&h, SQUARE).kind;
@@ -456,6 +478,8 @@ fn shortcut_copy_cut_paste_paste_in_place() {
 /// Ctrl+Shift+C picks up the selected markup's look for the Format Painter.
 #[test]
 fn shortcut_format_painter() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     select(&mut h, &[SQUARE]);
     press(&mut h, mods(true, true, false), Key::C);
@@ -467,6 +491,8 @@ fn shortcut_format_painter() {
 /// Ctrl+Shift+A selects all the text on the page.
 #[test]
 fn shortcut_select_all_text() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     let before = st(&h).status.clone();
     press(&mut h, mods(true, true, false), Key::A);
@@ -486,6 +512,8 @@ use markupcraft_ui_egui::canvas::{Fit, PageMode};
 /// Ctrl+8 / Ctrl+9 / Ctrl+0, Ctrl+4..7, Plus / Minus.
 #[test]
 fn shortcut_zoom_and_page_modes() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     press(&mut h, mods(true, false, false), Key::Num8);
     assert!(
@@ -523,6 +551,8 @@ fn shortcut_zoom_and_page_modes() {
 /// Ctrl+Right / Ctrl+Left / Home / End move between pages; Alt+Left / Alt+Right walk views.
 #[test]
 fn shortcut_page_and_view_navigation() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     press(&mut h, mods(true, false, false), Key::ArrowRight);
     assert_eq!(view(&h).current, 1, "key-087 Ctrl+Right next page");
@@ -545,6 +575,8 @@ fn shortcut_page_and_view_navigation() {
 /// Ctrl+Shift+Plus / Minus rotate the view (not the file); F5 refreshes.
 #[test]
 fn shortcut_rotate_view_and_refresh() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     let rot = st(&h).doc().unwrap().session.doc().pages[0].rotate;
     press(&mut h, mods(true, true, false), Key::Plus);
@@ -569,6 +601,8 @@ fn shortcut_rotate_view_and_refresh() {
 /// Ctrl+R rulers, Shift+F9 grid, Ctrl+Shift+F7/F8/F9 snaps, Ctrl+F5 dimmer: each toggles.
 #[test]
 fn shortcut_view_toggles() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     type Get = fn(&H) -> bool;
     let cases: &[(&str, ((bool, bool, bool), Key, Get))] = &[
         (
@@ -633,6 +667,8 @@ fn split(h: &H) -> Option<(bool, f32)> {
 /// Ctrl+2 / Ctrl+H split; Ctrl+I flips; Ctrl+1 switches; Shift+F12 balances; Ctrl+Shift+2 unsplits.
 #[test]
 fn shortcut_multiview() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     press(&mut h, mods(true, false, false), Key::Num2);
     assert_eq!(split(&h).map(|s| s.0), Some(true), "key-103 Ctrl+2 vertical split");
@@ -673,6 +709,8 @@ fn shortcut_multiview() {
 /// F11 full screen, Ctrl+Enter presentation; Esc leaves both.
 #[test]
 fn shortcut_full_screen_and_presentation() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     use markupcraft_ui_egui::shell::Screen;
     let mut h = app();
     press(&mut h, mods(false, false, false), Key::F11);
@@ -692,6 +730,8 @@ fn shortcut_full_screen_and_presentation() {
 /// Alt+letter opens (and closes) each panel.
 #[test]
 fn shortcut_panels() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let cases: &[(&str, (Key, &str))] = &[
         ("key-148 Bookmarks", (Key::B, "bookmarks")),
         ("key-150 File Access", (Key::A, "file_access")),
@@ -720,6 +760,8 @@ fn shortcut_panels() {
 /// Alt+J shows the JavaScript Console.
 #[test]
 fn shortcut_forms_and_console() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let cases: &[(&str, (Key, &str))] = &[("key-154 JavaScript Console", (Key::J, "JavaScript"))];
     run_cases(cases, |&(k, title)| {
         let mut h = app();
@@ -735,6 +777,8 @@ fn shortcut_forms_and_console() {
 /// Shortcuts that open a dialog or window: the dialog shows after the key.
 #[test]
 fn shortcut_dialogs_show() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let cases: &[(&str, ((bool, bool, bool), Key, &str))] = &[
         ("key-014 Spell Check", ((false, false, false), Key::F7, "Spell")),
         ("key-063 Print", ((true, false, false), Key::P, "Print")),
@@ -778,6 +822,8 @@ fn shortcut_dialogs_show() {
 /// Ctrl+B adds a bookmark for the current page.
 #[test]
 fn shortcut_add_bookmark() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     let n = st(&h).doc().unwrap().session.bookmarks().len();
     press(&mut h, mods(true, false, false), Key::B);
@@ -789,6 +835,8 @@ fn shortcut_add_bookmark() {
 /// Shift+Alt+Plus / Minus rotate the current page in the file.
 #[test]
 fn shortcut_rotate_pages() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     let rot = |h: &H| st(h).doc().unwrap().session.doc().pages[0].rotate;
     let r0 = rot(&h);
@@ -802,6 +850,8 @@ fn shortcut_rotate_pages() {
 /// Ctrl+Shift+N inserts a blank page.
 #[test]
 fn shortcut_insert_blank_page() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     press(&mut h, mods(true, true, false), Key::N);
     h.run_steps(3);
@@ -815,6 +865,8 @@ fn shortcut_insert_blank_page() {
 /// Shift+A applies the document's redactions: a redaction markup is burned in and removed.
 #[test]
 fn shortcut_apply_redactions() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     press(&mut h, mods(false, true, false), Key::R);
     drag(&mut h, (100.0, 600.0), (300.0, 700.0));
@@ -843,6 +895,8 @@ fn shortcut_apply_redactions() {
 /// F3 / Shift+F3 step through search results.
 #[test]
 fn shortcut_search_results() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     press(&mut h, mods(true, false, false), Key::F);
     h.state_mut().state.features.search.query = "a".into();
@@ -860,6 +914,8 @@ fn shortcut_search_results() {
 /// Shift+F10 opens the context menu for the selection.
 #[test]
 fn shortcut_context_menu() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     select(&mut h, &[SQUARE]);
     press(&mut h, mods(false, true, false), Key::F10);
@@ -870,6 +926,8 @@ fn shortcut_context_menu() {
 /// Ctrl+C on a page with nothing selected, Ctrl+Alt+C: copy the page to a snapshot.
 #[test]
 fn shortcut_copy_page_to_snapshot() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     let n = markups(&h).len();
     let clip = press_with(&mut h, mods(true, false, true), Key::C, None);
@@ -913,6 +971,8 @@ fn docs(h: &H) -> usize {
 /// Ctrl+Shift+W closes all.
 #[test]
 fn shortcut_open_new_cycle_close() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let dir = temp_dir("open");
     let other = sample_pdf(&dir, "other.pdf");
     let mut h = app();
@@ -944,6 +1004,8 @@ fn shortcut_open_new_cycle_close() {
 /// Ctrl+Shift+P publishes compressed; Shift+F5 reloads from disk.
 #[test]
 fn shortcut_save_variants() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let (mut h, dir) = app_on_disk("save");
     let path = dir.join("plan.pdf");
     let n = markups(&h).len();
@@ -1015,6 +1077,8 @@ fn shortcut_save_variants() {
 /// Ctrl+F2 exports the markups; Ctrl+F3 imports them back.
 #[test]
 fn shortcut_export_import_markups() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let (mut h, dir) = app_on_disk("xfdf");
     let n = markups(&h).len();
     let out = dir.join("markups.xml");
@@ -1060,6 +1124,8 @@ fn shortcut_export_import_markups() {
 /// Ctrl+E emails the document (a draft with the PDF attached).
 #[test]
 fn shortcut_email() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     press(&mut h, mods(true, false, false), Key::E);
     h.run_steps(3);
@@ -1080,6 +1146,8 @@ const PNG: &[u8] = &[
 /// I asks for an image, then places it where the user clicks.
 #[test]
 fn shortcut_image() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let dir = temp_dir("image");
     let png = dir.join("red.png");
     std::fs::write(&png, PNG).unwrap();
@@ -1096,6 +1164,8 @@ fn shortcut_image() {
 /// Shift+Alt+R opens Review Text; Alt+Q the form fields.
 #[test]
 fn shortcut_review_text_and_forms() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     press(&mut h, mods(false, true, true), Key::R);
     assert!(h.state().state.edit.more.review_open, "key-053 Review Text is open");
@@ -1110,6 +1180,8 @@ fn shortcut_review_text_and_forms() {
 /// Ctrl+Shift+E edits the selected markup's action.
 #[test]
 fn shortcut_edit_action() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     select(&mut h, &[SQUARE]);
     press(&mut h, mods(true, true, false), Key::E);
@@ -1122,6 +1194,8 @@ fn shortcut_edit_action() {
 /// Ctrl+Shift+I asks for a PDF and inserts its pages (after the dialog's options).
 #[test]
 fn shortcut_insert_pages() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let dir = temp_dir("insert");
     let other = sample_pdf(&dir, "other.pdf");
     let mut h = app();
@@ -1141,6 +1215,8 @@ fn shortcut_insert_pages() {
 /// Ctrl+Alt+F publishes a flattened copy.
 #[test]
 fn shortcut_publish_flattened() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let dir = temp_dir("flat");
     let out = dir.join("flat.pdf");
     let mut h = app();
@@ -1255,6 +1331,8 @@ fn submenu(h: &mut H, menu: &str, sub: &str) -> Vec<String> {
 /// Profiles, Keyboard Shortcuts and Exit.
 #[test]
 fn ui_menu_bar_and_application_menu() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     for m in [
         "MarkupCraft",
@@ -1314,6 +1392,8 @@ fn ui_alt_menu_accelerators() {
 /// dialog, and locked.
 #[test]
 fn ui_toolbars_show_hide_customize_lock() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     let items = submenu(&mut h, "Window", "Toolbars");
     for t in [
@@ -1389,6 +1469,8 @@ fn ui_toolbars_show_hide_customize_lock() {
 /// ui-079: the Properties toolbar edits the selected markup's colour, line width...
 #[test]
 fn ui_properties_toolbar() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     if !st(&h).shell.ui.extra.properties_toolbar {
         open_menu(&mut h, "Window");
@@ -1408,6 +1490,8 @@ fn ui_properties_toolbar() {
 /// page scale; F4 hides it.
 #[test]
 fn ui_navigation_bar() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     for w in [
         "First Page",
@@ -1457,6 +1541,8 @@ fn ui_status_bar() {
 /// ui-082: the page scale shows on the bar ("not set" without one); clicking starts calibration.
 #[test]
 fn ui_page_scale_on_bar() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     assert!(has(&h, "1/8 in = 1 ft"), "page 1's scale shows");
     press(&mut h, mods(true, false, false), Key::ArrowRight);
@@ -1472,6 +1558,8 @@ fn ui_page_scale_on_bar() {
 /// ui-083 / ui-084: side and bottom panels from the Window menu; panel access bars.
 #[test]
 fn ui_panels_and_access_bars() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     open_menu(&mut h, "Window");
     for p in markupcraft_ui_egui::panels::PANELS {
@@ -1487,6 +1575,8 @@ fn ui_panels_and_access_bars() {
 /// ui-087 / ui-088: the bottom panel can span the window; clicking a panel edge collapses it.
 #[test]
 fn ui_bottom_overlap_and_edge_collapse() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     let was = st(&h).shell.ui.extra.bottom_full_width;
     open_menu(&mut h, "Window");
@@ -1518,6 +1608,8 @@ fn ui_bottom_overlap_and_edge_collapse() {
 /// ui-089: the panel layout is restored on the next launch.
 #[test]
 fn ui_layout_persistence() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let dir = temp_dir("layout");
     let mut h = app_with_store(&dir);
     let was = panel_open(&h, "bookmarks");
@@ -1568,6 +1660,8 @@ fn right_click_at(h: &mut H, at: egui::Pos2) {
 /// Split Below to show two panels of a group at once.
 #[test]
 fn ui_panel_tab_context_menu_and_split() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     use markupcraft_ui_egui::dock::Tab;
     let mut h = app();
     let first = markupcraft_ui_egui::panels::PANELS
@@ -1627,6 +1721,8 @@ fn ui_panel_tab_context_menu_and_split() {
 /// one, the others or all.
 #[test]
 fn ui_document_tabs() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     for name in ["b.pdf", "c.pdf"] {
         h.state_mut()
@@ -1695,6 +1791,8 @@ fn ui_tab_truncation() {
 /// ui-092: Window > Auto-Hide Tabs hides the document tabs until the pointer reaches the top.
 #[test]
 fn ui_auto_hide_tabs() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     let tabs = |h: &H| h.query_all_by_label("sample.pdf").count();
     let shown = tabs(&h);
@@ -1713,6 +1811,8 @@ fn ui_auto_hide_tabs() {
 /// ui-093: Detach a tab into its own window; Reattach brings it back.
 #[test]
 fn ui_detach_tab() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     h.state_mut()
         .state
@@ -1739,6 +1839,8 @@ fn ui_detach_tab() {
 /// ui-095: Shift+F10 opens the context menu of the selection, with its commands.
 #[test]
 fn ui_context_menu_key() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     select(&mut h, &[SQUARE]);
     press(&mut h, mods(false, true, false), Key::F10);
@@ -1751,6 +1853,8 @@ fn ui_context_menu_key() {
 /// ui-096: Always on Top asks the window to stay above other applications.
 #[test]
 fn ui_always_on_top() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     open_menu(&mut h, "Window");
     click_contains(&mut h, "Always on Top");
@@ -1760,6 +1864,8 @@ fn ui_always_on_top() {
 /// ui-097: a Web Tab is a browser-like tab with an address.
 #[test]
 fn ui_web_tab() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     let n = labels(&h).len();
     press(&mut h, mods(true, false, false), Key::T);
@@ -1776,6 +1882,8 @@ fn ui_web_tab() {
 /// ui-098: the File Access panel lists recent files; clicking one opens it.
 #[test]
 fn ui_file_access_recent_files() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let dir = temp_dir("recent");
     let other = sample_pdf(&dir, "recent-one.pdf");
     let mut h = app();
@@ -1966,6 +2074,8 @@ fn ui_profiles() {
 /// rebinds a command, taking the key from another command; menus show the new key.
 #[test]
 fn ui_keyboard_shortcuts_dialog() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     open_menu(&mut h, "MarkupCraft");
     click_contains(&mut h, "Customize Keyboard");
@@ -2018,6 +2128,8 @@ fn ui_keyboard_shortcuts_dialog() {
 /// ui-106: single-key tool shortcuts (Select V, Pan Shift+V, Zoom Z, Lasso Shift+O).
 #[test]
 fn ui_single_key_tool_shortcuts() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     for (m, k, tool) in [
         (mods(false, true, false), Key::V, "pan"),
@@ -2033,6 +2145,8 @@ fn ui_single_key_tool_shortcuts() {
 /// ui-107: Help > Shortcut Reference writes a printable PDF of shortcuts, mouse and modifiers.
 #[test]
 fn ui_printable_shortcut_reference() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let dir = temp_dir("keyref");
     let out = dir.join("shortcuts.pdf");
     let mut h = app();
@@ -2114,6 +2228,8 @@ fn snaps_off(h: &mut H) {
 /// ui-110: the Zoom tool: click zooms in, Ctrl+click out, a dragged box zooms to that area.
 #[test]
 fn ui_zoom_tool() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     press(&mut h, mods(false, false, false), Key::Z);
     let z = view(&h).zoom;
@@ -2136,6 +2252,8 @@ fn ui_zoom_tool() {
 /// ui-111: Side by Side modes can show the first page alone (a cover).
 #[test]
 fn ui_page_layout_cover_page() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     press(&mut h, mods(true, false, false), Key::Num6);
     let c = view(&h).cover;
@@ -2147,6 +2265,8 @@ fn ui_page_layout_cover_page() {
 /// ui-112: the navigation bar's page box takes a page number.
 #[test]
 fn ui_page_number_box() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     let field = h
         .query_all(egui_kittest::kittest::by().role(egui::accesskit::Role::TextInput))
@@ -2187,6 +2307,8 @@ fn ui_page_number_box() {
 /// ui-116: the workspace splits; Revu allows up to 16 panes.
 #[test]
 fn ui_split_repeatedly() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     press(&mut h, mods(true, false, false), Key::Num2);
     {
@@ -2224,6 +2346,8 @@ fn ui_split_repeatedly() {
 /// ui-118: synchronized views: in Document mode the other pane follows the page.
 #[test]
 fn ui_synchronize_views() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     press(&mut h, mods(true, false, false), Key::Num2);
     open_menu(&mut h, "View");
@@ -2254,6 +2378,8 @@ fn ui_full_screen_and_presentation_options() {
 /// ui-121 / ui-122 / ui-124 / ui-136 / ui-137: View toggles.
 #[test]
 fn ui_view_toggles() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     type Get = fn(&H) -> bool;
     let cases: &[(&str, (&str, Get))] = &[
         ("ui-121 Dimmer", ("Dimmer", |h| st(h).shell.dimmer)),
@@ -2302,6 +2428,8 @@ fn ui_theme() {
 /// ui-125 / ui-126: Ctrl+R shows rulers; right-clicking a ruler picks its unit.
 #[test]
 fn ui_rulers_and_units() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     if !st(&h).shell.ui.rulers {
         press(&mut h, mods(true, false, false), Key::R);
@@ -2464,6 +2592,8 @@ fn type_into_prefs_field(h: &mut H, n: usize, text: &str) {
 /// user name is the author of new markups.
 #[test]
 fn ui_preferences_dialog_and_user_name() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let dir = temp_dir("prefs");
     let mut h = app_with_store(&dir);
     press(&mut h, mods(true, false, false), Key::K);
@@ -2606,6 +2736,8 @@ fn ui_save_mode_and_recovery() {
 /// ui-144: the default page layout and fit apply to documents as they open; maximum zoom caps it.
 #[test]
 fn ui_default_layout_fit_and_max_zoom() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     {
         let u = &mut h.state_mut().state.shell.ui;
@@ -3009,6 +3141,8 @@ fn ui_forms_single_key_shortcuts() {
 /// ui-161 / ui-120: presentation: arrows advance, it loops when asked, Esc leaves.
 #[test]
 fn ui_presentation_loop() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     h.state_mut().state.shell.ui.presentation_loop = true;
     press(&mut h, mods(true, false, false), Key::Enter);
@@ -3123,6 +3257,8 @@ fn bbox(pts: &[Point]) -> (f64, f64, f64, f64) {
 /// ui-173 / ui-174: middle-drag pans in any tool; a middle double-click re-centres.
 #[test]
 fn ui_middle_button_pan_and_recenter() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     press(&mut h, mods(false, false, false), Key::R);
     press(&mut h, mods(false, false, false), Key::Plus);
@@ -3157,6 +3293,8 @@ fn ui_middle_button_pan_and_recenter() {
 /// ui-176: holding Space pans in the middle of a drawing; the drawing continues after.
 #[test]
 fn ui_space_temporary_pan() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     press(&mut h, mods(true, false, false), Key::Num8);
     press(&mut h, mods(false, true, false), Key::N);
@@ -3198,6 +3336,8 @@ fn ui_space_temporary_pan() {
 /// ui-177: right-click a markup or the page for its commands.
 #[test]
 fn ui_right_click_context_menus() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     let before = labels(&h);
     let p = screen(&h, 950.0, 650.0);
@@ -3220,6 +3360,8 @@ fn ui_right_click_context_menus() {
 /// ui-178 / ui-179: right-drag and Shift+drag draw a selection box; Shift+click adds.
 #[test]
 fn ui_box_and_shift_select() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let box_ids = |h: &H| {
         let mut s = selection(h);
         s.sort();
@@ -3537,6 +3679,8 @@ fn ui_alt_drag_callout() {
 /// ui-192: Ctrl+click a File Access entry opens it in the background.
 #[test]
 fn ui_ctrl_click_opens_in_background() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let dir = temp_dir("bg");
     let other = sample_pdf(&dir, "background-one.pdf");
     let mut h = app();
@@ -3620,6 +3764,8 @@ fn ui_reuse_markup_tool() {
 /// ui-226: Batch > Run Script runs a script of commands over files.
 #[test]
 fn ui_scripting() {
+    // The app keeps snap and preference state process-wide: tests take turns.
+    let _serial = serial();
     let mut h = app();
     open_menu(&mut h, "Batch");
     click_label(&mut h, "Run Script...");

@@ -2,6 +2,8 @@
 
 use std::process::ExitCode;
 
+mod bench;
+mod fuzz;
 mod gates;
 mod models;
 mod package;
@@ -36,6 +38,16 @@ const COMMANDS: &[(&str, &str, Command)] = &[
         "package",
         "Build the packages for this OS into dist/ (--skip-build reuses the release binaries)",
         package::run,
+    ),
+    (
+        "bench",
+        "Time open, render, thumbnails, Markups List, search and saves (synthetic set + $MARKUPCRAFT_REF_PDF)",
+        bench::run,
+    ),
+    (
+        "fuzz",
+        "Mutation-fuzz open/render/list/edit/save/reopen in child processes (--time SECS); findings in fuzz-out/",
+        fuzz::run,
     ),
     ("version", "Print the workspace version", gates::version),
     (
