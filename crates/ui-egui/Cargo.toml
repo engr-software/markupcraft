@@ -9,6 +9,7 @@ license.workspace = true
 workspace = true
 
 [dependencies]
+web-time = { workspace = true }
 markupcraft-geom = { workspace = true }
 markupcraft-measure = { workspace = true }
 markupcraft-model = { workspace = true }
@@ -21,12 +22,21 @@ serde_json = { workspace = true }
 egui = { workspace = true }
 egui_extras = { workspace = true }
 egui_dock = { workspace = true, features = ["serde"] }
-eframe = { workspace = true, features = ["default_fonts", "wgpu", "accesskit"] }
+eframe = { workspace = true, features = ["default_fonts", "accesskit"] }
 log = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# wgpu on the desktop; the browser build (apps/markupcraft-web) picks its own renderer.
+eframe = { workspace = true, features = ["wgpu"] }
 rfd = { workspace = true }
 nokhwa = { workspace = true, optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# The browser's file picker; `file-handle-inner` as in PdfCraft's web build.
+rfd = { workspace = true, features = ["file-handle-inner"] }
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlElement", "HtmlAnchorElement", "Blob", "BlobPropertyBag", "Url", "Storage"] }
 
 [features]
 # The system camera for Markup > Camera and Create from Scanner or Camera.

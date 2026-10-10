@@ -198,9 +198,9 @@ impl Session {
         }
         if o.attachments {
             for a in src.attachments().into_iter().take(1_000) {
-                let tmp = std::env::temp_dir().join(format!(
+                let tmp = markupcraft_revu::fsio::temp_dir().join(format!(
                     "markupcraft-insert-{}-{}",
-                    std::process::id(),
+                    markupcraft_revu::fsio::process_id(),
                     a.file.replace(['/', '\\', ':'], "_")
                 ));
                 src.extract_attachment(&a.name, &tmp)?;

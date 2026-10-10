@@ -471,7 +471,7 @@ impl CustomPreset {
 
 /// Read the custom presets file (missing = none).
 pub fn load_presets(path: &std::path::Path) -> Result<Vec<CustomPreset>> {
-    match std::fs::read_to_string(path) {
+    match markupcraft_revu::fsio::read_to_string(path) {
         Ok(t) if t.len() < 1 << 20 => {
             serde_json::from_str(&t).map_err(|e| invalid(format!("the presets file is damaged: {e}")))
         }

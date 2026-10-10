@@ -220,7 +220,7 @@ pub fn quantity_totals(links: &[QuantityLink]) -> Result<Vec<QuantityValue>> {
 }
 
 pub fn load_links(path: &Path) -> Result<Vec<QuantityLink>> {
-    let t = std::fs::read_to_string(path).map_err(|e| invalid(format!("{}: {e}", path.display())))?;
+    let t = markupcraft_revu::fsio::read_to_string(path).map_err(|e| invalid(format!("{}: {e}", path.display())))?;
     serde_json::from_str(&t).map_err(|e| invalid(format!("{}: {e}", path.display())))
 }
 

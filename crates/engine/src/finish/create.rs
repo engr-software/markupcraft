@@ -108,7 +108,7 @@ impl Session {
     /// A new, unsaved document that starts as a copy of the template at `template` (its pages,
     /// markups and form fields); `path` is where it would save.
     pub fn from_template(template: &Path, path: impl AsRef<Path>) -> Result<Self> {
-        let bytes = std::fs::read(template).map_err(io(template))?;
+        let bytes = markupcraft_revu::fsio::read(template).map_err(io(template))?;
         let mut s = Self::from_bytes(bytes, path)?;
         s.saved_version = u64::MAX; // never saved
         Ok(s)
@@ -137,7 +137,7 @@ pub fn load_email_templates(path: &Path) -> Result<Vec<EmailTemplate>> {
     if len > 1 << 20 {
         return Err(invalid("the email templates file is too large"));
     }
-    let b = std::fs::read(path).map_err(io(path))?;
+    let b = markupcraft_revu::fsio::read(path).map_err(io(path))?;
     serde_json::from_slice(&b).map_err(|e| invalid(format!("{}: {e}", path.display())))
 }
 

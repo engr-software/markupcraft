@@ -10,7 +10,8 @@ use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::time::{Duration, Instant};
+use std::time::Duration;
+use web_time::Instant;
 
 use serde::Serialize;
 
@@ -290,7 +291,7 @@ impl JobQueue {
             if j.state.finished() || start.elapsed() >= timeout {
                 return Some(j);
             }
-            std::thread::sleep(Duration::from_millis(5));
+            markupcraft_revu::fsio::sleep(Duration::from_millis(5));
         }
     }
 }

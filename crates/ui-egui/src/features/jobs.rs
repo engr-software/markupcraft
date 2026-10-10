@@ -23,7 +23,8 @@ pub struct JobsState {
 
 /// Whether a new job runs at once on this thread.
 pub fn inline(app: &AppState) -> bool {
-    app.features.jobs.background.map_or(app.threads == 0, |b| !b)
+    // The browser build has no worker threads: every job runs at once.
+    cfg!(target_arch = "wasm32") || app.features.jobs.background.map_or(app.threads == 0, |b| !b)
 }
 
 /// Queue a job built by one of `markupcraft_engine::jobs`' builders. Returns its id.

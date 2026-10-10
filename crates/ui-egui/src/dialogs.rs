@@ -1,6 +1,10 @@
 //! Non-blocking file dialogs. Each request runs the platform dialog (rfd's async dialog) on its
 //! own thread and the frame loop polls for the answer, so the window keeps painting and other
 //! documents keep rendering while a dialog is open.
+//!
+//! In the browser (wasm32) Open uses the browser's file picker (the picked files are kept in
+//! memory, `browser.rs`), Save answers at once with a download of that name, and there is no
+//! folder picker.
 
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, channel};
@@ -76,27 +80,26 @@ impl Dialogs {
             self.answered.push((purpose, a));
             return;
         }
+        #[cfg(target_arch = "wasm32")]
+        {
+            let (tx, rx) = channel();
+            crate::browser::pick(filter, many, tx);
+            self.pending.push(Pending { purpose, rx });
+        }
+        #[cfg(not(target_arch = "wasm32"))]
         self.spawn(purpose, move || {
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                let d = rfd::AsyncFileDialog::new().add_filter(filter.0, filter.1);
-                if many {
-                    block_on(d.pick_files())
-                        .unwrap_or_default()
-                        .into_iter()
-                        .map(|h| h.path().to_path_buf())
-                        .collect()
-                } else {
-                    block_on(d.pick_file())
-                        .map(|h| h.path().to_path_buf())
-                        .into_iter()
-                        .collect()
-                }
-            }
-            #[cfg(target_arch = "wasm32")]
-            {
-                let _ = (filter, many);
-                Vec::new()
+            let d = rfd::AsyncFileDialog::new().add_filter(filter.0, filter.1);
+            if many {
+                block_on(d.pick_files())
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|h| h.path().to_path_buf())
+                    .collect()
+            } else {
+                block_on(d.pick_file())
+                    .map(|h| h.path().to_path_buf())
+                    .into_iter()
+                    .collect()
             }
         });
     }
@@ -107,10 +110,15 @@ impl Dialogs {
             self.answered.push((purpose, a));
             return;
         }
-        let name = name.to_string();
-        self.spawn(purpose, move || {
-            #[cfg(not(target_arch = "wasm32"))]
-            {
+        #[cfg(target_arch = "wasm32")]
+        {
+            let _ = filter;
+            self.answered.push((purpose, vec![crate::browser::download_path(name)]));
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let name = name.to_string();
+            self.spawn(purpose, move || {
                 let d = rfd::AsyncFileDialog::new()
                     .add_filter(filter.0, filter.1)
                     .set_file_name(&name);
@@ -118,13 +126,8 @@ impl Dialogs {
                     .map(|h| h.path().to_path_buf())
                     .into_iter()
                     .collect()
-            }
-            #[cfg(target_arch = "wasm32")]
-            {
-                let _ = (filter, name);
-                Vec::new()
-            }
-        });
+            });
+        }
     }
 
     /// Ask for a folder.
@@ -133,21 +136,19 @@ impl Dialogs {
             self.answered.push((purpose, a));
             return;
         }
+        // The browser has no folders to pick: the answer is "cancelled".
+        #[cfg(target_arch = "wasm32")]
+        self.answered.push((purpose, Vec::new()));
+        #[cfg(not(target_arch = "wasm32"))]
         self.spawn(purpose, move || {
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                block_on(rfd::AsyncFileDialog::new().pick_folder())
-                    .map(|h| h.path().to_path_buf())
-                    .into_iter()
-                    .collect()
-            }
-            #[cfg(target_arch = "wasm32")]
-            {
-                Vec::new()
-            }
+            block_on(rfd::AsyncFileDialog::new().pick_folder())
+                .map(|h| h.path().to_path_buf())
+                .into_iter()
+                .collect()
         });
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     fn spawn(&mut self, purpose: Purpose, ask: impl FnOnce() -> Vec<PathBuf> + Send + 'static) {
         let (tx, rx) = channel();
         let started = std::thread::Builder::new()

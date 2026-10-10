@@ -226,8 +226,8 @@ pub fn expand_fields(tmpl: &str, c: &StampContext, answers: &BTreeMap<String, St
 }
 
 pub fn now_secs() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
+    web_time::SystemTime::now()
+        .duration_since(web_time::UNIX_EPOCH)
         .map_or(0, |d| d.as_secs() as i64)
 }
 
@@ -302,7 +302,7 @@ impl StampLibrary {
         if std::fs::metadata(&f).map_err(io(&f))?.len() > 16 << 20 {
             return Err(invalid("the stamp library file is too large"));
         }
-        let text = std::fs::read_to_string(&f).map_err(io(&f))?;
+        let text = markupcraft_revu::fsio::read_to_string(&f).map_err(io(&f))?;
         serde_json::from_str(&text).map_err(|e| invalid(format!("the stamp library is damaged: {e}")))
     }
 
@@ -421,7 +421,7 @@ fn read_source(path: &Path) -> Result<Vec<u8>> {
     if len > MAX_SOURCE {
         return Err(invalid(format!("{} is too large for a stamp", path.display())));
     }
-    std::fs::read(path).map_err(io(path))
+    markupcraft_revu::fsio::read(path).map_err(io(path))
 }
 
 struct Rgba {

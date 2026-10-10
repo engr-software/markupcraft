@@ -1,5 +1,6 @@
 /target
 /dist
+/dist-web
 /fuzz-out
 *.markupcraft-tmp
 /assets/models

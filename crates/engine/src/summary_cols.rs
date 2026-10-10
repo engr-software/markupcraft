@@ -47,7 +47,7 @@ pub fn load_configs(config_dir: &Path) -> Result<Vec<ColumnConfig>> {
     if meta.len() > MAX_FILE {
         return Err(invalid(format!("{} is too large", f.display())));
     }
-    let text = std::fs::read_to_string(&f).map_err(|e| invalid(format!("{}: {e}", f.display())))?;
+    let text = markupcraft_revu::fsio::read_to_string(&f).map_err(|e| invalid(format!("{}: {e}", f.display())))?;
     let mut v: Vec<ColumnConfig> = serde_json::from_str(&text).map_err(|e| invalid(format!("{}: {e}", f.display())))?;
     v.truncate(MAX_CONFIGS);
     Ok(v)

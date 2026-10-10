@@ -579,6 +579,9 @@ pub(crate) fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
         path: path.display().to_string(),
         source: e,
     };
+    if markupcraft_revu::fsio::hosted() {
+        return markupcraft_revu::fsio::write_atomic(path, bytes).map_err(io);
+    }
     if path.is_dir() {
         return Err(invalid(format!("{} is a folder, not a file", path.display())));
     }

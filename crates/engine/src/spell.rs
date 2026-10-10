@@ -135,7 +135,7 @@ fn read_capped(path: &Path) -> Result<String> {
     if meta.len() > MAX_FILE {
         return Err(invalid(format!("{} is too large for a dictionary", path.display())));
     }
-    let bytes = std::fs::read(path).map_err(io)?;
+    let bytes = markupcraft_revu::fsio::read(path).map_err(io)?;
     Ok(String::from_utf8_lossy(&bytes).into_owned())
 }
 

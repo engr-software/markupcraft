@@ -99,7 +99,7 @@ pub fn load_structure(path: &Path) -> Result<BookmarkStructure> {
     if std::fs::metadata(path).map_err(io)?.len() > 4 << 20 {
         return Err(invalid("the structure file is too large"));
     }
-    let t = std::fs::read_to_string(path).map_err(io)?;
+    let t = markupcraft_revu::fsio::read_to_string(path).map_err(io)?;
     serde_json::from_str(&t).map_err(|e| invalid(format!("not a bookmark structure: {e}")))
 }
 

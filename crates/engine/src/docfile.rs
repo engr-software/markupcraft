@@ -138,7 +138,7 @@ pub fn image_file_pdf(path: &Path) -> Result<Vec<u8>> {
         return Err(invalid(format!("{} is larger than 256 MB", path.display())));
     }
     // every page of a TIFF, a GIF's first frame, or the one image
-    crate::finish::imaging::image_bytes_pdf(&std::fs::read(path).map_err(io)?)
+    crate::finish::imaging::image_bytes_pdf(&markupcraft_revu::fsio::read(path).map_err(io)?)
 }
 
 impl Session {

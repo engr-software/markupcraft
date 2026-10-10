@@ -9,6 +9,7 @@ license.workspace = true
 workspace = true
 
 [dependencies]
+web-time = { workspace = true }
 markupcraft-geom = { workspace = true }
 markupcraft-measure = { workspace = true }
 markupcraft-model = { workspace = true }

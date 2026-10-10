@@ -94,7 +94,7 @@ fn run_sign(app: &mut AppState) {
         return;
     };
     let id = match std::fs::metadata(&p12).map(|m| m.len()) {
-        Ok(n) if n <= 1 << 20 => std::fs::read(&p12).map_err(|e| e.to_string()),
+        Ok(n) if n <= 1 << 20 => markupcraft_revu::fsio::read(&p12).map_err(|e| e.to_string()),
         Ok(_) => Err("the digital ID file is too large".into()),
         Err(e) => Err(e.to_string()),
     };

@@ -362,7 +362,7 @@ pub fn update_quantity_workbook_in_place(links: &[QuantityLink], path: &Path) ->
     if len > zip::MAX_ARCHIVE {
         return Err(invalid("the workbook is too large"));
     }
-    let bytes = std::fs::read(path).map_err(|e| crate::EngineError::Io {
+    let bytes = markupcraft_revu::fsio::read(path).map_err(|e| crate::EngineError::Io {
         path: path.display().to_string(),
         source: e,
     })?;

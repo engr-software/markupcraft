@@ -351,7 +351,21 @@ atomic.
 
 ## Web build
 
-<!-- The web (WASM) build section goes here. -->
+The same app runs in a browser (WebAssembly + WebGL 2). It is not hosted anywhere; build it and
+serve it yourself:
+
+```sh
+rustup target add wasm32-unknown-unknown
+cargo install trunk --locked                # or: cargo install wasm-bindgen-cli --version <Cargo.lock's wasm-bindgen> --locked
+cargo xtask web                             # the site in dist-web/ (--no-trunk uses wasm-bindgen directly)
+python -m http.server -d dist-web 8767      # then open http://127.0.0.1:8767/
+```
+
+Open PDFs with File > Open (the browser's file picker) or by dropping them on the window, or
+link one with `?file=<url>` (same origin or CORS-enabled). Save and exports download the file;
+settings stay in the browser's storage. Printing to a system printer, camera and scanner,
+email, shell integration and the Web Tab need the desktop app and are greyed out; pages render
+on the interface thread. CI builds the bundle and uploads it as the `markupcraft-web` artifact.
 
 ---
 

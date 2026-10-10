@@ -1,8 +1,9 @@
 name: CI
 
 # Every push to main and every pull request: fmt, clippy and tests on Windows, macOS (Apple
-# silicon) and Linux, the wasm32 check of the web app, the parity table, and a package per OS
-# uploaded as workflow artifacts (the same packages a release publishes; see release.yml).
+# silicon) and Linux, wasm32 clippy of the web app and its bundle (dist-web/, uploaded as the
+# `markupcraft-web` artifact, never deployed), the parity table, and a package per OS uploaded
+# as workflow artifacts (the same packages a release publishes; see release.yml).
 
 on:
   push:
@@ -60,18 +61,33 @@ jobs:
         run: cargo xtask parity
 
   wasm:
-    name: wasm32 check (web app)
+    name: web app (wasm32 clippy + bundle)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
+          components: clippy
       - uses: Swatinem/rust-cache@v2
         with:
           key: wasm32
-      - name: Check the web app for wasm32
+      - name: Clippy the web app for wasm32
         run: cargo xtask wasm
+      # A pinned trunk release (prebuilt binary); trunk fetches the matching wasm-bindgen and
+      # wasm-opt itself.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: trunk@0.21.14
+      - name: Build the web bundle (dist-web/)
+        run: cargo xtask web
+      # The bundle is only an artifact: nothing here deploys or hosts it.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: markupcraft-web
+          path: dist-web/
+          if-no-files-found: error
+          retention-days: 14
 
   package:
     name: package

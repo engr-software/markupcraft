@@ -27,7 +27,7 @@ fn lock_path(p: &Path) -> PathBuf {
 
 /// Who holds the lock of a shared set's file, if anyone.
 pub fn holder(path: &Path) -> Option<String> {
-    let b = std::fs::read(lock_path(path)).ok()?;
+    let b = markupcraft_revu::fsio::read(lock_path(path)).ok()?;
     let t = String::from_utf8_lossy(b.get(..b.len().min(400))?).trim().to_string();
     Some(if t.is_empty() { "someone".into() } else { t })
 }
@@ -42,7 +42,7 @@ impl ToolChest {
         if self.extras.shared.iter().any(|s| s.path == path) {
             return Err(format!("{} is already in the Tool Chest", path.display()));
         }
-        let text = std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+        let text = markupcraft_revu::fsio::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
         let id = self.import_set(&text)?;
         self.extras.shared.push(SharedSet {
             set: id.clone(),
@@ -99,7 +99,8 @@ impl ToolChest {
         if sh.checked_out {
             return Ok(());
         }
-        let text = std::fs::read_to_string(&sh.path).map_err(|e| format!("{}: {e}", sh.path.display()))?;
+        let text =
+            markupcraft_revu::fsio::read_to_string(&sh.path).map_err(|e| format!("{}: {e}", sh.path.display()))?;
         let new_id = self.import_set(&text)?;
         let pos_new = self.sets.iter().position(|s| s.id == new_id).ok_or("import failed")?;
         let fresh = self.sets.remove(pos_new);

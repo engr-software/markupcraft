@@ -1,0 +1,12 @@
+# MarkupCraft in the browser. Build with `cargo xtask web` (uses trunk when installed) or
+# `trunk build --release` in this folder; the site lands in dist-web/ at the repository root,
+# with relative URLs so it can be served from any folder.
+[build]
+target = "index.html"
+dist = "../../dist-web"
+public_url = "./"
+filehash = true
+
+[serve]
+addresses = ["127.0.0.1"]
+port = 8767

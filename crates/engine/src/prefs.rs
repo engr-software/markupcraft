@@ -204,7 +204,7 @@ fn merge(base: &mut serde_json::Value, patch: &serde_json::Value, depth: usize) 
 pub fn expand_config_dir(d: &std::path::Path) -> PathBuf {
     let s = d.to_string_lossy();
     if s.contains("{pid}") {
-        PathBuf::from(s.replace("{pid}", &std::process::id().to_string()))
+        PathBuf::from(s.replace("{pid}", &markupcraft_revu::fsio::process_id().to_string()))
     } else {
         d.to_path_buf()
     }
@@ -213,6 +213,9 @@ pub fn expand_config_dir(d: &std::path::Path) -> PathBuf {
 /// The user's config folder (see the module docs).
 pub fn default_config_dir() -> Option<PathBuf> {
     let env = |k: &str| std::env::var_os(k).filter(|v| !v.is_empty()).map(PathBuf::from);
+    if cfg!(target_arch = "wasm32") {
+        return Some(PathBuf::from(markupcraft_revu::fsio::BROWSER_CONFIG_DIR));
+    }
     if let Some(d) = env("MARKUPCRAFT_CONFIG_DIR") {
         return Some(expand_config_dir(&d));
     }
@@ -252,14 +255,14 @@ pub(crate) fn io_err(path: &Path) -> impl Fn(std::io::Error) -> EngineError + '_
 
 /// Read a preferences file (untrusted).
 pub fn read_file(path: &Path) -> Result<Preferences> {
-    let len = std::fs::metadata(path).map_err(io_err(path))?.len();
+    let len = markupcraft_revu::fsio::len(path).map_err(io_err(path))?;
     if len > MAX_FILE {
         return Err(invalid(format!(
             "{} is too large for a preferences file",
             path.display()
         )));
     }
-    let text = std::fs::read_to_string(path).map_err(io_err(path))?;
+    let text = markupcraft_revu::fsio::read_to_string(path).map_err(io_err(path))?;
     let p: Preferences = serde_json::from_str(&text)
         .map_err(|e| invalid(format!("{} is not a preferences file: {e}", path.display())))?;
     p.validate()?;
@@ -270,7 +273,7 @@ pub fn read_file(path: &Path) -> Result<Preferences> {
 pub fn write_file(path: &Path, p: &Preferences) -> Result<()> {
     p.validate()?;
     if let Some(dir) = path.parent().filter(|d| !d.as_os_str().is_empty()) {
-        std::fs::create_dir_all(dir).map_err(io_err(dir))?;
+        markupcraft_revu::fsio::create_dir_all(dir).map_err(io_err(dir))?;
     }
     let text = serde_json::to_string_pretty(p).map_err(|e| invalid(e.to_string()))?;
     crate::write_atomic(path, text.as_bytes())
@@ -304,7 +307,7 @@ impl PrefStore {
     /// The active profile's name.
     pub fn active(&self) -> String {
         let p = self.dir.join("active-profile");
-        std::fs::read_to_string(p)
+        markupcraft_revu::fsio::read_to_string(p)
             .ok()
             .and_then(|s| check_profile_name(s.lines().next().unwrap_or_default()).ok())
             .unwrap_or_else(|| DEFAULT_PROFILE.to_string())
@@ -343,7 +346,7 @@ impl PrefStore {
     /// A profile's preferences (defaults when it was never saved).
     pub fn load_profile(&self, name: &str) -> Result<Preferences> {
         let p = self.profile_path(name)?;
-        if !p.exists() {
+        if !markupcraft_revu::fsio::exists(&p) {
             return Ok(crate::profiles::shipped_preferences(name.trim()).unwrap_or_default());
         }
         read_file(&p)
@@ -373,11 +376,11 @@ impl PrefStore {
         let current = self.active();
         if current != name {
             let cur = self.profile_path(&current)?;
-            if !cur.exists() {
+            if !markupcraft_revu::fsio::exists(&cur) {
                 write_file(&cur, &self.load()?)?;
             }
         }
-        if !path.exists() {
+        if !markupcraft_revu::fsio::exists(&path) {
             let p = if let Some(s) = crate::profiles::shipped_preferences(&name) {
                 s
             } else if copy_from_current {
@@ -388,7 +391,7 @@ impl PrefStore {
             write_file(&path, &p)?;
         }
         let p = read_file(&path)?;
-        std::fs::create_dir_all(&self.dir).map_err(io_err(&self.dir))?;
+        markupcraft_revu::fsio::create_dir_all(&self.dir).map_err(io_err(&self.dir))?;
         crate::write_atomic(&self.dir.join("active-profile"), name.as_bytes())?;
         Ok(p)
     }
@@ -400,10 +403,10 @@ impl PrefStore {
             return Err(invalid("switch to another profile before deleting this one"));
         }
         let p = self.profile_path(&name)?;
-        if !p.exists() {
+        if !markupcraft_revu::fsio::exists(&p) {
             return Err(invalid(format!("no profile named {name:?}")));
         }
-        std::fs::remove_file(&p).map_err(io_err(&p))
+        markupcraft_revu::fsio::remove_file(&p).map_err(io_err(&p))
     }
 
     /// Copy a profile to a file.

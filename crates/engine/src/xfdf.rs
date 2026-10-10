@@ -71,7 +71,7 @@ impl Session {
         if len > MAX_IMPORT {
             return Err(invalid(format!("{} is too large to import", path.display())));
         }
-        let bytes = std::fs::read(path).map_err(io)?;
+        let bytes = markupcraft_revu::fsio::read(path).map_err(io)?;
         self.import_xfdf(&bytes)
     }
 }

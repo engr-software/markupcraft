@@ -15,6 +15,7 @@
 
 pub mod ap;
 pub mod extras;
+pub mod fsio;
 pub mod hatch;
 pub mod kinds;
 pub mod layers;
@@ -136,8 +137,12 @@ pub fn save(file: &mut PdfFile, doc: &mut Document, out: impl AsRef<Path>, mode:
         path: out.display().to_string(),
         source: e,
     };
-    std::fs::write(&tmp, &bytes).map_err(io)?;
-    std::fs::rename(&tmp, out).map_err(io)?;
+    if fsio::hosted() {
+        fsio::write_atomic(out, &bytes).map_err(io)?;
+    } else {
+        std::fs::write(&tmp, &bytes).map_err(io)?;
+        std::fs::rename(&tmp, out).map_err(io)?;
+    }
     let bytes = Arc::new(bytes);
     file.cos = match file.cos.reopen_after_save(bytes) {
         Ok(c) => c,
@@ -203,8 +208,8 @@ fn renumber_markups(cos: &CosDoc, doc: &mut Document) {
 /// 16 uppercase letters, the shape Revu uses for `/NM`.
 pub fn new_markup_id() -> String {
     static COUNTER: AtomicU64 = AtomicU64::new(0);
-    let nanos = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
+    let nanos = web_time::SystemTime::now()
+        .duration_since(web_time::UNIX_EPOCH)
         .map_or(0, |d| d.as_nanos() as u64);
     let mut x = nanos
         ^ COUNTER
@@ -224,8 +229,8 @@ pub fn new_markup_id() -> String {
 
 /// PDF date string for now (UTC), e.g. `D:20261009153000Z`.
 pub fn pdf_date_now() -> String {
-    let secs = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
+    let secs = web_time::SystemTime::now()
+        .duration_since(web_time::UNIX_EPOCH)
         .map_or(0, |d| d.as_secs() as i64);
     pdfcraft_cos::pdf_date(secs)
 }

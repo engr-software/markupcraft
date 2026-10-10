@@ -109,7 +109,7 @@ impl StampSettings {
         if std::fs::metadata(&f).map_err(io)?.len() > 1 << 20 {
             return Err(invalid("the stamp settings file is too large"));
         }
-        let text = std::fs::read_to_string(&f).map_err(io)?;
+        let text = markupcraft_revu::fsio::read_to_string(&f).map_err(io)?;
         let s: Self =
             serde_json::from_str(&text).map_err(|e| invalid(format!("the stamp settings are damaged: {e}")))?;
         s.validate()?;

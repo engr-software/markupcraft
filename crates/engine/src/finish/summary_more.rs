@@ -27,11 +27,11 @@ impl Session {
     /// The Markup Summary as a PDF at `out` with `x`'s extras. Returns the summary's markup
     /// count.
     pub fn export_summary_extras(&self, out: &Path, o: &SummaryOptions, x: &SummaryExtras) -> Result<usize> {
-        let tmp = std::env::temp_dir().join(format!(
+        let tmp = markupcraft_revu::fsio::temp_dir().join(format!(
             "markupcraft-summary-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
+            markupcraft_revu::fsio::process_id(),
+            web_time::SystemTime::now()
+                .duration_since(web_time::UNIX_EPOCH)
                 .map(|d| d.as_nanos())
                 .unwrap_or(0)
         ));

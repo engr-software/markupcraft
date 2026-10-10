@@ -52,7 +52,7 @@ pub fn dialog_answer(app: &mut AppState, tag: &str, arg: &str, path: &std::path:
                 Ok(m) if m.len() > crate::chest_sets::MAX_SET_FILE => {
                     return "The file is too large to be a tool set".into();
                 }
-                _ => std::fs::read_to_string(path),
+                _ => markupcraft_revu::fsio::read_to_string(path),
             };
             match text
                 .map_err(|e| e.to_string())

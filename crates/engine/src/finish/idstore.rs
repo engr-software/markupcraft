@@ -42,7 +42,7 @@ fn read_small(p: &Path) -> Result<Vec<u8>> {
     if len > 4 << 20 {
         return Err(invalid(format!("{} is too large to be a digital ID", p.display())));
     }
-    std::fs::read(p).map_err(io(p))
+    markupcraft_revu::fsio::read(p).map_err(io(p))
 }
 
 /// The IDs in `dir`, by name.
@@ -57,7 +57,7 @@ pub fn list_ids(dir: &Path) -> Vec<StoredId> {
         .take(500)
         .filter_map(|p| {
             let name = p.file_stem()?.to_string_lossy().into_owned();
-            let pem = std::fs::read(p.with_extension("pem")).unwrap_or_default();
+            let pem = markupcraft_revu::fsio::read(p.with_extension("pem")).unwrap_or_default();
             let cert = crate::signatures::load_certificates(&pem)
                 .ok()
                 .and_then(|v| v.into_iter().next());

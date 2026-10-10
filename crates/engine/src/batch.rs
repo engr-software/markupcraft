@@ -62,7 +62,7 @@ pub fn load_set(path: &Path) -> Result<DrawingSet> {
     if std::fs::metadata(path).map_err(io(path))?.len() > 16 << 20 {
         return Err(invalid("the set file is too large"));
     }
-    let text = std::fs::read_to_string(path).map_err(io(path))?;
+    let text = markupcraft_revu::fsio::read_to_string(path).map_err(io(path))?;
     let f: SetFile = serde_json::from_str(&text).map_err(|e| invalid(format!("not a set file: {e}")))?;
     if f.format != SET_FORMAT {
         return Err(invalid(format!("not a MarkupCraft set (format {:?})", f.format)));
@@ -1177,7 +1177,7 @@ pub fn save_link_run(path: &Path, run: &BatchLinkRun) -> Result<()> {
     let xml = link_run_xml(run);
     if path.extension().is_some_and(|e| e.eq_ignore_ascii_case("pcset")) {
         let mut v: serde_json::Value = if path.exists() {
-            let text = std::fs::read_to_string(path).map_err(io(path))?;
+            let text = markupcraft_revu::fsio::read_to_string(path).map_err(io(path))?;
             serde_json::from_str(&text).map_err(|e| invalid(format!("not a set file: {e}")))?
         } else {
             let set = DrawingSet {
@@ -1189,7 +1189,7 @@ pub fn save_link_run(path: &Path, run: &BatchLinkRun) -> Result<()> {
                 ..Default::default()
             };
             save_set(path, &set)?;
-            let text = std::fs::read_to_string(path).map_err(io(path))?;
+            let text = markupcraft_revu::fsio::read_to_string(path).map_err(io(path))?;
             serde_json::from_str(&text).map_err(|e| invalid(e.to_string()))?
         };
         let obj = v.as_object_mut().ok_or_else(|| invalid("not a set file"))?;
@@ -1205,7 +1205,7 @@ pub fn load_link_run(path: &Path) -> Result<BatchLinkRun> {
     if std::fs::metadata(path).map_err(io(path))?.len() > 32 << 20 {
         return Err(invalid("the run file is too large"));
     }
-    let text = std::fs::read_to_string(path).map_err(io(path))?;
+    let text = markupcraft_revu::fsio::read_to_string(path).map_err(io(path))?;
     if path.extension().is_some_and(|e| e.eq_ignore_ascii_case("pcset")) {
         let v: serde_json::Value = serde_json::from_str(&text).map_err(|e| invalid(format!("not a set file: {e}")))?;
         let xml = v

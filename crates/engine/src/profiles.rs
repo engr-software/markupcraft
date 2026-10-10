@@ -97,7 +97,7 @@ fn read_json(path: &Path, max: u64) -> Option<Value> {
     if len > max {
         return None;
     }
-    serde_json::from_slice(&std::fs::read(path).ok()?).ok()
+    serde_json::from_slice(&markupcraft_revu::fsio::read(path).ok()?).ok()
 }
 
 /// A plain settings file name (`toolchest.json`): no folders, no hidden files.
@@ -200,7 +200,7 @@ impl PrefStore {
         if len > MAX_BUNDLE {
             return Err(invalid(format!("{} is too large for a profile file", from.display())));
         }
-        let bytes = std::fs::read(from).map_err(io_err(from))?;
+        let bytes = markupcraft_revu::fsio::read(from).map_err(io_err(from))?;
         let b: Bundle = serde_json::from_slice(&bytes)
             .map_err(|e| invalid(format!("{} is not a profile file: {e}", from.display())))?;
         if b.format != BUNDLE_FORMAT || b.version == 0 || b.version > 1 {

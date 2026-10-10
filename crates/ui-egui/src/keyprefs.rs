@@ -86,8 +86,8 @@ impl KeyPrefs {
             path: Some(path.to_path_buf()),
             ..Default::default()
         };
-        if std::fs::metadata(path).is_ok_and(|m| m.len() <= MAX_FILE)
-            && let Ok(text) = std::fs::read_to_string(path)
+        if markupcraft_revu::fsio::len(path).is_ok_and(|n| n <= MAX_FILE)
+            && let Ok(text) = markupcraft_revu::fsio::read_to_string(path)
         {
             let _ = p.read_text(&text);
         }
@@ -209,7 +209,7 @@ pub fn dialog_answer(app: &mut AppState, tag: &str, path: &Path) -> String {
     }
     let text = match std::fs::metadata(path) {
         Ok(m) if m.len() > MAX_FILE => return "The file is too large".into(),
-        _ => std::fs::read_to_string(path),
+        _ => markupcraft_revu::fsio::read_to_string(path),
     };
     match text.map_err(|e| e.to_string()).and_then(|t| app.keys.read_text(&t)) {
         Ok(n) => {

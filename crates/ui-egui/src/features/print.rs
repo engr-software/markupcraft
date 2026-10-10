@@ -387,7 +387,10 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
         current_view(app);
     }
     if print {
-        let out = std::env::temp_dir().join(format!("markupcraft-print-{}.pdf", std::process::id()));
+        let out = markupcraft_revu::fsio::temp_dir().join(format!(
+            "markupcraft-print-{}.pdf",
+            markupcraft_revu::fsio::process_id()
+        ));
         if write(app, &out) {
             let p = &app.features.print;
             let printer = (!p.printer.is_empty()).then_some(p.printer.as_str());

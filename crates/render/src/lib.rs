@@ -151,7 +151,11 @@ pub struct RenderOptions {
 
 impl RenderOptions {
     /// A sensible default pool size for this machine.
+    /// The browser build has no threads: 0, every page renders inline in [`RenderDoc::poll`].
     pub fn default_threads() -> usize {
+        if cfg!(target_arch = "wasm32") {
+            return 0;
+        }
         std::thread::available_parallelism().map_or(2, |n| n.get().clamp(1, 6))
     }
 }

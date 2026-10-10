@@ -1487,6 +1487,7 @@ dependencies = [
  "egui-wgpu",
  "egui-winit",
  "egui_glow",
+ "glow",
  "glutin",
  "glutin-winit",
  "image",
@@ -3002,6 +3003,7 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.21",
  "tiff",
+ "web-time",
  "weezl 0.1.12",
 ]
 
@@ -3051,6 +3053,7 @@ dependencies = [
  "markupcraft-model",
  "pdfcraft-cos",
  "thiserror 2.0.21",
+ "web-time",
 ]
 
 [[package]]
@@ -3063,6 +3066,7 @@ dependencies = [
  "egui_extras",
  "egui_kittest",
  "image",
+ "js-sys",
  "log",
  "markupcraft-automation",
  "markupcraft-engine",
@@ -3077,11 +3081,22 @@ dependencies = [
  "serde",
  "serde_json",
  "tiff",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "web-time",
 ]
 
 [[package]]
 name = "markupcraft-web"
 version = "0.4.0"
+dependencies = [
+ "eframe",
+ "js-sys",
+ "log",
+ "markupcraft-ui-egui",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
 
 [[package]]
 name = "md-5"

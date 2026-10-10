@@ -88,8 +88,8 @@ impl ListPrefs {
             path: Some(path.to_path_buf()),
             ..Default::default()
         };
-        if std::fs::metadata(path).is_ok_and(|m| m.len() <= MAX_FILE)
-            && let Ok(text) = std::fs::read_to_string(path)
+        if markupcraft_revu::fsio::len(path).is_ok_and(|n| n <= MAX_FILE)
+            && let Ok(text) = markupcraft_revu::fsio::read_to_string(path)
             && let Ok(f) = serde_json::from_str::<FileFormat>(&text)
             && f.format == "markupcraft-markups-list"
         {

@@ -269,7 +269,7 @@ impl Renderable {
         let scale = scale.min(geom.scale_for_side(max_side)).max(0.01);
         let tag = self.tag.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         self.doc.request(vec![page_request(page, scale, tag)]);
-        let start = std::time::Instant::now();
+        let start = web_time::Instant::now();
         loop {
             match self.doc.poll() {
                 Some(r) if r.request.tag == tag && r.request.page == page => {
@@ -285,7 +285,7 @@ impl Renderable {
                         page + 1
                     )));
                 }
-                None => std::thread::sleep(std::time::Duration::from_micros(500)),
+                None => markupcraft_revu::fsio::sleep(std::time::Duration::from_micros(500)),
             }
         }
     }
@@ -364,10 +364,12 @@ impl Session {
 
 /// Read a PDF file into memory.
 pub fn read_pdf(path: &std::path::Path) -> Result<Arc<Vec<u8>>> {
-    std::fs::read(path).map(Arc::new).map_err(|e| crate::EngineError::Io {
-        path: path.display().to_string(),
-        source: e,
-    })
+    markupcraft_revu::fsio::read(path)
+        .map(Arc::new)
+        .map_err(|e| crate::EngineError::Io {
+            path: path.display().to_string(),
+            source: e,
+        })
 }
 
 #[cfg(test)]

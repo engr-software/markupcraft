@@ -330,7 +330,7 @@ impl Session {
         if len > MAX_FILE {
             return Err(invalid("the spaces file is too large"));
         }
-        let text = std::fs::read_to_string(path).map_err(io)?;
+        let text = markupcraft_revu::fsio::read_to_string(path).map_err(io)?;
         let file: SpacesFile = serde_json::from_str(&text).map_err(|e| invalid(format!("not a spaces file: {e}")))?;
         if file.format != FORMAT {
             return Err(invalid(format!("not a spaces file (format {:?})", file.format)));

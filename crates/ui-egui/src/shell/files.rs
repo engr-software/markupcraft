@@ -93,7 +93,7 @@ pub fn intercept_open(app: &mut AppState, path: &Path) -> bool {
 pub fn open_copy(app: &mut AppState, path: &Path) {
     let name = name_of(path);
     let stem = name.trim_end_matches(".pdf");
-    let r = std::fs::read(path)
+    let r = markupcraft_revu::fsio::read(path)
         .map_err(|e| e.to_string())
         .and_then(|b| app.open_bytes(&format!("{stem} (read-only copy).pdf"), None, b));
     app.status = match r {
@@ -105,7 +105,7 @@ pub fn open_copy(app: &mut AppState, path: &Path) {
 // ---- recovery ----------------------------------------------------------------------------------
 
 fn copy_paths(dir: &Path, uid: u64) -> (PathBuf, PathBuf) {
-    let stem = format!("{}-{uid}", std::process::id());
+    let stem = format!("{}-{uid}", markupcraft_revu::fsio::process_id());
     (dir.join(format!("{stem}.pdf")), dir.join(format!("{stem}.json")))
 }
 
@@ -172,7 +172,7 @@ pub fn scan(dir: &Path) -> Vec<Recovered> {
         .into_iter()
         .filter_map(|m| {
             let pdf = m.with_extension("pdf");
-            let text = std::fs::read(&m).ok().filter(|b| b.len() < 64 * 1024)?;
+            let text = markupcraft_revu::fsio::read(&m).ok().filter(|b| b.len() < 64 * 1024)?;
             let mut r: Recovered = serde_json::from_slice(&text).ok()?;
             pdf.is_file().then(|| {
                 r.copy = pdf;
@@ -195,7 +195,7 @@ fn forget(r: &Recovered) {
 
 /// Open a recovered document; Save writes to the file it came from.
 pub fn restore(app: &mut AppState, r: &Recovered) {
-    let res = std::fs::read(&r.copy)
+    let res = markupcraft_revu::fsio::read(&r.copy)
         .map_err(|e| e.to_string())
         .and_then(|b| app.open_bytes(&r.name, r.path.clone(), b));
     app.status = match res {
@@ -243,9 +243,9 @@ pub fn email(app: &mut AppState) {
     };
     let draft = docfile::email_draft(name.trim_end_matches(".pdf"), "", &name, &bytes);
     static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-    let path = std::env::temp_dir().join(format!(
+    let path = markupcraft_revu::fsio::temp_dir().join(format!(
         "markupcraft-email-{}-{}.eml",
-        std::process::id(),
+        markupcraft_revu::fsio::process_id(),
         N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
     ));
     if let Err(e) = crate::chest::write_atomic(&path, &draft) {
@@ -302,9 +302,9 @@ pub fn drop_on_thumbnails(app: &mut AppState, ctx: &egui::Context) -> bool {
         let at = before.min(d.session.page_count()) + pages;
         let r = if docfile::is_image_path(&path) {
             static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-            let tmp = std::env::temp_dir().join(format!(
+            let tmp = markupcraft_revu::fsio::temp_dir().join(format!(
                 "markupcraft-drop-{}-{}.pdf",
-                std::process::id(),
+                markupcraft_revu::fsio::process_id(),
                 N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
             ));
             docfile::image_file_pdf(&path)

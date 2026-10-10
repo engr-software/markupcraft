@@ -1,10 +1,19 @@
 [package]
 name = "markupcraft-web"
+description = "MarkupCraft in the browser (wasm32; `cargo xtask web` or `trunk build --release` in this folder)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+publish = false
 
 [lints]
 workspace = true
 
-[dependencies]
+# Everything is wasm32-only: on the desktop this crate is an empty binary that says how to build it.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+markupcraft-ui-egui = { workspace = true }
+eframe = { workspace = true, features = ["default_fonts", "glow", "accesskit"] }
+log = { workspace = true }
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = ["Window", "Document", "Element", "HtmlCanvasElement", "HtmlElement", "Location", "UrlSearchParams", "Response"] }

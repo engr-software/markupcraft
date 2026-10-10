@@ -276,7 +276,7 @@ fn new_id_window(app: &mut AppState, ctx: &egui::Context) {
 pub fn sign_to(app: &mut AppState, out: &Path) -> Result<(), String> {
     let s = &app.features.signatures;
     let path = s.id_path.clone().ok_or("Choose a digital ID")?;
-    let bytes = std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let bytes = markupcraft_revu::fsio::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
     let id = open_digital_id(&bytes, &s.password).map_err(|e| e.to_string())?;
     let req = SignRequest {
         page: s.rect.map_or(0, |r| r.0),
@@ -335,7 +335,7 @@ pub fn file(app: &mut AppState, ask: &Ask, path: &Path) {
                 Err(e) => s.message = e,
             }
         }
-        Ask::TrustCerts => match std::fs::read(path) {
+        Ask::TrustCerts => match markupcraft_revu::fsio::read(path) {
             Ok(b) => {
                 if load_certificates(&b).is_ok() {
                     app.features.signatures.trust.push(b);

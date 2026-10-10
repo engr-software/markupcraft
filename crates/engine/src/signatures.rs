@@ -55,8 +55,8 @@ pub fn create_digital_id(who: &IdentityInfo, years: u32, password: &str) -> Resu
     }
     let key = PrivateKey::generate_p256().map_err(sign_err)?;
     let name = Name::build(&who.name, &who.unit, &who.organization, &who.email, &who.country);
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
+    let now = web_time::SystemTime::now()
+        .duration_since(web_time::UNIX_EPOCH)
         .map(|d| d.as_secs() as i64)
         .unwrap_or(0);
     // A serial from the clock and a fresh random-looking id.

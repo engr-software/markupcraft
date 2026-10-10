@@ -39,7 +39,7 @@ pub fn load_dictionary_blocking() {
         if DICT.get().is_some() {
             return;
         }
-        std::thread::sleep(std::time::Duration::from_millis(5));
+        markupcraft_revu::fsio::sleep(std::time::Duration::from_millis(5));
     }
 }
 

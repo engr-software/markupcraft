@@ -100,7 +100,7 @@ pub struct ForeignPdf {
 impl ForeignPdf {
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
-        let data = std::fs::read(path).map_err(|e| EngineError::Io {
+        let data = markupcraft_revu::fsio::read(path).map_err(|e| EngineError::Io {
             path: path.display().to_string(),
             source: e,
         })?;

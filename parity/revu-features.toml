@@ -11433,7 +11433,7 @@ source = "docs/revu_features/04_compare_ui_collab.md:350"
 status = "missing"
 cpp = "missing"
 evidence = []
-notes = "Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF."
+notes = "Out of scope: Studio server / Bluebeam Cloud / DMS / Office-CAD plugins / 3D PDF. Browser access without a cloud service: apps/markupcraft-web runs the same interface in a browser (cargo xtask web builds dist-web/; CI uploads it as the markupcraft-web artifact) on files picked or dropped from the user's machine, saving as downloads; no shared cloud projects."
 excluded = true
 
 [[feature]]

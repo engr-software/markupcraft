@@ -18,7 +18,7 @@ pub fn first_page_preview(path: &Path, max_side: f32) -> Result<(usize, usize, V
     if len > MAX_FILE {
         return Err(invalid("the file is too large to preview"));
     }
-    let bytes = std::fs::read(path).map_err(|e| invalid(format!("{}: {e}", path.display())))?;
+    let bytes = markupcraft_revu::fsio::read(path).map_err(|e| invalid(format!("{}: {e}", path.display())))?;
     let doc = Renderable::new(Arc::new(bytes), false)?;
     if doc.page_count() == 0 {
         return Err(invalid("the file has no pages"));

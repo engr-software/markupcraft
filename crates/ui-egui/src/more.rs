@@ -519,7 +519,7 @@ pub fn cloud_drag(
 pub fn choice_csv(app: &mut AppState, col_id: &str, path: &std::path::Path) -> String {
     let text = match std::fs::metadata(path) {
         Ok(m) if m.len() > 4 << 20 => return "The file is too large for a list of choices".into(),
-        _ => std::fs::read_to_string(path),
+        _ => markupcraft_revu::fsio::read_to_string(path),
     };
     let text = match text {
         Ok(t) => t,

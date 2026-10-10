@@ -343,7 +343,7 @@ impl EsclScanner {
                 }
                 503 if busy < 20 => {
                     busy += 1;
-                    std::thread::sleep(Duration::from_millis(250));
+                    markupcraft_revu::fsio::sleep(Duration::from_millis(250));
                 }
                 _ => break,
             }
@@ -451,9 +451,9 @@ fn temps(images: &[Vec<u8>]) -> Result<Temps> {
     let mut t = Temps(Vec::new());
     for b in images {
         let n = N.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        let p = std::env::temp_dir().join(format!(
+        let p = markupcraft_revu::fsio::temp_dir().join(format!(
             "markupcraft-acquired-{}-{n}.{}",
-            std::process::id(),
+            markupcraft_revu::fsio::process_id(),
             ext_of(b)?
         ));
         crate::write_atomic(&p, b)?;
@@ -475,9 +475,9 @@ pub fn pdf_from_images(images: &[Vec<u8>], out: &Path) -> Result<usize> {
 impl Session {
     /// Insert acquired images (or PDFs) as pages so the first becomes page `at`. Undoable.
     pub fn insert_acquired_pages(&mut self, at: usize, images: &[Vec<u8>]) -> Result<usize> {
-        let tmp = std::env::temp_dir().join(format!(
+        let tmp = markupcraft_revu::fsio::temp_dir().join(format!(
             "markupcraft-acquired-{}-{}.pdf",
-            std::process::id(),
+            markupcraft_revu::fsio::process_id(),
             crate::stamps::now_secs()
         ));
         let n = pdf_from_images(images, &tmp)?;

@@ -124,7 +124,7 @@ pub fn apply(app: &mut AppState) {
         if meta.len() > 1 << 20 {
             continue;
         }
-        if let Ok(b) = std::fs::read(&f)
+        if let Ok(b) = markupcraft_revu::fsio::read(&f)
             && markupcraft_engine::signatures::load_certificates(&b).is_ok()
             && !app.features.signatures.trust.contains(&b)
         {

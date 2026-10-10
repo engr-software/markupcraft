@@ -129,6 +129,10 @@ impl Default for ToolChest {
 /// The folder MarkupCraft keeps its settings in: `MARKUPCRAFT_CONFIG_DIR`, else the platform's
 /// configuration folder.
 pub fn config_dir() -> Option<PathBuf> {
+    // The browser build keeps settings in the browser's storage (`browser.rs`).
+    if cfg!(target_arch = "wasm32") {
+        return Some(PathBuf::from(markupcraft_revu::fsio::BROWSER_CONFIG_DIR));
+    }
     if let Some(d) = std::env::var_os("MARKUPCRAFT_CONFIG_DIR") {
         return Some(markupcraft_engine::prefs::expand_config_dir(std::path::Path::new(&d)));
     }
@@ -177,16 +181,16 @@ impl ToolChest {
             path: Some(path.to_path_buf()),
             ..Default::default()
         };
-        let meta = match std::fs::metadata(path) {
-            Ok(m) => m,
+        let len = match markupcraft_revu::fsio::len(path) {
+            Ok(n) => n,
             Err(_) => return c,
         };
-        if meta.len() > MAX_FILE {
+        if len > MAX_FILE {
             c.error = Some(format!("{} is too large to be a tool chest", path.display()));
             c.path = None;
             return c;
         }
-        let text = match std::fs::read_to_string(path) {
+        let text = match markupcraft_revu::fsio::read_to_string(path) {
             Ok(t) => t,
             Err(e) => {
                 c.error = Some(format!("{}: {e}", path.display()));
@@ -259,14 +263,11 @@ impl ToolChest {
 
     pub(crate) fn new_id(&mut self, prefix: &str) -> String {
         self.counter += 1;
-        // The clock keeps ids unique across sessions (the browser build has no system clock).
-        #[cfg(not(target_arch = "wasm32"))]
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
+        // The clock keeps ids unique across sessions.
+        let now = web_time::SystemTime::now()
+            .duration_since(web_time::UNIX_EPOCH)
             .map(|d| d.as_nanos())
             .unwrap_or_default();
-        #[cfg(target_arch = "wasm32")]
-        let now = self.sets.iter().map(|s| s.items.len() as u128).sum::<u128>() + self.sets.len() as u128;
         format!("{prefix}{now:x}{:x}", self.counter)
     }
 
@@ -440,17 +441,7 @@ pub fn place_copy(template: &Markup, page: usize, at: Point) -> Markup {
 
 /// Write `bytes` to `path` through a temporary file and a rename (creating the folder).
 pub fn write_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
-    if let Some(dir) = path.parent() {
-        std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
-    }
-    let mut tmp = path.as_os_str().to_owned();
-    tmp.push(".markupcraft-tmp");
-    let tmp = PathBuf::from(tmp);
-    std::fs::write(&tmp, bytes).map_err(|e| format!("{}: {e}", tmp.display()))?;
-    std::fs::rename(&tmp, path).map_err(|e| {
-        let _ = std::fs::remove_file(&tmp);
-        format!("{}: {e}", path.display())
-    })
+    markupcraft_revu::fsio::write_atomic(path, bytes).map_err(|e| format!("{}: {e}", path.display()))
 }
 
 #[cfg(test)]

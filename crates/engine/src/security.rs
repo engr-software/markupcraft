@@ -152,7 +152,7 @@ impl Session {
     /// Open a password-protected PDF with its open (user) or permissions (owner) password.
     pub fn open_with_password(path: impl AsRef<Path>, password: &str) -> Result<Self> {
         let path = path.as_ref();
-        let data = std::fs::read(path).map_err(|e| EngineError::Io {
+        let data = markupcraft_revu::fsio::read(path).map_err(|e| EngineError::Io {
             path: path.display().to_string(),
             source: e,
         })?;

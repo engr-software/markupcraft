@@ -212,7 +212,7 @@ pub fn load_job(path: &Path) -> Result<BatchJob> {
     if std::fs::metadata(path).map_err(io)?.len() > 32 << 20 {
         return Err(invalid("the batch file is too large"));
     }
-    let text = std::fs::read_to_string(path).map_err(io)?;
+    let text = markupcraft_revu::fsio::read_to_string(path).map_err(io)?;
     let f: BatchFile = serde_json::from_str(&text).map_err(|e| invalid(format!("not a batch file: {e}")))?;
     if f.format != BATCH_FORMAT {
         return Err(invalid("not a MarkupCraft batch file"));
@@ -545,8 +545,8 @@ fn sheet_text(s: &SheetRef) -> String {
 /// A date and time stamp for reports: `YYYY-MM-DD HH:MM UTC`.
 pub fn stamp_now() -> String {
     let (y, m, d) = crate::docutil::today();
-    let secs = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
+    let secs = web_time::SystemTime::now()
+        .duration_since(web_time::UNIX_EPOCH)
         .map_or(0, |d| d.as_secs());
     let t = secs % 86_400;
     format!("{y:04}-{m:02}-{d:02} {:02}:{:02} UTC", t / 3600, (t % 3600) / 60)

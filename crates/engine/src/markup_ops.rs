@@ -499,7 +499,7 @@ impl Session {
         if !meta.is_file() || meta.len() > markupcraft_revu::kinds::more::MAX_ATTACHMENT as u64 {
             return Err(invalid(format!("{} is not a file of at most 50 MB", path.display())));
         }
-        let data = std::fs::read(path).map_err(|e| invalid(format!("{}: {e}", path.display())))?;
+        let data = markupcraft_revu::fsio::read(path).map_err(|e| invalid(format!("{}: {e}", path.display())))?;
         let name = path
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())

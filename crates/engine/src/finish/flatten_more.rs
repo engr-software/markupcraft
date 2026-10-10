@@ -203,7 +203,10 @@ impl Session {
             })?;
         }
         if let Some(csv) = summary {
-            let p = std::env::temp_dir().join(format!("markupcraft-capture-{}.csv", std::process::id()));
+            let p = markupcraft_revu::fsio::temp_dir().join(format!(
+                "markupcraft-capture-{}.csv",
+                markupcraft_revu::fsio::process_id()
+            ));
             crate::write_atomic(&p, csv.as_bytes())?;
             let r = self.add_attachment(
                 &p,

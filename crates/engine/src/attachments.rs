@@ -81,7 +81,7 @@ impl Session {
                 MAX_ATTACHMENT >> 20
             )));
         }
-        let data = std::fs::read(path).map_err(|e| EngineError::Io {
+        let data = markupcraft_revu::fsio::read(path).map_err(|e| EngineError::Io {
             path: path.display().to_string(),
             source: e,
         })?;

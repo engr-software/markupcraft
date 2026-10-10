@@ -532,7 +532,10 @@ pub fn publish_package(set: &DrawingSet, dir: &Path) -> Result<PublishReport> {
 
 /// Print a whole Set: its sheets combined and laid out by `job` into one print-ready PDF.
 pub fn print_set(set: &DrawingSet, job: &PrintJob, out: &Path) -> Result<usize> {
-    let tmp = std::env::temp_dir().join(format!("markupcraft-set-print-{}.pdf", std::process::id()));
+    let tmp = markupcraft_revu::fsio::temp_dir().join(format!(
+        "markupcraft-set-print-{}.pdf",
+        markupcraft_revu::fsio::process_id()
+    ));
     publish_combined(set, &tmp, false, "")?;
     let s = Session::open(&tmp)?;
     let mut j = job.clone();

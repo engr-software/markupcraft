@@ -109,7 +109,7 @@ impl Session {
         if description.chars().count() > 10_000 {
             return Err(invalid("the description is too long"));
         }
-        let data = std::fs::read(path).map_err(io)?;
+        let data = markupcraft_revu::fsio::read(path).map_err(io)?;
         let file = path
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())

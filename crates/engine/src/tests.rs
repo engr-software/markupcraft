@@ -286,7 +286,7 @@ fn labelled(path: &PathBuf, n: usize) -> Vec<String> {
         .map(|p| s.add_markup(area(p, 100.0 + p as f64)).unwrap())
         .collect();
     s.save(true).unwrap();
-    let bytes = std::fs::read(path).unwrap();
+    let bytes = markupcraft_revu::fsio::read(path).unwrap();
     let mut cos = markupcraft_revu::cos::Document::open(std::sync::Arc::new(bytes)).unwrap();
     let mut roman = Dict::new();
     roman.set(b"S".to_vec(), Object::name("r"));

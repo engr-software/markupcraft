@@ -515,7 +515,7 @@ pub fn dialog_answer(app: &mut AppState, tag: &str, arg: &str, path: &std::path:
         "import_linestyles" => {
             let text = match std::fs::metadata(path) {
                 Ok(m) if m.len() > 4 << 20 => return "The file is too large to be a line style set".into(),
-                _ => std::fs::read_to_string(path),
+                _ => markupcraft_revu::fsio::read_to_string(path),
             };
             match text
                 .map_err(|e| e.to_string())

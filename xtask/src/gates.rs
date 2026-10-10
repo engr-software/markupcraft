@@ -77,7 +77,7 @@ pub fn version(_: &[String]) -> anyhow::Result<()> {
 const WEB_APP: &str = "markupcraft-web";
 const WASM_TARGET: &str = "wasm32-unknown-unknown";
 
-/// `cargo check` the web app for wasm32. Skipped (with a message) when the web app does not exist
+/// `cargo clippy -D warnings` the web app (and through it the interface) for wasm32. Skipped (with a message) when the web app does not exist
 /// yet, or locally when the wasm32 target is not installed; under CI a missing target fails.
 pub fn wasm(_: &[String]) -> anyhow::Result<()> {
     if !root().join("apps").join(WEB_APP).join("Cargo.toml").is_file() {
@@ -91,7 +91,7 @@ pub fn wasm(_: &[String]) -> anyhow::Result<()> {
         eprintln!("wasm: SKIPPED, the {WASM_TARGET} target is not installed (rustup target add {WASM_TARGET})");
         return Ok(());
     }
-    run_args(&["check", "--target", WASM_TARGET, "-p", WEB_APP])
+    run_args(&["clippy", "--target", WASM_TARGET, "-p", WEB_APP, "--", "-D", "warnings"])
 }
 
 fn wasm_target_installed() -> bool {

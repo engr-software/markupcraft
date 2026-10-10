@@ -134,7 +134,7 @@ pub fn load_list(path: &Path) -> Result<Vec<PathBuf>> {
     if len > 4 << 20 {
         return Err(invalid("the list file is too large"));
     }
-    let b = std::fs::read(path).map_err(|e| invalid(format!("{}: {e}", path.display())))?;
+    let b = markupcraft_revu::fsio::read(path).map_err(|e| invalid(format!("{}: {e}", path.display())))?;
     let v: Value = serde_json::from_slice(&b).map_err(|e| invalid(format!("{}: {e}", path.display())))?;
     let arr = v
         .get("files")
@@ -152,7 +152,7 @@ pub fn load_list(path: &Path) -> Result<Vec<PathBuf>> {
 /// Run Script on every file: the script's steps (`[{"tool", "params" | "args"}]`) as one
 /// batch_apply, each file saved in place. Returns (files done, errors).
 pub fn run_script(files: &[PathBuf], script: &Path) -> std::result::Result<(usize, Vec<String>), String> {
-    let text = std::fs::read_to_string(script).map_err(|e| format!("{}: {e}", script.display()))?;
+    let text = markupcraft_revu::fsio::read_to_string(script).map_err(|e| format!("{}: {e}", script.display()))?;
     let steps: Value = serde_json::from_str(&text).map_err(|e| format!("{}: {e}", script.display()))?;
     let ops: Vec<Value> = steps
         .as_array()

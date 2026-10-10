@@ -9,6 +9,7 @@ mod models;
 mod package;
 mod parity;
 mod scorecard;
+mod web;
 
 type Command = fn(&[String]) -> anyhow::Result<()>;
 
@@ -21,8 +22,13 @@ const COMMANDS: &[(&str, &str, Command)] = &[
     ),
     (
         "wasm",
-        "cargo check the web app for wasm32-unknown-unknown",
+        "cargo clippy -D warnings on the web app for wasm32-unknown-unknown",
         gates::wasm,
+    ),
+    (
+        "web",
+        "Build the browser app into dist-web/ (trunk when installed, else cargo + wasm-bindgen; --no-trunk)",
+        web::run,
     ),
     (
         "scorecard",

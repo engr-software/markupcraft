@@ -55,13 +55,13 @@ impl Session {
     /// `max_px` pixels (64 to 4000).
     pub fn print_preview(&self, job: &PrintJob, sheet: usize, max_px: u32) -> Result<PrintPreview> {
         static N: AtomicU32 = AtomicU32::new(0);
-        let tmp = std::env::temp_dir().join(format!(
+        let tmp = markupcraft_revu::fsio::temp_dir().join(format!(
             "markupcraft-print-preview-{}-{}.pdf",
-            std::process::id(),
+            markupcraft_revu::fsio::process_id(),
             N.fetch_add(1, Ordering::Relaxed)
         ));
         let r = self.print_job_to_pdf(&tmp, job);
-        let bytes = std::fs::read(&tmp);
+        let bytes = markupcraft_revu::fsio::read(&tmp);
         let _ = std::fs::remove_file(&tmp);
         let sheets = r?;
         let bytes = bytes.map_err(|e| invalid(format!("the preview could not be read back: {e}")))?;

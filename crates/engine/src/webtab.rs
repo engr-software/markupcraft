@@ -8,7 +8,8 @@
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::time::{Duration, Instant};
+use std::time::Duration;
+use web_time::Instant;
 
 use markupcraft_model::Rect;
 
@@ -201,8 +202,8 @@ pub fn capture_args(url: &str, out: &Path, profile: &Path) -> Vec<String> {
 /// `timeout`. Returns the page count.
 pub fn capture_web_page(url: &str, out: &Path, browser: &Path, timeout: Duration) -> Result<usize> {
     let url = check_url(url)?;
-    let stamp = format!("{}-{}", std::process::id(), crate::stamps::now_secs());
-    let profile = std::env::temp_dir().join(format!("markupcraft-webtab-profile-{stamp}"));
+    let stamp = format!("{}-{}", markupcraft_revu::fsio::process_id(), crate::stamps::now_secs());
+    let profile = markupcraft_revu::fsio::temp_dir().join(format!("markupcraft-webtab-profile-{stamp}"));
     let tmp = out.with_extension(format!("capture-{stamp}.pdf"));
     let io = |e: std::io::Error| EngineError::Io {
         path: browser.display().to_string(),
@@ -225,7 +226,7 @@ pub fn capture_web_page(url: &str, out: &Path, browser: &Path, timeout: Duration
             let _ = child.wait();
             break None;
         }
-        std::thread::sleep(Duration::from_millis(100));
+        markupcraft_revu::fsio::sleep(Duration::from_millis(100));
     };
     let _ = std::fs::remove_dir_all(&profile);
     let finish = || -> Result<usize> {
@@ -235,7 +236,8 @@ pub fn capture_web_page(url: &str, out: &Path, browser: &Path, timeout: Duration
                 timeout.as_secs()
             )));
         }
-        let bytes = std::fs::read(&tmp).map_err(|_| invalid("the browser wrote no PDF (is the address reachable?)"))?;
+        let bytes = markupcraft_revu::fsio::read(&tmp)
+            .map_err(|_| invalid("the browser wrote no PDF (is the address reachable?)"))?;
         let s = Session::from_bytes(bytes.clone(), out)?;
         let n = s.page_count();
         crate::write_atomic(out, &bytes)?;

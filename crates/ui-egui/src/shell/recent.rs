@@ -4,7 +4,7 @@
 //! File > Refresh (reload the file from disk).
 
 use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
+use web_time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
@@ -88,7 +88,7 @@ pub fn now_secs() -> u64 {
 
 impl RecentStore {
     pub fn load(path: &Path) -> Self {
-        let mut s: RecentStore = std::fs::read(path)
+        let mut s: RecentStore = markupcraft_revu::fsio::read(path)
             .ok()
             .filter(|b| b.len() < (8 << 20))
             .and_then(|b| serde_json::from_slice(&b).ok())
@@ -352,7 +352,7 @@ pub fn reload(app: &mut AppState) {
         return;
     };
     let (uid, page) = (d.uid, d.view.current);
-    let bytes = match std::fs::read(&path) {
+    let bytes = match markupcraft_revu::fsio::read(&path) {
         Ok(b) => b,
         Err(e) => {
             app.status = format!("Could not read {}: {e}", path.display());

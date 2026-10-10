@@ -17,6 +17,8 @@
 )]
 
 pub mod actions;
+#[cfg(target_arch = "wasm32")]
+pub mod browser;
 #[cfg(all(feature = "camera", not(target_arch = "wasm32")))]
 pub mod camera;
 pub mod canvas;
@@ -293,6 +295,20 @@ impl Default for AppState {
     }
 }
 
+/// Commands that need the operating system: a system printer, a camera or scanner, the mail
+/// program, shell integration, a desktop browser, quitting the process. Greyed out in the
+/// browser build.
+pub const NEEDS_DESKTOP: &[&str] = &[
+    "file.print",
+    "file.create_from_scanner",
+    "markup.camera",
+    "markup.image_scanner",
+    "file.email",
+    "file.shell_integration",
+    "view.web_tab",
+    "file.exit",
+];
+
 /// The page ids (0-based) a `pages` field names: "" = `current`, "all", or a range text.
 pub fn pages_from_text(text: &str, current: usize, count: usize) -> Option<Vec<usize>> {
     let t = text.trim();
@@ -379,7 +395,7 @@ impl AppState {
             self.active = i;
             return;
         }
-        let r = std::fs::read(path)
+        let r = markupcraft_revu::fsio::read(path)
             .map_err(|e| e.to_string())
             .and_then(|b| self.open_bytes(&name, Some(path.to_path_buf()), b));
         match r {
@@ -565,6 +581,9 @@ impl AppState {
 
     /// Whether a command can run now.
     pub fn enabled(&self, id: &str) -> bool {
+        if cfg!(target_arch = "wasm32") && NEEDS_DESKTOP.contains(&id) {
+            return false;
+        }
         if let Some(e) = shell::enabled(self, id) {
             return e;
         }
@@ -1307,6 +1326,19 @@ impl MarkupCraftApp {
             return;
         }
         let dropped = ctx.input(|i| i.raw.dropped_files.clone());
+        // The browser reads dropped files asynchronously: they open when they arrive.
+        #[cfg(target_arch = "wasm32")]
+        {
+            browser::set_context(ctx);
+            browser::read_dropped(dropped);
+            for (name, r) in browser::take_arrived() {
+                match r {
+                    Ok(path) => self.state.open_path(&path),
+                    Err(e) => self.state.status = format!("Could not open {name}: {e}"),
+                }
+            }
+        }
+        #[cfg(not(target_arch = "wasm32"))]
         for f in dropped {
             let path = f.path().to_path_buf();
             if path.is_file() {
@@ -1374,6 +1406,10 @@ impl eframe::App for MarkupCraftApp {
             },
         );
         if title != self.title {
+            // The browser has no window title: the tab's title is the page's.
+            #[cfg(target_arch = "wasm32")]
+            browser::set_title(&title);
+            #[cfg(not(target_arch = "wasm32"))]
             ctx.send_viewport_cmd(egui::ViewportCommand::Title(title.clone()));
             self.title = title;
         }
@@ -1443,6 +1479,15 @@ mod tests {
         s.open_bytes("sample.pdf", None, markupcraft_render::synthetic::sample_pdf())
             .unwrap();
         s
+    }
+
+    #[test]
+    fn desktop_only_commands_are_real_commands() {
+        for id in NEEDS_DESKTOP {
+            assert!(commands::find(id).is_some(), "{id} is not in the command table");
+        }
+        // On the desktop they stay available.
+        assert!(app_with_sample().enabled("file.print"));
     }
 
     #[test]

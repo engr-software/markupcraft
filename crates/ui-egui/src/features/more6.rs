@@ -290,7 +290,7 @@ pub(crate) fn doc_step(
 
 /// Open a PDF written to `path` as a new tab.
 pub(crate) fn open_written(app: &mut AppState, path: &Path) {
-    match std::fs::read(path) {
+    match markupcraft_revu::fsio::read(path) {
         Ok(bytes) => {
             let name = path
                 .file_name()

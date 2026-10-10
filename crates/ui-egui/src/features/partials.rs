@@ -80,7 +80,7 @@ pub fn new_from_template(app: &mut AppState, name: &str) {
         app.status = format!("No template {name}");
         return;
     };
-    match std::fs::read(&path) {
+    match markupcraft_revu::fsio::read(&path) {
         Ok(bytes) => {
             app.shell.untitled += 1;
             let title = format!("Untitled {}.pdf", app.shell.untitled);
@@ -104,9 +104,9 @@ pub fn email_with(app: &mut AppState, t: &EmailTemplate) -> Result<PathBuf, Stri
     };
     let eml = email_from_template(t, &name, &bytes);
     static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-    let path = std::env::temp_dir().join(format!(
+    let path = markupcraft_revu::fsio::temp_dir().join(format!(
         "markupcraft-email-{}-{}.eml",
-        std::process::id(),
+        markupcraft_revu::fsio::process_id(),
         N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
     ));
     crate::chest::write_atomic(&path, &eml).map_err(|e| e.to_string())?;

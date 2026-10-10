@@ -105,13 +105,13 @@ pub(crate) fn page_objs(cos: &CosDoc) -> Result<Vec<ObjRef>> {
 /// hasher mixed with the clock and the process id.
 pub(crate) fn random_seed() -> [u8; 32] {
     let mut out = [0u8; 32];
-    let nanos = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
+    let nanos = web_time::SystemTime::now()
+        .duration_since(web_time::UNIX_EPOCH)
         .map_or(0, |d| d.as_nanos());
     for (i, chunk) in out.chunks_mut(8).enumerate() {
         let mut h = std::collections::hash_map::RandomState::new().build_hasher();
         h.write_u128(nanos);
-        h.write_u32(std::process::id());
+        h.write_u32(markupcraft_revu::fsio::process_id());
         h.write_usize(i);
         for (d, s) in chunk.iter_mut().zip(h.finish().to_le_bytes()) {
             *d = s;
@@ -122,8 +122,8 @@ pub(crate) fn random_seed() -> [u8; 32] {
 
 /// Today's date (UTC) as (year, month, day).
 pub(crate) fn today() -> (i64, u32, u32) {
-    let secs = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
+    let secs = web_time::SystemTime::now()
+        .duration_since(web_time::UNIX_EPOCH)
         .map_or(0, |d| d.as_secs() as i64);
     civil_from_days(secs.div_euclid(86_400))
 }

@@ -384,7 +384,7 @@ pub fn ui_prefs_path(store: &PrefStore) -> std::path::PathBuf {
 /// Read the interface preferences of the store's active profile (defaults when missing or bad).
 pub fn load_ui(store: &PrefStore) -> UiPrefs {
     let path = ui_prefs_path(store);
-    let mut p = std::fs::read(&path)
+    let mut p = markupcraft_revu::fsio::read(&path)
         .ok()
         .filter(|b| b.len() < (4 << 20))
         .and_then(|b| serde_json::from_slice::<UiPrefs>(&b).ok())
@@ -823,9 +823,15 @@ pub fn load_user(app: &mut AppState) {
     app.shell.recent_path = Some(store.dir.join("recent.json"));
     app.shell.recent = recent::RecentStore::load(&store.dir.join("recent.json"));
     app.shell.store = Some(store);
-    files::enable_recovery(app, store_dir_recovery(app));
+    // The browser keeps no recovery copies (they would fill its storage) and cannot reopen
+    // last session's files (it only had them in memory).
+    if !cfg!(target_arch = "wasm32") {
+        files::enable_recovery(app, store_dir_recovery(app));
+    }
     crate::prefs_ui::load_from_store(app);
-    recent::reopen_last_session(app);
+    if !cfg!(target_arch = "wasm32") {
+        recent::reopen_last_session(app);
+    }
     extra::startup(app);
     extra2::startup(app);
 }
@@ -834,7 +840,7 @@ fn store_dir_recovery(app: &AppState) -> std::path::PathBuf {
     app.shell
         .store
         .as_ref()
-        .map_or_else(std::env::temp_dir, |s| s.dir.clone())
+        .map_or_else(markupcraft_revu::fsio::temp_dir, |s| s.dir.clone())
         .join("recovery")
 }
 

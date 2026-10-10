@@ -25,7 +25,7 @@ fn io_err(p: &Path) -> impl Fn(std::io::Error) -> EngineError + '_ {
 }
 
 fn read_json<T: for<'de> Deserialize<'de> + Default>(path: &Path) -> Result<T> {
-    match std::fs::read_to_string(path) {
+    match markupcraft_revu::fsio::read_to_string(path) {
         Ok(t) if t.len() < 4 << 20 => serde_json::from_str(&t).map_err(|e| invalid(format!("{}: {e}", path.display()))),
         Ok(_) => Err(invalid(format!("{} is too large", path.display()))),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(T::default()),
@@ -458,7 +458,7 @@ impl Session {
         if std::fs::metadata(path).map_err(io_err(path))?.len() > 16 << 20 {
             return Err(invalid("the form data file is too large"));
         }
-        let text = std::fs::read_to_string(path).map_err(io_err(path))?;
+        let text = markupcraft_revu::fsio::read_to_string(path).map_err(io_err(path))?;
         let mut values: Vec<(String, String)> = Vec::new();
         match fmt {
             FormDataFormat::Xfdf => {
@@ -731,9 +731,9 @@ pub fn combine_with(files: &[PathBuf], out: &Path, o: &CombineOptions) -> Result
             };
             if o.attachments {
                 for a in src.attachments() {
-                    let tmp = std::env::temp_dir().join(format!(
+                    let tmp = markupcraft_revu::fsio::temp_dir().join(format!(
                         "markupcraft-combine-{}-{}",
-                        std::process::id(),
+                        markupcraft_revu::fsio::process_id(),
                         a.file.replace(['/', '\\'], "_")
                     ));
                     src.extract_attachment(&a.name, &tmp)?;
@@ -832,7 +832,7 @@ fn source_pages(path: &Path) -> Result<Vec<SourcePage>> {
     if meta.len() > 256 << 20 {
         return Err(invalid(format!("{} is too large", path.display())));
     }
-    let bytes = std::fs::read(path).map_err(io_err(path))?;
+    let bytes = markupcraft_revu::fsio::read(path).map_err(io_err(path))?;
     // Word, Excel and DXF files (`finish::office`)
     if let Some(r) = crate::finish::office::pages_for(&ext, &bytes) {
         let pages = r.map_err(|e| invalid(format!("{}: {e}", path.display())))?;

@@ -25,9 +25,9 @@ pub struct SummaryPrint {
 /// A fresh path in the temporary folder for a print-ready summary.
 fn temp_pdf() -> PathBuf {
     static N: AtomicU32 = AtomicU32::new(0);
-    std::env::temp_dir().join(format!(
+    markupcraft_revu::fsio::temp_dir().join(format!(
         "markupcraft-summary-print-{}-{}.pdf",
-        std::process::id(),
+        markupcraft_revu::fsio::process_id(),
         N.fetch_add(1, Ordering::Relaxed)
     ))
 }

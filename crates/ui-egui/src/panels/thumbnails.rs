@@ -164,9 +164,9 @@ pub fn command(app: &mut AppState, cmd: &str, pages: &[usize]) {
         "copy" | "cut" => {
             // pid + a per-process counter: two copies in the same second never share a file.
             static N: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-            let tmp = std::env::temp_dir().join(format!(
+            let tmp = markupcraft_revu::fsio::temp_dir().join(format!(
                 "markupcraft-pages-{}-{}-{}.pdf",
-                std::process::id(),
+                markupcraft_revu::fsio::process_id(),
                 crate::shell::recent::now_secs(),
                 N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
             ));
