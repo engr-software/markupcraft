@@ -189,6 +189,19 @@ fn remove_favorite(app: &mut AppState, url: &str) {
     refresh_tab(app, false);
 }
 
+/// Open a captured page: as a tab, or (Preferences > WebTab) in a split view beside the
+/// document that was showing.
+pub fn open_capture(app: &mut AppState, out: &Path) {
+    let before = app.active;
+    let had = app.docs.len();
+    super::open_written(app, out);
+    if app.shell.prefs.more.webtab.captures_in_split && app.docs.len() > had && had > 0 {
+        app.shell.split = None;
+        crate::shell::split::split(app, true);
+        app.active = before.min(app.docs.len() - 1);
+    }
+}
+
 /// The address bar window, and a running capture.
 pub fn window(app: &mut AppState, ctx: &egui::Context) {
     // A finished capture opens as a document.
@@ -205,7 +218,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
             Ok(n) => {
                 app.features.more6.web.message =
                     format!("Captured {} to {}", crate::actions::plural(n, "page"), out.display());
-                super::open_written(app, &out);
+                open_capture(app, &out);
             }
             Err(e) => app.features.more6.web.message = e,
         }

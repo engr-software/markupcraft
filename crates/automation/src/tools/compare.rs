@@ -36,7 +36,7 @@ fn point_value(v: &Value) -> Option<Point> {
 pub static COMPARE: Tool = Tool {
     name: "compare_documents",
     title: "Compare Documents",
-    description: "Compare this (newer) document with an older revision and cloud every change on this one (subject \"Compare\"): text changes (words inserted, deleted, replaced) and graphic changes (a raster difference of the rendered pages, clustered into regions). The old file is only read. Returns each region with its page, rectangle, kind (added, removed, changed), source and cloud id. Undoable as one step.",
+    description: "Compare this (newer) document with an older revision and cloud every change on this one (subject \"Compare\"): text changes (words inserted, deleted, replaced) and graphic changes (a raster difference of the rendered pages, clustered into regions). The old file is only read. Returns each region with its page, rectangle, kind (added, removed, changed), source and cloud id. Undoable as one step. With `result_file` the clouds go on a copy saved as <name>_Diff.pdf beside this document (or `result_path`) and opened; both revisions stay untouched.",
     read_only: false,
     destructive: false,
     schema: || {
@@ -67,7 +67,9 @@ pub static COMPARE: Tool = Tool {
                 "fill_opacity": { "type": "number", "minimum": 0, "maximum": 1 },
                 "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
                 "lock": { "type": "boolean", "description": "Lock the clouds when placed." },
-                "include_flattened": { "type": "boolean", "description": "Include recoverable flattened markups (default false)." }
+                "include_flattened": { "type": "boolean", "description": "Include recoverable flattened markups (default false)." },
+                "result_file": { "type": "boolean", "description": "Write the clouds to a separate result file (<name>_Diff.pdf) instead of this document, and open it (default false)." },
+                "result_path": path_arg("Result file path (implies result_file)")
             }),
             &[],
         )
@@ -90,6 +92,28 @@ pub static COMPARE: Tool = Tool {
                 ));
             }
         };
+        let result_path = args.opt_str("result_path")?.map(str::to_string);
+        if result_path.is_some() || args.bool_or("result_file", false)? {
+            let (_, s) = a.session(args)?;
+            let out = match &result_path {
+                Some(p) => p.clone(),
+                None => markupcraft_engine::compare_diff::diff_path(s.path())
+                    .display()
+                    .to_string(),
+            };
+            let (_, s) = a.session_ref(args)?;
+            let out = a.resolve(&out, true)?;
+            let r = s.compare_to_file(old, &o, &out)?;
+            let id = a.add_doc(markupcraft_engine::Session::open(&out)?)?;
+            return Ok(json!({
+                "result": out.display().to_string(),
+                "result_doc": id,
+                "changes": r.regions.len(),
+                "text_changes": r.text_changes,
+                "graphics_changes": r.graphics_changes,
+                "regions": r.regions.iter().map(|g| json!({ "page": g.page + 1, "old_page": g.old_page + 1, "rect": g.rect.as_array(), "kind": g.kind, "source": g.source })).collect::<Vec<_>>(),
+            }));
+        }
         let (doc, s) = a.session(args)?;
         let r = s.compare_with(old, &o)?;
         let regions: Vec<Value> = r

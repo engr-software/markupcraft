@@ -452,8 +452,14 @@ pub fn run(app: &mut AppState) {
                 return;
             };
             let opts = app.features.batch.slip.clone();
+            let redirect = app.shell.ui.extra2.redirect_slip_links;
             let Some(d) = app.doc_mut() else { return };
             let r = d.session.slip_sheet(&f, &opts);
+            // Preferences > Document: without redirection, links to a slip-sheeted page go
+            // with the superseded sheet.
+            if !redirect && let Ok(rep) = &r {
+                let _ = crate::shell::extra2::drop_slip_links(&mut d.session, rep);
+            }
             d.sync_pages(threads);
             d.rerender(threads);
             let msg = actions::report(r, |r| {

@@ -67,6 +67,15 @@ pub fn apply(app: &mut AppState) {
     ZOOM_TO_SELECTED.store(m.markups_list.zoom_to_selected, Ordering::Relaxed);
     app.features.fill.gap = m.measure.fill_gap_pt.clamp(0.0, 72.0);
     app.features.fill.cutouts = m.measure.fill_cutouts;
+    let fm = &mut app.features.fill.more;
+    fm.raster = m.measure.fill_raster;
+    fm.dpi = m.measure.fill_dpi.clamp(36.0, 300.0);
+    fm.sensitivity = m.measure.fill_sensitivity.clamp(1, 254);
+    fm.hide_markups = m.measure.fill_hide_markups;
+    fm.cursor_size = m.measure.fill_cursor_px.clamp(8.0, 64.0);
+    if let Some([r, g, b]) = hex(&m.measure.fill_cursor_color) {
+        fm.cursor_color = Color32::from_rgb(r, g, b);
+    }
     crate::gestures::set_eraser(m.tablet.eraser_scales_with_zoom, m.tablet.eraser_px);
     app.features.export.dpi = f64::from(m.import_export.image_dpi);
     app.features.sets.latest_only = m.sets.latest_only;
@@ -166,10 +175,25 @@ pub fn section(ui: &mut egui::Ui, page: &str, p: &mut Preferences) -> Option<Str
     let mut open = None;
     match page {
         "Markups List" => {
+            let l = &mut m.markups_list;
             ui.checkbox(
-                &mut m.markups_list.zoom_to_selected,
+                &mut l.zoom_to_selected,
                 "Selecting a markup in the list goes to it on the page",
             );
+            ui.checkbox(
+                &mut l.dominant_only,
+                "Show a group's measurement on its dominant (first) markup only",
+            );
+            ui.checkbox(&mut l.rich_comments, "Show comments as rich text");
+            ui.checkbox(&mut l.wrap_comments, "Wrap long comments");
+            ui.checkbox(
+                &mut l.exclude_filtered_from_export,
+                "Leave filtered-out markups out of exports",
+            );
+            ui.horizontal(|ui| {
+                ui.label("Dim filtered-out markups on the page by");
+                ui.add(egui::Slider::new(&mut l.dim_filtered_pct, 0..=95).suffix("%"));
+            });
         }
         "Layers" => {
             ui.checkbox(
@@ -192,6 +216,31 @@ pub fn section(ui: &mut egui::Ui, page: &str, p: &mut Preferences) -> Option<Str
                 );
             });
             ui.checkbox(&mut m.measure.fill_cutouts, "Islands inside a region become cutouts");
+            ui.checkbox(&mut m.measure.fill_raster, "Detect on the page image (scans)");
+            ui.horizontal(|ui| {
+                ui.label("Page image resolution");
+                ui.add(
+                    egui::DragValue::new(&mut m.measure.fill_dpi)
+                        .range(36.0..=300.0)
+                        .suffix(" dpi"),
+                );
+                ui.label("Edge sensitivity");
+                ui.add(egui::DragValue::new(&mut m.measure.fill_sensitivity).range(1..=254));
+            });
+            ui.checkbox(&mut m.measure.fill_hide_markups, "Hide markups while filling");
+            ui.horizontal(|ui| {
+                ui.label("Fill cursor");
+                ui.add(
+                    egui::DragValue::new(&mut m.measure.fill_cursor_px)
+                        .range(8.0..=64.0)
+                        .suffix(" px"),
+                );
+                color_hex(ui, &mut m.measure.fill_cursor_color);
+            });
+            ui.checkbox(
+                &mut m.measure.split_counts_by_space,
+                "Split counts by space (a Count across several spaces becomes one per space)",
+            );
         }
         "Forms" => {
             ui.checkbox(&mut m.forms.highlight_fields, "Highlight form fields");
@@ -209,6 +258,19 @@ pub fn section(ui: &mut egui::Ui, page: &str, p: &mut Preferences) -> Option<Str
         "Signature" => {
             folder(ui, "Digital ID folder", &mut m.signature.digital_id_folder);
             folder(ui, "Trusted certificates folder", &mut m.signature.trusted_folder);
+            ui.horizontal(|ui| {
+                ui.label("Remember the digital ID password for");
+                ui.add(
+                    egui::DragValue::new(&mut m.signature.password_minutes)
+                        .range(0..=1440)
+                        .suffix(" min"),
+                );
+                ui.label("(0 = never)");
+            });
+            ui.checkbox(
+                &mut m.signature.block_breaking_changes,
+                "Block changes that would invalidate signatures",
+            );
             ui.weak("The first .p12/.pfx in the ID folder is offered when signing; certificates in the trusted folder are trusted when validating signatures.");
         }
         "Tablet" => {
@@ -242,6 +304,7 @@ pub fn section(ui: &mut egui::Ui, page: &str, p: &mut Preferences) -> Option<Str
                         .suffix(" s"),
                 );
             });
+            ui.checkbox(&mut w.captures_in_split, "Open captured pages in a split view");
             ui.label(format!(
                 "{} (manage them in the Web Tab)",
                 crate::actions::plural(w.favorites.len(), "favourite")

@@ -603,7 +603,16 @@ pub fn page_edit_blocked(app: &mut AppState, id: &str) -> bool {
         };
         return true;
     }
-    if st.signatures > 0 && !app.shell.extra.sign_ok.contains(&d.uid) {
+    if st.signatures > 0 && app.shell.prefs.more.signature.block_breaking_changes {
+        app.status =
+            "This document is signed: changes that would invalidate its signatures are blocked (Preferences > Signature)"
+                .into();
+        return true;
+    }
+    if st.signatures > 0
+        && !app.shell.extra.sign_ok.contains(&d.uid)
+        && !super::extra2::hidden(app, super::extra2::SIGN_WARNING)
+    {
         app.shell.extra.sign_warning = Some(id.to_string());
         return true;
     }
@@ -669,6 +678,7 @@ pub fn app_menu(app: &mut AppState, ui: &mut egui::Ui, menu: &str) -> bool {
         "window.preferences",
         "tools.customize_keys",
         "help.shortcuts",
+        "app.administrator",
     ] {
         if id == "|" {
             ui.separator();
@@ -700,6 +710,10 @@ pub fn app_menu(app: &mut AppState, ui: &mut egui::Ui, menu: &str) -> bool {
             ui.label(RichText::new("Settings are not saved in this session.").weak());
         }
     });
+    if ui.button("Manage Profiles...").clicked() {
+        app.queue("app.manage_profiles");
+        ui.close();
+    }
     ui.separator();
     if ui.button("Exit").clicked() {
         app.queue("file.exit");
@@ -1022,12 +1036,20 @@ fn sign_warning(app: &mut AppState, ctx: &egui::Context) {
         return;
     };
     let mut answer = None;
+    let mut answer_hide = false;
     egui::Window::new("Signed Document")
         .collapsible(false)
         .resizable(false)
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
         .show(ctx, |ui| {
             ui.label("This document is signed. Changing its pages makes the signatures invalid.");
+            let id = egui::Id::new("sign-warning-hide");
+            let mut hide: bool = ui.data(|d| d.get_temp(id)).unwrap_or(false);
+            ui.checkbox(&mut hide, "Don't ask me again");
+            ui.data_mut(|d| d.insert_temp(id, hide));
+            if hide {
+                answer_hide = true;
+            }
             ui.horizontal(|ui| {
                 if ui.button("Continue").clicked() {
                     answer = Some(true);
@@ -1041,6 +1063,9 @@ fn sign_warning(app: &mut AppState, ctx: &egui::Context) {
         Some(true) => {
             if let Some(u) = app.doc().map(|d| d.uid) {
                 app.shell.extra.sign_ok.push(u);
+            }
+            if answer_hide {
+                super::extra2::hide(app, super::extra2::SIGN_WARNING);
             }
             app.shell.extra.sign_warning = None;
             app.queue(&id);

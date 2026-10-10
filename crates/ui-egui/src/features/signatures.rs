@@ -305,9 +305,13 @@ pub fn file(app: &mut AppState, ask: &Ask, path: &Path) {
         }
         Ask::SignOut => match sign_to(app, path) {
             Ok(()) => {
+                // Preferences > Signature: the password may be remembered for a while.
+                let keep = app.shell.prefs.more.signature.password_minutes > 0;
                 let s = &mut app.features.signatures;
                 s.sign_open = false;
-                s.password.clear();
+                if !keep {
+                    s.password.clear();
+                }
                 s.rect = None;
                 app.status = format!("Signed and saved as {}", path.display());
                 refresh(app);

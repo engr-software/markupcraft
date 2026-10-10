@@ -34,11 +34,17 @@ pub enum Editing {
     Markup(String),
     /// A bookmark's action (its path).
     Bookmark(Vec<usize>),
+    /// Several links at once (their ids): one new action for all of them.
+    Links(Vec<String>),
 }
 
 pub struct LinksState {
     pub highlight: bool,
     pub selected: Option<String>,
+    /// Hyperlinks list: more links picked with Ctrl+click or Shift+click (besides `selected`).
+    pub picked: Vec<String>,
+    /// Hyperlinks list: only links whose page or target contains this.
+    pub filter: String,
     /// A dragged link area waiting for its target.
     pub pending: Option<(usize, Rect)>,
     /// The action dialog is open for this.
@@ -69,6 +75,8 @@ impl Default for LinksState {
         Self {
             highlight: false,
             selected: None,
+            picked: Vec::new(),
+            filter: String::new(),
             pending: None,
             editing: None,
             on_text: false,
@@ -388,6 +396,28 @@ pub fn edit_link_action(app: &mut AppState, link: &LinkInfo) {
     l.editing = Some(Editing::Link(link.id.clone()));
 }
 
+/// Edit Action on several links at once (they all get the action chosen).
+pub fn edit_links_action(app: &mut AppState, ids: Vec<String>) {
+    let first = app
+        .doc()
+        .and_then(|d| d.session.links().into_iter().find(|l| ids.first() == Some(&l.id)));
+    let l = &mut app.features.links;
+    if let Some(f) = &first {
+        l.load(&f.target);
+    }
+    l.editing = Some(Editing::Links(ids));
+}
+
+/// Hyperlinks list: the links the filter keeps (`text` against the page and the target).
+pub fn filtered<'a>(all: &'a [LinkInfo], text: &str) -> Vec<&'a LinkInfo> {
+    let f = text.trim().to_lowercase();
+    all.iter()
+        .filter(|l| {
+            f.is_empty() || describe(&l.target).to_lowercase().contains(&f) || format!("p.{}", l.page + 1).contains(&f)
+        })
+        .collect()
+}
+
 /// Edit Action on a bookmark.
 pub fn edit_bookmark_action(app: &mut AppState, path: Vec<usize>) {
     let current = app
@@ -423,6 +453,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
         .unwrap_or_default();
     let title = match editing {
         Editing::NewLink => "Hyperlink",
+        Editing::Links(_) => "Edit Action (several links)",
         _ => "Edit Action",
     };
     let (mut open, mut ok, mut here) = (true, false, false);
@@ -514,7 +545,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
         if editing == Editing::NewLink {
             ui.checkbox(&mut l.on_text, "Fit the link to the text in the box");
         }
-        if matches!(editing, Editing::NewLink | Editing::Link(_)) {
+        if matches!(editing, Editing::NewLink | Editing::Link(_) | Editing::Links(_)) {
             ui.horizontal(|ui| {
                 ui.label("Border");
                 ui.add(egui::DragValue::new(&mut l.look.width).range(0.0..=12.0));
@@ -570,6 +601,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
         Editing::Link(id) => d.session.edit_link(id, Some(&target), None, Some(look)).map(|_| None),
         Editing::Markup(id) => d.session.set_markup_action(id, Some(&target)).map(|_| None),
         Editing::Bookmark(path) => d.session.set_bookmark_action(path, &target).map(|_| None),
+        Editing::Links(ids) => d.session.edit_links(ids, Some(&target), Some(look)).map(|_| None),
     };
     d.rerender(threads);
     match r {

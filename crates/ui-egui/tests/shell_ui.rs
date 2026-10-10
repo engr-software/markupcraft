@@ -628,8 +628,8 @@ fn preferences_dialog_applies_and_persists() {
     let ui = shell::load_ui(&PrefStore::new(&dir));
     assert!(ui.reuse_tools);
     // Admin: profiles.
-    markupcraft_ui_egui::prefs_ui::profile(&mut h.state_mut().state, "new", "Takeoff");
-    assert_eq!(PrefStore::new(&dir).active(), "Takeoff");
+    markupcraft_ui_egui::prefs_ui::profile(&mut h.state_mut().state, "new", "Estimates");
+    assert_eq!(PrefStore::new(&dir).active(), "Estimates");
     assert!(h.state().state.shell.prefs.snapping.grid);
     markupcraft_ui_egui::prefs_ui::profile(&mut h.state_mut().state, "switch", "Default");
     assert_eq!(PrefStore::new(&dir).active(), "Default");

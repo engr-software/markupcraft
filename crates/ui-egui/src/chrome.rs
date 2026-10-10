@@ -94,11 +94,14 @@ fn menu_items(app: &mut AppState, ui: &mut egui::Ui, menu: &str) {
                 "window.toolbar_main",
                 "window.toolbar_markup",
                 "window.toolbar_measure",
+                "+",
                 "|",
                 "window.customize_toolbars",
                 "window.lock_toolbars",
             ] {
-                if id == "|" {
+                if id == "+" {
+                    crate::shell::toolbars_more::builtin_menu(app, ui);
+                } else if id == "|" {
                     ui.separator();
                 } else if let Some(c) = commands::find(id) {
                     item(app, ui, id, c.label, c.keys, app.enabled(id), app.checked(id));

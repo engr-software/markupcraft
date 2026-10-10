@@ -1,5 +1,6 @@
-//! Links (Alt+N): every link of the document with where it goes; go to it, follow it, delete
-//! it, or draw a new one with the Hyperlink tool.
+//! Links (Alt+N): every link of the document with where it goes; filter the list, go to a
+//! link, follow it, delete it, or draw a new one with the Hyperlink tool. Ctrl+click or
+//! Shift+click picks several links to give them one new action or delete them together.
 
 use egui::RichText;
 
@@ -27,6 +28,8 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     let current = d.view.current;
     let (mut select, mut follow, mut delete, mut add) = (None, None, None, false);
     let (mut edit, mut urls, mut place_add, mut place_go, mut place_del) = (None, false, false, None, None);
+    let (mut edit_many, mut delete_many) = (None::<Vec<String>>, None::<Vec<String>>);
+    let mods = ui.input(|i| i.modifiers);
     {
         let l = &mut app.features.links;
         ui.horizontal(|ui| {
@@ -50,15 +53,53 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
         if all.is_empty() {
             super::empty(ui, "This document has no links.");
         }
+        ui.horizontal(|ui| {
+            ui.add(
+                egui::TextEdit::singleline(&mut l.filter)
+                    .desired_width(150.0)
+                    .hint_text("Filter links"),
+            );
+            let shown = links::filtered(&all, &l.filter).len();
+            if shown != all.len() {
+                ui.label(RichText::new(format!("{shown} of {}", all.len())).small().weak());
+            }
+        });
+        // Several picked: one action for all of them, or delete them.
+        let mut many: Vec<String> = l.selected.iter().cloned().collect();
+        for p in &l.picked {
+            if !many.contains(p) && all.iter().any(|x| &x.id == p) {
+                many.push(p.clone());
+            }
+        }
+        if many.len() > 1 {
+            ui.horizontal(|ui| {
+                ui.label(RichText::new(format!("{} links", many.len())).small());
+                if ui.small_button("Edit Action...").clicked() {
+                    edit_many = Some(many.clone());
+                }
+                if ui.small_button("Delete All").clicked() {
+                    delete_many = Some(many.clone());
+                }
+            });
+        }
         egui::ScrollArea::vertical()
             .id_salt("links-list")
             .max_height(260.0)
             .auto_shrink([false, true])
             .show(ui, |ui| {
-                for link in &all {
-                    let sel = l.selected.as_deref() == Some(link.id.as_str());
+                for link in links::filtered(&all, &l.filter) {
+                    let sel = l.selected.as_deref() == Some(link.id.as_str()) || l.picked.contains(&link.id);
                     let r = ui.selectable_label(sel, format!("p.{}  {}", link.page + 1, links::describe(&link.target)));
-                    if r.clicked() {
+                    if r.clicked() && (mods.command || mods.shift) {
+                        // Add to (or take out of) the picked links.
+                        match l.picked.iter().position(|p| p == &link.id) {
+                            Some(i) => {
+                                l.picked.remove(i);
+                            }
+                            None => l.picked.push(link.id.clone()),
+                        }
+                    } else if r.clicked() {
+                        l.picked.clear();
                         select = Some(link.clone());
                     }
                     if r.double_clicked() {
@@ -129,6 +170,17 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     }
     if let Some(link) = edit {
         links::edit_link_action(app, &link);
+    }
+    if let Some(ids) = edit_many {
+        links::edit_links_action(app, ids);
+    }
+    if let Some(ids) = delete_many
+        && let Some(d) = app.doc_mut()
+    {
+        let r = d.session.delete_links(&ids);
+        app.features.links.message = actions::report(r, |n| format!("Deleted {}", actions::plural(n, "link")));
+        app.features.links.selected = None;
+        app.features.links.picked.clear();
     }
     if urls {
         links::from_urls(app);

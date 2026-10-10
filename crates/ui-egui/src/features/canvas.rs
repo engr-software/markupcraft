@@ -103,6 +103,7 @@ pub fn publish(app: &AppState, ctx: &egui::Context) {
     }
     f.signatures.marks(d, &mut marks);
     super::more6::prefs::form_marks(app, d, &mut marks);
+    crate::shell::extra2::dim_marks(app, d, &mut marks);
     f.forms.more.marks(d, &mut marks);
     let pick = f.pick.filter(|(uid, _)| *uid == d.uid).map(|(_, p)| p.kind());
     if pick.is_none() {

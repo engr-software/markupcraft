@@ -184,6 +184,60 @@ fn compare_clouds_every_change_and_nothing_else() {
     open(&mut c, &old);
     let same = call(&mut c, "compare_documents", json!({ "old": "old.pdf" }));
     assert_eq!(same["changes"], 0, "{same}");
+
+    // ui-006: the clouds go on a separate result copy, <name>_Diff.pdf beside the newer
+    // revision, which opens; the open document and both files stay untouched.
+    let mut e = automation(&dir);
+    let new_id = open(&mut e, &new);
+    let r = call(
+        &mut e,
+        "compare_documents",
+        json!({ "old": "old.pdf", "result_file": true }),
+    );
+    let out = dir.join("new_Diff.pdf");
+    assert!(out.exists(), "{r}");
+    assert!(r["result"].as_str().unwrap().ends_with("new_Diff.pdf"), "{r}");
+    assert_clouds_exactly_on_changes(&rects(&r));
+    let result_doc = r["result_doc"].as_u64().unwrap();
+    assert_ne!(result_doc, new_id);
+    assert_eq!(
+        call(
+            &mut e,
+            "markup_list",
+            json!({ "doc": result_doc, "subject": "Compare" })
+        )["count"]
+            .as_u64()
+            .unwrap() as usize,
+        rects(&r).len(),
+        "the result copy holds the clouds"
+    );
+    assert_eq!(
+        call(&mut e, "markup_list", json!({ "doc": new_id }))["count"],
+        0,
+        "the newer document has none"
+    );
+    assert_eq!(std::fs::read(&old).unwrap(), old_bytes);
+    assert_eq!(std::fs::read(&new).unwrap(), new_bytes);
+    // The Compare dialog offers the same: the result opens as its own tab.
+    std::fs::remove_file(&out).unwrap();
+    let mut h = app_with(new_bytes.clone(), Some(new.clone()));
+    {
+        let st = &mut h.state_mut().state;
+        let uid = st.doc().unwrap().uid;
+        let c = &mut st.features.compare;
+        c.old_file = Some(old.clone());
+        c.new_doc = Some(uid);
+        c.result_file = true;
+        markupcraft_ui_egui::features::compare::run_compare(st);
+    }
+    h.run_steps(4);
+    assert!(out.exists(), "the dialog wrote the _Diff file");
+    assert_eq!(h.state().state.docs.len(), 2, "and opened it");
+    assert!(
+        h.state().state.docs[0].session.doc().markups.is_empty(),
+        "the newer document is untouched"
+    );
+    assert_eq!(std::fs::read(&new).unwrap(), new_bytes);
 }
 
 /// ui-003: compare only the pages asked for.
@@ -1454,8 +1508,36 @@ fn search_check_results_and_bulk_actions() {
         .map(|m| m.rects.len())
         .sum();
     assert_eq!(redactions, 4, "one redaction area per checked hit");
-    // Revu's other check options (underline, squiggly, strikethrough, hyperlink) are not
-    // offered: see the ui-051 gap note.
+    // Underline, squiggly and strike through the checked hits; link them; bookmark them.
+    {
+        let s = &mut h.state_mut().state.features.search;
+        for (i, x) in s.hits.iter_mut().enumerate() {
+            x.checked = i < 2;
+        }
+    }
+    h.run_steps(2);
+    for (label, kind) in [
+        ("Underline", Kind::Underline),
+        ("Squiggly", Kind::Squiggly),
+        ("Strikethrough", Kind::Strikeout),
+    ] {
+        let before = markups(&h).iter().filter(|m| m.kind == kind).count();
+        press_last(&mut h, label);
+        let now = markups(&h).iter().filter(|m| m.kind == kind).count();
+        assert_eq!(now, before + 2, "{label}: one per checked hit");
+    }
+    h.state_mut().state.features.search.link_to = "https://example.com/doors".into();
+    press_last(&mut h, "Hyperlink");
+    let links = h.state().state.doc().unwrap().session.links();
+    assert_eq!(links.len(), 2, "a link over each checked hit");
+    assert!(
+        links
+            .iter()
+            .all(|l| l.target == markupcraft_engine::links::LinkTarget::Url("https://example.com/doors".into()))
+    );
+    press_last(&mut h, "Bookmark");
+    let b = h.state().state.doc().unwrap().session.bookmarks();
+    assert_eq!(b.len(), 2, "a bookmark to each checked hit: {b:?}");
 }
 
 /// ui-053: replace the checked hits in the page content.
@@ -1651,6 +1733,29 @@ fn visual_search_color_filter_and_limit_to_selection() {
             score(&plain, *at)
         );
     }
+    // ui-059: a wall line that runs into the symbol and on out of the box: only that vector
+    // object is dropped, the symbol it touches stays the template.
+    let mut c = String::new();
+    for (x, y) in SYMBOLS {
+        c += &symbol(x, y, "0 0 0");
+    }
+    c += &line(40.0, 309.0, 100.0, 309.0, 1.0);
+    std::fs::write(
+        dir.join("v.pdf"),
+        synthetic::pdf(&[SyntheticPage::new(600.0, 400.0, c)]),
+    )
+    .unwrap();
+    let limited = visual(
+        &dir,
+        json!({ "sensitivity": 0.5, "limit_to_selection": true, "rotations": false }),
+    );
+    for at in &SYMBOLS[1..] {
+        assert!(
+            score(&limited, *at) > 0.8,
+            "the touched symbol is still the template: {at:?} scored {}: {limited}",
+            score(&limited, *at)
+        );
+    }
 }
 
 /// ui-060, ui-061: each hit comes with a thumbnail; count or highlight every hit.
@@ -1696,6 +1801,22 @@ fn visual_search_thumbnails_and_count() {
     );
     let after = call(&mut a, "markup_list", json!({}))["count"].as_u64().unwrap();
     assert_eq!(after - before, n as u64, "one highlight per hit");
+    // ui-061: hyperlink and bookmark every hit too.
+    let r = call(
+        &mut a,
+        "visual_search",
+        json!({ "page": 1, "rect": [98, 298, 122, 322], "rotations": false, "action": "hyperlink", "url": "https://example.com/fixture" }),
+    );
+    assert_eq!(r["links"].as_array().unwrap().len(), n, "a link per hit: {r}");
+    let l = call(&mut a, "link_list", json!({}));
+    assert!(l.to_string().contains("https://example.com/fixture"), "{l}");
+    call(
+        &mut a,
+        "visual_search",
+        json!({ "page": 1, "rect": [98, 298, 122, 322], "rotations": false, "action": "bookmark", "subject": "Fixture" }),
+    );
+    let b = call(&mut a, "bookmark_list", json!({}));
+    assert_eq!(b.to_string().matches("Fixture ").count(), n, "a bookmark per hit: {b}");
 
     // The panel: Visual Search hits listed with thumbnails, Count on the checked ones.
     let mut h = app_with(symbols_doc(), None);
@@ -1721,6 +1842,29 @@ fn visual_search_thumbnails_and_count() {
         .map(|m| m.pts.len())
         .sum();
     assert_eq!(pts, n);
+    // ui-061: the panel's other check options on visual hits: highlight boxes, links, bookmarks.
+    let before = markups(&h).len();
+    press_last(&mut h, "Highlight");
+    assert_eq!(markups(&h).len(), before + n, "a highlight box per hit");
+    h.state_mut().state.features.search.link_to = "2".into();
+    press_last(&mut h, "Hyperlink");
+    let links = h.state().state.doc().unwrap().session.links();
+    assert_eq!(links.len(), n, "a link per hit");
+    assert!(
+        links
+            .iter()
+            .all(|l| l.target == markupcraft_engine::links::LinkTarget::Page(1))
+    );
+    press_last(&mut h, "Bookmark");
+    assert_eq!(
+        h.state().state.doc().unwrap().session.bookmarks().len(),
+        n,
+        "a bookmark per hit"
+    );
+    assert!(
+        h.query_all_by_label("Underline").next().is_none(),
+        "text markups are offered on page text only"
+    );
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1824,6 +1968,52 @@ fn spaces_tag_markups_and_split_counts() {
         l.to_string().contains("Closet"),
         "undo did not bring the closet back: {l}"
     );
+    // ui-066: split counts by space: a Count across two spaces and outside becomes three.
+    let mut b = automation(&dir);
+    open(&mut b, &new);
+    space(&mut b, "Room A", rect_pts(50.0, 50.0, 300.0, 350.0));
+    space(&mut b, "Room B", rect_pts(330.0, 50.0, 550.0, 350.0));
+    call(
+        &mut b,
+        "markup_add",
+        json!({ "page": 1, "kind": "Count", "subject": "Outlet",
+                "points": [[200, 200], [250, 300], [400, 200], [580, 380]] }),
+    );
+    let r = call(&mut b, "space_split_counts", json!({}));
+    assert_eq!(r["made"].as_array().unwrap().len(), 2, "{r}");
+    let counts = call(&mut b, "markup_list", json!({ "kind": "Count" }));
+    assert_eq!(counts["count"], 3, "{counts}");
+    assert!(
+        counts["markups"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|m| m["subject"] == "Outlet")
+    );
+
+    // The preference (Tools > Measure) splits a count as soon as it is placed.
+    let mut h = app();
+    {
+        let st = &mut h.state_mut().state;
+        st.shell.prefs.more.measure.split_counts_by_space = true;
+        let d = st.doc_mut().unwrap();
+        let sq = |x0: f64, x1: f64| {
+            vec![
+                Point::new(x0, 50.0),
+                Point::new(x1, 50.0),
+                Point::new(x1, 350.0),
+                Point::new(x0, 350.0),
+            ]
+        };
+        d.session.add_space(0, "Room A", sq(50.0, 300.0), None, None).unwrap();
+        d.session.add_space(0, "Room B", sq(330.0, 550.0), None, None).unwrap();
+        let m =
+            markupcraft_model::Markup::new(Kind::Count, 0, vec![Point::new(200.0, 200.0), Point::new(400.0, 200.0)]);
+        d.session.add_new_markups("Count", vec![m]).unwrap();
+    }
+    h.run_steps(3);
+    let n = markups(&h).iter().filter(|m| m.kind == Kind::Count).count();
+    assert_eq!(n, 2, "ui-066 one Count per space");
 }
 
 /// ui-062, ui-064, ui-065: the Spaces panel lists spaces; Highlight toggles the outlines; the
@@ -1976,6 +2166,54 @@ fn links_places_and_hyperlinks() {
     h.state_mut().state.features.links.place_filter = "zzz".into();
     h.run_steps(3);
     assert!(!shows(&h, "Detail 5"), "place filter does nothing");
+    // ui-069: the hyperlinks list has a filter box.
+    let all = h.query_all_by_label_contains("p.2  ").count();
+    assert_eq!(all, 2, "two links on page 2");
+    h.state_mut().state.features.links.filter = "example.com".into();
+    h.run_steps(3);
+    assert_eq!(
+        h.query_all_by_label_contains("p.2  ").count(),
+        1,
+        "the filter keeps the web link only"
+    );
+    assert!(shows(&h, "1 of 3"), "the filter says how many it shows");
+    h.state_mut().state.features.links.filter.clear();
+    h.run_steps(3);
+    // Multi-select: click one link, Ctrl+click another, give both one new action.
+    h.query_all_by_label_contains("p.2  ").next().unwrap().click();
+    h.run_steps(3);
+    h.event(egui::Event::ModifiersChanged(egui::Modifiers::COMMAND));
+    h.run_steps(1);
+    h.query_all_by_label_contains("p.2  ").nth(1).unwrap().click();
+    h.run_steps(3);
+    h.event(egui::Event::ModifiersChanged(egui::Modifiers::NONE));
+    h.run_steps(2);
+    assert!(shows(&h, "2 links"), "two links picked");
+    press_last(&mut h, "Edit Action...");
+    assert!(shows(&h, "several links"), "one action dialog for both");
+    h.state_mut().state.features.links.kind = markupcraft_ui_egui::features::links::TargetKind::Page;
+    h.state_mut().state.features.links.page = 3;
+    h.run_steps(2);
+    press_last(&mut h, "OK");
+    let ls = h.state().state.doc().unwrap().session.links();
+    let on2: Vec<_> = ls.iter().filter(|l| l.page == 1).collect();
+    assert_eq!(on2.len(), 2);
+    assert!(
+        on2.iter()
+            .all(|l| l.target == markupcraft_engine::links::LinkTarget::Page(2)),
+        "both links go to page 3 now: {on2:?}"
+    );
+    // ... and Delete All removes the picked ones together.
+    h.query_all_by_label_contains("p.2  ").next().unwrap().click();
+    h.run_steps(3);
+    h.event(egui::Event::ModifiersChanged(egui::Modifiers::COMMAND));
+    h.run_steps(1);
+    h.query_all_by_label_contains("p.2  ").nth(1).unwrap().click();
+    h.run_steps(3);
+    h.event(egui::Event::ModifiersChanged(egui::Modifiers::NONE));
+    h.run_steps(2);
+    press_last(&mut h, "Delete All");
+    assert_eq!(h.state().state.doc().unwrap().session.links().len(), 1);
 }
 
 /// ui-071, ui-072: sign (visibly, certifying), add an empty signature field, validate: the

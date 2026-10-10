@@ -1,5 +1,6 @@
 //! Search (Ctrl+F) and Visual Search: the state behind the Search panel, its actions on the
-//! results (highlight, count, redact), and the hits drawn on the pages.
+//! results (highlight, underline, squiggly, strikethrough, hyperlink, bookmark, count,
+//! redact), and the hits drawn on the pages.
 
 use std::path::PathBuf;
 
@@ -84,6 +85,8 @@ pub struct SearchState {
     pub visual_hits: Vec<Hit>,
     /// Visual results thumbnails, by result index.
     pub thumbs: std::collections::HashMap<usize, egui::TextureHandle>,
+    /// Hyperlink on checked results: where the links go (a web address or a page number).
+    pub link_to: String,
 }
 
 impl Default for SearchState {
@@ -118,6 +121,7 @@ impl Default for SearchState {
             visual_scope: Scope::AllPages,
             visual_hits: Vec::new(),
             thumbs: Default::default(),
+            link_to: "https://".into(),
         }
     }
 }
@@ -483,8 +487,38 @@ fn quad(r: &Rect) -> [Point; 4] {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Bulk {
     Highlight,
+    Underline,
+    Squiggly,
+    Strikeout,
+    /// A link over each result, to [`SearchState::link_to`].
+    Hyperlink,
+    /// A bookmark to each result's page, titled with the result.
+    Bookmark,
     Count,
     Redact,
+}
+
+impl Bulk {
+    /// The text markups that only make sense on page text.
+    pub fn text_only(self) -> bool {
+        matches!(self, Bulk::Underline | Bulk::Squiggly | Bulk::Strikeout)
+    }
+}
+
+/// Where Hyperlink sends the links: a page number of this document or a web address.
+pub fn link_target(text: &str, pages: usize) -> Result<markupcraft_engine::links::LinkTarget, String> {
+    use markupcraft_engine::links::LinkTarget;
+    let t = text.trim();
+    if let Ok(n) = t.trim_start_matches(['p', 'P', '.', ' ']).parse::<usize>() {
+        return match n.checked_sub(1).filter(|p| *p < pages) {
+            Some(p) => Ok(LinkTarget::Page(p)),
+            None => Err(format!("Link to: a page from 1 to {pages}")),
+        };
+    }
+    if markupcraft_engine::webtab::check_url(t).is_ok() {
+        return Ok(LinkTarget::Url(t.to_string()));
+    }
+    Err("Link to: a web address (https://...) or a page number".into())
 }
 
 /// Apply a markup to the checked results (one undo step).
@@ -498,6 +532,9 @@ pub fn apply(app: &mut AppState, what: Bulk) {
         .cloned()
         .collect();
     let uid = app.features.search.doc;
+    let visual = app.features.search.visual;
+    let link_to = app.features.search.link_to.clone();
+    let threads = app.threads;
     let Some(d) = app.docs.iter_mut().find(|d| d.uid == uid) else {
         return;
     };
@@ -506,6 +543,83 @@ pub fn apply(app: &mut AppState, what: Bulk) {
         return;
     }
     let r = match what {
+        Bulk::Highlight if visual => {
+            let list: Vec<Markup> = hits
+                .iter()
+                .filter_map(|h| {
+                    let r = h.rects.first()?.padded(1.0);
+                    let mut m = crate::tools::new_markup(
+                        Kind::Rectangle,
+                        h.page,
+                        &[Point::new(r.x0, r.y0), Point::new(r.x1, r.y1)],
+                    )?;
+                    m.fill = Some(m.color);
+                    m.fill_opacity = 0.3;
+                    m.opacity = 0.6;
+                    m.line_width = 1.0;
+                    Some(m)
+                })
+                .collect();
+            d.session
+                .add_new_markups("Highlight Search Results", list)
+                .map(|v| format!("Highlighted {}", actions::plural(v.len(), "result")))
+        }
+        Bulk::Underline | Bulk::Squiggly | Bulk::Strikeout => {
+            let kind = match what {
+                Bulk::Underline => Kind::Underline,
+                Bulk::Squiggly => Kind::Squiggly,
+                _ => Kind::Strikeout,
+            };
+            let list: Vec<Markup> = hits
+                .iter()
+                .filter(|h| h.source == "text" || h.source.is_empty())
+                .filter_map(|h| {
+                    let q: Vec<Point> = h.rects.iter().flat_map(quad).collect();
+                    let mut m = crate::tools::new_markup(kind, h.page, &q)?;
+                    m.contents = h.text.clone();
+                    Some(m)
+                })
+                .collect();
+            let n = list.len();
+            if n == 0 {
+                Ok("Only page-text results take text markups".to_string())
+            } else {
+                d.session
+                    .add_new_markups(&format!("{} Search Results", kind.name()), list)
+                    .map(|v| format!("Marked {} ({})", actions::plural(v.len(), "result"), kind.name()))
+            }
+        }
+        Bulk::Hyperlink => match link_target(&link_to, d.session.page_count()) {
+            Ok(target) => {
+                let items: Vec<(usize, Rect)> = hits
+                    .iter()
+                    .flat_map(|h| h.rects.iter().map(move |r| (h.page, *r)))
+                    .collect();
+                let r = d
+                    .session
+                    .add_links(&items, &target, Default::default())
+                    .map(|v| format!("Linked {}", actions::plural(v.len(), "result")));
+                d.rerender(threads);
+                r
+            }
+            Err(e) => Ok(e),
+        },
+        Bulk::Bookmark => {
+            let items: Vec<(String, usize)> = hits
+                .iter()
+                .map(|h| {
+                    let t = if h.text.trim().is_empty() {
+                        format!("Page {}", h.page + 1)
+                    } else {
+                        h.text.clone()
+                    };
+                    (format!("{} (p. {})", t.trim(), h.page + 1), h.page)
+                })
+                .collect();
+            d.session
+                .add_bookmarks(&items)
+                .map(|n| format!("Added {}", actions::plural(n, "bookmark")))
+        }
         Bulk::Highlight => {
             let list: Vec<Markup> = hits
                 .iter()

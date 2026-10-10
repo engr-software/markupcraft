@@ -18,6 +18,8 @@ pub struct SpellPrefs {
     /// Auto-complete from `phrases`.
     pub complete: bool,
     pub phrases: Vec<String>,
+    /// The dictionary: English (United Kingdom) instead of English (United States).
+    pub british: bool,
 }
 
 impl Default for SpellPrefs {
@@ -29,6 +31,7 @@ impl Default for SpellPrefs {
             words: Vec::new(),
             complete: true,
             phrases: Vec::new(),
+            british: false,
         }
     }
 }
@@ -136,7 +139,11 @@ pub fn page_ui(ui: &mut egui::Ui, p: &mut SpellPrefs) {
         if ui.color_edit_button_srgba(&mut c).changed() {
             p.color = [c.r(), c.g(), c.b()];
         }
-        ui.label("Dictionary: English (United States)");
+    });
+    ui.horizontal(|ui| {
+        ui.label("Dictionary");
+        ui.radio_value(&mut p.british, false, "English (United States)");
+        ui.radio_value(&mut p.british, true, "English (United Kingdom)");
     });
     ui.label("User dictionary");
     list_ui(ui, "Dictionary", "a word", &mut p.words);

@@ -250,6 +250,32 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     let add = ui.input(|i| i.modifiers.shift || i.modifiers.command);
     let markups = &doc.session.doc().markups;
     let editing = list.editing.clone();
+    // Preferences > Markups List: dominant markups, rich and wrapped comments.
+    let lp = app.shell.prefs.more.markups_list.clone();
+    let not_dominant: std::collections::HashSet<usize> = if lp.dominant_only {
+        let mut seen = std::collections::HashSet::new();
+        markups
+            .iter()
+            .enumerate()
+            .filter(|(_, m)| !m.group.is_empty() && !seen.insert(m.group.clone()))
+            .map(|(i, _)| i)
+            .collect()
+    } else {
+        Default::default()
+    };
+    let comment_width = list.prefs.width("comments").unwrap_or(200.0).max(40.0);
+    let heights: Vec<f32> = lines
+        .iter()
+        .map(|l| match l {
+            Line::Markup(i) if lp.wrap_comments => {
+                let n = markups.get(*i).map_or(0, |m| m.contents.chars().count());
+                let per_line = (comment_width / 7.0).max(4.0);
+                let rows = (n as f32 / per_line).ceil().clamp(1.0, 8.0);
+                18.0 * rows + 2.0
+            }
+            _ => 20.0,
+        })
+        .collect();
     // The grand total stays in sight under the table.
     let footer = 24.0;
     let room = (ui.available_height() - footer - 28.0).max(40.0);
@@ -348,7 +374,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                 }
             })
             .body(|body| {
-                body.rows(20.0, lines.len(), |mut row| {
+                let row_ui = |mut row: egui_extras::TableRow<'_, '_>| {
                     let Some(line) = lines.get(row.index()) else { return };
                     match line {
                         Line::Group(g) | Line::Total(g) => {
@@ -436,6 +462,28 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                                                 egui::StrokeKind::Inside,
                                             );
                                         }
+                                        _ if not_dominant.contains(i) && MEASURE_COLUMNS.contains(&col.id.as_str()) => {
+                                            // The group's dominant markup carries the value.
+                                            ui.label("");
+                                        }
+                                        _ if col.id == "comments" && lp.rich_comments && !m.rich.is_empty() => {
+                                            let mut job = crate::richedit::layout_job(
+                                                &m.contents,
+                                                &m.text,
+                                                &m.rich,
+                                                12.0,
+                                                if lp.wrap_comments {
+                                                    ui.available_width()
+                                                } else {
+                                                    f32::INFINITY
+                                                },
+                                            );
+                                            job.wrap.max_rows = if lp.wrap_comments { 8 } else { 1 };
+                                            let lr = ui.add(egui::Label::new(job).sense(Sense::click()));
+                                            if lr.clicked() {
+                                                acts.push(Act::Select(*i, add));
+                                            }
+                                        }
                                         edit => {
                                             let mut rt = RichText::new(&cell.text);
                                             if col.markup_color {
@@ -449,6 +497,9 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                                                     ui.add(egui::Label::new(rt).sense(Sense::click()))
                                                 })
                                                 .inner
+                                            } else if col.id == "comments" {
+                                                let l = egui::Label::new(rt).sense(Sense::click());
+                                                ui.add(if lp.wrap_comments { l.wrap() } else { l.truncate() })
                                             } else {
                                                 ui.add(egui::Label::new(rt).sense(Sense::click()))
                                             };
@@ -538,7 +589,12 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                             });
                         }
                     }
-                });
+                };
+                if lp.wrap_comments {
+                    body.heterogeneous_rows(heights.into_iter(), row_ui);
+                } else {
+                    body.rows(20.0, lines.len(), row_ui);
+                }
             });
     });
     ui.scope_builder(egui::UiBuilder::new().max_rect(footer_rect), |ui| {
@@ -877,12 +933,42 @@ fn columns_editor(ui: &mut egui::Ui, cols: &mut Vec<CustomColumn>, out: &mut Edi
     apply
 }
 
+/// Columns that show a measurement value (blank on a group's other markups when only the
+/// dominant markup shows it).
+const MEASURE_COLUMNS: &[&str] = &["measurement", "length", "area", "volume", "perimeter", "depth"];
+
+/// The markups the list's filters (and quick search) hide, by page and box: the page dims
+/// them by Preferences > Markups List's percentage.
+pub fn filtered_out(doc: &DocTab, view: &View) -> Vec<(usize, markupcraft_geom::Rect)> {
+    if view.filters.is_empty() && view.search.trim().is_empty() {
+        return Vec::new();
+    }
+    let mut v = view.clone();
+    v.scope = Scope::AllPages;
+    let table = MarkupTable::new(doc.session.doc());
+    let shown: std::collections::HashSet<usize> = table.build(&v).all_rows().into_iter().collect();
+    doc.session
+        .doc()
+        .markups
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| !shown.contains(i))
+        .map(|(_, m)| (m.page, actions::markup_bbox(m)))
+        .take(20_000)
+        .collect()
+}
+
 /// Write the list (as the panel shows it) to `path`; returns the status text.
 pub fn export(app: &mut AppState, purpose: &Purpose, path: &Path) -> String {
     let Some(doc) = app.docs.get(app.active) else {
         return "No document open".into();
     };
-    let view = scoped(&app.list.view, doc);
+    let mut view = scoped(&app.list.view, doc);
+    if !app.shell.prefs.more.markups_list.exclude_filtered_from_export {
+        // Preferences > Markups List: exports keep the markups the filters hide.
+        view.filters.clear();
+        view.search.clear();
+    }
     let table = MarkupTable::new(doc.session.doc());
     let root = table.build(&view);
     let text = match purpose {

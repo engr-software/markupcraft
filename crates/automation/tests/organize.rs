@@ -474,7 +474,7 @@ fn preferences_profiles_set_switch_export_import() {
     assert!(fails(&mut a, "prefs_set", json!({ "values": { "units": "cubits" } })).contains("units"));
     assert!(fails(&mut a, "prefs_set", json!({ "values": { "colour": "#000000" } })).contains("unknown"));
 
-    let s = call(&mut a, "profile_switch", json!({ "profile": "Takeoff" }));
+    let s = call(&mut a, "profile_switch", json!({ "profile": "Estimating" }));
     assert_eq!(s["preferences"]["units"], "m");
     call(&mut a, "prefs_set", json!({ "values": { "units": "ft" } }));
     call(&mut a, "prefs_export", json!({ "path": "takeoff.json" }));
@@ -490,10 +490,41 @@ fn preferences_profiles_set_switch_export_import() {
         "ft"
     );
     let l = call(&mut a, "profile_list", json!({}));
-    assert_eq!(l["profiles"], json!(["Default", "Shared", "Takeoff"]));
-    call(&mut a, "profile_delete", json!({ "profile": "Takeoff" }));
+    assert_eq!(
+        l["profiles"],
+        json!([
+            "Construction",
+            "Default",
+            "Design Review",
+            "Estimating",
+            "Shared",
+            "Simple",
+            "Takeoff"
+        ])
+    );
+    call(&mut a, "profile_delete", json!({ "profile": "Estimating" }));
     fails(&mut a, "profile_delete", json!({ "profile": "Default" }));
     fails(&mut a, "profile_switch", json!({ "profile": "../x" }));
+    // Rename, and share a profile as a bundle with its dependencies.
+    call(
+        &mut a,
+        "profile_rename",
+        json!({ "profile": "Shared", "to": "Shared Copy" }),
+    );
+    std::fs::write(d.join("config").join("toolchest.json"), "{}").unwrap();
+    let e = call(
+        &mut a,
+        "prefs_export",
+        json!({ "path": "shared.mcprofile", "profile": "Shared Copy", "bundle": true, "include_dependencies": true }),
+    );
+    assert_eq!(e["dependencies"], 1, "{e}");
+    let i = call(
+        &mut a,
+        "prefs_import",
+        json!({ "path": "shared.mcprofile", "profile": "Again" }),
+    );
+    assert_eq!(i["profile"], "Again");
+    assert_eq!(i["preferences"]["units"], "ft");
     assert!(d.join("config").join("profiles").join("Default.json").exists());
 }
 

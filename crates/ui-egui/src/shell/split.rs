@@ -5,6 +5,10 @@
 //! back to one pane. Synchronize: Document (the panes follow each other page for page) or Page
 //! (they pan and zoom together whatever page each shows).
 //!
+//! Splitting again adds a pane (up to [`MAX_PANES`]); three or more panes share the area in a
+//! grid, side by side first after Split Vertical, stacked first after Split Horizontal, and
+//! each pane's header closes it.
+//!
 //! The pane that has focus shows the active document (menus and keys act on it); clicking in
 //! the other pane moves the focus there. The second pane keeps its own view and renderer, so
 //! one document can show in both panes at different places.
@@ -36,6 +40,9 @@ pub struct Pane {
     bytes: Option<std::sync::Arc<Vec<u8>>>,
 }
 
+/// Most panes the document area splits into.
+pub const MAX_PANES: usize = 16;
+
 pub struct Split {
     /// Side by side (else one above the other).
     pub vertical: bool,
@@ -44,32 +51,50 @@ pub struct Split {
     /// The active document shows in the first pane (else in the second).
     pub active_first: bool,
     pub pane: Pane,
+    /// Panes beyond the second, in order.
+    pub more: Vec<Pane>,
     pub sync: Sync,
     /// The focused pane's (zoom, offset) last frame, for Page sync.
     pub last: Option<(f32, Vec2)>,
 }
 
-/// Split the document area; the new pane shows the active document.
-pub fn split(app: &mut AppState, vertical: bool) {
-    if let Some(s) = &mut app.shell.split {
-        s.vertical = vertical;
-        return;
+impl Split {
+    /// Panes on screen (the active document's included).
+    pub fn panes(&self) -> usize {
+        2 + self.more.len()
     }
+}
+
+/// Split the document area; the new pane shows the active document. Splitting an area that
+/// is split already adds another pane (up to [`MAX_PANES`]).
+pub fn split(app: &mut AppState, vertical: bool) {
     let Some(d) = app.doc() else { return };
     let mut view = DocView::default();
     view.mode = d.view.mode;
     view.fit = d.view.fit;
     view.go_to_page(d.view.current, d.session.page_count());
+    let uid = d.uid;
+    if let Some(s) = &mut app.shell.split {
+        s.vertical = vertical;
+        if s.panes() >= MAX_PANES {
+            app.status = format!("The workspace splits into at most {MAX_PANES} panes");
+        } else {
+            s.more.push(Pane::new(uid, view));
+            app.status = format!("{} panes", s.panes());
+        }
+        return;
+    }
     app.shell.split = Some(Split {
         vertical,
         frac: 0.5,
         active_first: true,
         pane: Pane {
-            uid: d.uid,
+            uid,
             view,
             render: None,
             bytes: None,
         },
+        more: Vec::new(),
         sync: match app.shell.ui.extra.sync_default.as_str() {
             "document" => Sync::Document,
             "page" => Sync::Page,
@@ -207,6 +232,14 @@ pub fn show(app: &mut AppState, ui: &mut egui::Ui) {
             None => app.shell.split = None,
         }
     }
+    let open: Vec<u64> = app.docs.iter().map(|d| d.uid).collect();
+    if let Some(s) = &mut app.shell.split {
+        s.more.retain(|p| open.contains(&p.uid));
+    }
+    if app.shell.split.as_ref().is_some_and(|s| !s.more.is_empty()) {
+        grid(app, ui);
+        return;
+    }
     let Some((vertical, frac, active_first)) = app.shell.split.as_ref().map(|s| (s.vertical, s.frac, s.active_first))
     else {
         return;
@@ -256,7 +289,10 @@ pub fn show(app: &mut AppState, ui: &mut egui::Ui) {
     }
     let (primary, secondary) = if active_first { (a, b) } else { (b, a) };
     pane_ui(app, ui, primary);
-    second_pane(app, ui, secondary);
+    if second_pane(app, ui, secondary, 0) {
+        app.shell.split = None;
+        return;
+    }
     app.shell.extra.pane_rect = Some(secondary);
     // A document tab dragged over the second pane: mark the drop spot.
     if app.shell.extra.dragging_tab
@@ -367,7 +403,96 @@ fn pane_ui(app: &mut AppState, ui: &mut egui::Ui, rect: Rect) {
     super::overlay::paint(app, ui, rect);
 }
 
-fn second_pane(app: &mut AppState, ui: &mut egui::Ui, rect: Rect) {
+/// Three or more panes: a grid of cells, the active document in the first.
+fn grid(app: &mut AppState, ui: &mut egui::Ui) {
+    let Some((n, vertical)) = app.shell.split.as_ref().map(|s| (s.panes(), s.vertical)) else {
+        return;
+    };
+    let full = ui.available_rect_before_wrap();
+    let cells = cells(full, n, vertical, 4.0);
+    let Some(first) = cells.first().copied() else { return };
+    pane_ui(app, ui, first);
+    let mut close: Option<usize> = None;
+    for (k, cell) in cells.iter().enumerate().skip(1) {
+        // Pane k-1 of the split: the second pane, then the others swapped in to draw.
+        let idx = k - 1;
+        swap_in(app, idx);
+        let closed = second_pane(app, ui, *cell, idx);
+        swap_in(app, idx);
+        if closed {
+            close = Some(idx);
+        }
+    }
+    if let Some(idx) = close {
+        close_pane(app, idx);
+        return;
+    }
+    app.shell.extra.pane_rect = cells.get(1).copied();
+    let pressed = ui.input(|i| {
+        i.pointer
+            .press_origin()
+            .filter(|_| i.pointer.any_pressed())
+            .and_then(|p| cells.iter().skip(1).position(|c| c.contains(p)))
+    });
+    if let Some(idx) = pressed {
+        swap_in(app, idx);
+        focus_pane(app);
+    }
+    sync(app);
+}
+
+/// The cells of `n` panes in `full`: as square a grid as fits, filled row by row (side by
+/// side first) or column by column.
+pub fn cells(full: Rect, n: usize, vertical: bool, gap: f32) -> Vec<Rect> {
+    let n = n.clamp(1, MAX_PANES);
+    let mut cols = 1;
+    while cols * cols < n {
+        cols += 1;
+    }
+    let rows = n.div_ceil(cols);
+    let (cols, rows) = if vertical { (cols, rows) } else { (rows, cols) };
+    let w = (full.width() - gap * (cols as f32 - 1.0)) / cols as f32;
+    let h = (full.height() - gap * (rows as f32 - 1.0)) / rows as f32;
+    (0..n)
+        .map(|i| {
+            let (c, r) = if vertical {
+                (i % cols, i / cols)
+            } else {
+                (i / rows, i % rows)
+            };
+            let min = full.min + vec2(c as f32 * (w + gap), r as f32 * (h + gap));
+            Rect::from_min_size(min, vec2(w.max(1.0), h.max(1.0)))
+        })
+        .collect()
+}
+
+/// Exchange the second pane with pane `idx` (0 = the second pane itself: nothing to do).
+fn swap_in(app: &mut AppState, idx: usize) {
+    if let Some(s) = &mut app.shell.split
+        && let Some(p) = idx.checked_sub(1).and_then(|i| s.more.get_mut(i))
+    {
+        std::mem::swap(&mut s.pane, p);
+    }
+}
+
+/// Close pane `idx` (0 = the second pane); one pane left unsplits.
+pub fn close_pane(app: &mut AppState, idx: usize) {
+    let Some(s) = &mut app.shell.split else { return };
+    if s.more.is_empty() {
+        app.shell.split = None;
+        return;
+    }
+    if idx == 0 {
+        s.pane = s.more.remove(0);
+    } else if idx - 1 < s.more.len() {
+        s.more.remove(idx - 1);
+    }
+    s.last = None;
+}
+
+/// One pane of the split (pane `idx`, 0 = the second): its header and canvas. Returns true
+/// when its header's close button was pressed.
+fn second_pane(app: &mut AppState, ui: &mut egui::Ui, rect: Rect, idx: usize) -> bool {
     let t = Tokens::get(ui.ctx());
     let threads = app.threads;
     let ctx = ui.ctx().clone();
@@ -379,44 +504,48 @@ fn second_pane(app: &mut AppState, ui: &mut egui::Ui, rect: Rect) {
     let mut close = false;
     ui.scope_builder(egui::UiBuilder::new().max_rect(head), |ui| {
         ui.painter().rect_filled(head, 0.0, t.chrome);
-        ui.horizontal_centered(|ui| {
-            ui.add_space(4.0);
-            let cur = app.shell.split.as_ref().map(|s| s.pane.uid);
-            let label = names
-                .iter()
-                .find(|(u, _)| Some(*u) == cur)
-                .map_or_else(String::new, |(_, n)| n.clone());
-            egui::ComboBox::from_id_salt("split-doc")
-                .selected_text(RichText::new(label).size(12.0))
-                .width(220.0)
-                .show_ui(ui, |ui| {
-                    for (u, n) in &names {
-                        if ui.selectable_label(Some(*u) == cur, n).clicked() {
-                            pick = Some(*u);
+        // The close button first (right), so a narrow pane keeps it; the picker takes the rest.
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            ui.add_space(2.0);
+            if crate::icons::button(ui, "x", 18.0, false, "Close this pane").clicked() {
+                close = true;
+            }
+            let room = ui.available_width();
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                ui.add_space(4.0);
+                let cur = app.shell.split.as_ref().map(|s| s.pane.uid);
+                let label = names
+                    .iter()
+                    .find(|(u, _)| Some(*u) == cur)
+                    .map_or_else(String::new, |(_, n)| n.clone());
+                egui::ComboBox::from_id_salt(("split-doc", idx))
+                    .selected_text(RichText::new(label).size(12.0))
+                    .width((room - 40.0).clamp(60.0, 220.0))
+                    .show_ui(ui, |ui| {
+                        for (u, n) in &names {
+                            if ui.selectable_label(Some(*u) == cur, n).clicked() {
+                                pick = Some(*u);
+                            }
                         }
-                    }
-                });
-            ui.label(
-                RichText::new("Split view (click to focus)")
-                    .size(11.0)
-                    .color(t.text_faint),
-            );
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if crate::icons::button(ui, "x", 18.0, false, "Unsplit (Ctrl+Shift+2)").clicked() {
-                    close = true;
+                    });
+                if room > 420.0 {
+                    ui.label(
+                        RichText::new("Split view (click to focus)")
+                            .size(11.0)
+                            .color(t.text_faint),
+                    );
                 }
             });
         });
     });
     if close {
-        app.shell.split = None;
-        return;
+        return true;
     }
     let tool = crate::tools::find(app.tool).unwrap_or(&crate::tools::select::TOOL);
     let author = app.author.clone();
     let edit = app.edit.clone();
     let template = app.template().0.cloned();
-    let Some(s) = &mut app.shell.split else { return };
+    let Some(s) = &mut app.shell.split else { return false };
     if let Some(u) = pick
         && u != s.pane.uid
     {
@@ -427,7 +556,7 @@ fn second_pane(app: &mut AppState, ui: &mut egui::Ui, rect: Rect) {
     }
     let uid = s.pane.uid;
     let Some(doc) = app.docs.iter_mut().find(|d| d.uid == uid) else {
-        return;
+        return false;
     };
     ensure_render(&mut s.pane, doc, threads, &ctx);
     // Show the document with the pane's own view and renderer.
@@ -447,12 +576,16 @@ fn second_pane(app: &mut AppState, ui: &mut egui::Ui, rect: Rect) {
         edit: &edit,
     };
     let out = ui
-        .scope_builder(egui::UiBuilder::new().max_rect(body).id_salt("split-pane"), |ui| {
-            ui.set_clip_rect(body.intersect(ui.clip_rect()));
-            canvas::show(ui, doc, &cx)
-        })
+        .scope_builder(
+            egui::UiBuilder::new().max_rect(body).id_salt(("split-pane", idx)),
+            |ui| {
+                ui.set_clip_rect(body.intersect(ui.clip_rect()));
+                canvas::show(ui, doc, &cx)
+            },
+        )
         .inner;
     std::mem::swap(&mut doc.view, &mut s.pane.view);
     std::mem::swap(&mut doc.render, &mut s.pane.render);
     app.apply_canvas_out(out);
+    false
 }

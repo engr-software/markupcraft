@@ -11,6 +11,7 @@ pub mod deskew;
 pub mod detach;
 pub mod edges;
 pub mod extra;
+pub mod extra2;
 pub mod files;
 pub mod history;
 pub mod layout;
@@ -138,6 +139,8 @@ pub struct UiPrefs {
     pub layout: Option<serde_json::Value>,
     /// Workspace, panels, startup, snapping and other preferences of `extra`.
     pub extra: extra::ExtraPrefs,
+    /// Preferences of `extra2`.
+    pub extra2: extra2::Prefs2,
 }
 
 impl Default for UiPrefs {
@@ -171,6 +174,7 @@ impl Default for UiPrefs {
             toolbars: toolbars::ToolbarPrefs::default(),
             layout: None,
             extra: extra::ExtraPrefs::default(),
+            extra2: extra2::Prefs2::default(),
         }
     }
 }
@@ -193,6 +197,7 @@ impl UiPrefs {
         }
         self.toolbars.sanitize();
         self.extra.sanitize();
+        self.extra2.sanitize();
     }
 
     /// The page layout a newly opened document takes (`auto`: drawings one page at a time).
@@ -263,6 +268,8 @@ pub struct Shell {
     pub applied_theme: Option<bool>,
     /// Dark workspace, files, detached windows, panel bars and the rest of `extra`.
     pub extra: extra::ExtraState,
+    /// Help and the rest of `extra2`.
+    pub extra2: extra2::State2,
 }
 
 impl Default for Shell {
@@ -295,6 +302,7 @@ impl Default for Shell {
             zoom_toggle_from: None,
             applied_theme: None,
             extra: extra::ExtraState::default(),
+            extra2: extra2::State2::default(),
         }
     }
 }
@@ -311,6 +319,11 @@ impl Shell {
             lock_fit_width: self.ui.lock_fit_width,
             dim: if self.dimmer { self.ui.dimmer_pct / 100.0 } else { 0.0 },
             dark: self.ui.extra.dark_workspace,
+            tilt_pans: self.ui.extra2.tilt_pans,
+            background: (self.screen == Screen::Presentation).then(|| {
+                let [r, g, b] = self.ui.extra2.presentation_background;
+                egui::Color32::from_rgb(r, g, b)
+            }),
         }
     }
 
@@ -357,6 +370,7 @@ pub fn load_ui(store: &PrefStore) -> UiPrefs {
         .ok()
         .filter(|b| b.len() < (4 << 20))
         .and_then(|b| serde_json::from_slice::<UiPrefs>(&b).ok())
+        .or_else(|| extra2::shipped_ui(&store.active()))
         .unwrap_or_default();
     p.sanitize();
     p
@@ -423,6 +437,9 @@ fn ours(id: &str) -> bool {
 
 /// Whether a shell command can run now (`None` = not a shell command).
 pub fn enabled(app: &AppState, id: &str) -> Option<bool> {
+    if let Some(e) = extra2::enabled(app, id) {
+        return Some(e);
+    }
     if let Some(e) = extra::enabled(app, id) {
         return Some(e);
     }
@@ -450,6 +467,9 @@ pub fn enabled(app: &AppState, id: &str) -> Option<bool> {
 
 /// Checkmarks for shell toggles (`None` = not a shell toggle).
 pub fn checked(app: &AppState, id: &str) -> Option<bool> {
+    if let Some(c) = extra2::checked(app, id) {
+        return Some(c);
+    }
     if let Some(c) = extra::checked(app, id) {
         return Some(c);
     }
@@ -486,7 +506,7 @@ pub fn checked(app: &AppState, id: &str) -> Option<bool> {
 
 /// Run a shell command; `false` when `id` is not one.
 pub fn run(app: &mut AppState, id: &str, ctx: &egui::Context) -> bool {
-    if extra::run(app, id, ctx) {
+    if extra2::run(app, id, ctx) || extra::run(app, id, ctx) {
         return true;
     }
     if !ours(id) {
@@ -681,6 +701,9 @@ pub fn begin_frame(app: &mut AppState, ctx: &egui::Context) {
     }
     if let Some(s) = &mut app.shell.split {
         s.pane.view.opts = opts;
+        for p in &mut s.more {
+            p.view.opts = opts;
+        }
     }
     let dark = match app.shell.prefs.theme.as_str() {
         "dark" => true,
@@ -702,6 +725,7 @@ pub fn begin_frame(app: &mut AppState, ctx: &egui::Context) {
     }
     history::record(app);
     extra::begin_frame(app, ctx);
+    extra2::begin_frame(app, ctx);
 }
 
 fn presentation_keys(app: &mut AppState, ctx: &egui::Context) {
@@ -771,6 +795,7 @@ pub fn windows(app: &mut AppState, ctx: &egui::Context) {
     toolbars::customize_window(app, ctx);
     pages::window(app, ctx);
     extra::windows(app, ctx);
+    extra2::windows(app, ctx);
 }
 
 /// The desktop app: preferences, interface settings, recent files and the last session from
@@ -784,6 +809,7 @@ pub fn load_user(app: &mut AppState) {
     crate::prefs_ui::load_from_store(app);
     recent::reopen_last_session(app);
     extra::startup(app);
+    extra2::startup(app);
 }
 
 fn store_dir_recovery(app: &AppState) -> std::path::PathBuf {

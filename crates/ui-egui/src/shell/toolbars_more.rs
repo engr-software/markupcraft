@@ -1,4 +1,5 @@
-//! Toolbars in toolstrips: each toolbar (Main, Markup, Measure and the user's own) docks at
+//! Toolbars in toolstrips: each toolbar (Main, Markup, Measure, the named toolbars of
+//! [`BUILTIN`] (File, Edit, Navigation, Zoom, Shapes, Text...) and the user's own) docks at
 //! the top, in a second row, or down the left or right side. Drag a toolbar by its grip to an
 //! edge (or use the grip's menu) to move it. Customize Toolbars makes new toolbars and edits
 //! any toolbar's commands.
@@ -31,6 +32,125 @@ impl Dock {
     ];
 }
 
+/// The named toolbars MarkupCraft ships besides Main, Markup and Measure: (name, buttons).
+/// Each is hidden until Window > Toolbars shows it.
+pub const BUILTIN: &[(&str, &[&str])] = &[
+    (
+        "File",
+        &["file.new", "file.open", "file.save", "file.save_as", "file.print"],
+    ),
+    (
+        "Edit",
+        &[
+            "edit.undo",
+            "edit.redo",
+            "|",
+            "edit.cut",
+            "edit.copy",
+            "edit.paste",
+            "edit.delete",
+        ],
+    ),
+    (
+        "Navigation",
+        &[
+            "view.first_page",
+            "view.prev_page",
+            "view.next_page",
+            "view.last_page",
+            "|",
+            "view.prev_view",
+            "view.next_view",
+        ],
+    ),
+    (
+        "Zoom",
+        &[
+            "view.zoom_in",
+            "view.zoom_out",
+            "view.fit_page",
+            "view.fit_width",
+            "view.actual_size",
+        ],
+    ),
+    (
+        "Shapes",
+        &[
+            "tool.line",
+            "tool.arrow",
+            "tool.polyline",
+            "tool.polygon",
+            "tool.rectangle",
+            "tool.ellipse",
+            "tool.cloud",
+            "tool.cloudplus",
+        ],
+    ),
+    ("Text", &["tool.text", "tool.callout", "tool.typewriter", "tool.note"]),
+    (
+        "Text Markup",
+        &[
+            "tool.texthighlight",
+            "tool.underline",
+            "tool.strikethrough",
+            "tool.squiggly",
+        ],
+    ),
+    ("Sketch", &["tool.pen", "tool.highlight", "tool.eraser", "tool.lasso"]),
+    (
+        "Order",
+        &[
+            "arrange.bring_to_front",
+            "arrange.bring_forward",
+            "arrange.send_backward",
+            "arrange.send_to_back",
+        ],
+    ),
+    (
+        "Alignment",
+        &[
+            "arrange.align_left",
+            "arrange.align_center",
+            "arrange.align_right",
+            "|",
+            "arrange.align_top",
+            "arrange.align_middle",
+            "arrange.align_bottom",
+            "|",
+            "arrange.distribute_horizontal",
+            "arrange.distribute_vertical",
+        ],
+    ),
+    (
+        "Rotation",
+        &[
+            "arrange.flip_horizontal",
+            "arrange.flip_vertical",
+            "|",
+            "view.rotate_view_ccw",
+            "view.rotate_view_cw",
+        ],
+    ),
+    (
+        "Document",
+        &[
+            "document.insert_blank",
+            "document.insert_pages",
+            "document.extract_pages",
+            "document.delete_pages",
+            "|",
+            "document.rotate_ccw",
+            "document.rotate_cw",
+            "document.crop_pages",
+        ],
+    ),
+];
+
+/// The buttons of a named toolbar of [`BUILTIN`].
+pub fn builtin(name: &str) -> Option<&'static [&'static str]> {
+    BUILTIN.iter().find(|(n, _)| *n == name).map(|(_, items)| *items)
+}
+
 /// A toolbar the user made.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(default)]
@@ -47,6 +167,8 @@ pub struct ToolbarsMore {
     /// Toolbar name -> where it is (missing = the top row).
     pub docks: BTreeMap<String, Dock>,
     pub custom: Vec<CustomToolbar>,
+    /// Named toolbars of [`BUILTIN`] that show.
+    pub builtin_shown: Vec<String>,
 }
 
 impl ToolbarsMore {
@@ -62,6 +184,8 @@ impl ToolbarsMore {
             c.items.truncate(128);
         }
         self.docks.retain(|k, _| k.chars().count() <= 100);
+        self.builtin_shown.retain(|n| builtin(n).is_some());
+        self.builtin_shown.dedup();
     }
 }
 
@@ -74,6 +198,12 @@ pub fn items(app: &AppState, name: &str) -> Vec<String> {
             .iter()
             .filter(|t| t.menu == name && t.draws())
             .map(|t| format!("tool.{}", t.id))
+            .collect(),
+        other if builtin(other).is_some() => builtin(other)
+            .unwrap_or_default()
+            .iter()
+            .filter(|id| **id == "|" || crate::commands::describe(id).is_some())
+            .map(|s| s.to_string())
             .collect(),
         other => tb
             .more
@@ -98,8 +228,38 @@ pub fn shown(app: &AppState) -> Vec<String> {
             v.push(n.to_string());
         }
     }
+    v.extend(
+        BUILTIN
+            .iter()
+            .filter(|(n, _)| tb.more.builtin_shown.iter().any(|s| s == n))
+            .map(|(n, _)| n.to_string()),
+    );
     v.extend(tb.more.custom.iter().filter(|c| c.show).map(|c| c.name.clone()));
     v
+}
+
+/// Show or hide named toolbar `name` of [`BUILTIN`].
+pub fn toggle_builtin(app: &mut AppState, name: &str) {
+    if builtin(name).is_none() {
+        return;
+    }
+    let shown = &mut app.shell.ui.toolbars.more.builtin_shown;
+    if let Some(i) = shown.iter().position(|n| n == name) {
+        shown.remove(i);
+    } else {
+        shown.push(name.to_string());
+    }
+    app.shell.save_ui();
+}
+
+/// Window > Toolbars: a checkable row per named toolbar of [`BUILTIN`].
+pub fn builtin_menu(app: &mut AppState, ui: &mut egui::Ui) {
+    for (name, _) in BUILTIN {
+        let mut on = app.shell.ui.toolbars.more.builtin_shown.iter().any(|n| n == name);
+        if ui.checkbox(&mut on, *name).clicked() {
+            toggle_builtin(app, name);
+        }
+    }
 }
 
 /// Toolbars at `dock`.
@@ -233,6 +393,21 @@ pub fn strip(app: &mut AppState, ui: &mut egui::Ui, name: &str, vertical: bool) 
             }
             continue;
         }
+        if crate::commands::describe(&id).is_some_and(|d| d.1.is_empty()) {
+            // A command without an icon shows its name.
+            let label = crate::commands::describe(&id).map(|d| d.0).unwrap_or_default();
+            let enabled = app.enabled(&id);
+            if ui
+                .add_enabled(
+                    enabled,
+                    egui::Button::new(egui::RichText::new(&label).size(11.0)).small(),
+                )
+                .clicked()
+            {
+                app.queue(&id);
+            }
+            continue;
+        }
         crate::chrome::tool_button_pub(app, ui, &id);
     }
     ui.add_space(6.0);
@@ -272,6 +447,7 @@ pub fn customize_rows(ui: &mut egui::Ui, more: &mut ToolbarsMore, target: &mut S
         );
         let ok = !name.trim().is_empty()
             && !["Main", "Markup", "Measure"].contains(&name.trim())
+            && builtin(name.trim()).is_none()
             && !more.custom.iter().any(|c| c.name == name.trim())
             && more.custom.len() < 32;
         if ui.add_enabled(ok, egui::Button::new("New Toolbar")).clicked() {

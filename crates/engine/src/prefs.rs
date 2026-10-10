@@ -207,7 +207,7 @@ pub fn default_config_dir() -> Option<PathBuf> {
         .or_else(|| env("HOME").map(|h| h.join(".config/markupcraft")))
 }
 
-fn check_profile_name(name: &str) -> Result<String> {
+pub(crate) fn check_profile_name(name: &str) -> Result<String> {
     let n = name.trim();
     let ok = !n.is_empty()
         && n.chars().count() <= 64
@@ -223,7 +223,7 @@ fn check_profile_name(name: &str) -> Result<String> {
     }
 }
 
-fn io_err(path: &Path) -> impl Fn(std::io::Error) -> EngineError + '_ {
+pub(crate) fn io_err(path: &Path) -> impl Fn(std::io::Error) -> EngineError + '_ {
     move |e| EngineError::Io {
         path: path.display().to_string(),
         source: e,
@@ -310,6 +310,12 @@ impl PrefStore {
         if !out.contains(&active) {
             out.push(active);
         }
+        // The profiles MarkupCraft ships are always offered.
+        for s in crate::profiles::SHIPPED {
+            if !out.iter().any(|n| n == s) {
+                out.push(s.to_string());
+            }
+        }
         out.sort_by_key(|n| n.to_lowercase());
         out
     }
@@ -318,7 +324,7 @@ impl PrefStore {
     pub fn load_profile(&self, name: &str) -> Result<Preferences> {
         let p = self.profile_path(name)?;
         if !p.exists() {
-            return Ok(Preferences::default());
+            return Ok(crate::profiles::shipped_preferences(name.trim()).unwrap_or_default());
         }
         read_file(&p)
     }
@@ -352,7 +358,9 @@ impl PrefStore {
             }
         }
         if !path.exists() {
-            let p = if copy_from_current {
+            let p = if let Some(s) = crate::profiles::shipped_preferences(&name) {
+                s
+            } else if copy_from_current {
                 self.load()?
             } else {
                 Preferences::default()
@@ -416,17 +424,27 @@ mod tests {
                 .is_err()
         );
         assert!(st.load().unwrap().merged(&serde_json::json!({ "nope": 1 })).is_err());
-        let t = st.switch("Takeoff", true).unwrap();
+        let t = st.switch("Estimates", true).unwrap();
         assert_eq!(t.author, "Estimator");
-        assert_eq!(st.active(), "Takeoff");
-        assert_eq!(st.profiles(), vec!["Default", "Takeoff"]);
-        assert!(st.delete_profile("Takeoff").is_err());
+        assert_eq!(st.active(), "Estimates");
+        assert_eq!(
+            st.profiles(),
+            vec![
+                "Construction",
+                "Default",
+                "Design Review",
+                "Estimates",
+                "Simple",
+                "Takeoff"
+            ]
+        );
+        assert!(st.delete_profile("Estimates").is_err());
         let out = dir.join("export.json");
-        st.export("Takeoff", &out).unwrap();
+        st.export("Estimates", &out).unwrap();
         st.import(&out, "Copy").unwrap();
         assert_eq!(st.load_profile("Copy").unwrap().author, "Estimator");
         st.switch("Default", false).unwrap();
-        st.delete_profile("Takeoff").unwrap();
+        st.delete_profile("Estimates").unwrap();
         assert!(st.switch("../evil", false).is_err());
         std::fs::write(&out, "{ \"theme\": 5 }").unwrap();
         assert!(read_file(&out).is_err());

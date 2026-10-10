@@ -1995,7 +1995,7 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
                 }
             }
         }
-        Some(Gesture::Handle { id, index, page }) => {
+        Some(Gesture::Handle { id, index, page }) => 'handle: {
             if let (Some(xf), Some(c), Some(m)) = (ix.xf(page), end, doc.session.doc().find(&id).cloned()) {
                 let raw = xf.to_user(c);
                 let anchor = if uses_rect(m.kind) {
@@ -2004,6 +2004,26 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
                     index.checked_sub(1).and_then(|i| m.pts.get(i).copied())
                 };
                 let shift = ix.ui.input(|i| i.modifiers.shift);
+                if let Some(k) = crate::modkeys::corner_of(&m, index) {
+                    // A corner of a polyline's or polygon's box: the whole shape scales, in
+                    // proportion unless Shift is held.
+                    let to = snap_at(ix, doc, cx, page, raw, Some(&id)).pt;
+                    if let Some(r) = crate::modkeys::corner_box(&m, k, to, shift) {
+                        if release.is_some() {
+                            doc.view.preview.clear();
+                            let res = doc.session.resize_markup(&id, r);
+                            out.status = Some(actions::report(res, |_| "Resized".into()));
+                        } else {
+                            let mut c = m.clone();
+                            if markupcraft_engine::geometry::resize(&mut c, r).is_ok() {
+                                doc.view.preview.insert(id.clone(), c);
+                            }
+                        }
+                    } else if release.is_some() {
+                        doc.view.preview.clear();
+                    }
+                    break 'handle;
+                }
                 let to = match anchor {
                     Some(a) if shift => tools::constrain(a, raw),
                     _ => snap_at(ix, doc, cx, page, raw, Some(&id)).pt,

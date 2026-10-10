@@ -35,6 +35,7 @@ pub fn check(app: &mut AppState) {
     accept.extend(crate::spell_prefs::get().words);
     let opts = SpellOptions {
         ignore_uppercase: s.ignore_caps,
+        british: crate::spell_prefs::get().british,
         accept,
         suggestions: 6,
     };

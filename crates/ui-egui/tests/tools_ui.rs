@@ -564,6 +564,16 @@ fn markups_list_shows_totals_and_status() {
     h.run_steps(3);
     // The grand total row and the footer under the table.
     assert_eq!(h.query_all_by_label_contains("Total (6)").count(), 2, "the totals");
+    // Wrapped comments (Preferences > Markups List) keep the rows and the totals.
+    h.state_mut().state.shell.prefs.more.markups_list.wrap_comments = true;
+    h.run_steps(3);
+    // Taller rows can push the table's total row out of view; the footer keeps it.
+    assert!(
+        h.query_all_by_label_contains("Total (6)").count() >= 1,
+        "the totals, wrapped"
+    );
+    h.state_mut().state.shell.prefs.more.markups_list.wrap_comments = false;
+    h.run_steps(3);
     h.state_mut().set_option("group-by", "type");
     h.run_steps(3);
     assert!(h.query_by_label_contains("Type: Area (1)").is_some(), "a group header");

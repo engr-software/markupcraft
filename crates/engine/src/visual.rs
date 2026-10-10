@@ -31,6 +31,10 @@ pub enum VisualAction {
     Count,
     /// A translucent rectangle on each hit.
     Highlight,
+    /// A link over each hit, to [`VisualSearchOptions::link`].
+    Hyperlink,
+    /// A bookmark to each hit's page, named after the subject and the hit's number.
+    Bookmark,
 }
 
 impl VisualAction {
@@ -39,6 +43,8 @@ impl VisualAction {
             "none" | "" => VisualAction::None,
             "count" => VisualAction::Count,
             "highlight" => VisualAction::Highlight,
+            "hyperlink" | "link" => VisualAction::Hyperlink,
+            "bookmark" => VisualAction::Bookmark,
             _ => return None,
         })
     }
@@ -68,6 +74,8 @@ pub struct VisualSearchOptions {
     pub action: VisualAction,
     pub color: Color,
     pub subject: String,
+    /// Where the links of [`VisualAction::Hyperlink`] go.
+    pub link: Option<crate::links::LinkTarget>,
 }
 
 impl Default for VisualSearchOptions {
@@ -86,6 +94,7 @@ impl Default for VisualSearchOptions {
             action: VisualAction::None,
             color: Color::rgb(0.0, 0.45, 1.0),
             subject: "Visual Search".into(),
+            link: None,
         }
     }
 }
@@ -105,6 +114,8 @@ pub struct VisualReport {
     pub hits: Vec<VisualHit>,
     /// Markups made from the hits.
     pub markups: Vec<String>,
+    /// Links made over the hits.
+    pub links: Vec<String>,
 }
 
 /// Summed-area tables of an image and of its squares.
@@ -231,6 +242,74 @@ fn rotate_any(g: &Gray, deg: u32) -> Gray {
         }
     }
     out
+}
+
+/// Erase from the template `g` (cut from `src` at pixel `(x0, y0)`) the vector objects that
+/// leave `region`: every segment of the page's linework with an end outside the box is wiped
+/// along its course inside the box, with its stroke. Objects wholly inside the box stay, even
+/// where a leaving line touches them. Returns false when the page has no linework near the box
+/// (a scan), so the caller falls back to [`keep_inside`].
+fn drop_leaving_objects(
+    g: &mut Gray,
+    src: &PageImage,
+    region: Rect,
+    x0: usize,
+    y0: usize,
+    segs: &[(Point, Point)],
+) -> bool {
+    let r = region.normalized();
+    let inside = |p: &Point| p.x >= r.x0 && p.x <= r.x1 && p.y >= r.y0 && p.y <= r.y1;
+    let near = |a: &Point, b: &Point| {
+        a.x.max(b.x) >= r.x0 && a.x.min(b.x) <= r.x1 && a.y.max(b.y) >= r.y0 && a.y.min(b.y) <= r.y1
+    };
+    let mut any = false;
+    let s = f64::from(src.scale);
+    let to_px = |p: &Point| {
+        let v = src.geom.user_to_view(p.x as f32, p.y as f32);
+        (f64::from(v[0]) * s - x0 as f64, f64::from(v[1]) * s - y0 as f64)
+    };
+    // The wipe covers a stroke and its anti-aliasing.
+    let radius = 1.0 + 1.5 * s;
+    let rr = radius * radius;
+    let (w, h) = (g.w as f64, g.h as f64);
+    for (a, b) in segs.iter().filter(|(a, b)| near(a, b)).take(50_000) {
+        any = true;
+        if inside(a) && inside(b) {
+            continue;
+        }
+        let (pa, pb) = (to_px(a), to_px(b));
+        let len = ((pb.0 - pa.0).powi(2) + (pb.1 - pa.1).powi(2)).sqrt();
+        if !len.is_finite() {
+            continue;
+        }
+        let steps = ((len * 2.0).ceil() as usize).clamp(1, 200_000);
+        for k in 0..=steps {
+            let t = k as f64 / steps as f64;
+            let (cx, cy) = (pa.0 + (pb.0 - pa.0) * t, pa.1 + (pb.1 - pa.1) * t);
+            if cx < -radius || cy < -radius || cx > w + radius || cy > h + radius {
+                continue;
+            }
+            let (lo_x, hi_x) = (
+                (cx - radius).floor().max(0.0) as usize,
+                (cx + radius).ceil().min(w - 1.0).max(0.0) as usize,
+            );
+            let (lo_y, hi_y) = (
+                (cy - radius).floor().max(0.0) as usize,
+                (cy + radius).ceil().min(h - 1.0).max(0.0) as usize,
+            );
+            for y in lo_y..=hi_y {
+                for x in lo_x..=hi_x {
+                    let (dx, dy) = (x as f64 + 0.5 - cx, y as f64 + 0.5 - cy);
+                    if dx * dx + dy * dy <= rr
+                        && let Some(px) = g.px.get_mut(y * g.w + x)
+                    {
+                        *px = 255;
+                    }
+                }
+            }
+        }
+    }
+    any
 }
 
 /// Clear ink that touches the border of `g` (linework running out of the selection).
@@ -423,7 +502,12 @@ impl Session {
         let (x1, y1) = (x1.ceil().max(0.0) as usize, y1.ceil().max(0.0) as usize);
         let mut tmpl = src.gray.crop(x0, y0, x1, y1);
         if opts.limit_to_selection {
-            keep_inside(&mut tmpl);
+            // Vector pages drop the objects that leave the box; scans drop the ink that
+            // touches its edge.
+            let segs = self.page_linework(opts.page).map(|l| l.segments).unwrap_or_default();
+            if !drop_leaving_objects(&mut tmpl, &src, r, x0, y0, &segs) {
+                keep_inside(&mut tmpl);
+            }
         }
         if tmpl.w < 3 || tmpl.h < 3 {
             return Err(invalid("the region is too small to search for (or off the page)"));
@@ -486,8 +570,29 @@ impl Session {
             }
         }
         let mut markups = Vec::new();
+        let mut links = Vec::new();
         match opts.action {
             VisualAction::None => {}
+            VisualAction::Hyperlink => {
+                let target = opts
+                    .link
+                    .clone()
+                    .ok_or_else(|| invalid("action hyperlink needs a link target"))?;
+                let items: Vec<(usize, Rect)> = hits.iter().map(|h| (h.page, h.rect)).collect();
+                if !items.is_empty() {
+                    links = self.add_links(&items, &target, Default::default())?;
+                }
+            }
+            VisualAction::Bookmark => {
+                let items: Vec<(String, usize)> = hits
+                    .iter()
+                    .enumerate()
+                    .map(|(i, h)| (format!("{} {} (p. {})", opts.subject, i + 1, h.page + 1), h.page))
+                    .collect();
+                if !items.is_empty() {
+                    self.add_bookmarks(&items)?;
+                }
+            }
             VisualAction::Count => {
                 let mut list = Vec::new();
                 for &p in &pages {
@@ -523,7 +628,7 @@ impl Session {
                 markups = self.add_new_markups("Visual Search Highlight", list)?;
             }
         }
-        Ok(VisualReport { hits, markups })
+        Ok(VisualReport { hits, markups, links })
     }
 }
 

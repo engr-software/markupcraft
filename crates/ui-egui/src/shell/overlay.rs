@@ -85,6 +85,7 @@ pub fn paint(app: &mut AppState, ui: &mut egui::Ui, rect: Rect) {
     let pointer = ui.input(|i| i.pointer.hover_pos()).filter(|p| rect.contains(*p));
     let canvas = rulers_frame(app, ui, rect);
     super::workspace::paint_replies(app, ui, canvas);
+    super::extra2::presentation_paint(app, ui, canvas);
     super::workspace::scrollbars(app, ui);
     if app.shell.ui.crosshair
         && let Some(p) = pointer.filter(|p| canvas.contains(*p))

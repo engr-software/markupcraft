@@ -5,7 +5,8 @@
 //! - Shift+click a vertex of the selected markup: delete it; Shift+click a segment: add one;
 //! - Ctrl+click a vertex: the segment it starts becomes an arc, or an arc's handle goes back
 //!   to straight (Ctrl+drag a segment bends it, `more::ctrl_curve`);
-//! - resizing an image or stamp from a corner keeps its aspect ratio; Shift breaks it;
+//! - resizing an image, snapshot or stamp from a corner keeps its aspect ratio, and so do the
+//!   corner handles of a polyline's, polygon's or cloud's box; Shift breaks it;
 //! - Alt+drag a callout's handle: the callout moves as a whole.
 
 use markupcraft_geom::{Point, Rect, bbox};
@@ -73,7 +74,49 @@ pub fn vertex_click(doc: &mut DocTab, page: usize, at: Point, reach: f64, shift:
 
 /// Markups that keep their aspect ratio when resized from a corner (images and stamps).
 pub fn keeps_aspect(m: &Markup) -> bool {
-    m.kind == Kind::Stamp
+    matches!(m.kind, Kind::Stamp | Kind::Snapshot)
+}
+
+/// Markups reshaped by their vertices that also get a box with four corner handles (after the
+/// vertex handles) to scale the whole shape.
+pub fn has_corner_box(m: &Markup) -> bool {
+    matches!(m.kind, Kind::Polyline | Kind::Polygon | Kind::Cloud) && m.pts.len() <= 500
+}
+
+/// The handles before the corner box: the vertices and the cutouts' vertices.
+fn vertex_handles(m: &Markup) -> usize {
+    m.pts.len() + m.holes.iter().flatten().take(500).count()
+}
+
+/// The corner box's handles (the points' bounding box corners), empty for other markups.
+pub fn corner_handles(m: &Markup) -> Vec<Point> {
+    if !has_corner_box(m) {
+        return Vec::new();
+    }
+    bbox(&m.pts).map(|b| b.corners().to_vec()).unwrap_or_default()
+}
+
+/// Which corner (0..4) handle `index` of `m` is, when it is one of the corner box.
+pub fn corner_of(m: &Markup, index: usize) -> Option<usize> {
+    if !has_corner_box(m) {
+        return None;
+    }
+    index.checked_sub(vertex_handles(m)).filter(|k| *k < 4)
+}
+
+/// The box the shape scales to when its corner `k` is dragged to `to`: the opposite corner
+/// stays; the proportions are kept unless `free` (Shift).
+pub fn corner_box(m: &Markup, k: usize, to: Point, free: bool) -> Option<Rect> {
+    let old = bbox(&m.pts)?;
+    let fixed = *old.corners().get((k + 2) % 4)?;
+    let r = Rect::new(fixed.x, fixed.y, to.x, to.y).normalized();
+    if r.width() < 0.5 || r.height() < 0.5 {
+        return None;
+    }
+    if free || old.width() <= 1e-9 || old.height() <= 1e-9 {
+        return Some(r);
+    }
+    bbox(&keep_aspect(&old.corners(), &r.corners()))
 }
 
 /// `new` (a corner-resized copy of a markup whose points were `old`) adjusted so the box keeps

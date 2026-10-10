@@ -80,6 +80,10 @@ pub struct ViewOpts {
     pub dim: f32,
     /// Dark Mode: pages drawn light on dark.
     pub dark: bool,
+    /// A tilt wheel (horizontal wheel) pans sideways (else it is ignored).
+    pub tilt_pans: bool,
+    /// The colour around the pages (presentation), else the workspace colour.
+    pub background: Option<Color32>,
 }
 
 impl Default for ViewOpts {
@@ -93,6 +97,8 @@ impl Default for ViewOpts {
             lock_fit_width: false,
             dim: 0.0,
             dark: false,
+            tilt_pans: true,
+            background: None,
         }
     }
 }
@@ -698,7 +704,11 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
     let rect = ui.available_rect_before_wrap();
     let resp = ui.allocate_rect(rect, Sense::click_and_drag());
     let painter = ui.painter_at(rect);
-    painter.rect_filled(rect, CornerRadius::ZERO, t.workspace);
+    painter.rect_filled(
+        rect,
+        CornerRadius::ZERO,
+        doc.view.opts.background.unwrap_or(t.workspace),
+    );
     let Some(render) = doc.render.as_ref() else {
         painter.text(
             rect.center(),
@@ -757,6 +767,11 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
             view.opts.wheel_zooms_single
         };
         let zooms = (cx.wheel_zooms && mode_zooms) != ctrl;
+        let mut wheel = wheel;
+        if !view.opts.tilt_pans && !shift {
+            // Preferences > Navigation: the tilt wheel does nothing.
+            wheel.x = 0.0;
+        }
         if (pinch - 1.0).abs() > 1e-4 && pinch.is_finite() {
             view.zoom_by(pinch, pointer, pages, now);
         } else if wheel != Vec2::ZERO && wheel.is_finite() {

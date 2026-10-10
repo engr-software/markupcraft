@@ -528,6 +528,8 @@ pub struct Misspelling {
 #[derive(Debug, Clone, PartialEq)]
 pub struct SpellOptions {
     pub ignore_uppercase: bool,
+    /// English (United Kingdom): British spellings (colour, organise, centre...) are accepted.
+    pub british: bool,
     /// Words to accept.
     pub accept: Vec<String>,
     pub suggestions: usize,
@@ -537,10 +539,54 @@ impl Default for SpellOptions {
     fn default() -> Self {
         Self {
             ignore_uppercase: true,
+            british: false,
             accept: Vec::new(),
             suggestions: 5,
         }
     }
+}
+
+/// British spellings and their American forms (the dictionary is American English).
+const BRITISH: &[(&str, &str)] = &[
+    ("isation", "ization"),
+    ("ising", "izing"),
+    ("ised", "ized"),
+    ("ise", "ize"),
+    ("ysing", "yzing"),
+    ("ysed", "yzed"),
+    ("yse", "yze"),
+    ("our", "or"),
+    ("tre", "ter"),
+    ("ogue", "og"),
+    ("ence", "ense"),
+    ("lled", "led"),
+    ("lling", "ling"),
+    ("ller", "ler"),
+    ("mme", "m"),
+    ("ae", "e"),
+    ("oe", "e"),
+];
+
+/// Is `word` a British spelling of a word the dictionary knows?
+pub fn british_form(dict: &Dictionary, word: &str) -> bool {
+    if word.chars().count() > MAX_WORD {
+        return false;
+    }
+    for (gb, us) in BRITISH {
+        let mut start = 0;
+        while let Some(i) = word.get(start..).and_then(|s| s.find(gb)) {
+            let at = start + i;
+            let mut c = String::with_capacity(word.len());
+            c.push_str(word.get(..at).unwrap_or_default());
+            c.push_str(us);
+            c.push_str(word.get(at + gb.len()..).unwrap_or_default());
+            if dict.check(&c) {
+                return true;
+            }
+            start = at + gb.len();
+        }
+    }
+    false
 }
 
 /// The misspelled words of `text`.
@@ -549,7 +595,7 @@ pub fn check_text(dict: &Dictionary, text: &str, opts: &SpellOptions) -> Vec<Mis
     split_words(text)
         .into_iter()
         .filter(|w| should_check(&w.text, opts.ignore_uppercase) && !accept.contains(w.text.as_str()))
-        .filter(|w| !dict.check(&w.text))
+        .filter(|w| !dict.check(&w.text) && !(opts.british && british_form(dict, &w.text)))
         .map(|w| Misspelling {
             markup: String::new(),
             page: None,

@@ -42,6 +42,9 @@ pub struct CompareState {
     pub lock: bool,
     pub include_flattened: bool,
     pub split_review: bool,
+    /// Write the clouds to a separate `<name>_Diff.pdf` (opened as its own tab) instead of
+    /// the newer document.
+    pub result_file: bool,
     /// The older document (when open) the results were compared with.
     pub old_uid: Option<u64>,
     /// The document the results are on and the changes found.
@@ -71,6 +74,7 @@ impl Default for CompareState {
             opacity: 1.0,
             lock: false,
             include_flattened: false,
+            result_file: false,
             split_review: false,
             old_uid: None,
             doc: 0,
@@ -238,6 +242,10 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
             });
         });
         ui.checkbox(&mut c.split_review, "Review in split view with the dimmer");
+        ui.checkbox(
+            &mut c.result_file,
+            "Write the result to a separate _Diff file (both revisions stay unchanged)",
+        );
         if !c.message.is_empty() {
             ui.label(RichText::new(&c.message).small());
         }
@@ -318,6 +326,28 @@ pub fn run_compare(app: &mut AppState) {
     let Some(i) = app.docs.iter().position(|d| d.uid == new_uid) else {
         return;
     };
+    if app.features.compare.result_file {
+        let Some(d) = app.docs.get(i) else { return };
+        let Some(path) = d.path.clone() else {
+            app.features.compare.message = "Save the newer document first: the _Diff file goes beside it".into();
+            return;
+        };
+        let out = markupcraft_engine::compare_diff::diff_path(&path);
+        match d.session.compare_to_file(old, &opts, &out) {
+            Ok(rep) => {
+                app.features.compare.open = false;
+                app.features.compare.message.clear();
+                app.open_path(&out);
+                app.status = format!(
+                    "Compare: {} written to {}",
+                    actions::plural(rep.regions.len(), "change"),
+                    out.display()
+                );
+            }
+            Err(e) => app.features.compare.message = e.to_string(),
+        }
+        return;
+    }
     app.active = i;
     let Some(d) = app.docs.get_mut(i) else { return };
     match d.session.compare_with(old, &opts) {

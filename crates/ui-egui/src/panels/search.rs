@@ -218,13 +218,27 @@ fn results_ui(app: &mut AppState, ui: &mut egui::Ui) {
         });
         ui.horizontal_wrapped(|ui| {
             ui.add_enabled_ui(s.results().iter().any(|h| h.checked && h.markup.is_none()), |ui| {
-                if !s.visual
-                    && ui
-                        .small_button("Highlight")
-                        .on_hover_text("Highlight checked results")
-                        .clicked()
+                if ui
+                    .small_button("Highlight")
+                    .on_hover_text("Highlight checked results")
+                    .clicked()
                 {
                     bulk = Some(Bulk::Highlight);
+                }
+                for (b, label, tip) in [
+                    (Bulk::Underline, "Underline", "Underline checked results"),
+                    (Bulk::Squiggly, "Squiggly", "Squiggly-underline checked results"),
+                    (Bulk::Strikeout, "Strikethrough", "Strike through checked results"),
+                    (
+                        Bulk::Hyperlink,
+                        "Hyperlink",
+                        "Link checked results to the address or page below",
+                    ),
+                    (Bulk::Bookmark, "Bookmark", "A bookmark to each checked result"),
+                ] {
+                    if (!b.text_only() || !s.visual) && ui.small_button(label).on_hover_text(tip).clicked() {
+                        bulk = Some(b);
+                    }
                 }
                 if ui
                     .small_button("Count")
@@ -241,6 +255,14 @@ fn results_ui(app: &mut AppState, ui: &mut egui::Ui) {
                     bulk = Some(Bulk::Redact);
                 }
             });
+        });
+        ui.horizontal(|ui| {
+            ui.label(RichText::new("Link to").small());
+            ui.add(
+                egui::TextEdit::singleline(&mut s.link_to)
+                    .desired_width(180.0)
+                    .hint_text("https://... or a page number"),
+            );
         });
         let current = s.current;
         egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {

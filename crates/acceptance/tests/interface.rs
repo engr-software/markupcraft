@@ -752,7 +752,7 @@ fn shortcut_dialogs_show() {
         ("key-140 Security", ((true, false, false), Key::L, "Security")),
         ("key-145 Unflatten", ((true, true, false), Key::U, "flattened")),
         ("key-161 Preferences", ((true, false, false), Key::K, "Preferences")),
-        ("key-173 Help", ((false, false, false), Key::F1, "Keyboard Shortcuts")),
+        ("key-173 Help", ((false, false, false), Key::F1, "MarkupCraft Help")),
         ("key-118 Search", ((true, false, false), Key::F, "Search")),
         ("key-107 Web Tab", ((true, false, false), Key::T, "Web")),
         ("key-013 Camera", ((true, false, true), Key::I, "Camera")),
@@ -1270,9 +1270,22 @@ fn ui_menu_bar_and_application_menu() {
         assert!(h.query_all_by_label(m).next().is_some(), "menu {m}");
     }
     open_menu(&mut h, "MarkupCraft");
-    for item in ["About", "Preferences", "Profiles", "Keyboard Shortcuts", "Exit"] {
+    for item in [
+        "About",
+        "Preferences",
+        "Profiles",
+        "Manage Profiles",
+        "Keyboard Shortcuts",
+        "Administrator",
+        "Exit",
+    ] {
         assert!(has(&h, item), "application menu item {item}");
     }
+    // ui-099: Administrator opens the administrator settings (Preferences > Admin).
+    click_contains(&mut h, "Administrator");
+    h.run_steps(3);
+    assert!(st(&h).shell.show_prefs && st(&h).shell.prefs_page == "Admin");
+    assert!(has(&h, "Reset All Settings"), "the Admin page shows");
     let mut h = app();
     press(&mut h, mods(false, false, false), Key::F9);
     assert!(h.query_all_by_label("Batch").next().is_none(), "F9 hides the menu bar");
@@ -1315,6 +1328,48 @@ fn ui_toolbars_show_hide_customize_lock() {
             "Toolbars menu lists {t}: {items:?}"
         );
     }
+    // ui-075: named toolbars beside Main, Markup and Measure, each shown from this menu.
+    for t in [
+        "File",
+        "Edit",
+        "Navigation",
+        "Zoom",
+        "Shapes",
+        "Text",
+        "Text Markup",
+        "Sketch",
+        "Order",
+        "Alignment",
+        "Rotation",
+        "Document",
+    ] {
+        assert!(
+            h.query_all(
+                egui_kittest::kittest::by()
+                    .label(t)
+                    .role(egui::accesskit::Role::CheckBox)
+            )
+            .next()
+            .is_some(),
+            "Toolbars menu lists {t}: {items:?}"
+        );
+    }
+    assert!(!has(&h, "Shapes toolbar"), "named toolbars start hidden");
+    click_label(&mut h, "Shapes");
+    h.run_steps(3);
+    assert!(has(&h, "Shapes toolbar"), "ui-075 the Shapes toolbar shows");
+    // Its buttons pick the tools; its grip docks it on the left.
+    let shapes = markupcraft_ui_egui::shell::toolbars_more::items(st(&h), "Shapes");
+    assert!(shapes.contains(&"tool.rectangle".to_string()), "{shapes:?}");
+    markupcraft_ui_egui::shell::toolbars_more::set_dock(
+        &mut h.state_mut().state,
+        "Shapes",
+        markupcraft_ui_egui::shell::toolbars_more::Dock::Left,
+    );
+    h.run_steps(3);
+    assert!(has(&h, "Shapes toolbar"), "docked on the left");
+    let mut h = app();
+    submenu(&mut h, "Window", "Toolbars");
     assert!(has(&h, "Markup toolbar"), "ui-075 the Markup toolbar shows");
     click_contains(&mut h, "Markup Tools");
     h.run_steps(2);
@@ -1851,6 +1906,60 @@ fn ui_profiles() {
     click_label(&mut h, "Back Up Settings...");
     h.run_steps(4);
     assert!(out.exists(), "ui-104 the profile was exported");
+
+    // ui-100: MarkupCraft ships profiles, each with its own interface.
+    h.state_mut().state.shell.show_prefs = false;
+    h.run_steps(2);
+    let items = submenu(&mut h, "MarkupCraft", "Profiles");
+    for p in ["Takeoff", "Construction", "Design Review", "Simple"] {
+        assert!(items.iter().any(|i| i == p), "ui-100 {p} ships: {items:?}");
+    }
+    markupcraft_ui_egui::prefs_ui::profile(&mut h.state_mut().state, "switch", "Simple");
+    h.run_steps(3);
+    assert!(
+        !st(&h).shell.ui.toolbars.show_markup && !st(&h).shell.ui.toolbars.show_measure,
+        "ui-100 the Simple profile hides the tool strips"
+    );
+    assert!(!st(&h).shell.prefs.snapping.content, "and turns snapping off");
+    markupcraft_ui_egui::prefs_ui::profile(&mut h.state_mut().state, "switch", "Takeoff");
+    h.run_steps(3);
+    assert!(st(&h).shell.ui.rulers, "ui-100 Takeoff shows the rulers");
+
+    // ui-103: rename the active profile in Preferences > Admin.
+    prefs_on(&mut h, "Admin");
+    assert!(has(&h, "Rename Profile"), "Admin renames profiles");
+    h.state_mut().state.shell.extra2.rename_to = "Estimating".into();
+    markupcraft_ui_egui::prefs_ui::profile(&mut h.state_mut().state, "rename", "Takeoff");
+    h.run_steps(3);
+    assert_eq!(store.active(), "Estimating", "ui-103 renamed, still active");
+    assert!(
+        dir.join("ui").join("Estimating.json").exists(),
+        "its interface moved with it"
+    );
+
+    // ui-104: export the profile with its dependencies (the Tool Chest), import it elsewhere.
+    std::fs::write(dir.join("toolchest.json"), "{\"sets\": []}").unwrap();
+    let bundle = dir.join("estimating.mcprofile");
+    h.state_mut().state.dialogs.scripted = Some(vec![bundle.clone()]);
+    click_label(&mut h, "Include dependencies");
+    assert!(st(&h).shell.extra2.export_dependencies);
+    click_label(&mut h, "Export Profile...");
+    h.run_steps(4);
+    let text = std::fs::read_to_string(&bundle).expect("ui-104 profile file written");
+    assert!(
+        text.contains("toolchest.json") && text.contains("\"interface\""),
+        "{text}"
+    );
+    let other_dir = temp_dir("profiles-import");
+    let mut other = app_with_store(&other_dir);
+    other.state_mut().state.dialogs.scripted = Some(vec![bundle.clone()]);
+    prefs_on(&mut other, "Admin");
+    click_label(&mut other, "Import Profile...");
+    other.run_steps(4);
+    let ost = st(&other).shell.store.clone().unwrap();
+    assert_eq!(ost.active(), "Estimating", "ui-104 imported and switched to");
+    assert!(st(&other).shell.ui.rulers, "the interface came along");
+    assert!(other_dir.join("toolchest.json").exists(), "the dependencies came along");
 }
 
 /// ui-105: the Keyboard Shortcuts dialog lists every command with its keys; a new keystroke
@@ -2080,8 +2189,36 @@ fn ui_page_number_box() {
 fn ui_split_repeatedly() {
     let mut h = app();
     press(&mut h, mods(true, false, false), Key::Num2);
+    {
+        let at = h.query_all_by_label("Close this pane").next().unwrap().rect().center();
+        h.hover_at(at);
+        h.step();
+        button(&mut h, at, true, Modifiers::NONE);
+        button(&mut h, at, false, Modifiers::NONE);
+        h.run_steps(3);
+        assert!(st(&h).shell.split.is_none(), "closing the second pane unsplits");
+        press(&mut h, mods(true, false, false), Key::Num2);
+    }
     press(&mut h, mods(true, false, false), Key::H);
     assert!(st(&h).shell.split.is_some(), "split");
+    let panes = |h: &H| st(h).shell.split.as_ref().map_or(1, |s| s.panes());
+    assert_eq!(panes(&h), 3, "splitting again adds a pane");
+    for _ in 0..20 {
+        press(&mut h, mods(true, false, false), Key::Num2);
+    }
+    assert_eq!(panes(&h), 16, "up to 16 panes");
+    // Every pane draws its own header (a document picker and a close button).
+    assert_eq!(h.query_all_by_label("Close this pane").count(), 15);
+    // Closing one pane leaves the others; Unsplit goes back to one.
+    let at = h.query_all_by_label("Close this pane").nth(3).unwrap().rect().center();
+    h.hover_at(at);
+    h.step();
+    button(&mut h, at, true, Modifiers::NONE);
+    button(&mut h, at, false, Modifiers::NONE);
+    h.run_steps(3);
+    assert_eq!(panes(&h), 15);
+    press(&mut h, mods(true, true, false), Key::Num2);
+    assert!(st(&h).shell.split.is_none(), "Unsplit");
 }
 
 /// ui-118: synchronized views: in Document mode the other pane follows the page.
@@ -2408,6 +2545,31 @@ fn ui_startup_options() {
         !st(&h).shell.ui.toolbars.show_markup,
         "view mode hides the markup tools"
     );
+    // ui-142: a home Web Tab on start; hidden messages come back with Reset Hidden Messages.
+    let mut h = app();
+    prefs_on(&mut h, "General");
+    assert!(has(&h, "Open a Web Tab of the favourites on start"));
+    h.state_mut().state.shell.show_prefs = false;
+    {
+        let s = &mut h.state_mut().state;
+        s.shell.ui.extra2.home_web_tab = true;
+        markupcraft_ui_egui::shell::extra2::startup(s);
+    }
+    h.run_steps(4);
+    assert!(
+        st(&h).docs.len() == 2 || shows(&h, "Web"),
+        "the Web Tab opened on start: {}",
+        st(&h).status
+    );
+    let mut h = app();
+    markupcraft_ui_egui::shell::extra2::hide(&mut h.state_mut().state, "sign-warning");
+    prefs_on(&mut h, "General");
+    assert!(shows(&h, "1 hidden"));
+    click_label(&mut h, "Reset Hidden Messages");
+    assert!(
+        st(&h).shell.ui.extra2.hidden_messages.is_empty(),
+        "ui-142 hidden messages reset"
+    );
 }
 
 /// ui-143: save mode: Keep revisions appends to the file; Publish rewrites it.
@@ -2479,9 +2641,41 @@ fn ui_document_misc_options() {
         "Reopen each file at its last page",
         "Offer a read-only copy",
         "Rotate Pages acts on every page",
+        "Links to a slip-sheeted page go to the new sheet",
     ] {
         assert!(has(&h, o), "{o}");
     }
+    // ui-145: without redirection, links to a slip-sheeted page are removed with the old sheet.
+    let dir = temp_dir("slip-links");
+    let mut s = markupcraft_engine::Session::from_bytes(
+        synthetic::pdf(&[
+            synthetic::SyntheticPage::new(612.0, 792.0, String::new()),
+            synthetic::SyntheticPage::new(612.0, 792.0, String::new()),
+        ]),
+        dir.join("set.pdf"),
+    )
+    .unwrap();
+    s.add_link(
+        0,
+        markupcraft_geom::Rect::new(10.0, 10.0, 60.0, 30.0),
+        &markupcraft_engine::links::LinkTarget::Page(1),
+        Default::default(),
+    )
+    .unwrap();
+    let rep = markupcraft_engine::batch::SlipSheetReport {
+        matched: vec![markupcraft_engine::batch::SlipPair {
+            old_page: 1,
+            new_page: 0,
+            label: "A-102".into(),
+            markups: 0,
+        }],
+        ..Default::default()
+    };
+    assert_eq!(
+        markupcraft_ui_egui::shell::extra2::drop_slip_links(&mut s, &rep).unwrap(),
+        1
+    );
+    assert!(s.links().is_empty(), "the link went with the superseded sheet");
 }
 
 fn wheel(h: &mut H, at: egui::Pos2, dy: f32, m: Modifiers) {
@@ -2540,6 +2734,33 @@ fn ui_wheel_zoom_or_scroll() {
     assert!(view(&h).zoom < z, "reversed: wheel up zooms out");
     prefs_on(&mut h, "Navigation");
     assert!(has(&h, "Reverse zoom direction"));
+    assert!(has(&h, "Tilt wheel pans sideways"), "ui-147 the tilt wheel option");
+    // ui-147: the tilt wheel pans sideways, unless turned off.
+    h.state_mut().state.shell.show_prefs = false;
+    h.state_mut().state.shell.ui.wheel_zooms_single = false;
+    h.run_steps(2);
+    for _ in 0..4 {
+        press(&mut h, mods(false, false, false), Key::Plus);
+    }
+    let tilt = |h: &mut H| {
+        h.hover_at(at);
+        h.step();
+        h.event(egui::Event::MouseWheel {
+            unit: egui::MouseWheelUnit::Line,
+            delta: egui::vec2(-1.0, 0.0),
+            phase: egui::TouchPhase::Move,
+            modifiers: Modifiers::NONE,
+        });
+        h.run_steps(3);
+    };
+    let x = view(&h).offset.x;
+    tilt(&mut h);
+    assert!((view(&h).offset.x - x).abs() > 1.0, "tilt pans sideways");
+    h.state_mut().state.shell.ui.extra2.tilt_pans = false;
+    h.run_steps(2);
+    let x = view(&h).offset.x;
+    tilt(&mut h);
+    assert!((view(&h).offset.x - x).abs() < 0.01, "tilt off: nothing moves");
 }
 
 /// ui-148 / ui-149: scrollbars, vertical on the left, lock panning in Fit Width; default sync;
@@ -2610,9 +2831,28 @@ fn ui_spelling_preferences() {
         "Ignore words in capitals",
         "Add to Dictionary",
         "Auto-complete from this list",
+        "English (United States)",
     ] {
         assert!(has(&h, o), "{o}");
     }
+    // ui-151: the dictionary is a choice; English (United Kingdom) accepts British spellings.
+    let dict = markupcraft_engine::spell::dictionary("en_US").unwrap();
+    let text = "The colour of the organised centre";
+    let us = markupcraft_engine::spell::SpellOptions::default();
+    let gb = markupcraft_engine::spell::SpellOptions {
+        british: true,
+        ..Default::default()
+    };
+    assert_eq!(markupcraft_engine::spell::check_text(&dict, text, &us).len(), 3);
+    assert!(markupcraft_engine::spell::check_text(&dict, text, &gb).is_empty());
+    assert_eq!(
+        markupcraft_engine::spell::check_text(&dict, "The colour is wrnog", &gb).len(),
+        1,
+        "real misspellings are still caught"
+    );
+    h.state_mut().state.shell.ui.extra.spell.british = true;
+    h.run_steps(2);
+    assert!(has(&h, "English (United Kingdom)"));
 }
 
 /// ui-152..ui-169: the remaining pages and their options.
@@ -2634,7 +2874,17 @@ fn ui_preference_pages() {
         ),
         (
             "ui-153",
-            ("Markups List", &["Selecting a markup in the list goes to it"]),
+            (
+                "Markups List",
+                &[
+                    "Selecting a markup in the list goes to it",
+                    "dominant (first) markup only",
+                    "Show comments as rich text",
+                    "Wrap long comments",
+                    "Leave filtered-out markups out of exports",
+                    "Dim filtered-out markups on the page",
+                ],
+            ),
         ),
         (
             "ui-154",
@@ -2644,7 +2894,20 @@ fn ui_preference_pages() {
             ),
         ),
         ("ui-155", ("Tools", &["Reuse markup tools"])),
-        ("ui-156", ("Measure", &["Islands inside a region become cutouts"])),
+        (
+            "ui-156",
+            (
+                "Measure",
+                &[
+                    "Islands inside a region become cutouts",
+                    "Split counts by space",
+                    "Detect on the page image",
+                    "Edge sensitivity",
+                    "Hide markups while filling",
+                    "Fill cursor",
+                ],
+            ),
+        ),
         (
             "ui-157",
             (
@@ -2665,12 +2928,29 @@ fn ui_preference_pages() {
             ),
         ),
         ("ui-160", ("Tablet", &["The eraser's size follows the zoom"])),
-        ("ui-161", ("Window", &["Loop back to the first page after the last"])),
+        (
+            "ui-161",
+            (
+                "Window",
+                &[
+                    "Loop back to the first page after the last",
+                    "Transition",
+                    "Fade",
+                    "Background",
+                    "Hide the mouse pointer",
+                ],
+            ),
+        ),
         (
             "ui-162",
             (
                 "WebTab",
-                &["Switch to a new Web Tab", "Open in the browser", "Capture as PDF"],
+                &[
+                    "Switch to a new Web Tab",
+                    "Open in the browser",
+                    "Capture as PDF",
+                    "Open captured pages in a split view",
+                ],
             ),
         ),
         (
@@ -2690,7 +2970,17 @@ fn ui_preference_pages() {
             ),
         ),
         ("ui-172", ("Integrations", &["Add Service"])),
-        ("ui-159", ("Signature", &[])),
+        (
+            "ui-159",
+            (
+                "Signature",
+                &[
+                    "Digital ID folder",
+                    "Remember the digital ID password for",
+                    "Block changes that would invalidate signatures",
+                ],
+            ),
+        ),
         ("ui-165", ("Import/Export", &[])),
     ];
     run_cases(cases, |&(page, opts)| {
@@ -2726,6 +3016,24 @@ fn ui_presentation_loop() {
     assert_eq!(view(&h).current, 1);
     press(&mut h, mods(false, false, false), Key::ArrowRight);
     assert_eq!(view(&h).current, 0, "loops back to the first page");
+    // ui-161: the background colour around the page, a transition, the hidden pointer.
+    h.state_mut().state.shell.ui.extra2.presentation_background = [10, 20, 30];
+    h.state_mut().state.shell.ui.extra2.transition = "fade".into();
+    h.run_steps(2);
+    assert_eq!(
+        view(&h).opts.background,
+        Some(egui::Color32::from_rgb(10, 20, 30)),
+        "the page sits on the presentation background"
+    );
+    press(&mut h, mods(false, false, false), Key::ArrowRight);
+    let shown = st(&h).shell.extra2.shown_page;
+    assert!(
+        shown.is_some_and(|(_, p, _)| p == 1),
+        "the transition tracks the page: {shown:?}"
+    );
+    press(&mut h, mods(false, false, false), Key::Escape);
+    h.run_steps(2);
+    assert_eq!(view(&h).opts.background, None, "the workspace colour again");
 }
 
 /// ui-170: back up all settings, change them, restore.
@@ -3155,6 +3463,46 @@ fn ui_shift_breaks_aspect_ratio() {
             assert!((r - ratio).abs() < 0.02, "aspect kept {ratio} -> {r}");
         }
     }
+    // Polylines, polygons and clouds: the corner of the selection box scales the whole shape in
+    // proportion; Shift stretches it.
+    for kind in [Kind::Polygon, Kind::Polyline, Kind::Cloud] {
+        for shift in [false, true] {
+            let mut h = app();
+            snaps_off(&mut h);
+            press(&mut h, mods(false, false, false), Key::V);
+            let diamond = vec![
+                Point::new(300.0, 450.0),
+                Point::new(360.0, 500.0),
+                Point::new(300.0, 550.0),
+                Point::new(240.0, 500.0),
+            ];
+            let id = {
+                let d = h.state_mut().state.doc_mut().unwrap();
+                let m = markupcraft_model::Markup::new(kind, 0, diamond.clone());
+                let id = d.session.add_new_markups("Add", vec![m]).unwrap().remove(0);
+                d.session.select(std::slice::from_ref(&id)).unwrap();
+                id
+            };
+            h.run_steps(3);
+            let (x0, y0, x1, y1) = bbox(&diamond);
+            let ratio = (x1 - x0) / (y1 - y0);
+            drag_mods(&mut h, (x1, y1), (x1 + 60.0, y1 + 10.0), mods(false, shift, false));
+            let after = markups(&h).into_iter().find(|x| x.id == id).unwrap();
+            assert_eq!(after.pts.len(), 4, "{kind:?}: still four vertices");
+            let (a, b, c, d) = bbox(&after.pts);
+            let r = (c - a) / (d - b);
+            assert!((c - a) > (x1 - x0) + 1.0, "{kind:?} resized: {:?}", after.pts);
+            assert!(
+                (a - x0).abs() < 0.5 && (b - y0).abs() < 0.5,
+                "the opposite corner stays"
+            );
+            if shift {
+                assert!((r - ratio).abs() > 0.05, "{kind:?} Shift: aspect free {ratio} -> {r}");
+            } else {
+                assert!((r - ratio).abs() < 0.02, "{kind:?} aspect kept {ratio} -> {r}");
+            }
+        }
+    }
 }
 
 /// ui-191: Alt-drag a callout's box moves the whole callout, arrow tip included.
@@ -3295,4 +3643,124 @@ fn ui_scripting() {
     call(&mut a, "doc_open", json!({ "path": "plan.pdf" }));
     let t = call(&mut a, "page_text", json!({ "page": 1 }));
     assert!(t.to_string().contains("SCRIPTED"), "the script ran");
+}
+
+/// ui-153, ui-156, ui-159, ui-162: what the new Preferences options do.
+#[test]
+fn ui_preference_options_take_effect() {
+    let _serial = serial();
+    // ui-153: filtered-out markups dim on the page and (by choice) stay in exports.
+    let mut h = app();
+    {
+        let s = &mut h.state_mut().state;
+        let d = s.doc_mut().unwrap();
+        let sq = vec![
+            Point::new(100.0, 100.0),
+            Point::new(150.0, 100.0),
+            Point::new(150.0, 150.0),
+            Point::new(100.0, 150.0),
+        ];
+        let mut a = markupcraft_model::Markup::new(Kind::Rectangle, 0, sq);
+        a.subject = "Keep".into();
+        let mut b = a.clone();
+        b.subject = "Hide".into();
+        d.session.add_new_markups("Add", vec![a, b]).unwrap();
+        s.list
+            .view
+            .filters
+            .insert("subject".into(), ["Keep".to_string()].into());
+        s.shell.prefs.more.markups_list.dim_filtered_pct = 60;
+    }
+    h.run_steps(3);
+    let out = markupcraft_ui_egui::panels::markups_list::filtered_out(st(&h).doc().unwrap(), &st(&h).list.view);
+    let total = markups(&h).len();
+    let kept = markups(&h).iter().filter(|m| m.subject == "Keep").count();
+    assert_eq!(out.len(), total - kept, "the filtered-out markups dim on their page");
+    assert!(!out.is_empty());
+    let dir = temp_dir("list-export");
+    let csv = dir.join("list.csv");
+    let lines = |h: &mut H, exclude: bool| {
+        h.state_mut()
+            .state
+            .shell
+            .prefs
+            .more
+            .markups_list
+            .exclude_filtered_from_export = exclude;
+        markupcraft_ui_egui::panels::markups_list::export(
+            &mut h.state_mut().state,
+            &markupcraft_ui_egui::dialogs::Purpose::ExportCsv,
+            &csv,
+        );
+        std::fs::read_to_string(&csv).unwrap()
+    };
+    let only = lines(&mut h, true);
+    let all = lines(&mut h, false);
+    assert!(
+        !only.contains("Hide") && all.contains("Hide"),
+        "exports follow the preference"
+    );
+
+    // ui-156: the Dynamic Fill options reach the fill tool.
+    {
+        let s = &mut h.state_mut().state;
+        s.shell.prefs.more.measure.fill_raster = true;
+        s.shell.prefs.more.measure.fill_dpi = 200.0;
+        s.shell.prefs.more.measure.fill_cursor_px = 30.0;
+        markupcraft_ui_egui::prefs_ui::apply_live(s);
+    }
+    let fm = &st(&h).features.fill.more;
+    assert!(fm.raster && fm.dpi == 200.0 && fm.cursor_size == 30.0);
+
+    // ui-159: the digital ID password is forgotten at once unless the preference keeps it.
+    h.state_mut().state.features.signatures.password = "secret".into();
+    h.run_steps(2);
+    assert!(st(&h).features.signatures.password.is_empty(), "forgotten");
+    h.state_mut().state.shell.prefs.more.signature.password_minutes = 5;
+    h.state_mut().state.features.signatures.password = "secret".into();
+    h.run_steps(2);
+    assert_eq!(st(&h).features.signatures.password, "secret", "kept for 5 minutes");
+
+    // ui-159: changes that would invalidate signatures are blocked when asked.
+    let dir = temp_dir("sig-block");
+    std::fs::write(dir.join("p.pdf"), markupcraft_render::synthetic::sample_pdf()).unwrap();
+    let mut a = automation(&dir);
+    call(
+        &mut a,
+        "digital_id_create",
+        json!({ "name": "Test Signer", "out": "id.p12", "password": "test-only" }),
+    );
+    call(&mut a, "doc_open", json!({ "path": "p.pdf" }));
+    call(
+        &mut a,
+        "signature_sign",
+        json!({ "id": "id.p12", "password": "test-only", "page": 1, "rect": [50, 50, 200, 100], "out": "signed.pdf" }),
+    );
+    let mut h = app();
+    {
+        let s = &mut h.state_mut().state;
+        let bytes = std::fs::read(dir.join("signed.pdf")).unwrap();
+        s.open_bytes("signed.pdf", Some(dir.join("signed.pdf")), bytes).unwrap();
+        s.shell.prefs.more.signature.block_breaking_changes = true;
+    }
+    h.run_steps(3);
+    let rot = st(&h).doc().unwrap().session.doc().pages[0].rotate;
+    press(&mut h, mods(false, true, true), Key::Plus);
+    assert_eq!(
+        st(&h).doc().unwrap().session.doc().pages[0].rotate,
+        rot,
+        "the page edit was refused"
+    );
+    assert!(st(&h).status.contains("blocked"), "{}", st(&h).status);
+    assert!(st(&h).shell.extra.sign_warning.is_none(), "no question asked");
+
+    // ui-162: a captured page opens in a split view beside the document.
+    let mut h = app();
+    h.state_mut().state.shell.prefs.more.webtab.captures_in_split = true;
+    markupcraft_ui_egui::features::more6::web::open_capture(&mut h.state_mut().state, &dir.join("p.pdf"));
+    h.run_steps(3);
+    let s = st(&h);
+    assert_eq!(s.docs.len(), 2);
+    let pane = s.shell.split.as_ref().expect("a split view").pane.uid;
+    assert_ne!(pane, s.doc().unwrap().uid, "the capture shows beside the document");
 }

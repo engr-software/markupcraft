@@ -17,7 +17,7 @@ pub static CHECK: Tool = Tool {
             json!({
                 "ids": ids_arg(),
                 "text": { "type": "string", "description": "Check this text instead of markups." },
-                "language": { "type": "string", "description": "Dictionary name (default en_US)." },
+                "language": { "type": "string", "description": "Dictionary name: en_US (default) or en_GB (British spellings accepted)." },
                 "ignore_uppercase": { "type": "boolean", "description": "Skip ALL-CAPS words (default true)." },
                 "accept": { "type": "array", "items": { "type": "string" }, "description": "Words to accept (a user dictionary)." },
                 "suggestions": { "type": "integer", "minimum": 0, "maximum": 20, "description": "Suggestions per word (default 5)." }
@@ -27,8 +27,12 @@ pub static CHECK: Tool = Tool {
     },
     run: |a, args| {
         let lang = args.opt_str("language")?.unwrap_or("en_US");
+        // British English: the American dictionary accepting British spellings.
+        let british = matches!(lang, "en_GB" | "en-GB");
+        let lang = if british { "en_US" } else { lang };
         let opts = SpellOptions {
             ignore_uppercase: args.bool_or("ignore_uppercase", true)?,
+            british,
             accept: args.opt_strings("accept")?.unwrap_or_default(),
             suggestions: args.opt_u64("suggestions")?.unwrap_or(5).min(20) as usize,
         };

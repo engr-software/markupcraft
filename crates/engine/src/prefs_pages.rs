@@ -14,11 +14,28 @@ use crate::{Result, invalid};
 pub struct MarkupsListPrefs {
     /// Selecting a markup in the list scrolls the page to it (else it is only selected).
     pub zoom_to_selected: bool,
+    /// A group's measurement shows on its first (dominant) markup only.
+    pub dominant_only: bool,
+    /// Comments show their rich text (bold, italic, colour) in the list.
+    pub rich_comments: bool,
+    /// Long comments wrap onto more lines (else they are cut at the column's edge).
+    pub wrap_comments: bool,
+    /// Exports leave out the markups the list's filters hide.
+    pub exclude_filtered_from_export: bool,
+    /// Markups the list's filters hide are dimmed on the page by this much, percent (0 = off).
+    pub dim_filtered_pct: u8,
 }
 
 impl Default for MarkupsListPrefs {
     fn default() -> Self {
-        Self { zoom_to_selected: true }
+        Self {
+            zoom_to_selected: true,
+            dominant_only: false,
+            rich_comments: false,
+            wrap_comments: false,
+            exclude_filtered_from_export: true,
+            dim_filtered_pct: 0,
+        }
     }
 }
 
@@ -41,6 +58,19 @@ pub struct MeasurePrefs {
     pub fill_gap_pt: f64,
     /// Dynamic Fill: islands inside a filled region become cutouts.
     pub fill_cutouts: bool,
+    /// A Count placed across several spaces becomes one Count per space.
+    pub split_counts_by_space: bool,
+    /// Dynamic Fill detects on the rendered page image (scans) instead of the linework.
+    pub fill_raster: bool,
+    /// Dynamic Fill on the page image: resolution, dots per inch (36 to 300).
+    pub fill_dpi: f64,
+    /// Dynamic Fill on the page image: grey level below which a pixel is a wall (1 to 254).
+    pub fill_sensitivity: u8,
+    /// Dynamic Fill on the page image: markups are left out of the image.
+    pub fill_hide_markups: bool,
+    /// The fill cursor's ring: diameter on screen (8 to 64) and colour (`#RRGGBB`).
+    pub fill_cursor_px: f32,
+    pub fill_cursor_color: String,
 }
 
 impl Default for MeasurePrefs {
@@ -48,6 +78,13 @@ impl Default for MeasurePrefs {
         Self {
             fill_gap_pt: 2.0,
             fill_cutouts: true,
+            split_counts_by_space: false,
+            fill_raster: false,
+            fill_dpi: 100.0,
+            fill_sensitivity: 160,
+            fill_hide_markups: true,
+            fill_cursor_px: 18.0,
+            fill_cursor_color: "#0096DC".into(),
         }
     }
 }
@@ -85,6 +122,11 @@ pub struct SignaturePrefs {
     pub digital_id_folder: String,
     /// Certificates (.pem, .cer, .crt, .der) in this folder are trusted when validating.
     pub trusted_folder: String,
+    /// Minutes a digital ID's password is remembered after signing (0 = forget at once).
+    pub password_minutes: u32,
+    /// Page edits that would invalidate a signed document's signatures are refused (instead
+    /// of asked about).
+    pub block_breaking_changes: bool,
 }
 
 /// Window > Tablet.
@@ -129,6 +171,8 @@ pub struct WebTabPrefs {
     /// Seconds a capture may take.
     pub capture_timeout_secs: u32,
     pub favorites: Vec<Favorite>,
+    /// A captured web page opens in a split view beside the document (else as a tab).
+    pub captures_in_split: bool,
 }
 
 impl Default for WebTabPrefs {
@@ -139,6 +183,7 @@ impl Default for WebTabPrefs {
             browser_path: String::new(),
             capture_timeout_secs: 60,
             favorites: Vec::new(),
+            captures_in_split: false,
         }
     }
 }
@@ -236,6 +281,22 @@ impl MorePrefs {
         let me = &self.measure;
         if !(me.fill_gap_pt.is_finite() && (0.0..=72.0).contains(&me.fill_gap_pt)) {
             return Err(invalid("more.measure.fill_gap_pt: 0 to 72"));
+        }
+        if !(me.fill_dpi.is_finite() && (36.0..=300.0).contains(&me.fill_dpi))
+            || me.fill_sensitivity == 0
+            || me.fill_sensitivity == 255
+            || !(me.fill_cursor_px.is_finite() && (8.0..=64.0).contains(&me.fill_cursor_px))
+            || !hex_ok(&me.fill_cursor_color)
+        {
+            return Err(invalid(
+                "more.measure: fill dpi 36 to 300, sensitivity 1 to 254, cursor 8 to 64 px, colour #RRGGBB",
+            ));
+        }
+        if self.markups_list.dim_filtered_pct > 95 {
+            return Err(invalid("more.markups_list.dim_filtered_pct: 0 to 95"));
+        }
+        if self.signature.password_minutes > 24 * 60 {
+            return Err(invalid("more.signature.password_minutes: 0 to 1440"));
         }
         if !hex_ok(&self.forms.highlight_color) {
             return Err(invalid("more.forms.highlight_color is #RRGGBB"));

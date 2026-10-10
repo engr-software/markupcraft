@@ -69,9 +69,11 @@ pub fn handles(m: &Markup) -> Vec<Point> {
             Vec::new()
         }
         _ if m.pts.len() <= 500 => {
-            // the cutouts' vertices follow the outline's (engine vertex numbering)
+            // the cutouts' vertices follow the outline's (engine vertex numbering), then the
+            // corner box of a polyline, polygon or cloud
             let mut h = m.pts.clone();
             h.extend(m.holes.iter().flatten().take(500));
+            h.extend(crate::modkeys::corner_handles(m));
             h
         }
         _ => m.pts.iter().take(500).copied().collect(),

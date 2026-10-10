@@ -1,5 +1,6 @@
 //! Visual Search.
 
+use markupcraft_engine::links::LinkTarget;
 use markupcraft_engine::visual::{VisualAction, VisualSearchOptions};
 use serde_json::{Value, json};
 
@@ -9,7 +10,7 @@ use crate::{bad_args, summary};
 pub static SEARCH: Tool = Tool {
     name: "visual_search",
     title: "Visual Search",
-    description: "Box a symbol (rect on page) and find every graphically similar instance on the searched pages (default all): normalized cross-correlation of the rendered region, also turned 90/180/270 degrees unless rotations is false. Returns hit rectangles with scores. action \"count\" adds one Count measurement per page with a point on each hit; \"highlight\" adds a translucent rectangle on each (one undoable step).",
+    description: "Box a symbol (rect on page) and find every graphically similar instance on the searched pages (default all): normalized cross-correlation of the rendered region, also turned 90/180/270 degrees unless rotations is false. Returns hit rectangles with scores. action \"count\" adds one Count measurement per page with a point on each hit; \"highlight\" adds a translucent rectangle on each; \"hyperlink\" a link over each (to `url` or `to_page`); \"bookmark\" a bookmark to each (one undoable step). limit_to_selection drops the vector objects that run out of the box (on scans: the ink touching its edge).",
     read_only: false,
     destructive: false,
     schema: || {
@@ -26,7 +27,9 @@ pub static SEARCH: Tool = Tool {
                 "thumbnails": { "type": "integer", "minimum": 16, "maximum": 512, "description": "Also return each hit as a PNG thumbnail (base64) at most this many pixels across." },
                 "dpi": { "type": "number", "description": "Rendering resolution (default 100)." },
                 "max_hits": { "type": "integer", "minimum": 1, "description": "At most this many hits (default 1000)." },
-                "action": { "type": "string", "enum": ["none", "count", "highlight"], "description": "What to do with the hits (default none)." },
+                "action": { "type": "string", "enum": ["none", "count", "highlight", "hyperlink", "bookmark"], "description": "What to do with the hits (default none)." },
+                "url": { "type": "string", "description": "hyperlink: the web address the links open." },
+                "to_page": { "type": "integer", "minimum": 1, "description": "hyperlink: the page the links go to." },
                 "color": { "type": ["string", "array"], "description": "Colour of the markups." },
                 "subject": { "type": "string", "description": "Subject of the markups (default Visual Search)." }
             }),
@@ -54,7 +57,13 @@ pub static SEARCH: Tool = Tool {
             o.max_hits = v as usize;
         }
         if let Some(s) = args.opt_str("action")? {
-            o.action = VisualAction::from_name(s).ok_or_else(|| bad_args("action must be none, count or highlight"))?;
+            o.action = VisualAction::from_name(s)
+                .ok_or_else(|| bad_args("action must be none, count, highlight, hyperlink or bookmark"))?;
+        }
+        if let Some(u) = args.opt_string("url")? {
+            o.link = Some(LinkTarget::Url(u));
+        } else if let Some(p) = args.opt_u64("to_page")? {
+            o.link = Some(LinkTarget::Page((p as usize).saturating_sub(1)));
         }
         if let Some(c) = args.opt_color("color")? {
             o.color = c;
@@ -78,6 +87,8 @@ pub static SEARCH: Tool = Tool {
             }
             hits.push(v);
         }
-        Ok(json!({ "count": hits.len(), "hits": hits, "markups": r.markups, "document": summary(doc, s) }))
+        Ok(
+            json!({ "count": hits.len(), "hits": hits, "markups": r.markups, "links": r.links, "document": summary(doc, s) }),
+        )
     },
 };

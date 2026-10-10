@@ -63,6 +63,7 @@ pub fn misspelled(text: &str) -> Vec<(usize, usize, String)> {
     let opts = SpellOptions {
         suggestions: 0,
         ignore_uppercase: p.ignore_caps,
+        british: p.british,
         accept: p.words,
     };
     check_text(&d, text, &opts)

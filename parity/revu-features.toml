@@ -8208,8 +8208,8 @@ status = "have"
 cpp = "missing"
 evidence = ["compare_documents_clouds_changes_on_the_newer_revision"]
 accepted = ["compare_clouds_every_change_and_nothing_else"]
-acceptance = "gap"
-notes = "Clouds (orange by default) on the open newer document as one undo step; save-as keeps the original untouched. Acceptance gap: the clouds go on the open revised document (one undo step) rather than on a separate _Diff result copy; the files on disk only change if it is saved (Save As keeps the originals). Batch Compare does write result copies."
+acceptance = "fixed"
+notes = "Clouds (orange by default) as one undo step on the open newer document, or (dialog option / compare_documents result_file) on a separate copy saved as <name>_Diff.pdf beside the newer revision and opened as its own tab; both revisions stay untouched. Batch Compare writes result copies too."
 
 [[feature]]
 id = "ui-007"
@@ -8883,8 +8883,8 @@ status = "have"
 cpp = "missing"
 evidence = ["search_panel_finds_text_then_counts_and_highlights_the_results"]
 accepted = ["search_check_results_and_bulk_actions"]
-acceptance = "gap"
-notes = "Check boxes per result, Check all; Highlight, Count or Redact the checked results. Acceptance gap: checked results can be highlighted, counted or marked for redaction; Revu's underline, squiggly, strikethrough and hyperlink check options are not offered."
+acceptance = "fixed"
+notes = "Check boxes per result, Check all; Highlight, Underline, Squiggly, Strikethrough, Hyperlink (to a web address or page typed in Link to), Bookmark, Count or Redact the checked results, each one undo step."
 
 [[feature]]
 id = "ui-052"
@@ -9002,8 +9002,8 @@ status = "have"
 cpp = "missing"
 evidence = ["eighth_turns_colour_filter_and_limit_to_selection", "visual_search_options_and_result_thumbnails"]
 accepted = ["visual_search_color_filter_and_limit_to_selection"]
-acceptance = "gap"
-notes = "Linework that runs out of the selection box is dropped from the symbol (on the rendered page; vector objects are not split). Acceptance gap: the limit works on pixels (ink connected to the box edge is dropped), so a line that touches the symbol removes the symbol from the template too; Revu drops only the vector objects that leave the box."
+acceptance = "fixed"
+notes = "Limit to selection drops the vector objects that run out of the selection box (each page segment with an end outside the box is wiped along its course inside it, with its stroke); objects wholly inside stay even where a leaving line touches them. On scans (no linework) the ink touching the box edge is dropped."
 
 [[feature]]
 id = "ui-060"
@@ -9032,8 +9032,8 @@ status = "have"
 cpp = "missing"
 evidence = ["visual_search_finds_symbols_and_counts_them"]
 accepted = ["visual_search_thumbnails_and_count"]
-acceptance = "gap"
-notes = "action count (one Count per page) or highlight (a rectangle per hit), one undo step; no hyperlink or bookmark actions. Acceptance gap: the panel offers Count and Redact on checked visual hits (Highlight only through the visual_search tool); no hyperlink or bookmark actions."
+acceptance = "fixed"
+notes = "Checked visual hits: Count (one Count per page), Highlight (a translucent box per hit), Hyperlink, Bookmark or Redact from the Search panel, one undo step each; visual_search action count, highlight, hyperlink (url / to_page) or bookmark."
 
 [[feature]]
 id = "ui-062"
@@ -9107,8 +9107,8 @@ status = "have"
 cpp = "missing"
 evidence = ["spaces_add_column_tally_export_import"]
 accepted = ["spaces_tag_markups_and_split_counts"]
-acceptance = "gap"
-notes = "space_tally splits counts by space. Acceptance gap: there is no preference and nothing is split: a Count's points are tallied per space (space_tally, Spaces panel), but a Count across several spaces stays one markup instead of becoming one per space."
+acceptance = "fixed"
+notes = "Preferences > Tools > Measure > Split counts by space: a Count placed (or edited) across several spaces becomes one Count per space, keeping subject and look (space_split_counts does it headlessly); space_tally and the Spaces panel tally per space."
 
 [[feature]]
 id = "ui-067"
@@ -9152,8 +9152,8 @@ status = "have"
 cpp = "missing"
 evidence = ["hyperlink_tool_adds_a_page_link_listed_in_the_links_panel"]
 accepted = ["links_places_and_hyperlinks"]
-acceptance = "gap"
-notes = "Links panel (Alt+N): every link with its target; go to, follow, delete, highlight. Acceptance gap: the hyperlinks list has no filter box and no multi-select to edit several links (one at a time: Follow, Edit Action, Delete)."
+acceptance = "fixed"
+notes = "Links panel (Alt+N): every link with its target; a filter box (page or target); click goes to a link, Ctrl/Shift+click picks several to give them one new action (Edit Action, one undo step) or delete them together; Follow, Edit Action, Delete on one; highlight."
 
 [[feature]]
 id = "ui-070"
@@ -9242,8 +9242,8 @@ status = "have"
 cpp = "partial"
 evidence = ["toolbars_dock_on_the_sides_and_new_toolbars"]
 accepted = ["ui_toolbars_show_hide_customize_lock"]
-acceptance = "gap"
-notes = "Main, Markup, Measure and the user's own toolbars, each a strip with a grip: drag the grip to an edge (or use its menu) to dock the toolbar at the top, in a second row, or down the left or right side; Window > Toolbars shows or hides them. Acceptance: Three built-in toolbars (Main, Markup Tools, Measure Tools) plus custom ones, not Revu's dozen named toolbars (File, Edit, Shapes, Text, Order, Alignment, Rotation...)."
+acceptance = "fixed"
+notes = "Main, Markup Tools and Measure Tools plus twelve named toolbars (File, Edit, Navigation, Zoom, Shapes, Text, Text Markup, Sketch, Order, Alignment, Rotation, Document; our own selection of commands) and the user's own toolbars, each a strip with a grip: drag the grip to an edge (or use its menu) to dock the toolbar at the top, in a second row, or down the left or right side; Window > Toolbars shows or hides each one."
 
 [[feature]]
 id = "ui-076"
@@ -9602,8 +9602,8 @@ status = "have"
 cpp = "missing"
 evidence = ["alt_menus_shift_f10_and_the_markupcraft_menu"]
 accepted = ["ui_menu_bar_and_application_menu"]
-acceptance = "gap"
-notes = "The MarkupCraft menu: About, Preferences, Customize Keyboard, Keyboard Shortcuts, Profiles, Exit (Admin is a Preferences page). Acceptance: The application menu has About, Preferences, Customize Keyboard, Keyboard Shortcuts, Profiles and Exit; there is no Administrator item (admin settings are Preferences > Admin)."
+acceptance = "fixed"
+notes = "The MarkupCraft menu: About, Preferences, Customize Keyboard, Keyboard Shortcuts, Administrator (opens Preferences > Admin), Profiles with Manage Profiles, Exit."
 
 [[feature]]
 id = "ui-100"
@@ -9617,8 +9617,8 @@ status = "have"
 cpp = "missing"
 evidence = ["preferences_profiles_set_switch_export_import", "profiles_save_switch_export_import"]
 accepted = ["ui_profiles"]
-acceptance = "gap"
-notes = "Profiles: one JSON file per profile in the user's config folder (prefs_*, profile_* tools). Holds preferences, not window layouts yet. Acceptance: No profiles ship (Revu ships Takeoff, Construction, Design Review, Simple...); Window > Takeoff Workspace makes one."
+acceptance = "fixed"
+notes = "Profiles: one JSON file per profile in the user's config folder (prefs_*, profile_* tools) plus the profile's interface (toolbars, docking, panel layout) and keyboard shortcuts. MarkupCraft ships Takeoff, Construction, Design Review and Simple (our own settings for each), listed even before they are first used."
 
 [[feature]]
 id = "ui-101"
@@ -9662,8 +9662,8 @@ status = "have"
 cpp = "missing"
 evidence = ["preferences_profiles_set_switch_export_import"]
 accepted = ["ui_profiles"]
-acceptance = "gap"
-notes = "profile_list, profile_delete (not the active profile). Acceptance: Create and delete, no rename."
+acceptance = "fixed"
+notes = "Preferences > Admin (Manage Profiles): create, rename (Rename Profile; profile_rename), delete (not the active profile); profile_list."
 
 [[feature]]
 id = "ui-104"
@@ -9677,8 +9677,8 @@ status = "have"
 cpp = "missing"
 evidence = ["preferences_profiles_set_switch_export_import"]
 accepted = ["ui_profiles"]
-acceptance = "gap"
-notes = "prefs_export / prefs_import (JSON, validated on import). Acceptance: Export / import is Preferences > Admin > Back Up / Restore Settings of the active profile (JSON); no .bpx and no include-dependencies bundle."
+acceptance = "fixed"
+notes = "Preferences > Admin: Export Profile / Import Profile write and read a .mcprofile file (MarkupCraft's own JSON format; Revu's .bpx has no public spec) holding the preferences, interface and shortcuts; Include dependencies adds the shared settings files (Tool Chest with tool sets and line styles, presets, templates). prefs_export bundle / prefs_import recognise it; Back Up / Restore Settings remain for plain preferences."
 
 [[feature]]
 id = "ui-105"
@@ -9857,8 +9857,8 @@ status = "have"
 cpp = "missing"
 evidence = ["split_views_sync_switch_balance_unsplit"]
 accepted = ["shortcut_multiview", "ui_split_repeatedly"]
-acceptance = "gap"
-notes = "Ctrl+2 / Ctrl+H; one split level (two panes). Acceptance: One extra pane (two in all); Revu splits again and again, up to 16 panes."
+acceptance = "fixed"
+notes = "Ctrl+2 / Ctrl+H split the workspace; splitting again adds a pane, up to 16. Two panes share a draggable divider; three or more share a grid (side by side first after Split Vertical, stacked first after Split Horizontal). Each pane picks its document and has a close button; Ctrl+Shift+2 unsplits."
 
 [[feature]]
 id = "ui-117"
@@ -10247,8 +10247,8 @@ status = "have"
 cpp = "missing"
 evidence = ["scrollbars_snap_targets_and_startup_preferences"]
 accepted = ["ui_startup_options"]
-acceptance = "gap"
-notes = "General: start in last used / markup / view mode, open a PDF on start, full screen, reopen last session, recent files on the start page; no home WebTab or usage data. Acceptance: No home Web Tab, usage-data or reset-hidden-messages options."
+acceptance = "fixed"
+notes = "General: start in last used / markup / view mode, open a PDF on start, full screen, reopen last session, recent files on the start page, open a Web Tab of the favourites on start, Reset Hidden Messages (brings back messages dismissed with Don't ask me again). MarkupCraft sends no usage data, so there is nothing to opt out of."
 
 [[feature]]
 id = "ui-143"
@@ -10292,8 +10292,8 @@ status = "have"
 cpp = "missing"
 evidence = ["edge_click_collapses_panels_bookmarks_follow_pages_and_urls_in_text", "bookmarks_follow_their_pages"]
 accepted = ["ui_document_misc_options"]
-acceptance = "gap"
-notes = "Document: remember last page, locked-file prompt, Rotate Pages on every page by default, reorder bookmarks when pages move, detect web addresses in page text (Ctrl+click opens them). Slip Sheet replaces a sheet's content in place, so links to a slip-sheeted page keep pointing at it without a redirect option. Acceptance: No redirect-links-on-slip-sheet option."
+acceptance = "fixed"
+notes = "Document: remember last page, locked-file prompt, Rotate Pages on every page by default, reorder bookmarks when pages move, detect web addresses in page text (Ctrl+click opens them), and whether links to a slip-sheeted page follow it to the new sheet (on by default) or are removed with the superseded sheet."
 
 [[feature]]
 id = "ui-146"
@@ -10322,8 +10322,8 @@ status = "have"
 cpp = "missing"
 evidence = ["wheel_zooms_or_scrolls_by_preference_and_ctrl_swaps"]
 accepted = ["ui_wheel_zoom_or_scroll"]
-acceptance = "gap"
-notes = "Navigation: reverse zoom, zoom sensitivity; horizontal wheel pans sideways. Acceptance: Reverse direction and sensitivity; no tilt-wheel horizontal panning option."
+acceptance = "fixed"
+notes = "Navigation: reverse zoom, zoom sensitivity, and whether a tilt (horizontal) wheel pans sideways."
 
 [[feature]]
 id = "ui-148"
@@ -10353,7 +10353,7 @@ cpp = "missing"
 evidence = ["scrollbars_snap_targets_and_startup_preferences", "alt_menus_shift_f10_and_the_markupcraft_menu"]
 accepted = ["ui_navigation_scrollbars_sync_accelerators"]
 acceptance = "gap"
-notes = "Navigation: default synchronization of new split views, Alt menu accelerators; 3D mouse is out of scope. Acceptance: No 3D mouse support."
+notes = "Navigation: default synchronization of new split views, Alt menu accelerators. Acceptance gap: no 3D mouse support (hardware device drivers; out of scope)."
 
 [[feature]]
 id = "ui-150"
@@ -10382,8 +10382,8 @@ status = "have"
 cpp = "missing"
 evidence = ["spelling_preferences_user_dictionary_and_auto_complete", "completions_and_the_word_being_typed"]
 accepted = ["ui_spelling_preferences"]
-acceptance = "gap"
-notes = "General > Spelling: check spelling as you type on or off, ignore words in capitals, the underline colour, the dictionary (English, United States), a user dictionary (Check Spelling > Add to Dictionary adds to it), and auto-complete from a managed list of phrases offered while typing. Acceptance: One built-in dictionary (no dictionary choice)."
+acceptance = "fixed"
+notes = "General > Spelling: check spelling as you type on or off, ignore words in capitals, the underline colour, the dictionary (English United States, or English United Kingdom which accepts British spellings; spell_check language en_GB), a user dictionary (Check Spelling > Add to Dictionary adds to it), and auto-complete from a managed list of phrases offered while typing."
 
 [[feature]]
 id = "ui-152"
@@ -10411,9 +10411,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:265"
 status = "partial"
 cpp = "missing"
 evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
-accepted = ["ui_preference_pages"]
-acceptance = "gap"
-notes = "Preferences > Markups List: selecting a row goes to the markup (or only selects it). Group values on the dominant markup, rich-text and wrapped comments, export filtering and dimming are not offered. Acceptance: Only \"go to the markup when selected\"; no dominant-markup measurement, rich-text or wrapped comments, exclude-filtered export or dim percent."
+accepted = ["ui_preference_pages", "ui_preference_options_take_effect"]
+acceptance = "fixed"
+notes = "Preferences > Markups List: go to the markup when selected, show a group's measurement on its dominant (first) markup only, rich-text comments, wrapped comments (taller rows), leave filtered-out markups out of exports (or keep them), and dim the markups the list's filters hide on the page by a percentage."
 
 [[feature]]
 id = "ui-154"
@@ -10443,7 +10443,7 @@ cpp = "missing"
 evidence = ["preferences_dialog_applies_and_persists", "reuse_tool_keeps_drawing"]
 accepted = ["ui_preference_pages"]
 acceptance = "gap"
-notes = "Tools: reuse markup tools, measurement units and precision, colours of new markups (stored in the profile). Acceptance: Only Reuse markup tools; no remember-last-properties, autosize, scale grouped appearance, embed fonts, pop-up, image encoding or snapshot options."
+notes = "Tools: reuse markup tools, measurement units and precision, colours of new markups (stored in the profile). Acceptance gap: text boxes always autosize and there are no remember-last-properties, scale grouped appearance, embed fonts, pop-up author/date or printing, copy highlighted text to comment, image encoding, shape drag behaviour or snapshot resolution options."
 
 [[feature]]
 id = "ui-156"
@@ -10456,9 +10456,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:268"
 status = "partial"
 cpp = "missing"
 evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
-accepted = ["ui_preference_pages"]
-acceptance = "gap"
-notes = "Preferences > Measure: Dynamic Fill gap closing (edge sensitivity) and cutouts for islands. Split counts by space, fill DPI, cursor sizes, speed and colours are not offered. Acceptance: Only \"islands become cutouts\"; no split counts by space or dynamic fill tuning."
+accepted = ["ui_preference_pages", "ui_preference_options_take_effect", "spaces_tag_markups_and_split_counts"]
+acceptance = "fixed"
+notes = "Preferences > Measure: split counts by space; Dynamic Fill gap closing, islands become cutouts, detection on the page image (scans) with its resolution and edge sensitivity, hide markups while filling, and the fill cursor's size and colour. Our fill traces vector linework, so there is no fill speed setting."
 
 [[feature]]
 id = "ui-157"
@@ -10501,9 +10501,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:271"
 status = "partial"
 cpp = "missing"
 evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
-accepted = ["ui_preference_pages"]
-acceptance = "gap"
-notes = "Preferences > Signature: digital ID folder (its first ID is offered when signing) and trusted certificates folder (trusted when validating). No password timeout or blocking of changes that break signatures. Acceptance: The Signature page has no options."
+accepted = ["ui_preference_pages", "ui_preference_options_take_effect"]
+acceptance = "fixed"
+notes = "Preferences > Signature: digital ID folder (its first ID is offered when signing), trusted certificates folder (trusted when validating), how long the digital ID password is remembered after signing, and blocking page changes that would invalidate a signed document's signatures (else the user is asked, with Don't ask me again)."
 
 [[feature]]
 id = "ui-160"
@@ -10518,7 +10518,7 @@ cpp = "missing"
 evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
 accepted = ["ui_preference_pages"]
 acceptance = "gap"
-notes = "Preferences > Tablet: eraser size and whether it follows the zoom. Pen pressure, commit delay, lasso, handwriting and touch modes are not offered. Acceptance: Only \"eraser size follows the zoom\"."
+notes = "Preferences > Tablet: eraser size and whether it follows the zoom. Acceptance gap: no tablet zoom, pen cursor, pen commit delay, ink copy, right-click lasso, pressure sensitivity, handwriting recognition or touch input mode options."
 
 [[feature]]
 id = "ui-161"
@@ -10532,8 +10532,8 @@ status = "have"
 cpp = "missing"
 evidence = ["full_screen_presentation_always_on_top_and_bars"]
 accepted = ["ui_preference_pages", "ui_presentation_loop"]
-acceptance = "gap"
-notes = "Window: presentation loop and auto-advance interval. Acceptance: Loop and auto-advance; no transition, background colour or cursor options."
+acceptance = "fixed"
+notes = "Window > Presentation: loop, auto-advance interval, transition between pages (none, fade, wipe), background colour around the page, and hiding the mouse pointer."
 
 [[feature]]
 id = "ui-162"
@@ -10546,9 +10546,9 @@ source = "docs/revu_features/04_compare_ui_collab.md:274"
 status = "have"
 cpp = "missing"
 evidence = ["web_tab_favorites_browser_and_capture", "preferences_pages_are_shown_and_read_by_the_features"]
-accepted = ["ui_preference_pages"]
-acceptance = "gap"
-notes = "Preferences > WebTab: switch to new Web Tabs, links to web pages open in the browser or are captured, the capture browser and time limit, favourites. GPU and script-error options do not apply (no embedded browser). Acceptance: Switch to new Web Tabs, open in browser or capture as PDF; no GPU, split-view or script-error options."
+accepted = ["ui_preference_pages", "ui_preference_options_take_effect"]
+acceptance = "fixed"
+notes = "Preferences > WebTab: switch to new Web Tabs, links to web pages open in the browser or are captured, captured pages open in a split view beside the document, the capture browser and time limit, favourites. GPU and script-error options belong to an embedded browser, which MarkupCraft does not have (see ui-097)."
 
 [[feature]]
 id = "ui-163"
@@ -10563,7 +10563,7 @@ cpp = "missing"
 evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
 accepted = ["ui_preference_pages"]
 acceptance = "gap"
-notes = "Preferences > Sets: open a sheet in place of the Set sheet in the current tab; latest revision only. Paths, display, categories, sort rules and revision stamping options are not offered here. Acceptance: Two options (open in place, latest revision only)."
+notes = "Preferences > Sets: open a sheet in place of the Set sheet in the current tab; latest revision only (category rules, sort and revision filters live in the Sets panel). Acceptance gap: no relative-path, display, category template or sort-rule defaults here, no revision stacking, copy markups to a new revision, superseded stamping or auto-tagging options."
 
 [[feature]]
 id = "ui-164"
@@ -10592,7 +10592,7 @@ cpp = "missing"
 evidence = ["preferences_pages_are_shown_and_read_by_the_features", "scanner_and_camera_into_markups_pages_and_new_pdfs"]
 accepted = ["ui_preference_pages"]
 acceptance = "gap"
-notes = "Preferences > Import/Export: image export DPI, scan DPI, the scanner address, and the largest camera/scanner picture size. Office reconstruction, colour space and TIFF options are not offered. Acceptance: The Import/Export page has no options."
+notes = "Preferences > Import/Export: image export DPI, scan DPI, the scanner address, and the largest camera/scanner picture size. Acceptance gap: no OCR-during-export, open-after-export, Office (Word/Excel/PowerPoint) reconstruction, number separator, image-to-PDF colour space / DPI or TIFF compression and multi-page TIFF options."
 
 [[feature]]
 id = "ui-166"
@@ -10651,7 +10651,7 @@ cpp = "missing"
 evidence = ["preferences_dialog_applies_and_persists"]
 accepted = ["ui_preference_pages"]
 acceptance = "gap"
-notes = "Admin: back up, restore and reset settings, profiles; no viewer, log or browser options. Acceptance: Back up, restore, reset and MCP; no default viewer, log folder, debugging, sign-in or network folder options."
+notes = "Admin: back up, restore and reset settings, profiles (create, rename, delete, export / import with dependencies), MCP. Acceptance gap: no default PDF viewer setting (MarkupCraft never changes system settings itself), log folder, extended debugging, sign-in method (no online accounts) or network stamp / email template folder options."
 
 [[feature]]
 id = "ui-170"
@@ -10965,8 +10965,8 @@ status = "partial"
 cpp = "missing"
 evidence = ["modifier_keys_draw_from_centre_arcs_vertices_aspect_and_callouts", "corner_resizes_keep_the_aspect_ratio"]
 accepted = ["ui_shift_breaks_aspect_ratio"]
-acceptance = "gap"
-notes = "Stamps resized from a corner keep their aspect ratio; Shift breaks it. Polylines and polygons have no corner box (they reshape by vertex) and image stamps are not resized. Acceptance: Holds for stamps; polylines, polygons and images have no corner resize."
+acceptance = "fixed"
+notes = "Stamps, images and snapshots resized from a corner keep their aspect ratio; polylines, polygons and clouds get a box with four corner handles (besides their vertex handles) that scales the whole shape in proportion. Shift breaks the aspect ratio in both cases."
 
 [[feature]]
 id = "ui-191"
@@ -13883,8 +13883,8 @@ status = "have"
 cpp = "missing"
 evidence = ["revu_default_shortcuts_are_bound"]
 accepted = ["shortcut_dialogs_show"]
-acceptance = "gap"
-notes = "C++ value is the binding at inventory time; the C++ app later adopted the Revu default map (its FEATURES.md). Acceptance: F1 opens the keyboard shortcut reference; there is no bundled Help manual."
+acceptance = "fixed"
+notes = "F1 opens MarkupCraft Help (our own help topics with a search box; Keyboard Shortcuts is a button there and in the Help menu)."
 
 [[feature]]
 id = "key-174"

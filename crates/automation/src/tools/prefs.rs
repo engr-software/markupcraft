@@ -122,12 +122,17 @@ pub static DELETE: Tool = Tool {
 pub static EXPORT: Tool = Tool {
     name: "prefs_export",
     title: "Export a profile",
-    description: "Write a profile's preferences to a JSON file.",
+    description: "Write a profile's preferences to a JSON file. `bundle: true` writes a profile file (.mcprofile) that also carries the profile's interface settings and keyboard shortcuts, and with `include_dependencies` the shared settings files (Tool Chest, presets, templates) so another computer gets the same tools.",
     read_only: false,
     destructive: true,
     schema: || {
         schema_nodoc(
-            json!({ "path": path_arg("The file to write"), "profile": profile_arg() }),
+            json!({
+                "path": path_arg("The file to write"),
+                "profile": profile_arg(),
+                "bundle": { "type": "boolean", "description": "Write a profile bundle (default false: the preferences only)." },
+                "include_dependencies": { "type": "boolean", "description": "Bundle: add the shared settings files (default false)." }
+            }),
             &["path"],
         )
     },
@@ -135,6 +140,10 @@ pub static EXPORT: Tool = Tool {
         let path = a.resolve(args.str("path")?, true)?;
         let st = store(a)?;
         let name = args.opt_string("profile")?.unwrap_or_else(|| st.active());
+        if args.bool_or("bundle", false)? {
+            let n = st.export_bundle(&name, &path, args.bool_or("include_dependencies", false)?)?;
+            return Ok(json!({ "profile": name, "path": path.display().to_string(), "dependencies": n }));
+        }
         st.export(&name, &path)?;
         Ok(json!({ "profile": name, "path": path.display().to_string() }))
     },
@@ -143,7 +152,7 @@ pub static EXPORT: Tool = Tool {
 pub static IMPORT: Tool = Tool {
     name: "prefs_import",
     title: "Import a profile",
-    description: "Read a preferences JSON file into profile `profile` (created or replaced; default: the active profile).",
+    description: "Read a preferences JSON file into profile `profile` (created or replaced; default: the active profile). A profile bundle (prefs_export with bundle) is recognised and imported whole: preferences, interface settings, shortcuts and any shared settings files it carries; it keeps its own name unless `profile` is given.",
     read_only: false,
     destructive: true,
     schema: || {
@@ -155,11 +164,45 @@ pub static IMPORT: Tool = Tool {
     run: |a, args| {
         let path = a.resolve(args.str("path")?, false)?;
         let st = store(a)?;
+        let is_bundle = std::fs::read(&path)
+            .ok()
+            .filter(|b| b.len() < (64 << 20))
+            .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
+            .is_some_and(|v| v["format"] == markupcraft_engine::profiles::BUNDLE_FORMAT);
+        if is_bundle {
+            let got = st.import_bundle(&path, args.opt_string("profile")?.as_deref())?;
+            let p = st.load_profile(&got.name)?;
+            if got.name == st.active() {
+                set_author(a, &p.author);
+            }
+            return Ok(
+                json!({ "profile": got.name, "dependencies": got.dependencies, "preferences": prefs_json(&p)? }),
+            );
+        }
         let name = args.opt_string("profile")?.unwrap_or_else(|| st.active());
         let p = st.import(&path, &name)?;
         if name == st.active() {
             set_author(a, &p.author);
         }
         Ok(json!({ "profile": name, "preferences": prefs_json(&p)? }))
+    },
+};
+
+pub static RENAME: Tool = Tool {
+    name: "profile_rename",
+    title: "Rename a profile",
+    description: "Rename a profile (with its interface settings and shortcuts). The active profile stays active under its new name.",
+    read_only: false,
+    destructive: false,
+    schema: || {
+        schema_nodoc(
+            json!({ "profile": { "type": "string" }, "to": { "type": "string" } }),
+            &["profile", "to"],
+        )
+    },
+    run: |a, args| {
+        let st = store(a)?;
+        st.rename_profile(args.str("profile")?, args.str("to")?)?;
+        Ok(json!({ "active": st.active(), "profiles": st.profiles() }))
     },
 };

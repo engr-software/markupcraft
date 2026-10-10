@@ -142,6 +142,29 @@ pub static TALLY: Tool = Tool {
     },
 };
 
+pub static SPLIT_COUNTS: Tool = Tool {
+    name: "space_split_counts",
+    title: "Split counts by space",
+    description: "Every Count measurement (of `ids`, or all) whose items lie in more than one space becomes one Count per space, keeping its subject and look (Preferences > Measure > Split counts by space does this as counts are placed). One undoable step. Returns the new Counts' ids.",
+    read_only: false,
+    destructive: false,
+    schema: || {
+        schema(
+            json!({ "ids": { "type": "array", "items": { "type": "string" } } }),
+            &[],
+        )
+    },
+    run: |a, args| {
+        let ids: Option<Vec<String>> = args
+            .get("ids")
+            .and_then(Value::as_array)
+            .map(|v| v.iter().filter_map(Value::as_str).map(str::to_string).collect());
+        let (doc, s) = a.session(args)?;
+        let made = s.split_counts_by_space(ids.as_deref())?;
+        Ok(json!({ "made": made, "document": summary(doc, s) }))
+    },
+};
+
 pub static EXPORT: Tool = Tool {
     name: "space_export",
     title: "Export spaces",

@@ -11,6 +11,9 @@ use crate::AppState;
 use crate::dialogs::Purpose;
 use crate::shell::{RulerUnit, UiPrefs};
 
+/// A profile shared as one file.
+pub const PROFILE_FILE: crate::dialogs::Filter = ("MarkupCraft profile", &["mcprofile"]);
+
 /// The pages, in order.
 pub const PAGES: &[&str] = &[
     "General",
@@ -88,6 +91,25 @@ pub fn answer(app: &mut AppState, tag: &str, path: &std::path::Path) {
     };
     let active = store.active();
     match tag {
+        "prefs-profile-export" => {
+            app.shell.save_ui();
+            let deps = app.shell.extra2.export_dependencies;
+            let r = store
+                .save(&app.shell.prefs)
+                .and_then(|_| store.export_bundle(&active, path, deps));
+            app.status = match r {
+                Ok(n) => format!("Profile {active} exported ({n} shared settings files)"),
+                Err(e) => e.to_string(),
+            };
+        }
+        "prefs-profile-import" => match store.import_bundle(path, None) {
+            Ok(got) => {
+                app.shell.prefs_error.clear();
+                profile(app, "switch", &got.name);
+                app.status = format!("Profile {} imported", got.name);
+            }
+            Err(e) => app.shell.prefs_error = e.to_string(),
+        },
         "prefs-backup" => {
             let r = store.save(&app.shell.prefs).and_then(|_| store.export(&active, path));
             app.status = actions_report(r, "Settings backed up");
@@ -181,6 +203,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                             }
                             _ => {}
                         }
+                        crate::shell::extra2::section(ui, page, &mut ui_prefs);
                         if let Some(a) = crate::shell::prefs_more::section(ui, page, &mut ui_prefs) {
                             action = Some(a);
                         }
@@ -225,6 +248,23 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
             ("Settings", &["json"]),
             "MarkupCraft settings.json",
         ),
+        Some("profile-export") => {
+            let name = app.shell.store.as_ref().map(|s| s.active()).unwrap_or_default();
+            app.dialogs.save(
+                Purpose::Shell {
+                    tag: "prefs-profile-export".into(),
+                },
+                PROFILE_FILE,
+                &format!("{name}.mcprofile"),
+            )
+        }
+        Some("profile-import") => app.dialogs.open(
+            Purpose::Shell {
+                tag: "prefs-profile-import".into(),
+            },
+            PROFILE_FILE,
+            false,
+        ),
         Some("restore") => app.dialogs.open(
             Purpose::Shell {
                 tag: "prefs-restore".into(),
@@ -254,7 +294,16 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
         _ => {}
     }
     if let Some((cmd, name)) = profile_cmd {
-        profile(app, cmd, &name);
+        match cmd {
+            "deps" => app.shell.extra2.export_dependencies = !name.is_empty(),
+            "rename" => {
+                let (from, to) = name.split_once('\n').unwrap_or((name.as_str(), ""));
+                app.shell.extra2.rename_to = to.to_string();
+                let from = from.to_string();
+                profile(app, "rename", &from);
+            }
+            _ => profile(app, cmd, &name),
+        }
     }
     if let Some(u) = open_url {
         crate::features::more6::web::open_in_browser(app, ctx, &u);
@@ -274,12 +323,22 @@ pub fn profile(app: &mut AppState, cmd: &str, name: &str) {
             store.switch(name, cmd == "new").map(|_| ())
         }
         "delete" => store.delete_profile(name),
+        "rename" => {
+            let to = app.shell.extra2.rename_to.trim().to_string();
+            app.shell.save_ui();
+            let r = store.rename_profile(name, &to);
+            if r.is_ok() {
+                app.shell.extra2.rename_to.clear();
+                app.status = format!("Profile {name} renamed {to}");
+            }
+            r
+        }
         _ => Ok(()),
     };
     match r {
         Ok(()) => {
             app.shell.prefs_error.clear();
-            if cmd != "delete" {
+            if cmd != "delete" && cmd != "rename" {
                 load_from_store(app);
                 app.status = format!("Profile: {name}");
             }
@@ -565,6 +624,37 @@ fn admin(ui: &mut egui::Ui, app: &AppState, cmd: &mut Option<(&'static str, Stri
                     }
                 });
             }
+            ui.horizontal(|ui| {
+                let id = egui::Id::new("rename-profile");
+                let mut to: String = ui.data(|d| d.get_temp(id)).unwrap_or_default();
+                ui.add(
+                    egui::TextEdit::singleline(&mut to)
+                        .hint_text("New name")
+                        .desired_width(140.0),
+                );
+                if ui.button("Rename Profile").clicked() && !to.trim().is_empty() {
+                    *cmd = Some(("rename", format!("{active}\n{}", to.trim())));
+                    to.clear();
+                }
+                ui.data_mut(|d| d.insert_temp(id, to));
+            });
+            ui.horizontal(|ui| {
+                if ui.button("Export Profile...").clicked() {
+                    out = Some("profile-export");
+                }
+                if ui.button("Import Profile...").clicked() {
+                    out = Some("profile-import");
+                }
+                let mut deps = app.shell.extra2.export_dependencies;
+                if ui
+                    .checkbox(&mut deps, "Include dependencies")
+                    .on_hover_text("Tool sets, line styles, presets and the other shared settings files")
+                    .changed()
+                {
+                    *cmd = Some(("deps", if deps { "1".into() } else { String::new() }));
+                }
+            });
+            ui.label(RichText::new("MarkupCraft ships Takeoff, Construction, Design Review and Simple.").weak());
             ui.horizontal(|ui| {
                 let id = egui::Id::new("new-profile");
                 let mut name: String = ui.data(|d| d.get_temp(id)).unwrap_or_default();

@@ -304,7 +304,7 @@ pub static COMMANDS: &[Command] = &[
     cmd("window.next_document", "Next Document", "Window", 10, ctrl(Key::Tab), ""),
     cmd("window.prev_document", "Previous Document", "Window", 10, ctrl_shift(Key::Tab), ""),
     // Help
-    cmd("help.shortcuts", "Keyboard Shortcuts", "Help", 1, key(Key::F1), "circle-help"),
+    cmd("help.shortcuts", "Keyboard Shortcuts", "Help", 1, None, "keyboard"),
     cmd("help.about", "About MarkupCraft", "Help", 2, None, "info"),
     // Status bar / toolbar only
     cmd("snap.grid", "Snap to Grid", "", 0, ctrl_shift(Key::F9), "grid-3x3"),
@@ -340,6 +340,7 @@ pub fn all() -> impl Iterator<Item = &'static Command> {
         .iter()
         .chain(crate::features::COMMANDS)
         .chain(crate::shell::extra::COMMANDS)
+        .chain(crate::shell::extra2::COMMANDS)
         .chain(crate::more::COMMANDS)
         .chain(crate::features::more6::COMMANDS)
 }
@@ -470,7 +471,7 @@ mod tests {
             (k(n, n, a, Key::U), "panel.measurements"), (k(n, n, a, Key::P), "panel.properties"),
             (k(n, n, a, Key::T), "panel.thumbnails"), (k(n, n, a, Key::X), "panel.toolchest"),
             // Help and navigation
-            (k(n, n, n, Key::F1), "help.shortcuts"),
+            (k(n, n, n, Key::F1), "help.contents"),
             (k(n, n, n, Key::Home), "view.first_page"), (k(n, n, n, Key::End), "view.last_page"),
             (k(c, n, n, Key::Tab), "window.next_document"), (k(c, s, n, Key::Tab), "window.prev_document"),
         ];
