@@ -284,6 +284,76 @@ Remove: delete those copies.\n"
     ]
 }
 
+/// The macOS bundle identifier (packaging/macos/Info.plist.in).
+pub const MAC_BUNDLE_ID: &str = "io.github.engr-software.markupcraft";
+
+/// The files that make MarkupCraft (the program at `app`) the default PDF viewer on `os`,
+/// for the user to apply: a `.reg` for the current user (and one that undoes it) on Windows, a
+/// script using `xdg-mime` on Linux, a script using `duti` on macOS, each with a README.
+fn default_viewer_files(app: &Path, os: TargetOs) -> Vec<(String, String)> {
+    match os {
+        TargetOs::Windows => {
+            let exe = reg_escape(app);
+            let reg = format!(
+                "Windows Registry Editor Version 5.00\r\n\r\n; MarkupCraft as the PDF viewer, for the current user only.\r\n\r\n\
+[HKEY_CURRENT_USER\\Software\\Classes\\MarkupCraft.PDF]\r\n@=\"PDF Document (MarkupCraft)\"\r\n\r\n\
+[HKEY_CURRENT_USER\\Software\\Classes\\MarkupCraft.PDF\\DefaultIcon]\r\n@=\"\\\"{exe}\\\",0\"\r\n\r\n\
+[HKEY_CURRENT_USER\\Software\\Classes\\MarkupCraft.PDF\\shell\\open\\command]\r\n@=\"\\\"{exe}\\\" \\\"%1\\\"\"\r\n\r\n\
+[HKEY_CURRENT_USER\\Software\\Classes\\.pdf]\r\n@=\"MarkupCraft.PDF\"\r\n\r\n\
+[HKEY_CURRENT_USER\\Software\\Classes\\.pdf\\OpenWithProgids]\r\n\"MarkupCraft.PDF\"=\"\"\r\n"
+            );
+            let unreg = "Windows Registry Editor Version 5.00\r\n\r\n; Removes MarkupCraft as the PDF viewer.\r\n\r\n[-HKEY_CURRENT_USER\\Software\\Classes\\MarkupCraft.PDF]\r\n\r\n[HKEY_CURRENT_USER\\Software\\Classes\\.pdf\\OpenWithProgids]\r\n\"MarkupCraft.PDF\"=-\r\n".to_string();
+            let readme = "MarkupCraft as the default PDF viewer (Windows)\r\n\r\n\
+Install (nothing here changes your system until you do this): double-click\r\n\
+markupcraft-default-pdf.reg and confirm. Windows then offers MarkupCraft for PDFs; to make\r\n\
+it the default, right-click a PDF, Open with, Choose another app, MarkupCraft, and tick\r\n\
+Always use this app (Windows asks you to confirm a default yourself).\r\n\r\n\
+Remove: double-click markupcraft-default-pdf-remove.reg.\r\n"
+                .to_string();
+            vec![
+                ("markupcraft-default-pdf.reg".into(), reg),
+                ("markupcraft-default-pdf-remove.reg".into(), unreg),
+                ("README.txt".into(), readme),
+            ]
+        }
+        TargetOs::Linux => {
+            let script = format!(
+                "#!/bin/sh\n# MarkupCraft as the default PDF viewer for this user.\nset -e\nmkdir -p \"$HOME/.local/share/applications\"\ncat > \"$HOME/.local/share/applications/markupcraft.desktop\" <<'EOF'\n[Desktop Entry]\nType=Application\nName=MarkupCraft\nExec={} %F\nIcon=markupcraft\nTerminal=false\nMimeType=application/pdf;\nEOF\nxdg-mime default markupcraft.desktop application/pdf\n",
+                sh_quote(app)
+            );
+            vec![
+                ("set-default-pdf-viewer.sh".into(), script),
+                (
+                    "README.txt".into(),
+                    "MarkupCraft as the default PDF viewer (Linux)\n\nInstall (nothing here changes your system until you do this): run\n\
+sh set-default-pdf-viewer.sh. It adds a menu entry for this user and sets it as the PDF\nhandler with xdg-mime.\n\n\
+Remove: choose another default with xdg-mime, and delete\n~/.local/share/applications/markupcraft.desktop.\n"
+                        .into(),
+                ),
+            ]
+        }
+        TargetOs::MacOs => vec![
+            (
+                "set-default-pdf-viewer.sh".into(),
+                format!("#!/bin/sh\n# MarkupCraft as the default PDF viewer (needs duti: brew install duti).\nduti -s {MAC_BUNDLE_ID} com.adobe.pdf all\n"),
+            ),
+            (
+                "README.txt".into(),
+                "MarkupCraft as the default PDF viewer (macOS)\n\nInstall (nothing here changes your system until you do this): select a PDF in the Finder,\n\
+File, Get Info, Open with: MarkupCraft, then Change All. Or, with duti installed, run\nsh set-default-pdf-viewer.sh.\n\n\
+Remove: choose another app the same way.\n"
+                    .into(),
+            ),
+        ],
+    }
+}
+
+/// Write the files that make the program at `app` the default PDF viewer on `os` into `dir`
+/// (Preferences > Admin). Nothing outside `dir` is touched. Returns the files written.
+pub fn write_default_viewer(dir: &Path, app: &Path, os: TargetOs) -> Result<Vec<PathBuf>> {
+    write_files(dir, app, default_viewer_files(app, os))
+}
+
 /// Write the integration files for `os` into `dir`, running `cli` (the path of
 /// `markupcraft-cli`). Returns the files written. Nothing outside `dir` is touched.
 pub fn write_integration(dir: &Path, cli: &Path, os: TargetOs) -> Result<Vec<PathBuf>> {
@@ -299,6 +369,17 @@ pub fn write_integration(dir: &Path, cli: &Path, os: TargetOs) -> Result<Vec<Pat
         TargetOs::MacOs => mac_files(cli),
         TargetOs::Linux => linux_files(cli),
     };
+    write_files(dir, cli, files)
+}
+
+fn write_files(dir: &Path, program: &Path, files: Vec<(String, String)>) -> Result<Vec<PathBuf>> {
+    if !dir.is_dir() {
+        return Err(invalid(format!("{} is not a folder", dir.display())));
+    }
+    let c = program.display().to_string();
+    if c.is_empty() || c.chars().any(|ch| ch.is_control() || ch == '%') {
+        return Err(invalid("the program path holds characters a file manager cannot run"));
+    }
     let mut out = Vec::new();
     for (name, body) in files {
         let p = dir.join(&name);

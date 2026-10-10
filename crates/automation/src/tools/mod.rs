@@ -22,6 +22,7 @@ mod files;
 mod fill;
 mod flatten;
 mod forms;
+mod jobs;
 mod layers;
 mod layout;
 mod legend;
@@ -329,6 +330,10 @@ pub static TOOLS: &[&Tool] = &[
     &partials::FORM_ACTION,
     &partials::XFA_LAYOUT,
     &partials::FLATTEN_EXTRAS,
+    &jobs::START,
+    &jobs::LIST,
+    &jobs::WAIT,
+    &jobs::CANCEL,
 ];
 
 pub fn find(name: &str) -> Option<&'static Tool> {

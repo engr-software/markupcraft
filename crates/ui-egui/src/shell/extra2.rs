@@ -482,7 +482,7 @@ fn help_window(app: &mut AppState, ctx: &egui::Context) {
     let mut open = true;
     let mut shortcuts = false;
     let h = &mut app.shell.extra2.help;
-    egui::Window::new("MarkupCraft Help")
+    crate::i18n::window("MarkupCraft Help")
         .open(&mut open)
         .default_size([620.0, 420.0])
         .collapsible(false)

@@ -25,7 +25,7 @@ pub fn menu_bar(app: &mut AppState, ui: &mut egui::Ui) {
         .show(ui, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
                 for menu in MENUS {
-                    let r = ui.menu_button(*menu, |ui| {
+                    let r = ui.menu_button(crate::i18n::tr(menu), |ui| {
                         ui.set_min_width(220.0);
                         // Long menus (View, Markup, Document) scroll instead of running off
                         // the bottom of the window, where their last items could not be reached.
@@ -51,7 +51,7 @@ fn item(
     checked: Option<bool>,
 ) {
     // Checked items (active tool, open panel, view mode) are shown selected.
-    let mut b = egui::Button::new(label).selected(checked == Some(true));
+    let mut b = egui::Button::new(crate::i18n::tr(label)).selected(checked == Some(true));
     if let Some(k) = keys {
         b = b.shortcut_text(k.label());
     }
@@ -83,12 +83,12 @@ fn menu_items(app: &mut AppState, ui: &mut egui::Ui, menu: &str) {
         );
     }
     if menu == "Window" {
-        ui.label(RichText::new("Panels").size(11.0).weak());
+        ui.label(RichText::new(crate::i18n::tr("Panels")).size(11.0).weak());
         for p in PANELS {
             let on = app.open_panels.contains(&p.id);
             item(app, ui, &format!("panel.{}", p.id), p.title, p.keys, true, Some(on));
         }
-        ui.menu_button("Toolbars", |ui| {
+        ui.menu_button(crate::i18n::tr("Toolbars"), |ui| {
             ui.set_min_width(200.0);
             for id in [
                 "window.toolbar_main",
@@ -123,7 +123,7 @@ fn menu_items(app: &mut AppState, ui: &mut egui::Ui, menu: &str) {
         let label = if c.built {
             c.label.to_string()
         } else {
-            format!("{} (not yet)", c.label)
+            format!("{} ({})", crate::i18n::tr(c.label), crate::i18n::tr("not yet"))
         };
         let keys = app.keys.keys_for(c.id);
         item(app, ui, c.id, &label, keys, enabled, app.checked(c.id));
@@ -238,6 +238,7 @@ pub fn status_bar(app: &mut AppState, ui: &mut egui::Ui) {
                 toggle(app, ui, "window.reuse_tools", "Reuse");
                 separator(ui, &t);
                 crate::features::partials_more3::security_icon(app, ui);
+                crate::features::jobs::indicator(app, ui);
                 if app.shell.split.is_some() {
                     let sync = app
                         .shell
@@ -496,7 +497,7 @@ pub fn document_area(app: &mut AppState, ui: &mut egui::Ui) {
 /// Help > Keyboard Shortcuts, Help > About, Document Properties.
 pub fn windows(app: &mut AppState, ctx: &egui::Context) {
     let mut open = app.show_shortcuts;
-    egui::Window::new("Keyboard Shortcuts")
+    crate::i18n::window("Keyboard Shortcuts")
         .open(&mut open)
         .default_size([420.0, 480.0])
         .show(ctx, |ui| {
@@ -514,7 +515,7 @@ pub fn windows(app: &mut AppState, ctx: &egui::Context) {
     app.show_shortcuts = open;
 
     let mut open = app.show_about;
-    egui::Window::new("About MarkupCraft")
+    crate::i18n::window("About MarkupCraft")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
@@ -538,7 +539,7 @@ pub fn windows(app: &mut AppState, ctx: &egui::Context) {
             d.session.standards(),
         )
     });
-    egui::Window::new("Document Properties")
+    crate::i18n::window("Document Properties")
         .open(&mut open)
         .collapsible(false)
         .show(ctx, |ui| match &info {

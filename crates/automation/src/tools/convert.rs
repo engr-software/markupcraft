@@ -24,7 +24,9 @@ pub static EXPORT_IMAGES: Tool = Tool {
                 "quality": { "type": "integer", "minimum": 1, "maximum": 100 },
                 "dpi": { "type": "number" },
                 "pages": pages_arg("to export (default all)"),
-                "markups": { "type": "boolean" }
+                "markups": { "type": "boolean" },
+                "tiff_compression": { "type": "string", "enum": ["none", "lzw", "deflate", "packbits"], "description": "TIFF: pixel compression (default none)." },
+                "multi_page": { "type": "boolean", "description": "TIFF: every page in one <name>.tif." }
             }),
             &["dir"],
         )
@@ -50,6 +52,11 @@ pub static EXPORT_IMAGES: Tool = Tool {
         }
         o.pages = args.opt_pages("pages", s.page_count())?;
         o.hide_markups = !args.bool_or("markups", true)?;
+        if let Some(c) = args.opt_str("tiff_compression")? {
+            o.tiff_compression = markupcraft_engine::convert::TiffCompression::from_name(c)
+                .ok_or_else(|| bad_args("tiff_compression: none, lzw, deflate or packbits"))?;
+        }
+        o.multi_page_tiff = args.bool_or("multi_page", false)?;
         let stem = match args.opt_string("name")? {
             Some(n) => n,
             None => s
@@ -74,7 +81,13 @@ pub static EXPORT_DOCUMENT: Tool = Tool {
             json!({
                 "out": path_arg("The file to write"),
                 "format": { "type": "string", "enum": ["txt", "html", "rtf", "docx", "xlsx", "pptx"] },
-                "pages": pages_arg("to export (default all)")
+                "pages": pages_arg("to export (default all)"),
+                "ocr": { "type": "boolean", "description": "Read pages without text with OCR first (needs the OCR models)." },
+                "one_sheet": { "type": "boolean", "description": "Excel: every page in one sheet." },
+                "decimal_comma": { "type": "boolean", "description": "Numbers are written 1.234,5." },
+                "slide_dpi": { "type": "number", "description": "PowerPoint: slide resolution, 36 to 300 dpi (default 150)." },
+                "word_page_pictures": { "type": "boolean", "description": "Word: a picture of each page above its text (default false)." },
+                "word_page_breaks": { "type": "boolean", "description": "Word: a page break between pages (default true; false runs the pages on)." }
             }),
             &["out"],
         )
@@ -87,7 +100,15 @@ pub static EXPORT_DOCUMENT: Tool = Tool {
         };
         let (doc, s) = a.session_ref(args)?;
         let pages = args.opt_pages("pages", s.page_count())?;
-        let bytes = s.export_document(&out, format, pages)?;
+        let o = markupcraft_engine::convert::ExportOptions {
+            ocr: args.bool_or("ocr", false)?,
+            excel_one_sheet: args.bool_or("one_sheet", false)?,
+            decimal_comma: args.bool_or("decimal_comma", false)?,
+            slide_dpi: args.opt_num("slide_dpi")?.unwrap_or(150.0),
+            word_page_pictures: args.bool_or("word_page_pictures", false)?,
+            word_page_breaks: args.bool_or("word_page_breaks", true)?,
+        };
+        let bytes = s.export_document_with(&out, format, pages, &o)?;
         Ok(json!({ "doc": doc, "out": out.display().to_string(), "bytes": bytes }))
     },
 };
@@ -171,7 +192,10 @@ pub static PDFA: Tool = Tool {
         schema(
             json!({
                 "action": { "type": "string", "enum": ["archive", "verify", "unlock"] },
-                "level": { "type": "string", "enum": ["1b", "2b", "3b"] }
+                "level": { "type": "string", "enum": ["1b", "2b", "3b"] },
+                "flatten_markups": { "type": "boolean", "description": "Archive: flatten the markups into the pages first." },
+                "remove_attachments": { "type": "boolean", "description": "Archive: remove embedded files first." },
+                "opaque_markups": { "type": "boolean", "description": "Archive: make transparent markups opaque first." }
             }),
             &[],
         )
@@ -182,6 +206,12 @@ pub static PDFA: Tool = Tool {
         let (doc, s) = a.session(args)?;
         match args.opt_str("action")?.unwrap_or("archive") {
             "archive" => {
+                let conv = markupcraft_engine::archive::PdfaConversion {
+                    flatten_markups: args.bool_or("flatten_markups", false)?,
+                    remove_attachments: args.bool_or("remove_attachments", false)?,
+                    opaque_markups: args.bool_or("opaque_markups", false)?,
+                };
+                s.prepare_pdfa(&conv)?;
                 let r = if one { s.archive_pdfa1b()? } else { s.archive_pdfa(lv)? };
                 Ok(
                     json!({ "fixed": r.fixed, "remaining": issues(&r.remaining), "conforming": r.remaining.is_empty(), "document": summary(doc, s) }),

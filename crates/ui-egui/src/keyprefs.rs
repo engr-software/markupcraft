@@ -257,7 +257,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
     let mut open = true;
     let mut import = false;
     let mut export = false;
-    egui::Window::new("Customize Keyboard")
+    crate::i18n::window("Customize Keyboard")
         .open(&mut open)
         .default_size([460.0, 520.0])
         .show(ctx, |ui| {

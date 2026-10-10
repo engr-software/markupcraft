@@ -1,7 +1,8 @@
 //! The look of the pages in the workspace: Dark Mode (pages drawn light on dark, the rest of
 //! the interface keeps its theme), Disable Line Weights (the renderer reads a copy whose
-//! linework is all one device pixel wide), and reply indicators on markups that have replies
-//! (hover one to read them).
+//! linework is all one device pixel wide), Enhance Thin Lines (a copy whose linework is at
+//! least a minimum width), and reply indicators on markups that have replies (hover one to
+//! read them).
 
 use std::collections::HashMap;
 
@@ -13,9 +14,9 @@ use crate::theme::Tokens;
 
 #[derive(Default)]
 pub struct WorkspaceState {
-    /// Per document (uid): the bytes its renderer was made from (as a pointer) and whether that
-    /// renderer reads the thin-line copy.
-    pub thinned: HashMap<u64, (usize, bool)>,
+    /// Per document (uid): the bytes its renderer was made from (as a pointer) and the line
+    /// weight copy that renderer reads.
+    pub thinned: HashMap<u64, (usize, ViewKey)>,
     /// The page whose text Select All Text copied last.
     pub last_text_copy: Option<usize>,
 }
@@ -43,30 +44,76 @@ fn ptr(b: &std::sync::Arc<Vec<u8>>) -> usize {
     std::sync::Arc::as_ptr(b) as usize
 }
 
-/// Keep every document's renderer on the thin-line copy (or off it) as the preference says.
+/// Which line-weight copy of a document the renderer reads.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum LineMode {
+    /// The document itself.
+    #[default]
+    Normal,
+    /// Disable Line Weights: every line one device pixel wide.
+    Thin,
+    /// Enhance Thin Lines: every line at least this many hundredths of a point wide.
+    AtLeast(u32),
+}
+
+/// The copy of a document the renderer reads: its line weights, and whether blend modes are
+/// drawn as Normal.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ViewKey {
+    pub lines: LineMode,
+    pub normal_blend: bool,
+}
+
+/// The copy the preferences ask for (Disable Line Weights wins over Enhance Thin Lines).
+pub fn wanted_mode(app: &AppState) -> ViewKey {
+    let lines = if app.shell.ui.extra.thin_lines {
+        LineMode::Thin
+    } else {
+        app.shell
+            .ui
+            .render
+            .min_line_key()
+            .map_or(LineMode::Normal, LineMode::AtLeast)
+    };
+    ViewKey {
+        lines,
+        normal_blend: !app.shell.ui.render.blend_modes,
+    }
+}
+
+/// Keep every document's renderer on the line-weight copy the preferences ask for.
 pub fn begin_frame(app: &mut AppState, _ctx: &egui::Context) {
-    let want = app.shell.ui.extra.thin_lines;
+    let want = wanted_mode(app);
     let threads = app.threads;
     let state = &mut app.shell.extra.workspace.thinned;
     state.retain(|uid, _| app.docs.iter().any(|d| d.uid == *uid));
     for d in &mut app.docs {
         let key = ptr(&d.bytes);
         // A rerender (new bytes) always comes back with a normal renderer.
-        let thin_now = state.get(&d.uid).is_some_and(|(k, thin)| *k == key && *thin);
-        if want == thin_now {
+        let now = state
+            .get(&d.uid)
+            .filter(|(k, _)| *k == key)
+            .map_or(ViewKey::default(), |(_, m)| *m);
+        if want == now {
             continue;
         }
-        let bytes = if want {
-            match markupcraft_render::thin::thin_lines(&d.bytes) {
-                Ok(b) => b,
-                Err(e) => {
-                    log::warn!("line weights {}: {e}", d.name);
-                    state.insert(d.uid, (key, true));
-                    continue;
-                }
+        use markupcraft_render::thin::{Lines, ViewCopy, view_copy};
+        let how = ViewCopy {
+            lines: match want.lines {
+                LineMode::Normal => Lines::Keep,
+                LineMode::Thin => Lines::Hairline,
+                LineMode::AtLeast(h) => Lines::AtLeast(f64::from(h) / 100.0),
+            },
+            normal_blend: want.normal_blend,
+        };
+        let copy = view_copy(&d.bytes, &how);
+        let bytes = match copy {
+            Ok(b) => b,
+            Err(e) => {
+                log::warn!("line weights {}: {e}", d.name);
+                state.insert(d.uid, (key, want));
+                continue;
             }
-        } else {
-            d.bytes.clone()
         };
         let opts = RenderOptions {
             hide: crate::actions::drawn_objects(d.session.doc()),
@@ -83,7 +130,27 @@ pub fn begin_frame(app: &mut AppState, _ctx: &egui::Context) {
 
 /// Whether document `uid` is drawn from the thin-line copy now.
 pub fn is_thin(app: &AppState, uid: u64) -> bool {
-    app.shell.extra.workspace.thinned.get(&uid).is_some_and(|(_, t)| *t)
+    line_mode(app, uid) == LineMode::Thin
+}
+
+/// The line weight copy document `uid` is drawn from now.
+pub fn line_mode(app: &AppState, uid: u64) -> LineMode {
+    app.shell
+        .extra
+        .workspace
+        .thinned
+        .get(&uid)
+        .map_or(LineMode::Normal, |(_, m)| m.lines)
+}
+
+/// Whether document `uid` is drawn with its blend modes as Normal now.
+pub fn normal_blend(app: &AppState, uid: u64) -> bool {
+    app.shell
+        .extra
+        .workspace
+        .thinned
+        .get(&uid)
+        .is_some_and(|(_, m)| m.normal_blend)
 }
 
 /// The reply indicators to show in `canvas`: (markup id, the bubble's screen rect, how many

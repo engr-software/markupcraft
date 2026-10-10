@@ -80,6 +80,28 @@ pub fn run_console(app: &mut AppState) {
     }
 }
 
+/// Preferences > Advanced: a document's own JavaScript runs when it opens, when JavaScript is
+/// enabled and the document is trusted (in a trusted location, unless any document may).
+pub fn on_open(app: &mut AppState) {
+    let a = app.shell.prefs.more.advanced.clone();
+    let Some(d) = app.doc() else { return };
+    if !a.js_allowed(d.path.as_deref()) {
+        return;
+    }
+    let n = d.session.document_scripts().len();
+    if n == 0 {
+        return;
+    }
+    let Some(d) = app.doc_mut() else { return };
+    match d.session.run_document_scripts() {
+        Ok(o) => {
+            outcome(app, o);
+            app.status = format!("{}; ran {}", app.status, crate::actions::plural(n, "document script"));
+        }
+        Err(e) => push(&mut app.features.more6.script, format!("error: {e}")),
+    }
+}
+
 /// Tools > Run Document JavaScript: the document's own scripts, as on opening.
 pub fn run_document(app: &mut AppState) {
     let Some(d) = app.doc_mut() else { return };
@@ -102,7 +124,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
     let (mut run, mut clear, mut doc_scripts) = (false, false, false);
     let mut go: Option<String> = None;
     let st = &mut app.features.more6.script;
-    egui::Window::new("JavaScript Console")
+    crate::i18n::window("JavaScript Console")
         .id(egui::Id::new("js-console"))
         .open(&mut open)
         .default_size([520.0, 360.0])

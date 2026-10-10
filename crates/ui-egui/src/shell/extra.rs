@@ -742,7 +742,7 @@ fn revert_window(app: &mut AppState, ctx: &egui::Context) {
     };
     let mut open = true;
     let mut go = false;
-    egui::Window::new("Revert As")
+    crate::i18n::window("Revert As")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
@@ -784,7 +784,7 @@ fn deskew_window(app: &mut AppState, ctx: &egui::Context) {
     };
     let mut open = true;
     let (mut apply, mut line) = (false, false);
-    egui::Window::new("Deskew")
+    crate::i18n::window("Deskew")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
@@ -885,7 +885,7 @@ fn region_window(app: &mut AppState, ctx: &egui::Context) {
     let mut open = true;
     let (mut pick, mut apply, mut clear) = (false, false, false);
     let before = st.clone();
-    egui::Window::new("Page Labels from Region")
+    crate::i18n::window("Page Labels from Region")
         .open(&mut open)
         .collapsible(false)
         .default_width(420.0)
@@ -1000,7 +1000,7 @@ fn scale_window(app: &mut AppState, ctx: &egui::Context) {
     };
     let mut open = true;
     let mut ok = false;
-    egui::Window::new("Set Scale")
+    crate::i18n::window("Set Scale")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
@@ -1039,7 +1039,7 @@ fn sign_warning(app: &mut AppState, ctx: &egui::Context) {
     };
     let mut answer = None;
     let mut answer_hide = false;
-    egui::Window::new("Signed Document")
+    crate::i18n::window("Signed Document")
         .collapsible(false)
         .resizable(false)
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])

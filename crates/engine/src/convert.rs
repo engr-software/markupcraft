@@ -69,6 +69,10 @@ pub struct ImageExport {
     pub suffix: String,
     /// Leave markups out.
     pub hide_markups: bool,
+    /// TIFF: how the pixels are compressed.
+    pub tiff_compression: TiffCompression,
+    /// TIFF: every page in one multi-page file `<stem>.tif` (else a file per page).
+    pub multi_page_tiff: bool,
 }
 
 impl Default for ImageExport {
@@ -79,8 +83,130 @@ impl Default for ImageExport {
             pages: None,
             suffix: "_".into(),
             hide_markups: false,
+            tiff_compression: TiffCompression::default(),
+            multi_page_tiff: false,
         }
     }
+}
+
+/// How a TIFF's pixels are compressed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TiffCompression {
+    #[default]
+    None,
+    Lzw,
+    Deflate,
+    PackBits,
+}
+
+impl TiffCompression {
+    pub const ALL: [Self; 4] = [Self::None, Self::Lzw, Self::Deflate, Self::PackBits];
+
+    pub fn from_name(s: &str) -> Option<Self> {
+        Some(match s.to_ascii_lowercase().as_str() {
+            "none" | "uncompressed" => Self::None,
+            "lzw" => Self::Lzw,
+            "deflate" | "zip" => Self::Deflate,
+            "packbits" => Self::PackBits,
+            _ => return None,
+        })
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Lzw => "lzw",
+            Self::Deflate => "deflate",
+            Self::PackBits => "packbits",
+        }
+    }
+}
+
+/// RGB pages (width, height, pixels) as one TIFF, a page per image, compressed as asked.
+pub fn encode_tiff(pages: &[(usize, usize, Vec<u8>)], c: TiffCompression) -> Result<Vec<u8>> {
+    use tiff::encoder::{Compression, DeflateLevel, TiffEncoder, colortype::RGB8};
+    let fail = |e: tiff::TiffError| invalid(format!("the TIFF could not be encoded: {e}"));
+    let mut out = Cursor::new(Vec::new());
+    {
+        let comp = match c {
+            TiffCompression::None => Compression::Uncompressed,
+            TiffCompression::Lzw => Compression::Lzw,
+            TiffCompression::Deflate => Compression::Deflate(DeflateLevel::Balanced),
+            TiffCompression::PackBits => Compression::Packbits,
+        };
+        let mut enc = TiffEncoder::new(&mut out).map_err(fail)?.with_compression(comp);
+        for (w, h, rgb) in pages {
+            let (w32, h32) = (
+                u32::try_from(*w).map_err(|_| invalid("image too wide"))?,
+                u32::try_from(*h).map_err(|_| invalid("image too tall"))?,
+            );
+            if rgb.len() != w.saturating_mul(*h).saturating_mul(3) {
+                return Err(invalid("image size mismatch"));
+            }
+            enc.write_image::<RGB8>(w32, h32, rgb).map_err(fail)?;
+        }
+    }
+    Ok(out.into_inner())
+}
+
+/// How a document export is reconstructed (Preferences > Import/Export).
+#[derive(Debug, Clone, PartialEq)]
+pub struct ExportOptions {
+    /// Read pages without text with OCR first (on a copy), so their text exports too.
+    pub ocr: bool,
+    /// Excel: every page in one sheet (else a sheet per page).
+    pub excel_one_sheet: bool,
+    /// Numbers are written `1.234,5` (decimal comma) when telling numbers from text.
+    pub decimal_comma: bool,
+    /// PowerPoint: the resolution slides are rendered at, dots per inch (36 to 300).
+    pub slide_dpi: f64,
+    /// Word: a picture of each page goes in above its text (the layout as drawn).
+    pub word_page_pictures: bool,
+    /// Word: a page break between pages (else the pages run on as one flow of text).
+    pub word_page_breaks: bool,
+}
+
+impl Default for ExportOptions {
+    fn default() -> Self {
+        Self {
+            ocr: false,
+            excel_one_sheet: false,
+            decimal_comma: false,
+            slide_dpi: 150.0,
+            word_page_pictures: false,
+            word_page_breaks: true,
+        }
+    }
+}
+
+/// Pages run on as one: each page's paragraphs and pictures below the previous page's.
+pub fn run_on(pages: Vec<pdfcraft_export::Page>) -> Vec<pdfcraft_export::Page> {
+    if pages.len() < 2 {
+        return pages;
+    }
+    let total: f64 = pages.iter().map(|p| p.height.max(0.0)).sum();
+    let mut out = pdfcraft_export::Page {
+        width: pages.first().map_or(612.0, |p| p.width),
+        height: total,
+        ..Default::default()
+    };
+    let mut above = 0.0;
+    for p in pages {
+        // This page sits below the ones before it.
+        let dy = total - above - p.height.max(0.0);
+        for mut b in p.blocks {
+            b.rect[1] += dy;
+            b.rect[3] += dy;
+            out.blocks.push(b);
+        }
+        for mut im in p.images {
+            im.rect[1] += dy;
+            im.rect[3] += dy;
+            out.images.push(im);
+        }
+        above += p.height.max(0.0);
+    }
+    vec![out]
 }
 
 /// A document export format.
@@ -278,16 +404,26 @@ fn col_name(mut i: usize) -> String {
 
 /// A cell's number, when the whole cell is one (thousands separators allowed).
 pub fn cell_number(t: &str) -> Option<f64> {
+    cell_number_with(t, false)
+}
+
+/// A cell's number with the decimal separator a comma (`1.234,5`) or a point (`1,234.5`).
+pub fn cell_number_with(t: &str, decimal_comma: bool) -> Option<f64> {
     let t = t.trim();
+    let (dec, thousands) = if decimal_comma { (',', '.') } else { ('.', ',') };
     if t.is_empty()
         || !t
             .chars()
             .next()
-            .is_some_and(|c| c.is_ascii_digit() || c == '-' || c == '.')
+            .is_some_and(|c| c.is_ascii_digit() || c == '-' || c == dec)
     {
         return None;
     }
-    let clean: String = t.chars().filter(|c| *c != ',').collect();
+    let clean: String = t
+        .chars()
+        .filter(|c| *c != thousands)
+        .map(|c| if c == dec { '.' } else { c })
+        .collect();
     clean.parse::<f64>().ok().filter(|v| v.is_finite())
 }
 
@@ -303,6 +439,11 @@ fn sheet_name(s: &str, i: usize) -> String {
 
 /// An Excel workbook of these sheets.
 pub fn xlsx(sheets: &[(String, TextTable)]) -> Vec<u8> {
+    xlsx_with(sheets, false)
+}
+
+/// An Excel workbook of these sheets, numbers read with a decimal comma when asked.
+pub fn xlsx_with(sheets: &[(String, TextTable)], decimal_comma: bool) -> Vec<u8> {
     let mut zip = pdfcraft_export::Zip::default();
     let mut parts: Vec<(String, String)> = Vec::new();
     let mut ct = String::from(
@@ -344,7 +485,7 @@ pub fn xlsx(sheets: &[(String, TextTable)]) -> Vec<u8> {
                     continue;
                 }
                 let at = format!("{}{}", col_name(c), r + 1);
-                match cell_number(cell) {
+                match cell_number_with(cell, decimal_comma) {
                     Some(v) => sh.push_str(&format!("<c r=\"{at}\"><v>{v}</v></c>")),
                     None => sh.push_str(&format!(
                         "<c r=\"{at}\" t=\"inlineStr\"><is><t xml:space=\"preserve\">{}</t></is></c>",
@@ -484,9 +625,25 @@ impl Session {
         let width = self.page_count().to_string().len();
         let doc = self.renderable(o.hide_markups)?;
         let mut out = Vec::new();
+        if o.format == ImageFormat::Tiff && o.multi_page_tiff {
+            // Every page in one TIFF.
+            let mut imgs = Vec::new();
+            for p in &pages {
+                let img = doc.render_rgba(*p, (o.dpi / 72.0) as f32)?;
+                imgs.push((img.w, img.h, rgb_on_white(&img.rgba)));
+            }
+            let path = dir.join(format!("{stem}.tif"));
+            write_atomic(&path, &encode_tiff(&imgs, o.tiff_compression)?)?;
+            out.push(path);
+            return Ok(out);
+        }
         for p in pages {
             let img = doc.render_rgba(p, (o.dpi / 72.0) as f32)?;
-            let bytes = encode_rgb(img.w, img.h, rgb_on_white(&img.rgba), o.format)?;
+            let bytes = if o.format == ImageFormat::Tiff {
+                encode_tiff(&[(img.w, img.h, rgb_on_white(&img.rgba))], o.tiff_compression)?
+            } else {
+                encode_rgb(img.w, img.h, rgb_on_white(&img.rgba), o.format)?
+            };
             let path = dir.join(format!("{stem}{}{:0width$}.{}", o.suffix, p + 1, o.format.extension()));
             write_atomic(&path, &bytes)?;
             out.push(path);
@@ -665,6 +822,35 @@ impl Session {
         format: Option<OfficeFormat>,
         pages: Option<Vec<usize>>,
     ) -> Result<usize> {
+        self.export_document_with(out, format, pages, &ExportOptions::default())
+    }
+
+    /// [`Session::export_document`] with reconstruction options.
+    pub fn export_document_with(
+        &self,
+        out: &Path,
+        format: Option<OfficeFormat>,
+        pages: Option<Vec<usize>>,
+        o: &ExportOptions,
+    ) -> Result<usize> {
+        if !(o.slide_dpi.is_finite() && (36.0..=300.0).contains(&o.slide_dpi)) {
+            return Err(invalid("slide resolution: 36 to 300 dpi"));
+        }
+        if o.ocr {
+            // On a copy: OCR the pages without text, then export the copy.
+            let list = check_pages(self, &pages)?;
+            let mut t = Session::from_bytes(self.current_bytes()?.as_ref().clone(), self.path())?;
+            let opts = crate::ocr::OcrOptions {
+                pages: list,
+                ..Default::default()
+            };
+            t.ocr(&opts, crate::ocr::recognizer()?.as_ref())?;
+            let rest = ExportOptions {
+                ocr: false,
+                ..o.clone()
+            };
+            return t.export_document_with(out, format, pages, &rest);
+        }
         let format = format
             .or_else(|| OfficeFormat::from_path(out))
             .ok_or_else(|| invalid("export to .txt, .html, .rtf, .docx, .xlsx or .pptx"))?;
@@ -687,7 +873,29 @@ impl Session {
             }
             OfficeFormat::Html => pdfcraft_export::html(&self.export_pages(&pages)?, &title).into_bytes(),
             OfficeFormat::Rtf => pdfcraft_export::rtf(&self.export_pages(&pages)?).into_bytes(),
-            OfficeFormat::Docx => pdfcraft_export::docx(&self.export_pages(&pages)?, &title),
+            OfficeFormat::Docx => {
+                let mut list = self.export_pages(&pages)?;
+                if o.word_page_pictures {
+                    // A picture of each page at the top of its page.
+                    let doc = self.renderable(false)?;
+                    for (p, page) in pages.iter().zip(list.iter_mut()) {
+                        let geom = doc.geom(*p)?;
+                        let (w, h) = (geom.width as f64, geom.height as f64);
+                        let scale = (2000.0 / w.max(h).max(1.0)).min(96.0 / 72.0) as f32;
+                        let img = doc.render_rgba(*p, scale)?;
+                        let png = encode_rgb(img.w, img.h, rgb_on_white(&img.rgba), ImageFormat::Png)?;
+                        page.images.push(pdfcraft_export::Image {
+                            ext: "png",
+                            bytes: png,
+                            rect: [0.0, h + 1.0, w, 2.0 * h + 1.0],
+                        });
+                    }
+                }
+                if !o.word_page_breaks {
+                    list = run_on(list);
+                }
+                pdfcraft_export::docx(&list, &title)
+            }
             OfficeFormat::Xlsx => {
                 let doc = Renderable::new(self.current_bytes()?, true)?;
                 let mut sheets = Vec::new();
@@ -704,7 +912,18 @@ impl Session {
                     };
                     sheets.push((name, words_to_table(ws)));
                 }
-                xlsx(&sheets)
+                if o.excel_one_sheet && sheets.len() > 1 {
+                    // One sheet: the pages one after another, a blank row between.
+                    let mut all = TextTable::default();
+                    for (k, (_, t)) in sheets.iter().enumerate() {
+                        if k > 0 {
+                            all.rows.push(Vec::new());
+                        }
+                        all.rows.extend(t.rows.iter().cloned());
+                    }
+                    sheets = vec![(title.clone(), all)];
+                }
+                xlsx_with(&sheets, o.decimal_comma)
             }
             OfficeFormat::Pptx => {
                 let doc = self.renderable(false)?;
@@ -712,7 +931,7 @@ impl Session {
                 for p in &pages {
                     let geom = doc.geom(*p)?;
                     let (w, h) = (geom.width as f64, geom.height as f64);
-                    let scale = (1600.0 / w.max(h).max(1.0)).min(150.0 / 72.0) as f32;
+                    let scale = (4000.0 / w.max(h).max(1.0)).min(o.slide_dpi / 72.0) as f32;
                     let img = doc.render_rgba(*p, scale)?;
                     let png = encode_rgb(img.w, img.h, rgb_on_white(&img.rgba), ImageFormat::Png)?;
                     pics.push((png, w, h));
@@ -764,6 +983,25 @@ mod tests {
         );
         assert_eq!(cell_number("1,200"), Some(1200.0));
         assert_eq!(cell_number("AHU-1"), None);
+        assert_eq!(cell_number_with("1.234,5", true), Some(1234.5));
+        assert_eq!(cell_number_with("12,5", false), Some(125.0));
+        // Word: pages run on as one, the second below the first.
+        let page = |t: &str| pdfcraft_export::Page {
+            width: 612.0,
+            height: 792.0,
+            blocks: vec![pdfcraft_export::Block {
+                text: t.into(),
+                rect: [72.0, 700.0, 300.0, 712.0],
+                size: 12.0,
+                bold: false,
+                italic: false,
+            }],
+            images: Vec::new(),
+        };
+        let one = run_on(vec![page("first"), page("second")]);
+        assert_eq!(one.len(), 1);
+        let b = &one[0].blocks;
+        assert!(b[0].rect[1] > b[1].rect[1], "the first page's text stays above");
         assert!(s.region_table(0, Rect::new(0.0, 0.0, 0.5, 0.5)).is_err());
     }
 

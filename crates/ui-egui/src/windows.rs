@@ -76,7 +76,7 @@ fn calibrate(app: &mut AppState, ctx: &egui::Context) {
         .iter()
         .find(|d| d.uid == c.doc)
         .map_or(0, |d| d.session.page_count());
-    egui::Window::new("Calibrate")
+    crate::i18n::window("Calibrate")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)

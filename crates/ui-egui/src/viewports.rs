@@ -133,7 +133,7 @@ pub fn dialog(app: &mut AppState, ctx: &egui::Context) {
     let Some(mut v) = app.edit.viewport.clone() else { return };
     let mut open = true;
     let (mut ok, mut cancel) = (false, false);
-    egui::Window::new("Add Viewport")
+    crate::i18n::window("Add Viewport")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)

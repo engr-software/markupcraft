@@ -90,7 +90,7 @@ pub static REMOVE: Tool = Tool {
 pub static ADD: Tool = Tool {
     name: "stamp_add",
     title: "Place a stamp",
-    description: "Place a stamp on `page`, in `rect` or centred at `at`: a library stamp (`stamp` id), free `text` (dynamic fields filled), or an `image` file (PNG, or `image_page` of a PDF). `answers` fill {prompt:...} fields; `time` (seconds since 1970) fixes the date and time fields. Undoable.",
+    description: "Place a stamp on `page`, in `rect` or centred at `at`: a library stamp (`stamp` id), free `text` (dynamic fields filled), or an `image` file (PNG, JPEG, BMP, TIFF or GIF, stored losslessly or as JPEG at `jpeg_quality`; or `image_page` of a PDF). `answers` fill {prompt:...} fields; `time` (seconds since 1970) fixes the date and time fields. Undoable.",
     read_only: false,
     destructive: false,
     schema: || {
@@ -108,7 +108,8 @@ pub static ADD: Tool = Tool {
                 "time": { "type": "integer" },
                 "opacity": { "type": "number", "description": "0.05 to 1 (default: the stamp settings')." },
                 "blend": { "type": "string", "enum": ["normal", "multiply"], "description": "Default: the stamp settings'." },
-                "lock": { "type": "boolean", "description": "Default: the stamp settings'." }
+                "lock": { "type": "boolean", "description": "Default: the stamp settings'." },
+                "jpeg_quality": { "type": "integer", "minimum": 1, "maximum": 100, "description": "For a picture: store it as JPEG at this quality (default: losslessly)." }
             }),
             &["page"],
         )
@@ -163,7 +164,13 @@ pub static ADD: Tool = Tool {
             st.lock = v;
         }
         st.validate()?;
+        let jpeg = match args.opt_u64("jpeg_quality")? {
+            Some(q) if (1..=100).contains(&q) => Some(q as u8),
+            Some(_) => return Err(bad_args("jpeg_quality: 1 to 100")),
+            None => None,
+        };
         let (doc, s) = a.session(args)?;
+        s.set_image_encoding(jpeg);
         s.set_merge_key(Some("stamp-add"));
         let placed = (|| -> markupcraft_engine::Result<String> {
             let id = s.place_stamp(page, at, &source, lib.as_ref(), &answers, when)?;

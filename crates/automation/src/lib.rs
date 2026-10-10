@@ -88,6 +88,8 @@ pub struct Automation {
     author: String,
     /// preferences, profiles and the stamp library (None = the user's config folder)
     config_dir: Option<PathBuf>,
+    /// Background jobs (job_start / job_list / job_wait / job_cancel).
+    jobs: markupcraft_engine::jobs::JobQueue,
 }
 
 impl Default for Automation {
@@ -106,6 +108,7 @@ impl Automation {
             clipboard: Vec::new(),
             author: String::new(),
             config_dir: None,
+            jobs: Default::default(),
         }
     }
 
@@ -221,6 +224,11 @@ impl Automation {
             .map(|(_, s)| s)
             .ok_or_else(|| failed("document vanished"))?;
         Ok((id, s))
+    }
+
+    /// The background job queue.
+    pub fn jobs(&self) -> &markupcraft_engine::jobs::JobQueue {
+        &self.jobs
     }
 
     pub(crate) fn clipboard(&self) -> &[Markup] {

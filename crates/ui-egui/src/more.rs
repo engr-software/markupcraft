@@ -197,7 +197,12 @@ pub fn run(app: &mut AppState, id: &str) {
                 "Temporary measurements: the value is read out, nothing is added".into()
             };
         }
-        "measure.keep_subject" => app.edit.more.keep_subject = !app.edit.more.keep_subject,
+        "measure.keep_subject" => {
+            // The preference (Tools > Measure) follows the command.
+            app.edit.more.keep_subject = !app.edit.more.keep_subject;
+            app.shell.prefs.more.measure.keep_subject_label = app.edit.more.keep_subject;
+            app.shell.save_prefs();
+        }
         "view.rollover_comments" => app.edit.more.rollover = !app.edit.more.rollover,
         "view.note_popups" => app.edit.more.popups = !app.edit.more.popups,
         "markup.line_styles" => app.edit.chest_rt.styles_open = true,
@@ -704,7 +709,7 @@ pub fn frame(app: &mut AppState, ctx: &egui::Context) {
     let mut next_at = at;
     if let Some(d) = app.doc_mut() {
         let rows = review_rows(d.session.doc());
-        egui::Window::new("Review Text")
+        crate::i18n::window("Review Text")
             .open(&mut open)
             .default_width(420.0)
             .default_height(380.0)
@@ -781,7 +786,7 @@ fn edit_action_window(app: &mut AppState, ctx: &egui::Context) {
     };
     let mut open = true;
     let mut apply = false;
-    egui::Window::new("Edit Action")
+    crate::i18n::window("Edit Action")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
@@ -918,14 +923,10 @@ pub fn paint_popup(p: &egui::Painter, xf: &crate::painter::Xf, m: &Markup) {
         egui::Stroke::new(1.0, egui::Color32::from_gray(120)),
         egui::StrokeKind::Inside,
     );
-    let head = if m.author.is_empty() {
-        m.subject.clone()
-    } else {
-        m.author.clone()
-    };
-    let body: String = m.contents.replace('\r', "\n").chars().take(2000).collect();
+    // The author and date over the comment (Preferences > Tools > Markup), else the subject.
+    let text = markupcraft_engine::printing::popup_text(m, crate::markup_prefs::opts().popup_author_date);
     let galley = p.layout(
-        format!("{head}\n{body}"),
+        text,
         egui::FontId::proportional(xf.len(9.0).clamp(7.0, 18.0)),
         egui::Color32::BLACK,
         (sr.width() - 8.0).max(10.0),

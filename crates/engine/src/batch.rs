@@ -87,6 +87,12 @@ pub fn load_set(path: &Path) -> Result<DrawingSet> {
 
 /// Write a set file (atomic); files inside its folder are stored relative to it.
 pub fn save_set(path: &Path, set: &DrawingSet) -> Result<()> {
+    save_set_with(path, set, true)
+}
+
+/// Write a set file with its files stored relative to its folder (when inside it), or with
+/// `relative` false always as full paths (Preferences > Sets).
+pub fn save_set_with(path: &Path, set: &DrawingSet, relative: bool) -> Result<()> {
     if set.files.is_empty() || set.files.len() > MAX_FILES {
         return Err(invalid(format!("a set holds 1 to {MAX_FILES} files")));
     }
@@ -98,7 +104,11 @@ pub fn save_set(path: &Path, set: &DrawingSet) -> Result<()> {
         .iter()
         .map(|f| {
             let abs = f.canonicalize().unwrap_or_else(|_| f.clone());
-            match base.as_ref().and_then(|b| abs.strip_prefix(b).ok()) {
+            match base
+                .as_ref()
+                .filter(|_| relative)
+                .and_then(|b| abs.strip_prefix(b).ok())
+            {
                 Some(rel) => rel.to_string_lossy().replace('\\', "/"),
                 None => abs.to_string_lossy().into_owned(),
             }

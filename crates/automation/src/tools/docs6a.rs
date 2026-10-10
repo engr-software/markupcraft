@@ -295,13 +295,13 @@ pub static BATCH_SIGN: Tool = Tool {
 pub static SHELL_INTEGRATION: Tool = Tool {
     name: "shell_integration",
     title: "File manager integration",
-    description: "Explorer / Finder / Linux file manager entries for Combine in MarkupCraft and Convert to PDF with MarkupCraft. action write: write the files a user installs themselves into the folder `dir` (a current-user .reg file and Send To commands on Windows, Quick Actions on macOS, a KDE service menu and Nautilus scripts on Linux, each with a README; nothing outside `dir` changes) for `os` (windows, macos, linux; default this one) running the CLI at `cli`. combine / convert run what those entries run on `files`.",
+    description: "Explorer / Finder / Linux file manager entries for Combine in MarkupCraft and Convert to PDF with MarkupCraft. action write: write the files a user installs themselves into the folder `dir` (a current-user .reg file and Send To commands on Windows, Quick Actions on macOS, a KDE service menu and Nautilus scripts on Linux, each with a README; nothing outside `dir` changes) for `os` (windows, macos, linux; default this one) running the CLI at `cli`. combine / convert run what those entries run on `files`. default_viewer: write the files that make the program at `cli` (here the MarkupCraft app) the default PDF viewer for the user to apply (a current-user .reg on Windows, an xdg-mime script on Linux, a duti script on macOS).",
     read_only: false,
     destructive: true,
     schema: || {
         schema_nodoc(
             json!({
-                "action": { "type": "string", "enum": ["write", "combine", "convert"] },
+                "action": { "type": "string", "enum": ["write", "combine", "convert", "default_viewer"] },
                 "dir": path_arg("Folder for the integration files"),
                 "cli": { "type": "string", "description": "The path of markupcraft-cli the entries run." },
                 "os": { "type": "string", "enum": ["windows", "macos", "linux"] },
@@ -319,6 +319,16 @@ pub static SHELL_INTEGRATION: Tool = Tool {
             };
             let cli = PathBuf::from(args.str("cli")?);
             let files = write_integration(&dir, &cli, os)?;
+            Ok(json!({ "files": files.iter().map(|f| f.display().to_string()).collect::<Vec<_>>() }))
+        }
+        "default_viewer" => {
+            let dir = a.resolve(args.str("dir")?, true)?;
+            let os = match args.opt_str("os")? {
+                Some(o) => TargetOs::from_name(o).ok_or_else(|| bad_args(format!("os {o:?}")))?,
+                None => TargetOs::current(),
+            };
+            let app = PathBuf::from(args.str("cli")?);
+            let files = markupcraft_engine::shell_integration::write_default_viewer(&dir, &app, os)?;
             Ok(json!({ "files": files.iter().map(|f| f.display().to_string()).collect::<Vec<_>>() }))
         }
         "combine" => {

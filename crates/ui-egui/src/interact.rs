@@ -29,9 +29,19 @@ use crate::theme::Tokens;
 use crate::tools::{self, DragShape, Role, ToolDef, ToolKind};
 
 /// The pointer within this many screen points of a handle grabs it.
-const HANDLE_REACH: f32 = 6.0;
+const HANDLE_REACH_PX: f32 = 6.0;
 /// Click tolerance for picking a markup, screen points.
-const PICK: f32 = 5.0;
+const PICK_PX: f32 = 5.0;
+
+/// How near a handle the pointer must be (larger in the touch input mode).
+fn handle_reach() -> f32 {
+    HANDLE_REACH_PX * crate::tablet_prefs::touch_factor()
+}
+
+/// How near a markup a click picks it (larger in the touch input mode).
+fn pick() -> f32 {
+    PICK_PX * crate::tablet_prefs::touch_factor()
+}
 /// Default text box size (points) when the Text Box tool is clicked rather than dragged.
 const TEXT_BOX: (f64, f64) = (180.0, 40.0);
 /// Default callout box size.
@@ -198,6 +208,34 @@ pub fn run(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mut Ca
         editor_ui(ix, doc, out);
     }
     let drafting = doc.view.draft.is_some();
+    // Preferences > Tablet: a right-button drag lassoes markups, whatever the tool.
+    let ring = {
+        let xfs = ix.xfs;
+        crate::tablet_prefs::right_lasso(ix.resp, ix.ui, |s| {
+            xfs.iter()
+                .find(|(_, xf)| xf.rect.expand(4.0).contains(s))
+                .map(|(i, xf)| (*i, xf.to_user(s)))
+        })
+    };
+    if let Some((page, ring)) = ring {
+        let r = doc.session.select_lasso(page, &ring, false);
+        out.status = Some(actions::report(r, |n| {
+            format!("Lasso: {} selected", actions::plural(n, "markup"))
+        }));
+        return;
+    }
+    if let Some((page, ring)) = crate::tablet_prefs::lasso_ring()
+        && let Some(xf) = ix.xf(page)
+    {
+        let line: Vec<Pos2> = ring.iter().map(|p| xf.to_screen(*p)).collect();
+        ix.painter.extend(egui::Shape::dashed_line(
+            &line,
+            egui::Stroke::new(1.2, ix.tokens.select),
+            5.0,
+            3.0,
+        ));
+        return;
+    }
     if !ix.panning && !had_editor {
         match cx.tool.kind {
             ToolKind::Pan => {}
@@ -341,9 +379,22 @@ fn draw_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mut 
     let tool = cx.tool;
     let (press, click, release, dbl, right, cur) = pointer_frame(ix);
     if let Some(s) = ix.resp.hover_pos()
-        && ix.page_at(s).is_some()
+        && let Some((_, xf)) = ix.page_at(s)
     {
-        ix.ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
+        if matches!(tool.kind, ToolKind::Freehand(_)) && crate::tablet_prefs::opts().pen_dot {
+            // Preferences > Tablet: the pen's cursor is a dot as wide as its line.
+            ix.ui.ctx().set_cursor_icon(egui::CursorIcon::None);
+            let look = styled(markupcraft_model::Markup::new(Kind::Ink, 0, Vec::new()), cx);
+            let c = look.color;
+            let col = egui::Color32::from_rgb(
+                (c.r.clamp(0.0, 1.0) * 255.0) as u8,
+                (c.g.clamp(0.0, 1.0) * 255.0) as u8,
+                (c.b.clamp(0.0, 1.0) * 255.0) as u8,
+            );
+            crate::tablet_prefs::paint_pen_dot(ix.painter, s, (look.line_width as f32 * xf.k) / 2.0, col);
+        } else {
+            ix.ui.ctx().set_cursor_icon(egui::CursorIcon::Crosshair);
+        }
     }
     // A draft from another tool (the tool changed) is dropped.
     if doc.view.draft.as_ref().is_some_and(|d| d.tool != tool.id) {
@@ -421,8 +472,9 @@ fn draw_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mut 
             let Some(cur) = release.or(cur) else { return };
             let a = d.pts.first().copied().unwrap_or_default();
             let b = tool_point(ix, doc, cx, d.page, xf.to_user(cur), Some(a), true);
-            // Alt: the first point is the centre.
-            let (a, b) = crate::modkeys::from_center(ix.ui.input(|i| i.modifiers.alt), a, b);
+            // Alt: the first point is the centre (or a corner, when shapes draw from the centre).
+            let centre = ix.ui.input(|i| i.modifiers.alt) != crate::markup_prefs::opts().draw_from_center;
+            let (a, b) = crate::modkeys::from_center(centre, a, b);
             let m = tools::new_markup(kind, d.page, &[a, b]);
             if release.is_some() {
                 doc.view.draft = None;
@@ -438,6 +490,10 @@ fn draw_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mut 
             }
         }
         ToolKind::Freehand(kind) => {
+            if press.is_some() {
+                crate::tablet_prefs::start_stroke();
+            }
+            crate::tablet_prefs::read_forces(ix.ui);
             if let Some(s) = press
                 && let Some((page, xf)) = ix.page_at(s)
             {
@@ -461,8 +517,8 @@ fn draw_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mut 
             let m = tools::new_markup(kind, d.page, &d.pts).map(|m| styled(m, cx));
             if release.is_some() {
                 doc.view.draft = None;
-                if let Some(m) = m {
-                    add_markup(doc, tool, m, None, out);
+                if let Some(mut m) = m {
+                    pen_stroke_done(ix, doc, tool, &mut m, &d.pts, out);
                 }
             } else if let Some(m) = m {
                 preview(ix, d.page, &m);
@@ -571,6 +627,9 @@ pub(crate) fn styled(mut m: Markup, cx: &CanvasCx<'_>) -> Markup {
         && t.kind == m.kind
     {
         tools::apply_look(t, &mut m);
+    } else if let Some(r) = crate::markup_prefs::remembered(m.kind) {
+        // Remember Last Properties: the tool draws like its last markup.
+        tools::apply_look(&r, &mut m);
     }
     crate::more::keep_subject(&mut m, cx);
     m
@@ -1065,6 +1124,47 @@ fn finish_typed(doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mut CanvasOut) {
     }
 }
 
+/// A Pen or Highlight stroke was finished (Preferences > Tablet): the Highlight pen over page
+/// text highlights the text, pressure sets the width, and a stroke soon after the last one
+/// joins its markup.
+fn pen_stroke_done(
+    ix: &Input<'_>,
+    doc: &mut DocTab,
+    tool: &'static ToolDef,
+    m: &mut Markup,
+    pts: &[Point],
+    out: &mut CanvasOut,
+) {
+    let t = crate::tablet_prefs::opts();
+    if m.kind == Kind::Highlight
+        && t.pen_text_highlight
+        && let (Some(a), Some(b)) = (pts.first().copied(), pts.last().copied())
+        && let Some(xf) = ix.xf(m.page)
+    {
+        let quads = text_quads(doc, xf, m.page, a, b, false);
+        if let Some(mut h) = tools::new_markup(Kind::TextHighlight, m.page, &quads) {
+            h.color = m.color;
+            add_markup(doc, tool, h, None, out);
+            return;
+        }
+    }
+    m.line_width = crate::tablet_prefs::pressed_width(m.line_width);
+    let now = ix.ui.input(|i| i.time);
+    if m.kind == Kind::Ink
+        && let Some(id) = crate::tablet_prefs::joins(doc.uid, m.page, now)
+        && doc.session.append_ink_stroke(&id, pts).is_ok()
+    {
+        crate::tablet_prefs::stroke_made(doc.uid, &id, m.page, now);
+        out.status = Some("Stroke added to the pen markup".into());
+        return;
+    }
+    if let Some(id) = add_markup(doc, tool, m.clone(), None, out)
+        && m.kind == Kind::Ink
+    {
+        crate::tablet_prefs::stroke_made(doc.uid, &id, m.page, now);
+    }
+}
+
 /// Esc while drawing: Count keeps what it counted; other drafts are dropped. Returns whether
 /// there was a draft or an editor.
 pub fn escape(doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mut CanvasOut) -> bool {
@@ -1095,10 +1195,22 @@ pub(crate) fn add_markup(
     group_with: Option<String>,
     out: &mut CanvasOut,
 ) -> Option<String> {
-    if m.kind.is_text() {
+    let opts = crate::markup_prefs::opts();
+    // A text box fits its text (unless the preference keeps the drawn box; a click-placed
+    // box too small to hold anything still grows).
+    let tiny = {
+        let r = crate::actions::markup_bbox(&m);
+        r.width() < 4.0 || r.height() < 4.0
+    };
+    if m.kind.is_text() && (opts.autosize_text || tiny) {
         markupcraft_revu::kinds::text::autosize_text_box(&mut m);
     }
+    // Text markups take the page text under them as their comment.
+    if opts.copy_text_to_comment && crate::markup_prefs::marks_text(m.kind) && m.contents.is_empty() {
+        m.contents = crate::markup_prefs::text_under(&doc.session, &m);
+    }
     crate::gestures::prepare(doc, &mut m);
+    crate::markup_prefs::remember(&m);
     match doc.session.add_markup(m.clone()) {
         Ok(id) => {
             if let Some(g) = group_with {
@@ -1117,7 +1229,25 @@ pub(crate) fn add_markup(
 }
 
 fn snapshot_to_clipboard(doc: &mut DocTab, m: Markup, out: &mut CanvasOut) {
-    doc.session.set_clipboard(vec![m]);
+    let mut items = vec![m.clone()];
+    if crate::markup_prefs::opts().snapshot_markups {
+        // The markups inside the snapshot's box go with it.
+        let r = m.rect.normalized();
+        items.extend(
+            doc.session
+                .doc()
+                .markups
+                .iter()
+                .filter(|x| x.page == m.page && x.kind != Kind::Snapshot)
+                .filter(|x| {
+                    let b = crate::actions::markup_bbox(x);
+                    b.x0 >= r.x0 && b.y0 >= r.y0 && b.x1 <= r.x1 && b.y1 <= r.y1
+                })
+                .take(5_000)
+                .cloned(),
+        );
+    }
+    doc.session.set_clipboard(items);
     out.status = Some("Snapshot copied: Ctrl+V pastes it where the pointer is".into());
     out.done = true;
 }
@@ -1584,7 +1714,7 @@ pub fn commit_editor(doc: &mut DocTab, out: &mut CanvasOut) {
             }
             let mut sized = m.clone();
             sized.contents = text.clone();
-            if sized.kind.is_text() {
+            if sized.kind.is_text() && crate::markup_prefs::opts().autosize_text {
                 markupcraft_revu::kinds::text::autosize_text_box(&mut sized);
             }
             doc.session.set_merge_key(Some("edit-text"));
@@ -1780,7 +1910,7 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
         if let Some(s) = click.or(press)
             && let Some((page, xf)) = ix.page_at(s)
         {
-            let tol = f64::from(PICK / xf.k.max(1e-6));
+            let tol = f64::from(pick() / xf.k.max(1e-6));
             if let Some(id) = top_hit(doc, page, xf.to_user(s), tol) {
                 crate::editing::paint_format(doc, template, &id, out);
             }
@@ -1812,7 +1942,7 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
         match ix.page_at(s) {
             Some((page, xf)) => {
                 let at = xf.to_user(s);
-                let tol = f64::from(PICK / xf.k.max(1e-6));
+                let tol = f64::from(pick() / xf.k.max(1e-6));
                 let selection = doc.session.selection().to_vec();
                 let caption = if mods.shift { caption_at(ix, doc, page, s) } else { None };
                 let handle = doc
@@ -1823,7 +1953,7 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
                     .find_map(|m| {
                         painter::handles(m)
                             .iter()
-                            .position(|h| xf.to_screen(*h).distance(s) <= HANDLE_REACH + 1.0)
+                            .position(|h| xf.to_screen(*h).distance(s) <= handle_reach() + 1.0)
                             .map(|i| (m.id.clone(), i))
                     });
                 if let Some(id) = caption {
@@ -1892,7 +2022,7 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
     let click = match click {
         Some(s) if doc.view.gesture.is_none() && (mods.shift || mods.command) => match ix.page_at(s) {
             Some((page, xf)) => {
-                let reach = f64::from((HANDLE_REACH + 2.0) / xf.k.max(1e-6));
+                let reach = f64::from((handle_reach() + 2.0) / xf.k.max(1e-6));
                 match crate::modkeys::vertex_click(doc, page, xf.to_user(s), reach, mods.shift) {
                     Some(msg) => {
                         out.status = Some(msg);
@@ -1911,7 +2041,7 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
     {
         match ix.page_at(s) {
             Some((page, xf)) => {
-                let tol = f64::from(PICK / xf.k.max(1e-6));
+                let tol = f64::from(pick() / xf.k.max(1e-6));
                 match top_hit(doc, page, xf.to_user(s), tol) {
                     Some(id) if add => actions::toggle_selected(&mut doc.session, &id),
                     Some(id) => {
@@ -1932,7 +2062,7 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
         && let Some(s) = ix.resp.interact_pointer_pos()
         && let Some((page, xf)) = ix.page_at(s)
     {
-        let tol = f64::from(PICK / xf.k.max(1e-6));
+        let tol = f64::from(pick() / xf.k.max(1e-6));
         if let Some(id) = top_hit(doc, page, xf.to_user(s), tol)
             && edit_existing(doc, &id)
         {
@@ -2028,7 +2158,24 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
                     if let Some(r) = crate::modkeys::corner_box(&m, k, to, shift) {
                         if release.is_some() {
                             doc.view.preview.clear();
-                            let res = doc.session.resize_markup(&id, r);
+                            let before = crate::actions::markup_bbox(&m);
+                            doc.session.set_merge_key(Some("corner-resize"));
+                            let mut res = doc.session.resize_markup(&id, r);
+                            if res.is_ok() && crate::markup_prefs::opts().scale_appearance {
+                                // The line width and text size scale with the shape.
+                                let k = crate::markup_prefs::scale_factor(before, r);
+                                let patch = markupcraft_engine::MarkupPatch {
+                                    line_width: Some((m.line_width * k).clamp(0.0, 144.0)),
+                                    font_size: m.kind.is_text().then(|| (m.text.size * k).clamp(1.0, 720.0)),
+                                    ..Default::default()
+                                };
+                                res = doc
+                                    .session
+                                    .set_properties(std::slice::from_ref(&id), &patch)
+                                    .map(|_| ());
+                            }
+                            doc.session.set_merge_key(None);
+                            doc.session.seal();
                             out.status = Some(actions::report(res, |_| "Resized".into()));
                         } else {
                             let mut c = m.clone();
@@ -2145,7 +2292,7 @@ fn select_tool(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &mu
         && let Some(s) = ix.resp.hover_pos()
         && let Some((page, xf)) = ix.page_at(s)
     {
-        let tol = f64::from(PICK / xf.k.max(1e-6));
+        let tol = f64::from(pick() / xf.k.max(1e-6));
         if mods.shift && caption_at(ix, doc, page, s).is_some() {
             ix.ui.ctx().set_cursor_icon(egui::CursorIcon::Move);
         } else if let Some(id) = top_hit(doc, page, xf.to_user(s), tol) {
@@ -2191,7 +2338,7 @@ fn rotate_handle(ix: &Input<'_>, doc: &DocTab) -> Option<(String, usize, Point, 
 
 fn rotate_handle_at(ix: &Input<'_>, doc: &DocTab, s: Pos2) -> Option<(String, usize, Point)> {
     let (id, page, pivot, _, h) = rotate_handle(ix, doc)?;
-    (h.distance(s) <= HANDLE_REACH + 1.0).then_some((id, page, pivot))
+    (h.distance(s) <= handle_reach() + 1.0).then_some((id, page, pivot))
 }
 
 fn paint_rotate_handle(ix: &Input<'_>, doc: &DocTab) {
@@ -2202,7 +2349,11 @@ fn paint_rotate_handle(ix: &Input<'_>, doc: &DocTab) {
     ix.painter.line_segment([top, h], st);
     ix.painter.circle_filled(h, 4.5, Color32::WHITE);
     ix.painter.circle_stroke(h, 4.5, st);
-    if ix.resp.hover_pos().is_some_and(|p| p.distance(h) <= HANDLE_REACH + 1.0) {
+    if ix
+        .resp
+        .hover_pos()
+        .is_some_and(|p| p.distance(h) <= handle_reach() + 1.0)
+    {
         ix.ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
     }
 }
@@ -2237,7 +2388,7 @@ fn context_menu(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &m
         && let Some((page, xf)) = ix.page_at(s)
     {
         let at = xf.to_user(s);
-        let tol = f64::from(PICK / xf.k.max(1e-6));
+        let tol = f64::from(pick() / xf.k.max(1e-6));
         let id = top_hit(doc, page, at, tol);
         let mut target = ContextTarget {
             page,
@@ -2257,7 +2408,7 @@ fn context_menu(ix: &mut Input<'_>, doc: &mut DocTab, cx: &CanvasCx<'_>, out: &m
                 target.vertex = m
                     .pts
                     .iter()
-                    .position(|p| xf.to_screen(*p).distance(s) <= HANDLE_REACH + 2.0);
+                    .position(|p| xf.to_screen(*p).distance(s) <= handle_reach() + 2.0);
                 let closed = measure_extras::closed_shape(m.kind) || matches!(m.kind, Kind::Polygon | Kind::Cloud);
                 if target.vertex.is_none() && measure_extras::can_add_vertices(m.kind) {
                     target.segment = measure_extras::nearest_segment(&m.pts, closed, at, tol * 2.0);

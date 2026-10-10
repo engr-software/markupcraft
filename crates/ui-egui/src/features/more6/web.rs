@@ -236,7 +236,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
     let mut remove: Option<String> = None;
     let favs = favorites(app);
     let st = &mut app.features.more6.web;
-    egui::Window::new("Web Tab")
+    crate::i18n::window("Web Tab")
         .id(egui::Id::new("web-tab"))
         .open(&mut open)
         .default_width(520.0)

@@ -155,6 +155,17 @@ pub struct TaggedSheet {
 
 /// Every sheet of the set with its derived and custom tags.
 pub fn tagged_sheets(set: &DrawingSet, sort: SetSort, rules: &[CategoryRule]) -> (Vec<TaggedSheet>, Vec<String>) {
+    tagged_sheets_with(set, sort, rules, true)
+}
+
+/// [`tagged_sheets`]; with `auto_tags` false the discipline and sheet type are not derived
+/// from the sheet number (the sheet number, revision and custom tags stay).
+pub fn tagged_sheets_with(
+    set: &DrawingSet,
+    sort: SetSort,
+    rules: &[CategoryRule],
+    auto_tags: bool,
+) -> (Vec<TaggedSheet>, Vec<String>) {
     let (sheets, errors) = set_sheets(set, sort);
     let out = sheets
         .into_iter()
@@ -170,10 +181,12 @@ pub fn tagged_sheets(set: &DrawingSet, sort: SetSort, rules: &[CategoryRule]) ->
             if let Some(r) = revision_of(&fname) {
                 tags.insert("Revision".to_string(), r.to_string());
             }
-            tags.insert("Discipline".to_string(), category_of(&number, rules));
-            let ty = sheet_type(&number);
-            if !ty.is_empty() {
-                tags.insert("Sheet Type".to_string(), ty);
+            if auto_tags {
+                tags.insert("Discipline".to_string(), category_of(&number, rules));
+                let ty = sheet_type(&number);
+                if !ty.is_empty() {
+                    tags.insert("Sheet Type".to_string(), ty);
+                }
             }
             if let Some(custom) = set.tags.get(&tag_key(&sh, &set.files)) {
                 for (k, v) in custom {
@@ -266,6 +279,107 @@ pub fn revisions(sheets: &[TaggedSheet], filter: &str) -> Vec<SheetVersions> {
         });
     }
     groups
+}
+
+/// What carrying a revision forward did.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct CarryReport {
+    /// Sheets that got a newer revision among the new files.
+    pub sheets: usize,
+    /// Markups copied onto the new revisions.
+    pub markups: usize,
+    /// Old revisions stamped SUPERSEDED.
+    pub stamped: usize,
+}
+
+/// New revisions joined a Set (`new_files`, already in the set): for each sheet whose newest
+/// version is in a new file, copy the previous version's markups onto it and (or) stamp the
+/// previous version SUPERSEDED (Preferences > Sets). Files are saved in place.
+pub fn carry_forward(
+    set: &DrawingSet,
+    filter: &str,
+    new_files: &[PathBuf],
+    copy_markups: bool,
+    stamp_superseded: bool,
+) -> Result<CarryReport> {
+    let mut report = CarryReport::default();
+    if !copy_markups && !stamp_superseded {
+        return Ok(report);
+    }
+    let (tagged, _) = tagged_sheets(set, SetSort::FileOrder, &default_categories());
+    let is_new = |p: &Path| new_files.iter().any(|n| n == p);
+    let mut sessions: BTreeMap<PathBuf, Session> = BTreeMap::new();
+    let mut touched: Vec<PathBuf> = Vec::new();
+    for g in revisions(&tagged, filter) {
+        let n = g.versions.len();
+        if n < 2 {
+            continue;
+        }
+        let (Some(new), Some(old)) = (
+            g.versions.get(n - 1).and_then(|i| tagged.get(*i)),
+            g.versions.get(n - 2).and_then(|i| tagged.get(*i)),
+        ) else {
+            continue;
+        };
+        if !is_new(&new.file) || is_new(&old.file) || new.file == old.file {
+            continue;
+        }
+        report.sheets += 1;
+        for f in [&old.file, &new.file] {
+            if !sessions.contains_key(f) {
+                sessions.insert(f.clone(), Session::open(f)?);
+            }
+        }
+        if copy_markups {
+            let carried: Vec<markupcraft_model::Markup> = sessions
+                .get(&old.file)
+                .map(|s| {
+                    s.doc()
+                        .markups
+                        .iter()
+                        .filter(|m| m.page == old.sheet.page)
+                        .take(10_000)
+                        .cloned()
+                        .map(|mut m| {
+                            m.page = new.sheet.page;
+                            m
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            if !carried.is_empty()
+                && let Some(s) = sessions.get_mut(&new.file)
+            {
+                report.markups += s.add_new_markups("Copy Markups to Revision", carried)?.len();
+                touched.push(new.file.clone());
+            }
+        }
+        if stamp_superseded && let Some(s) = sessions.get_mut(&old.file) {
+            let crop = s.page(old.sheet.page)?.crop.normalized();
+            let at = markupcraft_model::Point::new(crop.x1 - 110.0, crop.y1 - 40.0);
+            s.place_stamp(
+                old.sheet.page,
+                crate::stamps::StampPlace::Center(at),
+                &crate::stamps::StampSource::Text {
+                    text: "SUPERSEDED".into(),
+                    color: markupcraft_model::Color::rgb(0.8, 0.0, 0.0),
+                },
+                None,
+                &BTreeMap::new(),
+                None,
+            )?;
+            report.stamped += 1;
+            touched.push(old.file.clone());
+        }
+    }
+    touched.sort();
+    touched.dedup();
+    for f in touched {
+        if let Some(s) = sessions.get_mut(&f) {
+            s.save(false)?;
+        }
+    }
+    Ok(report)
 }
 
 /// What Publish writes.

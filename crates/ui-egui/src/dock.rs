@@ -114,7 +114,9 @@ impl TabViewer for Viewer<'_> {
     fn title(&mut self, tab: &mut Tab) -> egui::WidgetText {
         match tab {
             Tab::Document => "Documents".into(),
-            Tab::Panel(id) => crate::panels::find(id).map_or(*id, |p| p.title).into(),
+            Tab::Panel(id) => crate::i18n::tr(crate::panels::find(id).map_or(*id, |p| p.title))
+                .to_string()
+                .into(),
         }
     }
 

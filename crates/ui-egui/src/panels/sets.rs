@@ -3,7 +3,7 @@
 
 use egui::RichText;
 use markupcraft_engine::batch::SetSort;
-use markupcraft_engine::sets_more::{CategoryMode, category_of, default_categories, revisions, tagged_sheets};
+use markupcraft_engine::sets_more::{CategoryMode, category_of, revisions, tagged_sheets_with};
 
 use super::{PanelDef, Slot};
 use crate::AppState;
@@ -23,6 +23,8 @@ pub static PANEL: PanelDef = PanelDef {
 fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     let active_path = app.doc().and_then(|d| d.path.clone());
     let active_page = app.doc().map_or(0, |d| d.view.current);
+    // Preferences > Sets: category templates, auto-tagging, stacked revisions.
+    let sp = app.shell.prefs.more.sets.clone();
     let (mut ask, mut open_sheet, mut remove, mut new) = (None, None, None, false);
     let (mut publish, mut package, mut print_set, mut set_tag) = (false, false, false, false);
     {
@@ -126,9 +128,25 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
         let filter = s.filter.to_lowercase();
         let sheets = s.sheets().to_vec();
         // Tags, categories and revisions of the sheets (in the listed order).
-        let rules = default_categories();
-        let tagged = tagged_sheets(&s.set, s.sort, &rules).0;
+        let rules = sp.rules();
+        let tagged = tagged_sheets_with(&s.set, s.sort, &rules, sp.auto_tags).0;
         let groups = revisions(&tagged, &s.revision_filter);
+        // Stacked: each latest version holds its earlier ones.
+        let mut older_of: std::collections::HashMap<(usize, usize), Vec<markupcraft_engine::batch::SetSheet>> =
+            std::collections::HashMap::new();
+        for g in &groups {
+            if let Some(latest) = g.latest().and_then(|i| tagged.get(i)) {
+                let olds: Vec<_> = g
+                    .versions
+                    .iter()
+                    .take(g.versions.len().saturating_sub(1))
+                    .filter_map(|i| tagged.get(*i).map(|t| t.sheet.clone()))
+                    .collect();
+                if !olds.is_empty() {
+                    older_of.insert((latest.sheet.file, latest.sheet.page), olds);
+                }
+            }
+        }
         let earlier: std::collections::HashSet<(usize, usize)> = groups
             .iter()
             .flat_map(|g| g.versions.iter().take(g.versions.len().saturating_sub(1)))
@@ -169,7 +187,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                 .filter(|sh| filter.is_empty() || sh.label.to_lowercase().contains(&filter))
             {
                 let old = earlier.contains(&(sh.file, sh.page));
-                if old && previous == 1 {
+                if old && (previous == 1 || sp.stack_revisions) {
                     continue;
                 }
                 if s.categories != CategoryMode::Off {
@@ -221,6 +239,27 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
                 if r.clicked() {
                     open_sheet = Some(sh.clone());
                     s.tag_sheet = markupcraft_engine::sets_more::tag_key(sh, &files);
+                }
+                if sp.stack_revisions
+                    && previous != 1
+                    && let Some(olds) = older_of.get(&(sh.file, sh.page))
+                {
+                    let n = olds.len();
+                    egui::CollapsingHeader::new(
+                        RichText::new(format!("{n} earlier revision{}", if n == 1 { "" } else { "s" })).small(),
+                    )
+                    .id_salt(("set-stack", sh.file, sh.page))
+                    .show(ui, |ui| {
+                        for o in olds {
+                            let name = files
+                                .get(o.file)
+                                .and_then(|f| f.file_stem())
+                                .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
+                            if ui.selectable_label(false, RichText::new(name).weak()).clicked() {
+                                open_sheet = Some(o.clone());
+                            }
+                        }
+                    });
                 }
             }
         });

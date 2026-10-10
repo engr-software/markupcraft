@@ -70,7 +70,7 @@ pub fn customize_window(app: &mut AppState, ctx: &egui::Context) {
     let mut open = true;
     let mut changed = false;
     let locked = app.shell.ui.toolbars.locked;
-    egui::Window::new("Customize Toolbars")
+    crate::i18n::window("Customize Toolbars")
         .open(&mut open)
         .default_size([420.0, 420.0])
         .collapsible(false)

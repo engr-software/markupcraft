@@ -28,6 +28,15 @@ fn clean_name(s: &str) -> Result<String> {
 /// (or beside the source when `None`). PDFs are skipped (they are PDFs already). Returns the
 /// files written, in order; the first failure stops the run.
 pub fn create_each(files: &[PathBuf], out_dir: Option<&Path>) -> Result<Vec<PathBuf>> {
+    create_each_with(files, out_dir, &crate::docs_more::ImageToPdf::default())
+}
+
+/// [`create_each`] with picture options (resolution, grey).
+pub fn create_each_with(
+    files: &[PathBuf],
+    out_dir: Option<&Path>,
+    pictures: &crate::docs_more::ImageToPdf,
+) -> Result<Vec<PathBuf>> {
     if files.is_empty() || files.len() > crate::batch::MAX_FILES {
         return Err(invalid("give 1 to 2000 files"));
     }
@@ -50,7 +59,7 @@ pub fn create_each(files: &[PathBuf], out_dir: Option<&Path>) -> Result<Vec<Path
             None => f.parent().map(Path::to_path_buf).unwrap_or_default(),
         };
         let target = dir.join(format!("{stem}.pdf"));
-        crate::docs_more::create_pdf_from_files(std::slice::from_ref(f), &target)?;
+        crate::docs_more::create_pdf_from_files_with(std::slice::from_ref(f), &target, pictures)?;
         out.push(target);
     }
     Ok(out)

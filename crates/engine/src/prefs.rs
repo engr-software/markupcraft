@@ -87,6 +87,8 @@ pub struct Preferences {
     pub recent_files: u32,
     /// UI theme: `light`, `dark` or `system`
     pub theme: String,
+    /// Interface language: one of [`LANGUAGES`] (`en` English, `es` Spanish).
+    pub language: String,
     /// More pages: Markups List, Layers, Measure, Forms, Signature, Tablet, WebTab, Sets,
     /// Import/Export, Integrations (`prefs_pages.rs`).
     pub more: crate::prefs_pages::MorePrefs,
@@ -104,10 +106,14 @@ impl Default for Preferences {
             save_mode: "incremental".into(),
             recent_files: 20,
             theme: "system".into(),
+            language: "en".into(),
             more: Default::default(),
         }
     }
 }
+
+/// Interface languages: code and name (in that language).
+pub const LANGUAGES: &[(&str, &str)] = &[("en", "English"), ("es", "Espa\u{f1}ol")];
 
 const UNITS: &[&str] = &["ft-in", "ft", "in", "m", "cm", "mm", "yd", "pt"];
 
@@ -155,6 +161,9 @@ impl Preferences {
         }
         if !matches!(self.theme.as_str(), "light" | "dark" | "system") {
             return Err(invalid("theme: light, dark or system"));
+        }
+        if !LANGUAGES.iter().any(|(c, _)| *c == self.language) {
+            return Err(invalid("language: en (English) or es (Spanish)"));
         }
         self.more.validate()?;
         Ok(())

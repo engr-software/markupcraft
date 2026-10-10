@@ -116,7 +116,7 @@ fn apply_window(app: &mut AppState, ctx: &egui::Context) {
     let mut st = app.edit.more.g2.clone();
     let mut open = true;
     let mut apply = false;
-    egui::Window::new("Apply to Pages")
+    crate::i18n::window("Apply to Pages")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
@@ -168,7 +168,7 @@ fn reply_window(app: &mut AppState, ctx: &egui::Context) {
     };
     let mut open = true;
     let mut send = false;
-    egui::Window::new("Reply")
+    crate::i18n::window("Reply")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)

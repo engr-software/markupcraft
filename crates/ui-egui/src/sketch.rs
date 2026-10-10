@@ -116,7 +116,7 @@ pub fn bar(app: &mut AppState, ctx: &egui::Context) {
     let Some(offer) = offer(app) else { return };
     let mut st = app.edit.sketch.clone();
     let (mut go, mut finish) = (false, false);
-    egui::Window::new("Sketch to Scale")
+    crate::i18n::window("Sketch to Scale")
         .id(egui::Id::new("sketch-to-scale"))
         .collapsible(false)
         .resizable(false)

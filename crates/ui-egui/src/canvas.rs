@@ -84,6 +84,14 @@ pub struct ViewOpts {
     pub tilt_pans: bool,
     /// The colour around the pages (presentation), else the workspace colour.
     pub background: Option<Color32>,
+    /// Tiles of a large page show as they arrive (else when all on screen are ready).
+    pub progressive: bool,
+    /// A low-resolution image of a large page shows under its tiles.
+    pub low_res_preview: bool,
+    /// Rasters are rendered at this share of the screen resolution (1 = pixel for pixel).
+    pub resolution: f32,
+    /// Pinching (touch, trackpad, tablet) zooms.
+    pub pinch_zoom: bool,
 }
 
 impl Default for ViewOpts {
@@ -99,6 +107,10 @@ impl Default for ViewOpts {
             dark: false,
             tilt_pans: true,
             background: None,
+            progressive: true,
+            low_res_preview: true,
+            resolution: 1.0,
+            pinch_zoom: true,
         }
     }
 }
@@ -219,6 +231,13 @@ fn scale_tag(scale: f32) -> u64 {
 
 impl DocView {
     /// Drop every raster (after the document's bytes changed, e.g. a save).
+    /// The scale (device pixels per point) page `page`'s whole-page raster was rendered at.
+    pub fn raster_scale(&self, page: usize) -> Option<f32> {
+        self.pages
+            .get(&page)
+            .map(|(tag, _)| (*tag & !THUMB_TAG) as f32 / 65536.0)
+    }
+
     pub fn invalidate(&mut self) {
         self.pages.clear();
         self.tiles.clear();
@@ -773,7 +792,9 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
             wheel.x = 0.0;
         }
         if (pinch - 1.0).abs() > 1e-4 && pinch.is_finite() {
-            view.zoom_by(pinch, pointer, pages, now);
+            if view.opts.pinch_zoom {
+                view.zoom_by(pinch, pointer, pages, now);
+            }
         } else if wheel != Vec2::ZERO && wheel.is_finite() {
             if zooms && wheel.x.abs() < 0.5 && !shift {
                 let dir = if view.opts.reverse_wheel { -1.0 } else { 1.0 };
@@ -885,7 +906,7 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
         ui.ctx()
             .request_repaint_after(std::time::Duration::from_secs_f64(ZOOM_SETTLE));
     }
-    let scale = view.zoom * PT * ppp;
+    let scale = view.zoom * PT * ppp * view.opts.resolution.clamp(0.25, 2.0);
     let tag = scale_tag(scale);
     let mut wanted: Vec<RenderRequest> = Vec::new();
     let mut missing = 0;
@@ -928,7 +949,9 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
         } else {
             (scale, tag)
         };
-        match view.pages.get(&i) {
+        // Without the low-resolution preview a tiled page shows only its tiles.
+        let backdrop = !tiled || view.opts.low_res_preview;
+        match view.pages.get(&i).filter(|_| backdrop) {
             Some((ptag, tex)) => {
                 paint_raster(&painter, sr, tex, uv(0.0, 0.0, 1.0, 1.0), rot);
                 if *ptag != want_tag && !(settling && !tiled) {
@@ -938,6 +961,7 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
                     }
                 }
             }
+            None if !backdrop => {}
             None => {
                 wanted.push(markupcraft_render::page_request(i, want_scale, want_tag));
                 if on_screen {
@@ -968,6 +992,8 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
                 (f1.x.min(1.0) * dw as f32).ceil() as u32,
                 (f1.y.min(1.0) * dh as f32).ceil() as u32,
             ];
+            let mut ready = Vec::new();
+            let mut page_missing = 0;
             for tl in markupcraft_render::tiles_covering(dw, dh, TILE, region) {
                 let src = uv(
                     tl.x as f32 / dw as f32,
@@ -976,12 +1002,28 @@ pub fn show(ui: &mut egui::Ui, doc: &mut DocTab, cx: &CanvasCx<'_>) -> CanvasOut
                     (tl.y + tl.h) as f32 / dh as f32,
                 );
                 match view.tiles.get(&(i, tl.x / TILE, tl.y / TILE)) {
-                    Some((ttag, tex)) if *ttag == tag => paint_raster(&painter, sr, tex, src, rot),
+                    Some((ttag, tex)) if *ttag == tag => ready.push((tex, src)),
                     _ => {
-                        missing += 1;
+                        page_missing += 1;
                         wanted.push(markupcraft_render::tile_request(i, scale, tl, tag));
                     }
                 }
+            }
+            missing += page_missing;
+            // Progressive: each tile as it arrives; else the view changes in one go.
+            if view.opts.progressive || page_missing == 0 {
+                for (tex, src) in ready {
+                    paint_raster(&painter, sr, tex, src, rot);
+                }
+            }
+            if !backdrop && page_missing > 0 {
+                painter.text(
+                    sr.center(),
+                    Align2::CENTER_CENTER,
+                    "Rendering...",
+                    FontId::proportional(13.0),
+                    t.text_faint,
+                );
             }
         }
         if view.opts.dim > 0.0 {

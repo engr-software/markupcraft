@@ -69,7 +69,14 @@ pub fn apply(app: &mut AppState) {
     app.features.fill.cutouts = m.measure.fill_cutouts;
     let fm = &mut app.features.fill.more;
     fm.raster = m.measure.fill_raster;
-    fm.dpi = m.measure.fill_dpi.clamp(36.0, 300.0);
+    // The fill speed trades the page image's resolution for time.
+    let base = m.measure.fill_dpi.clamp(36.0, 300.0);
+    fm.dpi = match m.measure.fill_speed.as_str() {
+        "fast" => (base / 2.0).max(36.0),
+        "accurate" => (base * 2.0).min(300.0),
+        _ => base,
+    };
+    app.edit.more.keep_subject = m.measure.keep_subject_label;
     fm.sensitivity = m.measure.fill_sensitivity.clamp(1, 254);
     fm.hide_markups = m.measure.fill_hide_markups;
     fm.cursor_size = m.measure.fill_cursor_px.clamp(8.0, 64.0);
@@ -79,6 +86,28 @@ pub fn apply(app: &mut AppState) {
     crate::gestures::set_eraser(m.tablet.eraser_scales_with_zoom, m.tablet.eraser_px);
     app.features.export.dpi = f64::from(m.import_export.image_dpi);
     app.features.sets.latest_only = m.sets.latest_only;
+    // Sets: the panel's defaults (sort, categories, earlier revisions, revision filter).
+    {
+        use markupcraft_engine::batch::SetSort;
+        use markupcraft_engine::sets_more::CategoryMode;
+        let s = &mut app.features.sets;
+        let sort = match m.sets.sort.as_str() {
+            "sheet" => SetSort::Label,
+            "file_sheet" => SetSort::FileThenLabel,
+            _ => SetSort::FileOrder,
+        };
+        if s.sort != sort {
+            s.sort = sort;
+            s.stale = true;
+        }
+        s.categories = match m.sets.categories.as_str() {
+            "file_name" => CategoryMode::FileName,
+            "sheet_number" => CategoryMode::SheetNumber,
+            _ => CategoryMode::Off,
+        };
+        s.previous = m.sets.earlier_revisions.min(3);
+        s.revision_filter = m.sets.revision_filter.clone();
+    }
     // Signature: the first digital ID in the folder is offered; the folder's certificates are
     // trusted when validating.
     let sig = &mut app.features.signatures;
@@ -169,6 +198,128 @@ fn folder(ui: &mut egui::Ui, label: &str, s: &mut String) {
     });
 }
 
+/// Advanced: document JavaScript and trusted locations; the PDF/A conversion steps.
+fn advanced_section(ui: &mut egui::Ui, a: &mut markupcraft_engine::prefs_pages::AdvancedPrefs) {
+    ui.checkbox(
+        &mut a.js_enabled,
+        "Run a document's JavaScript when it opens (sandboxed)",
+    );
+    ui.add_enabled(
+        a.js_enabled,
+        egui::Checkbox::new(&mut a.js_trusted_only, "Only documents in a trusted location"),
+    );
+    ui.label("Trusted locations (one folder per line)");
+    let id = egui::Id::new("trusted-locations");
+    let mut text: String = ui
+        .data(|d| d.get_temp(id))
+        .unwrap_or_else(|| a.trusted_locations.join("\n"));
+    if ui
+        .add(
+            egui::TextEdit::multiline(&mut text)
+                .desired_rows(2)
+                .desired_width(300.0),
+        )
+        .changed()
+    {
+        a.trusted_locations = text
+            .lines()
+            .map(str::trim)
+            .filter(|l| !l.is_empty())
+            .take(100)
+            .map(str::to_string)
+            .collect();
+    }
+    ui.data_mut(|d| d.insert_temp(id, text));
+    ui.add_space(4.0);
+    ui.label("Archive as PDF/A first:");
+    ui.checkbox(&mut a.pdfa_flatten_markups, "Flatten the markups into the pages");
+    ui.checkbox(&mut a.pdfa_remove_attachments, "Remove embedded files");
+    ui.checkbox(&mut a.pdfa_opaque_markups, "Make transparent markups opaque");
+}
+
+/// Sets: paths, display, categories and their templates, sort, revisions, auto-tagging.
+fn sets_section(ui: &mut egui::Ui, st: &mut markupcraft_engine::prefs_pages::SetsPrefs) {
+    ui.checkbox(
+        &mut st.relative_paths,
+        "Store the files relative to the set file's folder",
+    );
+    ui.horizontal(|ui| {
+        ui.label("Earlier revisions are");
+        for (v, l) in [(0, "shown"), (1, "hidden"), (2, "greyed"), (3, "crossed out")] {
+            ui.radio_value(&mut st.earlier_revisions, v, l);
+        }
+    });
+    ui.checkbox(&mut st.stack_revisions, "Stack earlier revisions under the latest");
+    ui.horizontal(|ui| {
+        ui.label("Categories");
+        for (v, l) in [
+            ("off", "off"),
+            ("file_name", "by file name"),
+            ("sheet_number", "by sheet number"),
+        ] {
+            ui.radio_value(&mut st.categories, v.to_string(), l);
+        }
+    });
+    ui.horizontal(|ui| {
+        ui.label("Sort");
+        for (v, l) in [
+            ("file", "file order"),
+            ("sheet", "sheet number"),
+            ("file_sheet", "file, then sheet"),
+        ] {
+            ui.radio_value(&mut st.sort, v.to_string(), l);
+        }
+    });
+    ui.horizontal(|ui| {
+        ui.label("Revision filter");
+        ui.add(
+            egui::TextEdit::singleline(&mut st.revision_filter)
+                .hint_text("e.g. @?#")
+                .desired_width(80.0),
+        );
+    });
+    ui.label("Category templates (prefix = category, one per line; empty = the NCS disciplines)");
+    let id = egui::Id::new("sets-category-rules");
+    let mut text: String = ui.data(|d| d.get_temp(id)).unwrap_or_else(|| {
+        st.category_rules
+            .iter()
+            .map(|r| format!("{} = {}", r.prefix, r.name))
+            .collect::<Vec<_>>()
+            .join("\n")
+    });
+    if ui
+        .add(
+            egui::TextEdit::multiline(&mut text)
+                .desired_rows(3)
+                .desired_width(300.0),
+        )
+        .changed()
+    {
+        st.category_rules = parse_rules(&text);
+    }
+    ui.data_mut(|d| d.insert_temp(id, text));
+    ui.checkbox(
+        &mut st.copy_markups_to_revision,
+        "Copy markups to a new revision added to a Set",
+    );
+    ui.checkbox(&mut st.stamp_superseded, "Stamp the previous revision SUPERSEDED");
+    ui.checkbox(&mut st.auto_tags, "Tag discipline and sheet type from the sheet number");
+}
+
+/// `prefix = category` lines (blank and malformed lines are skipped).
+pub fn parse_rules(text: &str) -> Vec<markupcraft_engine::sets_more::CategoryRule> {
+    text.lines()
+        .filter_map(|l| l.split_once('='))
+        .map(|(p, n)| (p.trim(), n.trim()))
+        .filter(|(p, n)| !p.is_empty() && !n.is_empty() && p.chars().count() <= 16 && n.chars().count() <= 64)
+        .take(200)
+        .map(|(p, n)| markupcraft_engine::sets_more::CategoryRule {
+            prefix: p.to_string(),
+            name: n.to_string(),
+        })
+        .collect()
+}
+
 /// The page `page`'s options. Returns a web address to open (Integrations > Sign In).
 pub fn section(ui: &mut egui::Ui, page: &str, p: &mut Preferences) -> Option<String> {
     let m = &mut p.more;
@@ -229,6 +380,16 @@ pub fn section(ui: &mut egui::Ui, page: &str, p: &mut Preferences) -> Option<Str
             });
             ui.checkbox(&mut m.measure.fill_hide_markups, "Hide markups while filling");
             ui.horizontal(|ui| {
+                ui.label("Fill speed");
+                for (v, l) in [("fast", "Fast"), ("balanced", "Balanced"), ("accurate", "Accurate")] {
+                    ui.radio_value(&mut m.measure.fill_speed, v.to_string(), l);
+                }
+            });
+            ui.checkbox(
+                &mut m.measure.keep_subject_label,
+                "New measurements keep the last subject and label",
+            );
+            ui.horizontal(|ui| {
                 ui.label("Fill cursor");
                 ui.add(
                     egui::DragValue::new(&mut m.measure.fill_cursor_px)
@@ -286,6 +447,30 @@ pub fn section(ui: &mut egui::Ui, page: &str, p: &mut Preferences) -> Option<Str
                         .suffix(" px"),
                 );
             });
+            let t = &mut m.tablet;
+            ui.checkbox(&mut t.pinch_zoom, "Pinch to zoom (touch screens, trackpads, tablets)");
+            ui.horizontal(|ui| {
+                ui.label("Pen cursor");
+                ui.radio_value(&mut t.pen_cursor, "crosshair".to_string(), "Crosshair");
+                ui.radio_value(&mut t.pen_cursor, "dot".to_string(), "A dot as wide as the pen");
+            });
+            ui.checkbox(
+                &mut t.pen_text_highlight,
+                "The Highlight pen over page text highlights the text",
+            );
+            ui.horizontal(|ui| {
+                ui.label("Pen commit delay");
+                ui.add(
+                    egui::DragValue::new(&mut t.pen_commit_ms)
+                        .range(0..=10_000)
+                        .suffix(" ms"),
+                );
+                ui.label("(strokes within it join one markup; 0 = off)");
+            });
+            ui.checkbox(&mut t.ink_copy_picture, "Copy pen strokes as a picture too");
+            ui.checkbox(&mut t.right_click_lasso, "Right-button drag lassoes markups");
+            ui.checkbox(&mut t.pressure, "Pen pressure sets the stroke width");
+            ui.checkbox(&mut t.touch_mode, "Touch input mode (larger handles and pick areas)");
         }
         "WebTab" => {
             let w = &mut m.webtab;
@@ -316,6 +501,7 @@ pub fn section(ui: &mut egui::Ui, page: &str, p: &mut Preferences) -> Option<Str
                 "Open a sheet in place of the Set sheet in the current tab",
             );
             ui.checkbox(&mut m.sets.latest_only, "Show only the latest revision of each sheet");
+            sets_section(ui, &mut m.sets);
         }
         "Import/Export" => {
             let ie = &mut m.import_export;
@@ -336,6 +522,50 @@ pub fn section(ui: &mut egui::Ui, page: &str, p: &mut Preferences) -> Option<Str
                 );
             });
             folder(ui, "Network scanner (eSCL)", &mut ie.scanner_url);
+            ui.add_space(4.0);
+            ui.label(egui::RichText::new("Exporting").strong());
+            ui.checkbox(&mut ie.ocr_on_export, "OCR pages without text before exporting them");
+            ui.checkbox(&mut ie.open_after_export, "Open the exported file");
+            ui.checkbox(
+                &mut ie.word_page_pictures,
+                "Word: a picture of each page above its text",
+            );
+            ui.checkbox(&mut ie.word_page_breaks, "Word: a page break between pages");
+            ui.checkbox(&mut ie.excel_one_sheet, "Excel: all pages in one sheet");
+            ui.horizontal(|ui| {
+                ui.label("Numbers in tables use a");
+                ui.radio_value(&mut ie.decimal_comma, false, "decimal point (1,234.5)");
+                ui.radio_value(&mut ie.decimal_comma, true, "decimal comma (1.234,5)");
+            });
+            ui.horizontal(|ui| {
+                ui.label("PowerPoint slides at");
+                ui.add(egui::DragValue::new(&mut ie.slide_dpi).range(36..=300).suffix(" dpi"));
+            });
+            ui.horizontal(|ui| {
+                ui.label("TIFF compression");
+                for c in markupcraft_engine::convert::TiffCompression::ALL {
+                    ui.radio_value(&mut ie.tiff_compression, c.name().to_string(), c.name());
+                }
+            });
+            ui.checkbox(&mut ie.multi_page_tiff, "TIFF: all pages in one multi-page file");
+            ui.add_space(4.0);
+            ui.label(egui::RichText::new("Pictures to PDF").strong());
+            ui.horizontal(|ui| {
+                ui.label("Picture resolution");
+                ui.add(
+                    egui::DragValue::new(&mut ie.picture_dpi)
+                        .range(36..=1200)
+                        .suffix(" dpi"),
+                );
+                ui.checkbox(&mut ie.picture_grayscale, "Grayscale");
+            });
+        }
+        "Advanced" => {
+            ui.add_space(6.0);
+            egui::CollapsingHeader::new(egui::RichText::new("JavaScript and PDF/A conversion").strong())
+                .id_salt("advanced-js-pdfa")
+                .default_open(false)
+                .show(ui, |ui| advanced_section(ui, &mut m.advanced));
         }
         "Integrations" => {
             let mut remove = None;

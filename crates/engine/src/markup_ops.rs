@@ -73,6 +73,50 @@ pub fn inside_lasso<'a>(markups: impl Iterator<Item = &'a Markup>, page: usize, 
 }
 
 impl Session {
+    /// Add a stroke (`pts`, page user space) to the Pen or Highlight markup `id` (strokes made
+    /// in quick succession join one markup). One undo step.
+    pub fn append_ink_stroke(&mut self, id: &str, pts: &[Point]) -> Result<()> {
+        if pts.is_empty() || pts.len() > MAX_PATH {
+            return Err(invalid(format!("a stroke has 1 to {MAX_PATH} points")));
+        }
+        geometry::check_finite(pts)?;
+        let i = self
+            .doc
+            .markups
+            .iter()
+            .position(|m| m.id == id)
+            .ok_or_else(|| invalid(format!("no markup {id:?}")))?;
+        let ok = self
+            .doc
+            .markups
+            .get(i)
+            .is_some_and(|m| matches!(m.kind, Kind::Ink | Kind::Highlight) && !m.locked());
+        if !ok {
+            return Err(invalid("strokes join an unlocked Pen or Highlight markup"));
+        }
+        if self
+            .doc
+            .markups
+            .get(i)
+            .is_some_and(|m| m.pts.len() + pts.len() > MAX_PATH)
+        {
+            return Err(invalid(format!("an ink markup has at most {MAX_PATH} points")));
+        }
+        let add = pts.to_vec();
+        self.edit("Pen", move |s| {
+            let Some(m) = s.doc.markups.get_mut(i) else {
+                return Ok(((), false));
+            };
+            m.strokes.push(m.pts.len());
+            m.pts.extend(add);
+            if let Some(b) = bbox(&m.pts) {
+                m.rect = b.padded(m.line_width + 1.0);
+            }
+            m.dirty = true;
+            Ok(((), true))
+        })
+    }
+
     /// The Eraser: drag `path` (page user space) across Pen and Highlight strokes on `page`;
     /// points within `radius` points of it are removed, strokes split, emptied markups
     /// deleted. One undo step; returns how many markups changed.

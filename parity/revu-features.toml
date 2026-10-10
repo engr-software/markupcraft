@@ -5617,10 +5617,10 @@ priority = "P1"
 source = "docs/revu_features/03_documents.md:148"
 status = "have"
 cpp = "missing"
-evidence = ["split_views_sync_switch_balance_unsplit"]
-accepted = ["split_toggle_switch_balance_and_unsplit"]
-acceptance = "gap"
-notes = "View > Split Vertical (Ctrl+2) / Split Horizontal (Ctrl+H): two panes, any open document in each (the same one included), a draggable divider; one split level. Acceptance: two panes at most (Revu: up to 16), and the second pane has no tab bar of its own (it shows one document, picked by dropping a tab on it)."
+evidence = ["split_views_sync_switch_balance_unsplit", "split_panes_have_their_own_tab_bars"]
+accepted = ["split_toggle_switch_balance_and_unsplit", "split_panes_have_their_own_tab_bars", "a_pane_tab_keeps_its_place"]
+acceptance = "fixed"
+notes = "View > Split Vertical (Ctrl+2) / Split Horizontal (Ctrl+H): splitting again adds a pane, up to 16 in a grid, each with a draggable divider or its own cell. Every pane has its own tab bar: the first pane uses the document tabs, each other pane a row of tabs in its header (a dropped tab or its + menu adds any open document, the same one included; x closes a tab in that pane, the last one closes the pane), and each tab keeps its own page and zoom in its pane. Acceptance: fixed (the second pane had one document and no tab bar; now every pane has its own tabs)."
 
 [[feature]]
 id = "doc-051"
@@ -6440,12 +6440,12 @@ section = "Creating and combining PDFs"
 name = "Create from multiple files (Stapler)"
 priority = "P3"
 source = "docs/revu_features/03_documents.md:228"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["create_combine_and_layered", "combine_create_and_layered", "batch_create_layered_merge_combine_options_and_link_terms"]
-accepted = ["create_pdfs_from_files_one_or_many"]
-acceptance = "gap"
-notes = "Stapler (Create PDF from Files): images, text, Word, Excel, PowerPoint, DXF and PDFs in one PDF in list order, or one PDF per file beside each source or in a chosen folder (doc_create_each). DWG is not read (no public specification); jobs run one after another from the dialog, not from a background queue. Acceptance: as the notes say, no DWG and no background job queue."
+evidence = ["create_combine_and_layered", "combine_create_and_layered", "batch_create_layered_merge_combine_options_and_link_terms", "stapler_jobs_run_in_a_background_queue", "jobs_run_in_order_off_the_calling_thread_with_progress"]
+accepted = ["create_pdfs_from_files_one_or_many", "stapler_jobs_run_in_a_background_queue"]
+acceptance = "fixed"
+notes = "Stapler (Create PDF from Files): images, text, Word, Excel, PowerPoint, DXF and PDFs in one PDF in list order, or one PDF per file beside each source or in a chosen folder. The conversion runs as a background job (engine jobs: one worker thread, jobs one after another, progress per file, cancel stops a queued job or a running one after its current file); Window > Jobs lists the jobs with progress bars, Cancel and Clear Finished, the status bar counts running jobs, and a finished combined PDF opens. Batch Flatten and Unflatten run in the same queue. Headless: job_start, job_list, job_wait, job_cancel. DWG input belongs to doc-104 (not read: no public specification). Acceptance: fixed (jobs ran one after another from the dialog, blocking it; now a background queue)."
 
 [[feature]]
 id = "doc-106"
@@ -10183,12 +10183,12 @@ section = "8. Rulers, grid, snap, crosshair, line weights"
 name = "Enhance thin lines / fill anti-aliasing"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:240"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = []
-accepted = ["ui_preference_pages"]
-acceptance = "gap"
-notes = "The renderer (pdfcraft-render / hayro) always keeps hairlines at least one device pixel wide and anti-aliases fills; it offers no switch to turn either off, so there are no toggles. View > Disable Line Weights draws all linework thin. Acceptance: Advanced has no Enhance Thin Lines or fill anti-aliasing options."
+evidence = ["ui_rendering_options_take_effect", "thin_lines_widen_to_a_minimum_on_the_page"]
+accepted = ["ui_preference_pages", "ui_rendering_options_take_effect"]
+acceptance = "fixed"
+notes = "Preferences > Advanced > Rendering: Enhance Thin Lines with a minimum width (0.1 to 4 pt): the renderer reads a copy of the document whose linework thinner than that on the page (hairlines included, widths measured through the content's transformations) draws at the minimum, so thin lines stay visible zoomed out (markupcraft_render::thin::view_copy, the same copy approach as View > Disable Line Weights, which wins when both are on). Fills are always anti-aliased: the renderer has no switch to turn that off. Acceptance: fixed (no option before)."
 
 [[feature]]
 id = "ui-139"
@@ -10228,12 +10228,12 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "General > Options: language, theme"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:253"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["preferences_dialog_applies_and_persists", "dark_theme_and_menus_render"]
+evidence = ["preferences_dialog_applies_and_persists", "dark_theme_and_menus_render", "ui_language_and_theme"]
 accepted = ["ui_language_and_theme"]
-acceptance = "gap"
-notes = "General: theme (light, dark, system). The interface is in English only: no translations exist yet, so there is no language choice. Acceptance: Theme only; no UI language choice (English)."
+acceptance = "fixed"
+notes = "General > Options: theme (light, dark, system) and interface language (English, Espanol). English is the default and the key of the string tables (crates/ui-egui/i18n/es.tsv, written for MarkupCraft); the menu bar and every menu command, the tools, the panel titles, the Preferences pages and the dialog titles are translated (a unit test fails when any of them has no Spanish), and the change applies at once (no restart). Headless: prefs_set {\"values\": {\"language\": \"es\"}}. Acceptance: fixed (English only before)."
 
 [[feature]]
 id = "ui-142"
@@ -10408,7 +10408,7 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Interface > Markups List"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:265"
-status = "partial"
+status = "have"
 cpp = "missing"
 evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
 accepted = ["ui_preference_pages", "ui_preference_options_take_effect"]
@@ -10440,10 +10440,10 @@ priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:267"
 status = "partial"
 cpp = "missing"
-evidence = ["preferences_dialog_applies_and_persists", "reuse_tool_keeps_drawing"]
-accepted = ["ui_preference_pages"]
+evidence = ["preferences_dialog_applies_and_persists", "reuse_tool_keeps_drawing", "ui_markup_tool_options_take_effect"]
+accepted = ["ui_preference_pages", "ui_markup_tool_options_take_effect"]
 acceptance = "gap"
-notes = "Tools: reuse markup tools, measurement units and precision, colours of new markups (stored in the profile). Acceptance gap: text boxes always autosize and there are no remember-last-properties, scale grouped appearance, embed fonts, pop-up author/date or printing, copy highlighted text to comment, image encoding, shape drag behaviour or snapshot resolution options."
+notes = "Tools > Markup: reuse markup tools, measurement units and precision, colours of new markups (stored in the profile), and (markup_prefs) autosize text boxes (off keeps the drawn box), remember last properties (each tool draws like its last markup, edits included), scale line width and text size with a shape resized from a corner, author and date in pop-ups, print open pop-ups (print_job popups), copy the highlighted text into the comment, pictures stored losslessly or as JPEG at a quality (stamp_add jpeg_quality; PNG, JPEG, BMP, TIFF and GIF pictures), shapes drawn from a corner or the centre (Alt the other), and snapshots that take the markups inside them along. Snapshots are always vector (exact at any zoom), so there is no snapshot resolution. Acceptance gap: no embed-fonts option (text appearances use the standard PDF fonts; MarkupCraft does not embed font programs)."
 
 [[feature]]
 id = "ui-156"
@@ -10453,12 +10453,12 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Tools > Measure"
 priority = "P1"
 source = "docs/revu_features/04_compare_ui_collab.md:268"
-status = "partial"
+status = "have"
 cpp = "missing"
 evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
 accepted = ["ui_preference_pages", "ui_preference_options_take_effect", "spaces_tag_markups_and_split_counts"]
 acceptance = "fixed"
-notes = "Preferences > Measure: split counts by space; Dynamic Fill gap closing, islands become cutouts, detection on the page image (scans) with its resolution and edge sensitivity, hide markups while filling, and the fill cursor's size and colour. Our fill traces vector linework, so there is no fill speed setting."
+notes = "Preferences > Measure: split counts by space; Dynamic Fill gap closing, islands become cutouts, detection on the page image (scans) with its resolution and edge sensitivity, the fill speed (fast halves the page image's resolution, accurate doubles it), hide markups while filling, and the fill cursor's size and colour; new measurements keep the last subject and label (the same setting as Measure > Keep Last Subject and Label)."
 
 [[feature]]
 id = "ui-157"
@@ -10498,7 +10498,7 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Tools > Signature"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:271"
-status = "partial"
+status = "have"
 cpp = "missing"
 evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
 accepted = ["ui_preference_pages", "ui_preference_options_take_effect"]
@@ -10515,10 +10515,10 @@ priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:272"
 status = "partial"
 cpp = "missing"
-evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
-accepted = ["ui_preference_pages"]
+evidence = ["preferences_pages_are_shown_and_read_by_the_features", "ui_tablet_options_take_effect"]
+accepted = ["ui_preference_pages", "ui_tablet_options_take_effect"]
 acceptance = "gap"
-notes = "Preferences > Tablet: eraser size and whether it follows the zoom. Acceptance gap: no tablet zoom, pen cursor, pen commit delay, ink copy, right-click lasso, pressure sensitivity, handwriting recognition or touch input mode options."
+notes = "Preferences > Tablet: eraser size and whether it follows the zoom, pinch to zoom, the pen cursor (crosshair or a dot as wide as the pen), the Highlight pen over page text making a text highlight, the pen commit delay (strokes within it join one Pen markup: Session::append_ink_stroke), copying pen strokes as a picture too, a right-button drag that lassoes markups with any tool, pen pressure (touch force) setting the stroke width, and a touch input mode (handles and pick areas twice as large); all in prefs_set more.tablet. Acceptance gap: no handwriting recognition (it needs a handwriting recognition model; none with a permissive licence ships with MarkupCraft)."
 
 [[feature]]
 id = "ui-161"
@@ -10558,12 +10558,12 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Sets"
 priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:275"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["preferences_pages_are_shown_and_read_by_the_features"]
-accepted = ["ui_preference_pages"]
-acceptance = "gap"
-notes = "Preferences > Sets: open a sheet in place of the Set sheet in the current tab; latest revision only (category rules, sort and revision filters live in the Sets panel). Acceptance gap: no relative-path, display, category template or sort-rule defaults here, no revision stacking, copy markups to a new revision, superseded stamping or auto-tagging options."
+evidence = ["preferences_pages_are_shown_and_read_by_the_features", "ui_sets_options_take_effect"]
+accepted = ["ui_preference_pages", "ui_sets_options_take_effect"]
+acceptance = "fixed"
+notes = "Preferences > Sets: open a sheet in place of the Set sheet in the current tab; latest revision only; relative paths in set files (else full paths); how earlier revisions show (shown, hidden, greyed, crossed out) and stacking them under the latest in a fold; categories (off, by file name, by sheet number) with editable category templates (prefix = category); the sort rule; the revision filter; copy markups to a new revision added to a Set and stamp the previous revision SUPERSEDED (sets_more::carry_forward, files saved in place); auto-tagging the discipline and sheet type from the sheet number. All in prefs_set more.sets. Acceptance: fixed (only open-in-place and latest-only before)."
 
 [[feature]]
 id = "ui-164"
@@ -10587,12 +10587,12 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Import/Export"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:277"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["preferences_pages_are_shown_and_read_by_the_features", "scanner_and_camera_into_markups_pages_and_new_pdfs"]
-accepted = ["ui_preference_pages"]
-acceptance = "gap"
-notes = "Preferences > Import/Export: image export DPI, scan DPI, the scanner address, and the largest camera/scanner picture size. Acceptance gap: no OCR-during-export, open-after-export, Office (Word/Excel/PowerPoint) reconstruction, number separator, image-to-PDF colour space / DPI or TIFF compression and multi-page TIFF options."
+evidence = ["preferences_pages_are_shown_and_read_by_the_features", "scanner_and_camera_into_markups_pages_and_new_pdfs", "ui_import_export_options_take_effect"]
+accepted = ["ui_preference_pages", "ui_import_export_options_take_effect"]
+acceptance = "fixed"
+notes = "Preferences > Import/Export: image export DPI, scan DPI, the scanner address, the largest camera/scanner picture size, OCR of pages without text before exporting them (on a copy), open the exported file, Word reconstruction (a picture of each page above its text; page breaks or one flow of text), Excel (a sheet per page or all pages in one), number separators (decimal point or comma when telling numbers from text), PowerPoint slide resolution, pictures to PDF (resolution that sets the page size; colour or grey), TIFF compression (none, LZW, Deflate, PackBits) and multi-page TIFF. Headless: export_document ocr / one_sheet / decimal_comma / slide_dpi / word_page_pictures / word_page_breaks, export_images tiff_compression / multi_page, doc_create_from_files and job_start picture_dpi / grayscale. MarkupCraft captures still pictures only (mark-050), so there is no video resolution. Acceptance: fixed (only DPI, scanner and capture size before)."
 
 [[feature]]
 id = "ui-166"
@@ -10604,10 +10604,10 @@ priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:278"
 status = "partial"
 cpp = "missing"
-evidence = []
-accepted = ["ui_preference_pages"]
+evidence = ["ui_rendering_options_take_effect", "blend_modes_draw_as_normal"]
+accepted = ["ui_preference_pages", "ui_rendering_options_take_effect"]
 acceptance = "gap"
-notes = "Advanced: dimmer amount, crosshair, disable line weights; no rendering engine or DPI options. Acceptance: Dimmer amount, crosshair and line weights; no engine, progressive mode, blend, CMYK or DPI options."
+notes = "Advanced > 2D Rendering: dimmer amount, crosshair, disable line weights, Enhance Thin Lines (minimum width), display mode (progressive: tiles of a large page as they render, or wait until the whole view is ready), the low-resolution preview under large pages, blend modes (off draws everything as Normal, from a copy), screen resolution (pages render at 25 to 200 % of the screen's pixels) and the highest Print as Image resolution; a note says CMYK colours are converted to RGB without colour calibration. Acceptance gap: one rendering engine (no engine choice), fills always anti-aliased, and no CMYK colour calibration (no ICC colour management in the renderer)."
 
 [[feature]]
 id = "ui-167"
@@ -10631,12 +10631,12 @@ section = "9. Preferences dialog (every page and its notable options)"
 name = "Advanced > JavaScript / PDF/A"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:280"
-status = "partial"
+status = "have"
 cpp = "missing"
-evidence = ["certified_pdfa_and_signed_documents_guard_page_edits"]
-accepted = ["ui_preference_pages"]
-acceptance = "gap"
-notes = "Advanced: PDF/A documents open locked for page edits (on by default); document JavaScript never runs; no conversion options. Acceptance: PDF/A open-locked only; no document JavaScript or trusted-location options."
+evidence = ["certified_pdfa_and_signed_documents_guard_page_edits", "ui_javascript_and_pdfa_options_take_effect"]
+accepted = ["ui_preference_pages", "ui_javascript_and_pdfa_options_take_effect"]
+acceptance = "fixed"
+notes = "Advanced: PDF/A documents open locked for page edits (on by default); document JavaScript (document-level scripts and a JavaScript open action, in the sandboxed interpreter) runs when a document opens only when enabled, and by default only for documents in a trusted location (a list of trusted folders); Archive as PDF/A can first flatten the markups, remove embedded files and make transparent markups opaque (doc_pdfa flatten_markups / remove_attachments / opaque_markups; prefs_set more.advanced). Acceptance: fixed (PDF/A open-locked only before)."
 
 [[feature]]
 id = "ui-169"
@@ -10648,10 +10648,10 @@ priority = "P2"
 source = "docs/revu_features/04_compare_ui_collab.md:281"
 status = "partial"
 cpp = "missing"
-evidence = ["preferences_dialog_applies_and_persists"]
-accepted = ["ui_preference_pages"]
+evidence = ["preferences_dialog_applies_and_persists", "ui_admin_options_take_effect"]
+accepted = ["ui_preference_pages", "ui_admin_options_take_effect"]
 acceptance = "gap"
-notes = "Admin: back up, restore and reset settings, profiles (create, rename, delete, export / import with dependencies), MCP. Acceptance gap: no default PDF viewer setting (MarkupCraft never changes system settings itself), log folder, extended debugging, sign-in method (no online accounts) or network stamp / email template folder options."
+notes = "Admin: back up, restore and reset settings, profiles (create, rename, delete, export / import with dependencies), MCP, a log folder (MarkupCraft writes markupcraft.log there) with extended debugging (debugging detail too), a shared (network) stamp folder the stamp library is read from, an email template folder, and Make MarkupCraft the Default PDF Viewer: the files a user applies themselves (a current-user .reg on Windows, an xdg-mime script on Linux, a duti script on macOS, each with a README; shell_integration action default_viewer), since MarkupCraft never changes system settings itself. Acceptance gap: no sign-in method (MarkupCraft has no online accounts; Integrations only opens services' sign-in pages) and no embedded browser engine choice (no browser is embedded)."
 
 [[feature]]
 id = "ui-170"
@@ -10961,7 +10961,7 @@ section = "10. Mouse, gestures and modifier keys"
 name = "Shift breaks aspect ratio"
 priority = "P3"
 source = "docs/revu_features/04_compare_ui_collab.md:307"
-status = "partial"
+status = "have"
 cpp = "missing"
 evidence = ["modifier_keys_draw_from_centre_arcs_vertices_aspect_and_callouts", "corner_resizes_keep_the_aspect_ratio"]
 accepted = ["ui_shift_breaks_aspect_ratio"]

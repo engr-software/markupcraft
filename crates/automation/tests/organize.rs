@@ -14,6 +14,8 @@ fn dir() -> PathBuf {
         std::process::id(),
         N.fetch_add(1, Ordering::Relaxed)
     ));
+    // A folder left by an earlier run with the same process id would hold its settings.
+    let _ = std::fs::remove_dir_all(&d);
     std::fs::create_dir_all(&d).unwrap();
     d
 }

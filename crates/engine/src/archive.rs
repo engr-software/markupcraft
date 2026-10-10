@@ -92,6 +92,22 @@ fn media_box(cos: &CosDoc, page: ObjRef) -> [f64; 4] {
     [0.0, 0.0, 612.0, 792.0]
 }
 
+/// The conversion steps before archiving as PDF/A.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct PdfaConversion {
+    pub flatten_markups: bool,
+    pub remove_attachments: bool,
+    pub opaque_markups: bool,
+}
+
+/// What [`Session::prepare_pdfa`] did.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct PdfaPrepared {
+    pub flattened: usize,
+    pub removed_attachments: usize,
+    pub made_opaque: usize,
+}
+
 impl Session {
     /// Repair the document (Document > Repair PDF); the next save is a full rewrite. Undoable
     /// until saved.
@@ -150,6 +166,40 @@ impl Session {
 
     /// Archive as PDF/A: convert the document (undoable until saved; the next save is a full
     /// rewrite).
+    /// The PDF/A conversion steps before archiving (Preferences > Advanced): flatten the
+    /// markups, remove embedded files, make transparent markups opaque. One undo step each.
+    pub fn prepare_pdfa(&mut self, c: &PdfaConversion) -> Result<PdfaPrepared> {
+        let mut done = PdfaPrepared::default();
+        if c.opaque_markups {
+            let ids: Vec<String> = self
+                .doc()
+                .markups
+                .iter()
+                .filter(|m| m.opacity < 1.0 || (m.fill.is_some() && m.fill_opacity < 1.0))
+                .map(|m| m.id.clone())
+                .collect();
+            if !ids.is_empty() {
+                let patch = crate::MarkupPatch {
+                    opacity: Some(1.0),
+                    fill_opacity: Some(1.0),
+                    ..Default::default()
+                };
+                self.set_properties(&ids, &patch)?;
+                done.made_opaque = ids.len();
+            }
+        }
+        if c.flatten_markups && !self.doc().markups.is_empty() {
+            done.flattened = self.flatten_markups(&crate::flatten::FlattenFilter::default())?;
+        }
+        if c.remove_attachments {
+            for a in self.attachments() {
+                self.delete_attachment(&a.name)?;
+                done.removed_attachments += 1;
+            }
+        }
+        Ok(done)
+    }
+
     pub fn archive_pdfa(&mut self, level: PdfaLevel) -> Result<PdfaReport> {
         self.graph_edit("Archive as PDF/A", |cos, _| {
             let r = pdfcraft_preflight::convert(cos, level).map_err(err)?;

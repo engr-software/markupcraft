@@ -4,14 +4,11 @@
 use std::path::{Path, PathBuf};
 
 use egui::RichText;
-use markupcraft_engine::Session;
 use markupcraft_engine::batch::{
     BatchLinkOptions, LinkTerms, TermDest, TermTarget, batch_link, batch_summary_csv, link_terms_from_csv,
 };
-use markupcraft_engine::docs_more::{
-    CombineOptions, combine_with, create_pdf_from_files, layered_pdf, merge_form_data,
-};
-use markupcraft_engine::flatten::FlattenFilter;
+use markupcraft_engine::docs_more::{CombineOptions, combine_with, layered_pdf, merge_form_data};
+use markupcraft_engine::jobs;
 
 use super::Ask;
 use crate::dialogs::{CSV, PDF, Purpose};
@@ -365,10 +362,9 @@ pub fn run(app: &mut AppState) {
             app.status = b.message.clone();
         }
         Kind::Create if more.each && more.beside_source => {
-            let r = markupcraft_engine::finish::create::create_each(&app.features.batch.files, None);
-            app.features.batch.message = actions::report(r, |v| {
-                format!("Created {} beside their sources", actions::plural(v.len(), "PDF"))
-            });
+            let pictures = app.shell.prefs.more.import_export.image_to_pdf();
+            let built = jobs::create_each_job(app.features.batch.files.clone(), None, pictures);
+            super::jobs::submit(app, "Create PDF from Files (one per file)", built);
         }
         Kind::Create if more.each => app.dialogs.folder(Purpose::Feature(Ask::BatchOut)),
         Kind::Split => app.dialogs.folder(Purpose::Feature(Ask::BatchOut)),
@@ -393,25 +389,10 @@ pub fn run(app: &mut AppState) {
             .dialogs
             .save(Purpose::Feature(Ask::BatchOut), CSV, "Batch Summary.csv"),
         Kind::Print => app.dialogs.folder(Purpose::Feature(Ask::BatchOut)),
-        Kind::Unflatten => {
-            let mut done = 0;
-            let mut errors = Vec::new();
-            for f in app.features.batch.files.clone() {
-                let r = Session::open(&f).and_then(|mut s| {
-                    let n = s.unflatten(&[])?;
-                    s.save(true)?;
-                    Ok(n)
-                });
-                match r {
-                    Ok(n) => done += n,
-                    Err(e) => errors.push(format!("{}: {e}", file_name(&f))),
-                }
-            }
-            let b = &mut app.features.batch;
-            b.message = format!("Unflattened {}", actions::plural(done, "markup"));
-            if !errors.is_empty() {
-                b.message.push_str(&format!("; {}", errors.join("; ")));
-            }
+        Kind::Unflatten | Kind::Flatten => {
+            let unflatten = kind == Kind::Unflatten;
+            let built = jobs::flatten_job(app.features.batch.files.clone(), unflatten);
+            super::jobs::submit(app, kind.title(), built);
         }
         Kind::Link => {
             let b = &mut app.features.batch;
@@ -435,28 +416,7 @@ pub fn run(app: &mut AppState) {
             });
             app.status = app.features.batch.message.clone();
         }
-        Kind::Flatten => {
-            let mut done = 0;
-            let mut errors = Vec::new();
-            for f in app.features.batch.files.clone() {
-                let r = Session::open(&f).and_then(|mut s| {
-                    let n = s.flatten_markups(&FlattenFilter::default())?;
-                    if n > 0 {
-                        s.save(false)?;
-                    }
-                    Ok(n)
-                });
-                match r {
-                    Ok(n) => done += n,
-                    Err(e) => errors.push(format!("{}: {e}", file_name(&f))),
-                }
-            }
-            let b = &mut app.features.batch;
-            b.message = format!("Flattened {}", actions::plural(done, "markup"));
-            if !errors.is_empty() {
-                b.message.push_str(&format!("; {}", errors.join("; ")));
-            }
-        }
+
         Kind::SlipSheet => super::batch_more::slip_run(app),
     }
 }
@@ -494,10 +454,14 @@ pub fn output(app: &mut AppState, out: &Path) {
     let b = &app.features.batch;
     match b.kind {
         Kind::Create if b.more.each => {
-            let r = markupcraft_engine::finish::create::create_each(&b.files, Some(out));
-            app.features.batch.message = actions::report(r, |v| {
-                format!("Created {} in {}", actions::plural(v.len(), "PDF"), out.display())
-            });
+            let pictures = app.shell.prefs.more.import_export.image_to_pdf();
+            let built = jobs::create_each_job(b.files.clone(), Some(out.to_path_buf()), pictures);
+            super::jobs::submit(app, "Create PDF from Files (one per file)", built);
+        }
+        Kind::Create => {
+            let pictures = app.shell.prefs.more.import_export.image_to_pdf();
+            let built = jobs::create_combined_job(b.files.clone(), out.to_path_buf(), pictures);
+            super::jobs::submit(app, "Create PDF from Files", built);
         }
         Kind::Split => {
             let (n, errors) = super::batch_more::split_all(&b.files, out, b.more.split_pages, &b.extra);
@@ -507,10 +471,8 @@ pub fn output(app: &mut AppState, out: &Path) {
             }
             app.features.batch.message = m;
         }
-        Kind::Create | Kind::Layered | Kind::FormMerge => {
+        Kind::Layered | Kind::FormMerge => {
             let r = match b.kind {
-                Kind::Create => create_pdf_from_files(&b.files, out)
-                    .map(|n| format!("Created {} ({})", out.display(), actions::plural(n, "page"))),
                 Kind::Layered => layered_pdf(&b.files, out)
                     .map(|n| format!("Layered PDF {} ({})", out.display(), actions::plural(n, "page"))),
                 _ => merge_form_data(&b.files, out).map(|n| {

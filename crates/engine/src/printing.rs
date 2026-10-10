@@ -41,6 +41,8 @@ pub struct PrintJob {
     /// Emphasis: Space outlines and visible hyperlink boxes printed.
     pub spaces: bool,
     pub links: bool,
+    /// Open pop-up notes print as boxes with their author, date and comment.
+    pub popups: bool,
 }
 
 impl Default for PrintJob {
@@ -58,8 +60,68 @@ impl Default for PrintJob {
             dim_except: None,
             spaces: false,
             links: false,
+            popups: false,
         }
     }
+}
+
+/// `D:20261009143000...` as `2026-10-09 14:30` (anything else as it is).
+pub fn readable_date(pdf_date: &str) -> String {
+    let s = pdf_date.strip_prefix("D:").unwrap_or(pdf_date);
+    let part = |a: usize, b: usize| s.get(a..b).filter(|p| p.chars().all(|c| c.is_ascii_digit()));
+    match (part(0, 4), part(4, 6), part(6, 8)) {
+        (Some(y), Some(m), Some(d)) => match (part(8, 10), part(10, 12)) {
+            (Some(h), Some(mi)) => format!("{y}-{m}-{d} {h}:{mi}"),
+            _ => format!("{y}-{m}-{d}"),
+        },
+        _ => pdf_date.to_string(),
+    }
+}
+
+/// The text of a markup's pop-up: a header (the author and the date, or the subject without
+/// them) and the comment.
+pub fn popup_text(m: &Markup, author_date: bool) -> String {
+    let head = if author_date {
+        let date = readable_date(if m.modified.is_empty() { &m.created } else { &m.modified });
+        let who = if m.author.is_empty() {
+            m.subject.as_str()
+        } else {
+            m.author.as_str()
+        };
+        format!("{who}  {date}").trim().to_string()
+    } else {
+        m.subject.clone()
+    };
+    let body: String = m.contents.replace('\r', "\n").chars().take(2000).collect();
+    format!("{head}\n{body}")
+}
+
+/// An open pop-up as a printable text box (where the pop-up sits, or beside the markup).
+fn popup_box(m: &Markup) -> Option<Markup> {
+    if !m.popup_open || m.contents.trim().is_empty() {
+        return None;
+    }
+    let r = match m.popup {
+        Some(r) => r.normalized(),
+        None => {
+            let xs = m.pts.iter().map(|p| p.x);
+            let ys = m.pts.iter().map(|p| p.y);
+            let x1 = xs.fold(f64::NEG_INFINITY, f64::max);
+            let y1 = ys.fold(f64::NEG_INFINITY, f64::max);
+            if !(x1.is_finite() && y1.is_finite()) {
+                return None;
+            }
+            Rect::new(x1 + 6.0, y1 - 120.0, x1 + 226.0, y1)
+        }
+    };
+    let mut b = Markup::new(Kind::Text, m.page, r.corners().to_vec());
+    b.rect = r;
+    b.contents = popup_text(m, true);
+    b.fill = Some(Color::rgb(1.0, 0.99, 0.8));
+    b.color = Color::rgb(0.47, 0.47, 0.47);
+    b.line_width = 1.0;
+    b.subject = "Pop-up".into();
+    Some(b)
 }
 
 /// The page order a job prints: `pages` (empty = all of `count`), reversed when asked, times
@@ -122,6 +184,9 @@ impl Session {
                 m.subject = "Hyperlink".into();
                 extra.push(m);
             }
+        }
+        if job.popups {
+            extra.extend(self.doc().markups.iter().filter_map(popup_box).take(10_000));
         }
         if !extra.is_empty() {
             t.add_new_markups("Print emphasis", extra)?;

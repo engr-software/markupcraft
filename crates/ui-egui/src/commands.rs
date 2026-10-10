@@ -375,12 +375,12 @@ pub fn bindings() -> Vec<(Keys, String)> {
 /// Label, icon and key text for any command id (including `tool.` and `panel.` ids).
 pub fn describe(id: &str) -> Option<(String, &'static str, Option<Keys>)> {
     if let Some(t) = id.strip_prefix("tool.").and_then(crate::tools::find) {
-        return Some((t.label.to_string(), t.icon, t.keys));
+        return Some((crate::i18n::tr_owned(t.label), t.icon, t.keys));
     }
     if let Some(p) = id.strip_prefix("panel.").and_then(crate::panels::find) {
-        return Some((p.title.to_string(), p.icon, p.keys));
+        return Some((crate::i18n::tr_owned(p.title), p.icon, p.keys));
     }
-    find(id).map(|c| (c.label.to_string(), c.icon, c.keys))
+    find(id).map(|c| (crate::i18n::tr_owned(c.label), c.icon, c.keys))
 }
 
 #[cfg(test)]

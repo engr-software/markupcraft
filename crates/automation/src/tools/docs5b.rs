@@ -5,8 +5,8 @@
 use std::path::PathBuf;
 
 use markupcraft_engine::docs_more::{
-    CombineOptions, HfTemplate, SecurityPreset, combine_with, create_pdf_from_files, layered_pdf, load_hf_templates,
-    load_security_presets, merge_form_data, save_hf_templates, save_security_presets,
+    CombineOptions, HfTemplate, SecurityPreset, combine_with, layered_pdf, load_hf_templates, load_security_presets,
+    merge_form_data, save_hf_templates, save_security_presets,
 };
 use markupcraft_engine::marks::HeaderFooter;
 use markupcraft_engine::quantity::{
@@ -442,14 +442,35 @@ pub static CREATE_FROM_FILES: Tool = Tool {
     description: "Create one PDF at `out` from `files` in order (the Stapler): images (PNG, JPEG, TIFF, BMP) become a page each at their size, text files are set in pages, PDFs are appended.",
     read_only: false,
     destructive: true,
-    schema: || schema_nodoc(files_schema(json!({})), &["files", "out"]),
+    schema: || {
+        schema_nodoc(
+            files_schema(json!({
+                "picture_dpi": { "type": "number", "description": "Pictures' resolution on the page, pixels per inch (36 to 1200, default 72: a pixel a point)." },
+                "grayscale": { "type": "boolean", "description": "Store pictures in grey." }
+            })),
+            &["files", "out"],
+        )
+    },
     run: |a, args| {
         let files = files_list(a, args)?;
         let out = a.resolve(args.str("out")?, true)?;
-        let pages = create_pdf_from_files(&files, &out)?;
+        let pages = markupcraft_engine::docs_more::create_pdf_from_files_with(&files, &out, &picture_options(args)?)?;
         Ok(json!({ "pages": pages, "path": out.display().to_string() }))
     },
 };
+
+/// `picture_dpi` and `grayscale`: how pictures become pages.
+pub(crate) fn picture_options(args: &crate::Args) -> crate::Result<markupcraft_engine::docs_more::ImageToPdf> {
+    let mut o = markupcraft_engine::docs_more::ImageToPdf::default();
+    if let Some(d) = args.opt_num("picture_dpi")? {
+        if !(d.is_finite() && (36.0..=1200.0).contains(&d)) {
+            return Err(crate::bad_args("picture_dpi: 36 to 1200"));
+        }
+        o.dpi = d;
+    }
+    o.grayscale = args.opt_bool("grayscale")?.unwrap_or(false);
+    Ok(o)
+}
 
 pub static LAYERED_PDF: Tool = Tool {
     name: "doc_layered",

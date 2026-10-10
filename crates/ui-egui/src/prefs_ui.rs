@@ -70,6 +70,10 @@ pub fn load_from_store(app: &mut AppState) {
 
 /// A preferences file chosen in a dialog (restore / back up).
 pub fn answer(app: &mut AppState, tag: &str, path: &std::path::Path) {
+    if tag == "prefs-default-viewer" {
+        crate::shell::admin_prefs::write_default_viewer(app, path);
+        return;
+    }
     let Some(store) = app.shell.store.clone() else {
         // In memory: back up and restore still work on the file.
         match tag {
@@ -146,7 +150,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
     let mut action: Option<&'static str> = None;
     let mut profile_cmd: Option<(&'static str, String)> = None;
     let mut open_url: Option<String> = None;
-    egui::Window::new("Preferences")
+    crate::i18n::window("Preferences")
         .open(&mut open)
         .default_size([640.0, 440.0])
         .collapsible(false)
@@ -155,7 +159,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                 ui.vertical(|ui| {
                     ui.set_width(130.0);
                     for p in PAGES {
-                        if ui.selectable_label(page == *p, *p).clicked() {
+                        if ui.selectable_label(page == *p, crate::i18n::tr(p)).clicked() {
                             page = p;
                         }
                         // The pages of wave 6A, under their parent page.
@@ -163,7 +167,10 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                             .iter()
                             .filter(|(_, parent)| parent == p)
                         {
-                            if ui.selectable_label(page == *sub, format!("    {sub}")).clicked() {
+                            if ui
+                                .selectable_label(page == *sub, format!("    {}", crate::i18n::tr(sub)))
+                                .clicked()
+                            {
                                 page = sub;
                             }
                         }
@@ -172,7 +179,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                         .iter()
                         .filter(|(_, parent)| parent.is_empty())
                     {
-                        if ui.selectable_label(page == *sub, *sub).clicked() {
+                        if ui.selectable_label(page == *sub, crate::i18n::tr(sub)).clicked() {
                             page = sub;
                         }
                     }
@@ -180,7 +187,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                 ui.separator();
                 ui.vertical(|ui| {
                     ui.set_min_width(420.0);
-                    ui.heading(page);
+                    ui.heading(crate::i18n::tr(page));
                     ui.add_space(4.0);
                     egui::ScrollArea::vertical().max_height(360.0).show(ui, |ui| {
                         match page {
@@ -195,9 +202,15 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
                             }
                             "Tools" => tools(ui, &mut prefs, &mut ui_prefs),
                             "Window" => window_page(ui, &mut ui_prefs),
-                            "Advanced" => advanced(ui, &mut ui_prefs),
+                            "Advanced" => {
+                                advanced(ui, &mut ui_prefs);
+                                crate::shell::render_prefs::section(ui, &mut ui_prefs.render);
+                            }
                             "Admin" => {
                                 if let Some(a) = admin(ui, app, &mut profile_cmd) {
+                                    action = Some(a);
+                                }
+                                if let Some(a) = crate::shell::admin_prefs::section(ui, &mut ui_prefs.admin) {
                                     action = Some(a);
                                 }
                             }
@@ -279,6 +292,9 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
             crate::dialogs::PDF,
             false,
         ),
+        Some("default-viewer") => app.dialogs.folder(Purpose::Shell {
+            tag: "prefs-default-viewer".into(),
+        }),
         Some("copy-mcp") => {
             ctx.copy_text(crate::shell::prefs_more::MCP_CONFIG.to_string());
             app.status = "MCP configuration copied: paste it into your AI assistant's settings".into();
@@ -348,9 +364,10 @@ pub fn profile(app: &mut AppState, cmd: &str, name: &str) {
 }
 
 fn general(ui: &mut egui::Ui, p: &mut Preferences, u: &mut UiPrefs) {
-    ui.label(RichText::new("Options").strong());
+    use crate::i18n::tr;
+    ui.label(RichText::new(tr("Options")).strong());
     ui.horizontal(|ui| {
-        ui.label("User name (author of new markups)");
+        ui.label(tr("User name (author of new markups)"));
         ui.add(
             egui::TextEdit::singleline(&mut p.author)
                 .hint_text("Your name")
@@ -359,9 +376,15 @@ fn general(ui: &mut egui::Ui, p: &mut Preferences, u: &mut UiPrefs) {
         );
     });
     ui.horizontal(|ui| {
-        ui.label("Theme");
+        ui.label(tr("Theme"));
         for (v, l) in [("system", "System"), ("light", "Light"), ("dark", "Dark")] {
-            ui.radio_value(&mut p.theme, v.to_string(), l);
+            ui.radio_value(&mut p.theme, v.to_string(), tr(l));
+        }
+    });
+    ui.horizontal(|ui| {
+        ui.label(tr("Language"));
+        for (code, name) in crate::i18n::LANGUAGES {
+            ui.radio_value(&mut p.language, (*code).to_string(), *name);
         }
     });
     ui.add_space(6.0);
@@ -549,6 +572,7 @@ fn tools(ui: &mut egui::Ui, p: &mut Preferences, u: &mut UiPrefs) {
             }
         });
     }
+    crate::markup_prefs::section(ui, &mut u.markup);
 }
 
 fn hex_rgb(s: &str) -> Option<[u8; 3]> {

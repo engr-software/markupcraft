@@ -1,0 +1,414 @@
+# MarkupCraft interface: Spanish. One line per string: English<TAB>Spanish.
+# Written for MarkupCraft (MIT OR Apache-2.0). English is the key; lines starting with # are comments.
+3-Point Radius	Radio por 3 puntos
+About MarkupCraft	Acerca de MarkupCraft
+Actual Size	Tamaño real
+Add Bookmark	Agregar marcador
+Add Selection to Tool Chest as Symbol	Agregar selección al Cofre de herramientas como símbolo
+Add Shared Tool Set...	Agregar conjunto de herramientas compartido...
+Add Signature Field	Agregar campo de firma
+Add to Tool Chest	Agregar al Cofre de herramientas
+Add Viewport	Agregar ventana gráfica
+Admin	Administración
+Administrator...	Administrador...
+Advanced	Avanzado
+Align Bottom	Alinear abajo
+Align Center	Alinear al centro
+Align Left	Alinear a la izquierda
+Align Middle	Alinear al medio
+Align Right	Alinear a la derecha
+Align Top	Alinear arriba
+Always on Top	Siempre visible
+Always Show Reply Indicators	Mostrar siempre los indicadores de respuesta
+Angle	Ángulo
+Append Summary with Links	Anexar resumen con vínculos
+Apply Redactions	Aplicar censuras
+Apply Redactions...	Aplicar censuras...
+Apply Stamp...	Aplicar sello...
+Apply to All Pages	Aplicar a todas las páginas
+Apply to Pages	Aplicar a páginas
+Apply to Pages...	Aplicar a páginas...
+Arc	Arco
+Archive as PDF/A...	Archivar como PDF/A...
+Area	Área
+Area (Rectangle)	Área (rectángulo)
+Arrow	Flecha
+Attachments...	Adjuntos...
+Auto-Hide Tabs	Ocultar pestañas automáticamente
+Automatically Create Form Fields	Crear campos de formulario automáticamente
+Autosize Text Box	Ajustar cuadro de texto al contenido
+Balance	Equilibrar
+Batch	Lote
+Batch Link...	Vínculos por lote...
+Batch Sign & Seal	Firmar y sellar por lote
+Bates Numbering...	Numeración Bates...
+Bookmarks	Marcadores
+Bookmarks from Structure	Marcadores desde la estructura
+Bottom Panel Across the Window	Panel inferior a todo el ancho
+Bring Forward	Traer adelante
+Bring to Front	Traer al frente
+Calibrate	Calibrar
+Callout	Llamada
+Camera...	Cámara...
+Capture Summary...	Resumen de captura...
+Center Radius	Radio desde el centro
+Check Spelling	Revisar ortografía
+Check Spelling...	Revisar ortografía...
+Clear Certification	Quitar certificación
+Clear Markup Layer	Quitar capa de marcas
+Clear Recent Files	Borrar archivos recientes
+Close	Cerrar
+Close All	Cerrar todo
+Close Others	Cerrar los demás
+Cloud	Nube
+Cloud+	Nube+
+Color Processing...	Procesamiento de color...
+Combine Files...	Combinar archivos...
+Combine...	Combinar...
+Compare	Comparar
+Compare Documents	Comparar documentos
+Compare Documents...	Comparar documentos...
+Continuous	Continua
+Continuous Side by Side	Continua lado a lado
+Copy	Copiar
+Copy Legend to Pages	Copiar leyenda a las páginas
+Copy Page to Snapshot	Copiar página a instantánea
+Count	Conteo
+Count Status Report	Informe de estado de conteos
+Count Status Report...	Informe de estado de conteos...
+Create Digital ID	Crear ID digital
+Create Digital ID...	Crear ID digital...
+Create from Scanner or Camera...	Crear desde escáner o cámara...
+Create Hyperlinks from URLs	Crear hipervínculos a partir de URL
+Create Layered PDF...	Crear PDF con capas...
+Create PDF from Files...	Crear PDF a partir de archivos...
+Create PDF Package	Crear paquete PDF
+Create PDF Package...	Crear paquete PDF...
+Crop Pages...	Recortar páginas...
+Customize Keyboard	Personalizar teclado
+Customize Keyboard...	Personalizar teclado...
+Customize Toolbars	Personalizar barras de herramientas
+Customize...	Personalizar...
+Cut	Cortar
+Cut Snapshot	Cortar instantánea
+Dark	Oscuro
+Dark Mode	Modo oscuro
+Delete	Eliminar
+Delete File	Eliminar archivo
+Delete Page	Eliminar página
+Delete Pages...	Eliminar páginas...
+Deselect All	Deseleccionar todo
+Deskew	Enderezar
+Deskew Line	Línea para enderezar
+Deskew...	Enderezar...
+Detach a Copy of the Tab	Separar una copia de la pestaña
+Detach Tab to New Window	Separar pestaña en una ventana nueva
+Diameter	Diámetro
+Digital IDs	IDs digitales
+Digital IDs...	IDs digitales...
+Dimension	Cota
+Dimmer	Atenuador
+Disable Line Weights	Desactivar grosores de línea
+Distribute Horizontally	Distribuir horizontalmente
+Distribute Vertically	Distribuir verticalmente
+Document	Documento
+Document Properties	Propiedades del documento
+Document Recovery	Recuperación de documentos
+Duplicate	Duplicar
+Dynamic Fill	Relleno dinámico
+Edit	Edición
+Edit Action	Editar acción
+Edit Action...	Editar acción...
+Edit Stamp Fields...	Editar campos del sello...
+Edit Text	Editar texto
+Ellipse	Elipse
+Ellipse Cutout	Recorte elíptico
+Email Templates	Plantillas de correo
+Email Templates...	Plantillas de correo...
+Email...	Correo electrónico...
+Eraser	Borrador
+Exit	Salir
+Export Form Data...	Exportar datos de formulario...
+Export Markups...	Exportar marcas...
+Export Page Region to Excel	Exportar región de página a Excel
+Export Pages as Images...	Exportar páginas como imágenes...
+Export to Word, Excel, PowerPoint...	Exportar a Word, Excel, PowerPoint...
+Extract Page...	Extraer página...
+Extract Pages...	Extraer páginas...
+File	Archivo
+File Access	Acceso a archivos
+File Attachment	Archivo adjunto
+File Attachment...	Archivo adjunto...
+File in Use	Archivo en uso
+File Manager Integration	Integración con el explorador de archivos
+File Manager Integration...	Integración con el explorador de archivos...
+File Properties	Propiedades del archivo
+First Page	Primera página
+Fit Page	Ajustar página
+Fit Width	Ajustar ancho
+Flag	Bandera
+Flatten Selected Markups...	Acoplar las marcas seleccionadas...
+Flatten...	Acoplar...
+Flip Horizontal	Voltear horizontalmente
+Flip Vertical	Voltear verticalmente
+Form Editor	Editor de formularios
+Form Fields	Campos de formulario
+Form Fields...	Campos de formulario...
+Format Painter	Copiar formato
+Forms	Formularios
+Full Screen	Pantalla completa
+Full-Screen Crosshair	Cruz en toda la pantalla
+General	General
+Grid & Snap	Cuadrícula y ajuste
+Group	Agrupar
+Header & Footer...	Encabezado y pie de página...
+Help	Ayuda
+Hide Markups	Ocultar marcas
+Hide Panels	Ocultar paneles
+Highlight	Resaltado
+Highlight Text	Resaltar texto
+Highlight Viewports	Resaltar ventanas gráficas
+Hyperlink	Hipervínculo
+Image From Scanner...	Imagen desde escáner...
+Image...	Imagen...
+Import Form Data...	Importar datos de formulario...
+Import Markups...	Importar marcas...
+Import/Export	Importar/Exportar
+Insert / Replace Text	Insertar / reemplazar texto
+Insert Blank Page	Insertar página en blanco
+Insert Blank Pages...	Insertar páginas en blanco...
+Insert from Scanner or Camera...	Insertar desde escáner o cámara...
+Insert Layered Pages	Insertar páginas con capas
+Insert Layered Pages...	Insertar páginas con capas...
+Insert Pages	Insertar páginas
+Insert Pages At...	Insertar páginas en...
+Insert Pages with Options...	Insertar páginas con opciones...
+Insert Pages...	Insertar páginas...
+Integrations	Integraciones
+Interactive Stamp	Sello interactivo
+Interactive Stamp...	Sello interactivo...
+Interface	Interfaz
+JavaScript Console	Consola de JavaScript
+Jobs	Trabajos
+Jobs...	Trabajos...
+Keep Last Subject and Label	Conservar el último asunto y la última etiqueta
+Keep Tool Selected	Mantener la herramienta seleccionada
+Keyboard Shortcuts	Atajos de teclado
+Language	Idioma
+Lasso	Lazo
+Last Page	Última página
+Layers	Capas
+Legend	Leyenda
+Legend...	Leyenda...
+Length	Longitud
+Light	Claro
+Line	Línea
+Line Styles	Estilos de línea
+Line Styles...	Estilos de línea...
+Link Search Results	Vincular resultados de búsqueda
+Links	Vínculos
+Lock	Bloquear
+Lock Toolbars	Bloquear barras de herramientas
+Main Toolbar	Barra de herramientas principal
+Make Annotations from Measurements	Crear anotaciones a partir de mediciones
+Manage Columns	Administrar columnas
+Manage Profiles...	Administrar perfiles...
+Mark for Redaction	Marcar para censura
+Mark Text for Redaction	Marcar texto para censura
+Markup	Marcas
+Markup Summary	Resumen de marcas
+Markup Summary...	Resumen de marcas...
+Markup Tools	Herramientas de marcas
+MarkupCraft	MarkupCraft
+MarkupCraft Help	Ayuda de MarkupCraft
+Markups List	Lista de marcas
+Measure	Medir
+Measure Tools	Herramientas de medición
+Measurements	Mediciones
+Menu Bar	Barra de menús
+Merge Counts	Fusionar conteos
+Merge Form Data...	Combinar datos de formulario...
+Migrate Typewriter Text to Fields	Migrar texto de máquina de escribir a campos
+Navigation	Navegación
+Navigation Bar	Barra de navegación
+New Blank PDF	Nuevo PDF en blanco
+New PDF from Template	Nuevo PDF a partir de plantilla
+New PDF from Template...	Nuevo PDF a partir de plantilla...
+Next Document	Documento siguiente
+Next Page	Página siguiente
+Next Result	Resultado siguiente
+Next View	Vista siguiente
+not yet	aún no
+Note	Nota
+Note Pop-ups	Ventanas emergentes de notas
+Nudge Down	Desplazar abajo
+Nudge Down 10	Desplazar abajo 10
+Nudge Left	Desplazar a la izquierda
+Nudge Left 10	Desplazar a la izquierda 10
+Nudge Right	Desplazar a la derecha
+Nudge Right 10	Desplazar a la derecha 10
+Nudge Up	Desplazar arriba
+Nudge Up 10	Desplazar arriba 10
+Number Pages	Numerar páginas
+OCR	OCR
+OCR...	OCR...
+Open...	Abrir...
+Options	Opciones
+Overlay Pages	Superponer páginas
+Overlay Pages...	Superponer páginas...
+Page Label Region	Región de etiqueta de página
+Page Labels from Region	Etiquetas de página desde una región
+Page Labels from Region...	Etiquetas de página desde una región...
+Page Setup...	Configurar página...
+Pan	Desplazar vista
+Panel Access Bars	Barras de acceso a paneles
+Panels	Paneles
+Paste	Pegar
+Paste in Place	Pegar en el mismo lugar
+Pen	Pluma
+Perimeter	Perímetro
+Place Default Stamp	Colocar sello predeterminado
+Polygon	Polígono
+Polygon Cutout	Recorte poligonal
+Polylength	Polilongitud
+Polyline	Polilínea
+Preferences	Preferencias
+Preferences...	Preferencias...
+Presentation	Presentación
+Previous Document	Documento anterior
+Previous Page	Página anterior
+Previous Result	Resultado anterior
+Previous View	Vista anterior
+Print	Imprimir
+Print...	Imprimir...
+Profile Columns	Columnas del perfil
+Profile Columns...	Columnas del perfil...
+Properties	Propiedades
+Properties Toolbar	Barra de propiedades
+Publish As Compressed...	Publicar comprimido...
+Publish As Flattened...	Publicar acoplado...
+Publish As Uncompressed...	Publicar sin comprimir...
+Quantity Link	Vínculo de cantidades
+Quantity Link...	Vínculo de cantidades...
+Reattach All Windows	Volver a acoplar todas las ventanas
+Recalculate Measurements	Recalcular mediciones
+Rectangle	Rectángulo
+Redaction Properties	Propiedades de censura
+Redaction Properties...	Propiedades de censura...
+Redo	Rehacer
+Reduce File Size...	Reducir tamaño del archivo...
+Refresh	Actualizar
+Refresh Document	Actualizar documento
+Remove From Group	Quitar del grupo
+Repair PDF	Reparar PDF
+Replace Pages...	Reemplazar páginas...
+Reply	Responder
+Reply...	Responder...
+Reset Panel Layout	Restablecer diseño de paneles
+Resume Count	Reanudar conteo
+Reuse Markup Tools	Reutilizar herramientas de marcas
+Revert As	Revertir como
+Revert As...	Revertir como...
+Review Text	Revisar texto
+Rollover Comments	Comentarios al pasar el cursor
+Rotate Page Clockwise	Girar página en sentido horario
+Rotate Page Counterclockwise	Girar página en sentido antihorario
+Rotate Pages...	Girar páginas...
+Rotate View Clockwise	Girar vista en sentido horario
+Rotate View Counterclockwise	Girar vista en sentido antihorario
+Rulers	Reglas
+Run Document JavaScript	Ejecutar JavaScript del documento
+Run Script...	Ejecutar script...
+Save	Guardar
+Save All	Guardar todo
+Save As...	Guardar como...
+Save Attached File...	Guardar archivo adjunto...
+Search	Buscar
+Search Selected Text	Buscar el texto seleccionado
+Security...	Seguridad...
+Select	Seleccionar
+Select All	Seleccionar todo
+Select All Text	Seleccionar todo el texto
+Select Text	Seleccionar texto
+Send Backward	Enviar atrás
+Send to Back	Enviar al fondo
+Set as Default	Establecer como predeterminado
+Set as Markup Layer	Establecer como capa de marcas
+Set Scale	Establecer escala
+Sets	Conjuntos
+Shortcut Reference (PDF)...	Referencia de atajos (PDF)...
+Show Context Menu	Mostrar menú contextual
+Show Cover Page Alone	Mostrar la portada sola
+Show Grid	Mostrar cuadrícula
+Side by Side	Lado a lado
+Sign & Seal...	Firmar y sellar...
+Sign Document	Firmar documento
+Sign Document...	Firmar documento...
+Signature	Firma
+Signatures	Firmas
+Signed Document	Documento firmado
+Single Page	Página única
+Sketch to Scale	Dibujo a escala
+Sketch: Finish Shape	Dibujo: terminar forma
+Sketch: Place Typed Segment	Dibujo: colocar segmento escrito
+Sketch: Relative Angles	Dibujo: ángulos relativos
+Slip Sheet...	Hoja intercalada...
+Smart Overlay	Superposición inteligente
+Smart Overlay...	Superposición inteligente...
+Snap to Content	Ajustar al contenido
+Snap to Grid	Ajustar a la cuadrícula
+Snap to Markup	Ajustar a las marcas
+Snapshot	Instantánea
+Snapshot Content	Contenido de la instantánea
+Snapshot Legend	Instantánea de leyenda
+Spaces	Espacios
+Split Horizontal	Dividir horizontalmente
+Split Vertical	Dividir verticalmente
+Split...	Dividir...
+Squiggly	Ondulado
+Stamp	Sello
+Stamp Fields	Campos del sello
+Stamp Library...	Biblioteca de sellos...
+Stamp Settings	Configuración del sello
+Stamp Settings...	Configuración del sello...
+Stamps	Sellos
+Status Bar	Barra de estado
+Stitching	Unión de páginas
+Stitching...	Unión de páginas...
+Strikethrough	Tachado
+Summary...	Resumen...
+Switch	Intercambiar
+Synchronize: Document	Sincronizar: documento
+Synchronize: Off	Sincronizar: desactivado
+Synchronize: Page	Sincronizar: página
+System	Sistema
+Tablet	Tableta
+Takeoff Workspace	Espacio de trabajo de cómputo
+Text Box	Cuadro de texto
+Theme	Tema
+Thumbnails	Miniaturas
+Toggle Split	Alternar división
+Toggle Zoom Tool	Alternar herramienta de zoom
+Tool Chest	Cofre de herramientas
+Toolbars	Barras de herramientas
+Tools	Herramientas
+Typewriter	Máquina de escribir
+Underline	Subrayado
+Undo	Deshacer
+Unflatten	Desacoplar
+Unflatten...	Desacoplar...
+Ungroup	Desagrupar
+Unlock	Desbloquear
+Unsplit	Quitar división
+Update Header & Footer	Actualizar encabezado y pie de página
+User name (author of new markups)	Nombre de usuario (autor de las marcas nuevas)
+View	Ver
+Visual Search	Búsqueda visual
+Volume	Volumen
+Watermark...	Marca de agua...
+Web Tab	Pestaña web
+WebTab	Pestaña web
+Window	Ventana
+Zoom	Zoom
+Zoom In	Acercar
+Zoom Out	Alejar

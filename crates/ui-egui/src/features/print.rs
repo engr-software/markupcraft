@@ -72,6 +72,8 @@ pub struct PrintState {
     pub dim_filtered: bool,
     pub spaces: bool,
     pub links: bool,
+    /// Open pop-up notes print as boxes (Preferences > Tools > Markup).
+    pub popups: bool,
     /// Advanced: grayscale, print as image.
     pub advanced: markupcraft_engine::finish::print_more::PrintAdvanced,
     pub advanced_open: bool,
@@ -117,6 +119,7 @@ impl Default for PrintState {
             dim_filtered: false,
             spaces: false,
             links: false,
+            popups: false,
             advanced: Default::default(),
             advanced_open: false,
             show_preview: false,
@@ -158,6 +161,7 @@ impl PrintState {
             dim_except: if self.dim_filtered { filtered } else { None },
             spaces: self.spaces,
             links: self.links,
+            popups: self.popups,
         })
     }
 
@@ -520,7 +524,11 @@ pub fn write(app: &mut AppState, out: &Path) -> bool {
             return false;
         }
     };
-    let advanced = app.features.print.advanced;
+    let mut advanced = app.features.print.advanced;
+    // Print as Image never goes above the preference's resolution.
+    advanced.as_image = advanced
+        .as_image
+        .map(|dpi| crate::shell::render_prefs::print_dpi(dpi, &app.shell.ui.render));
     let r = d.session.print_job_to_pdf(out, &job).and_then(|n| {
         markupcraft_engine::finish::print_more::post_process(out, &advanced)?;
         Ok(n)

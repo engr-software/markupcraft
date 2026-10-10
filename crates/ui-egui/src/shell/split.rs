@@ -12,6 +12,10 @@
 //! The pane that has focus shows the active document (menus and keys act on it); clicking in
 //! the other pane moves the focus there. The second pane keeps its own view and renderer, so
 //! one document can show in both panes at different places.
+//!
+//! Every pane has its own tab bar: the first pane uses the document tabs above the area, each
+//! other pane a row of tabs in its header (a tab dropped on a pane, or added with its "+" menu,
+//! joins that pane's tabs; each tab keeps its own place in the pane).
 
 use egui::{Rect, RichText, Vec2, vec2};
 use markupcraft_render::{RenderDoc, RenderOptions};
@@ -38,7 +42,14 @@ pub struct Pane {
     pub render: Option<RenderDoc>,
     /// The document bytes its renderer was made from (rebuilt when they change).
     bytes: Option<std::sync::Arc<Vec<u8>>>,
+    /// The pane's own tabs, in order (the shown document is one of them).
+    pub tabs: Vec<u64>,
+    /// The place each tab not shown was left at.
+    parked: Vec<(u64, DocView)>,
 }
+
+/// Most tabs one pane holds.
+pub const MAX_PANE_TABS: usize = 64;
 
 /// Most panes the document area splits into.
 pub const MAX_PANES: usize = 16;
@@ -88,12 +99,7 @@ pub fn split(app: &mut AppState, vertical: bool) {
         vertical,
         frac: 0.5,
         active_first: true,
-        pane: Pane {
-            uid,
-            view,
-            render: None,
-            bytes: None,
-        },
+        pane: Pane::new(uid, view),
         more: Vec::new(),
         sync: match app.shell.ui.extra.sync_default.as_str() {
             "document" => Sync::Document,
@@ -117,6 +123,7 @@ pub fn switch(app: &mut AppState) {
     if other == active {
         return;
     }
+    s.pane.replace_shown(other, active);
     s.pane.uid = active;
     s.pane.render = None;
     s.pane.bytes = None;
@@ -128,12 +135,7 @@ pub fn switch(app: &mut AppState) {
 /// Show document `uid` in the second pane (a tab dropped on it).
 pub fn show_in_pane(app: &mut AppState, uid: u64) {
     let Some(s) = &mut app.shell.split else { return };
-    if s.pane.uid != uid {
-        s.pane.uid = uid;
-        s.pane.render = None;
-        s.pane.bytes = None;
-        s.pane.view = DocView::default();
-    }
+    s.pane.show(uid);
     if let Some(name) = app.docs.iter().find(|d| d.uid == uid).map(|d| d.name.clone()) {
         app.status = format!("{name} shows in the second pane");
     }
@@ -159,6 +161,7 @@ fn focus_pane(app: &mut AppState) {
         if let Some(d) = app.docs.get_mut(i) {
             std::mem::swap(&mut d.view, &mut s.pane.view);
         }
+        s.pane.replace_shown(target, active_uid);
         s.pane.uid = active_uid;
         if let Some(d) = app.docs.iter_mut().find(|d| d.uid == active_uid) {
             std::mem::swap(&mut d.view, &mut s.pane.view);
@@ -185,7 +188,77 @@ impl Pane {
             view,
             render: None,
             bytes: None,
+            tabs: vec![uid],
+            parked: Vec::new(),
         }
+    }
+
+    /// Show document `uid`, adding it to the pane's tabs; the tab left keeps its place.
+    pub fn show(&mut self, uid: u64) {
+        if !self.tabs.contains(&uid) {
+            if self.tabs.len() >= MAX_PANE_TABS {
+                self.tabs.remove(0);
+            }
+            self.tabs.push(uid);
+        }
+        if self.uid == uid {
+            return;
+        }
+        let view = match self.parked.iter().position(|(u, _)| *u == uid) {
+            Some(i) => self.parked.remove(i).1,
+            None => DocView::default(),
+        };
+        let old = std::mem::replace(&mut self.view, view);
+        let was = self.uid;
+        self.parked.retain(|(u, _)| *u != was);
+        if self.parked.len() < MAX_PANE_TABS {
+            self.parked.push((was, old));
+        }
+        self.uid = uid;
+        self.render = None;
+        self.bytes = None;
+        self.view.invalidate();
+    }
+
+    /// Take tab `uid` out of the pane; the shown tab moves to a neighbour. False when it was
+    /// the pane's last tab (the pane itself should close).
+    pub fn close_tab(&mut self, uid: u64) -> bool {
+        let Some(i) = self.tabs.iter().position(|u| *u == uid) else {
+            return true;
+        };
+        if self.tabs.len() <= 1 {
+            return false;
+        }
+        self.tabs.remove(i);
+        if self.uid == uid
+            && let Some(next) = self.tabs.get(i.min(self.tabs.len().saturating_sub(1))).copied()
+        {
+            self.show(next);
+        }
+        self.parked.retain(|(u, _)| *u != uid);
+        true
+    }
+
+    /// Forget tabs whose documents closed (the shown one is handled by the caller).
+    fn retain_open(&mut self, open: &[u64]) {
+        let shown = self.uid;
+        self.tabs.retain(|u| open.contains(u) || *u == shown);
+        self.parked.retain(|(u, _)| open.contains(u));
+        if !self.tabs.contains(&shown) {
+            self.tabs.insert(0, shown);
+        }
+    }
+
+    /// The document it shows changed underneath it (a focus swap): the tab of `from` now
+    /// holds `to`.
+    fn replace_shown(&mut self, from: u64, to: u64) {
+        if !self.tabs.contains(&to) {
+            match self.tabs.iter_mut().find(|u| **u == from) {
+                Some(t) => *t = to,
+                None => self.tabs.push(to),
+            }
+        }
+        self.parked.retain(|(u, _)| *u != to);
     }
 }
 
@@ -225,6 +298,8 @@ pub fn show(app: &mut AppState, ui: &mut egui::Ui) {
     {
         match active_uid {
             Some(u) => {
+                let gone = s.pane.uid;
+                s.pane.replace_shown(gone, u);
                 s.pane.uid = u;
                 s.pane.render = None;
                 s.pane.bytes = None;
@@ -235,6 +310,10 @@ pub fn show(app: &mut AppState, ui: &mut egui::Ui) {
     let open: Vec<u64> = app.docs.iter().map(|d| d.uid).collect();
     if let Some(s) = &mut app.shell.split {
         s.more.retain(|p| open.contains(&p.uid));
+        s.pane.retain_open(&open);
+        for p in &mut s.more {
+            p.retain_open(&open);
+        }
     }
     if app.shell.split.as_ref().is_some_and(|s| !s.more.is_empty()) {
         grid(app, ui);
@@ -314,12 +393,12 @@ pub fn show(app: &mut AppState, ui: &mut egui::Ui) {
             t.accent,
         );
     }
-    // Focus follows a press in the other pane.
+    // Focus follows a press in the other pane (its page area, not its tab bar).
     let pressed = ui.input(|i| {
         i.pointer
             .press_origin()
             .filter(|_| i.pointer.any_pressed())
-            .is_some_and(|p| secondary.contains(p))
+            .is_some_and(|p| body_of(secondary).contains(p))
     });
     if pressed {
         focus_pane(app);
@@ -432,7 +511,7 @@ fn grid(app: &mut AppState, ui: &mut egui::Ui) {
         i.pointer
             .press_origin()
             .filter(|_| i.pointer.any_pressed())
-            .and_then(|p| cells.iter().skip(1).position(|c| c.contains(p)))
+            .and_then(|p| cells.iter().skip(1).position(|c| body_of(*c).contains(p)))
     });
     if let Some(idx) = pressed {
         swap_in(app, idx);
@@ -490,6 +569,17 @@ pub fn close_pane(app: &mut AppState, idx: usize) {
     s.last = None;
 }
 
+/// Height of a pane's header (its tab bar).
+const HEADER: f32 = 24.0;
+
+/// A pane's page area: its rect below the header.
+fn body_of(rect: Rect) -> Rect {
+    Rect::from_min_max(
+        egui::pos2(rect.left(), (rect.top() + HEADER).min(rect.bottom())),
+        rect.max,
+    )
+}
+
 /// One pane of the split (pane `idx`, 0 = the second): its header and canvas. Returns true
 /// when its header's close button was pressed.
 fn second_pane(app: &mut AppState, ui: &mut egui::Ui, rect: Rect, idx: usize) -> bool {
@@ -497,48 +587,79 @@ fn second_pane(app: &mut AppState, ui: &mut egui::Ui, rect: Rect, idx: usize) ->
     let threads = app.threads;
     let ctx = ui.ctx().clone();
     // A header with the document picker.
-    let head = Rect::from_min_size(rect.min, vec2(rect.width(), 24.0));
-    let body = Rect::from_min_max(egui::pos2(rect.left(), head.bottom()), rect.max);
+    let head = Rect::from_min_size(rect.min, vec2(rect.width(), HEADER));
+    let body = body_of(rect);
     let names: Vec<(u64, String)> = app.docs.iter().map(|d| (d.uid, d.name.clone())).collect();
+    let (max_chars, from_start) = (app.shell.ui.tab_max_chars.clamp(8, 40), app.shell.ui.tab_truncate_start);
     let mut pick = None;
     let mut close = false;
+    let mut close_tab = None;
     ui.scope_builder(egui::UiBuilder::new().max_rect(head), |ui| {
         ui.painter().rect_filled(head, 0.0, t.chrome);
-        // The close button first (right), so a narrow pane keeps it; the picker takes the rest.
+        // The close button first (right), so a narrow pane keeps it; the pane's tabs take the rest.
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             ui.add_space(2.0);
             if crate::icons::button(ui, "x", 18.0, false, "Close this pane").clicked() {
                 close = true;
             }
-            let room = ui.available_width();
+            let (cur, tabs) = app
+                .shell
+                .split
+                .as_ref()
+                .map(|s| (Some(s.pane.uid), s.pane.tabs.clone()))
+                .unwrap_or_default();
+            // "+": put any open document in this pane's tabs.
+            ui.menu_button(RichText::new("+").size(13.0), |ui| {
+                for (u, n) in &names {
+                    if ui.selectable_label(tabs.contains(u), n).clicked() {
+                        pick = Some(*u);
+                        ui.close();
+                    }
+                }
+            })
+            .response
+            .on_hover_text("Show another document in this pane");
             ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                 ui.add_space(4.0);
-                let cur = app.shell.split.as_ref().map(|s| s.pane.uid);
-                let label = names
-                    .iter()
-                    .find(|(u, _)| Some(*u) == cur)
-                    .map_or_else(String::new, |(_, n)| n.clone());
-                egui::ComboBox::from_id_salt(("split-doc", idx))
-                    .selected_text(RichText::new(label).size(12.0))
-                    .width((room - 40.0).clamp(60.0, 220.0))
-                    .show_ui(ui, |ui| {
-                        for (u, n) in &names {
-                            if ui.selectable_label(Some(*u) == cur, n).clicked() {
-                                pick = Some(*u);
+                egui::ScrollArea::horizontal()
+                    .id_salt(("split-tabs", idx))
+                    .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
+                    .show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            for u in &tabs {
+                                let Some((_, n)) = names.iter().find(|(x, _)| x == u) else {
+                                    continue;
+                                };
+                                let text = super::tabs::truncate(n, max_chars, from_start);
+                                let on = Some(*u) == cur;
+                                let r = ui
+                                    .selectable_label(on, RichText::new(text).size(12.0))
+                                    .on_hover_text(n.as_str());
+                                if r.clicked() && !on {
+                                    pick = Some(*u);
+                                }
+                                if tabs.len() > 1
+                                    && ui
+                                        .small_button(RichText::new("\u{d7}").size(10.0))
+                                        .on_hover_text("Close this tab in the pane")
+                                        .clicked()
+                                {
+                                    close_tab = Some(*u);
+                                }
+                                ui.add_space(2.0);
                             }
-                        }
+                        });
                     });
-                if room > 420.0 {
-                    ui.label(
-                        RichText::new("Split view (click to focus)")
-                            .size(11.0)
-                            .color(t.text_faint),
-                    );
-                }
             });
         });
     });
     if close {
+        return true;
+    }
+    if let Some(u) = close_tab
+        && let Some(s) = &mut app.shell.split
+        && !s.pane.close_tab(u)
+    {
         return true;
     }
     let tool = crate::tools::find(app.tool).unwrap_or(&crate::tools::select::TOOL);
@@ -546,13 +667,8 @@ fn second_pane(app: &mut AppState, ui: &mut egui::Ui, rect: Rect, idx: usize) ->
     let edit = app.edit.clone();
     let template = app.template().0.cloned();
     let Some(s) = &mut app.shell.split else { return false };
-    if let Some(u) = pick
-        && u != s.pane.uid
-    {
-        s.pane.uid = u;
-        s.pane.render = None;
-        s.pane.bytes = None;
-        s.pane.view = DocView::default();
+    if let Some(u) = pick {
+        s.pane.show(u);
     }
     let uid = s.pane.uid;
     let Some(doc) = app.docs.iter_mut().find(|d| d.uid == uid) else {

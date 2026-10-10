@@ -44,7 +44,9 @@ fn templates_dir(app: &AppState) -> Option<PathBuf> {
 }
 
 fn email_file(app: &AppState) -> Option<PathBuf> {
-    config_dir(app).map(|d| d.join("email_templates.json"))
+    // Preferences > Admin: a shared email template folder.
+    crate::shell::admin_prefs::email_templates_file(app)
+        .or_else(|| config_dir(app).map(|d| d.join("email_templates.json")))
 }
 
 /// Run one of these commands; false when `id` is not one of them.

@@ -337,7 +337,7 @@ pub fn drop_on_thumbnails(app: &mut AppState, ctx: &egui::Context) -> bool {
 pub fn windows(app: &mut AppState, ctx: &egui::Context) {
     if let Some(path) = app.shell.extra.files.locked.clone() {
         let mut answer = None;
-        egui::Window::new("File in Use")
+        crate::i18n::window("File in Use")
             .collapsible(false)
             .resizable(false)
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
@@ -366,7 +366,7 @@ pub fn windows(app: &mut AppState, ctx: &egui::Context) {
         let list = app.shell.extra.files.offered.clone();
         let mut act: Option<(usize, bool)> = None;
         let mut all = None;
-        egui::Window::new("Document Recovery")
+        crate::i18n::window("Document Recovery")
             .collapsible(false)
             .resizable(false)
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])

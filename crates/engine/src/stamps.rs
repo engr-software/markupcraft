@@ -432,7 +432,23 @@ struct Rgba {
 }
 
 fn decode_png(bytes: &[u8]) -> Result<Rgba> {
-    let mut reader = image::ImageReader::with_format(std::io::Cursor::new(bytes), image::ImageFormat::Png);
+    decode_picture(bytes, image::ImageFormat::Png)
+}
+
+/// A picture file's format by its extension (PNG, JPEG, BMP, TIFF, GIF), if it is one.
+fn picture_format(ext: &str) -> Option<image::ImageFormat> {
+    Some(match ext {
+        "png" => image::ImageFormat::Png,
+        "jpg" | "jpeg" => image::ImageFormat::Jpeg,
+        "bmp" => image::ImageFormat::Bmp,
+        "tif" | "tiff" => image::ImageFormat::Tiff,
+        "gif" => image::ImageFormat::Gif,
+        _ => return None,
+    })
+}
+
+fn decode_picture(bytes: &[u8], format: image::ImageFormat) -> Result<Rgba> {
+    let mut reader = image::ImageReader::with_format(std::io::Cursor::new(bytes), format);
     let mut limits = image::Limits::default();
     limits.max_image_width = Some(MAX_IMAGE_SIDE);
     limits.max_image_height = Some(MAX_IMAGE_SIDE);
@@ -440,7 +456,7 @@ fn decode_png(bytes: &[u8]) -> Result<Rgba> {
     reader.limits(limits);
     let img = reader
         .decode()
-        .map_err(|e| invalid(format!("not a readable PNG: {e}")))?
+        .map_err(|e| invalid(format!("not a readable {format:?} image: {e}")))?
         .to_rgba8();
     let (w, h) = img.dimensions();
     let mut rgb = Vec::with_capacity((w as usize) * (h as usize) * 3);
@@ -528,8 +544,8 @@ fn load_art(path: &Path, page: usize) -> Result<Art> {
         .extension()
         .map(|e| e.to_string_lossy().to_lowercase())
         .unwrap_or_default();
-    if ext == "png" {
-        return Ok(Art::Image(decode_png(&bytes)?));
+    if let Some(f) = picture_format(&ext) {
+        return Ok(Art::Image(decode_picture(&bytes, f)?));
     }
     let src = CosDoc::open(Arc::new(bytes))?;
     let n = markupcraft_revu::pdf::pages(&src).len();
@@ -559,8 +575,9 @@ impl Art {
         }
     }
 
-    /// Add the XObject to `dst`; returns it and the box it draws in (its own space).
-    fn add_to(&self, dst: &mut CosDoc) -> Result<(ObjRef, Rect)> {
+    /// Add the XObject to `dst`; returns it and the box it draws in (its own space). A
+    /// picture is stored as JPEG at quality `jpeg` (lossy, smaller), else losslessly (Flate).
+    fn add_to(&self, dst: &mut CosDoc, jpeg: Option<u8>) -> Result<(ObjRef, Rect)> {
         match self {
             Art::Image(i) => {
                 let mut d = Dict::new();
@@ -581,7 +598,20 @@ impl Art {
                     let mr = dst.add(Object::Stream(Stream::flate(m, a)));
                     d.set(b"SMask".to_vec(), Object::Ref(mr));
                 }
-                let r = dst.add(Object::Stream(Stream::flate(d, &i.rgb)));
+                let stream = match jpeg {
+                    Some(q) => {
+                        let data = crate::convert::encode_rgb(
+                            i.w as usize,
+                            i.h as usize,
+                            i.rgb.clone(),
+                            crate::convert::ImageFormat::Jpeg(q.clamp(1, 100)),
+                        )?;
+                        d.set(b"Filter".to_vec(), name("DCTDecode"));
+                        Stream::from_raw(d, data)
+                    }
+                    None => Stream::flate(d, &i.rgb),
+                };
+                let r = dst.add(Object::Stream(stream));
                 Ok((r, Rect::new(0.0, 0.0, 1.0, 1.0)))
             }
             Art::Page { src, page } => {
@@ -736,6 +766,7 @@ impl Session {
 
     fn place_image_stamp(&mut self, page: usize, at: StampPlace, path: &Path, src_page: usize) -> Result<String> {
         let art = load_art(path, src_page)?;
+        let jpeg = self.image_jpeg_quality();
         let (w, h) = art.size();
         let r = match at {
             StampPlace::Rect(r) => r.normalized(),
@@ -758,7 +789,7 @@ impl Session {
                 page: page + 1,
                 count: pages.len(),
             })?;
-            let (xo, b) = art.add_to(cos)?;
+            let (xo, b) = art.add_to(cos, jpeg)?;
             // map the art's box onto the stamp's box
             let (sx, sy) = (r.width() / b.width().max(1e-9), r.height() / b.height().max(1e-9));
             let (tx, ty) = (r.x0 - b.x0 * sx, r.y0 - b.y0 * sy);

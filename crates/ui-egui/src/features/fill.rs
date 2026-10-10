@@ -225,7 +225,7 @@ pub fn window(app: &mut AppState, ctx: &egui::Context) {
         let mut boundary = false;
         let mut clear: Option<bool> = None;
         let was_drag = app.features.fill.drag;
-        egui::Window::new("Dynamic Fill")
+        crate::i18n::window("Dynamic Fill")
             .collapsible(false)
             .resizable(false)
             .anchor(egui::Align2::RIGHT_TOP, [-12.0, 80.0])

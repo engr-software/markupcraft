@@ -432,7 +432,7 @@ pub(super) fn print_props() -> Value {
         "dim_content": { "type": "boolean" },
         "dim_except": { "type": "array", "items": { "type": "string" }, "description": "Markup ids printed at full strength; others dimmed." },
         "spaces": { "type": "boolean" },
-        "links": { "type": "boolean" },
+        "links": { "type": "boolean" }, "popups": { "type": "boolean", "description": "Print open pop-up notes (author, date, comment) as boxes." },
         "printer": { "type": "string", "description": "Also send the sheets to this printer (\"\" = the default printer) with the system's print command." }
     })
 }
@@ -527,6 +527,7 @@ pub(super) fn print_job(args: &crate::Args, s: &markupcraft_engine::Session) -> 
         dim_except: args.opt_strings("dim_except")?,
         spaces: args.bool_or("spaces", false)?,
         links: args.bool_or("links", false)?,
+        popups: args.bool_or("popups", false)?,
     };
     Ok(job)
 }

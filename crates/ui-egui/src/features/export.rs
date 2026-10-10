@@ -44,6 +44,8 @@ pub struct ExportState {
     pub tint: Color,
     pub lighten: f64,
     pub message: String,
+    /// The file Open After Export opened last.
+    pub opened: Option<std::path::PathBuf>,
 }
 
 impl Default for ExportState {
@@ -65,6 +67,7 @@ impl Default for ExportState {
             tint: Color::rgb(0.2, 0.4, 0.8),
             lighten: 0.6,
             message: String::new(),
+            opened: None,
         }
     }
 }
@@ -268,19 +271,40 @@ pub fn images_to(app: &mut AppState, dir: &Path) {
         4 => ImageFormat::Gif,
         _ => ImageFormat::Png,
     };
+    let ie = &app.shell.prefs.more.import_export;
     let o = ImageExport {
         format,
         dpi: e.dpi,
         pages: Some(pages),
         suffix: e.suffix.clone(),
         hide_markups: !e.markups,
+        tiff_compression: ie.tiff(),
+        multi_page_tiff: ie.multi_page_tiff,
     };
     let Some(d) = app.doc() else { return };
-    let msg = actions::report(d.session.export_images(dir, &stem, &o), |f| {
+    let r = d.session.export_images(dir, &stem, &o);
+    if let Ok(files) = &r
+        && let Some(first) = files.first()
+    {
+        opened(app, first.clone());
+    }
+    let msg = actions::report(r, |f| {
         format!("Exported {} to {}", actions::plural(f.len(), "image"), dir.display())
     });
     app.status = msg.clone();
     app.features.export.message = msg;
+}
+
+/// Open After Export (Preferences > Import/Export): the exported file opens with the program
+/// the system uses for it.
+fn opened(app: &mut AppState, path: std::path::PathBuf) {
+    if !app.shell.prefs.more.import_export.open_after_export {
+        return;
+    }
+    if app.shell.extra.launch {
+        crate::shell::files::launch(&path);
+    }
+    app.features.export.opened = Some(path);
 }
 
 /// Where the exported document goes was chosen.
@@ -294,10 +318,13 @@ pub fn document_to(app: &mut AppState, out: &Path) {
             .get(app.features.export.doc_format)
             .and_then(|f| OfficeFormat::from_name(f.1))
     });
+    let opts = app.shell.prefs.more.import_export.export_options();
     let Some(d) = app.doc() else { return };
-    let msg = actions::report(d.session.export_document(out, format, Some(pages)), |n| {
-        format!("Exported {} ({} KB)", out.display(), n / 1024)
-    });
+    let r = d.session.export_document_with(out, format, Some(pages), &opts);
+    if r.is_ok() {
+        opened(app, out.to_path_buf());
+    }
+    let msg = actions::report(r, |n| format!("Exported {} ({} KB)", out.display(), n / 1024));
     app.status = msg.clone();
     app.features.export.message = msg;
 }
@@ -366,10 +393,29 @@ fn pdfa_run(app: &mut AppState, what: u8) {
     };
     let one = app.features.export.pdfa_1b;
     let label = if one { "PDF/A-1b" } else { level.label() };
+    // Preferences > Advanced: the conversion steps before archiving.
+    let conv = app.shell.prefs.more.advanced.pdfa_conversion();
     let Some(d) = app.docs.get_mut(app.active) else { return };
     let mut report = Vec::new();
     let msg = match what {
         0 => {
+            match d.session.prepare_pdfa(&conv) {
+                Ok(p) => {
+                    if p.flattened > 0 {
+                        report.push(format!("Flattened {}", actions::plural(p.flattened, "markup")));
+                    }
+                    if p.removed_attachments > 0 {
+                        report.push(format!(
+                            "Removed {}",
+                            actions::plural(p.removed_attachments, "attachment")
+                        ));
+                    }
+                    if p.made_opaque > 0 {
+                        report.push(format!("Made {} opaque", actions::plural(p.made_opaque, "markup")));
+                    }
+                }
+                Err(e) => report.push(e.to_string()),
+            }
             let archived = if one {
                 d.session.archive_pdfa1b()
             } else {

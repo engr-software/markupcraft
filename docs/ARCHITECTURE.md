@@ -41,6 +41,8 @@ with the same safety patches PdfCraft carries (`[patch.crates-io]` in `Cargo.tom
 | a drawing tool | a `pub static` `ToolDef` in `crates/ui-egui/src/tools/<family>.rs` (gesture + markup kind), one line in the tool registry; `tools::new_markup` builds its markup |
 | a menu / toolbar command | `crates/ui-egui/src/commands.rs` table (id, label, shortcut, icon) |
 | a parity row status | `parity/revu-features.toml` |
+| an interface translation | a line in `crates/ui-egui/i18n/<lang>.tsv` (English text, tab, translation); a unit test requires every menu, tool, panel, Preferences page and dialog title |
+| a long batch job | a builder in `crates/engine/src/jobs.rs` returning `(steps, Work)`, queued with `features::jobs::submit` |
 
 ## Revu file format (what is known)
 

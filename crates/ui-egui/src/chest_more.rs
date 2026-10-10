@@ -418,7 +418,7 @@ fn line_styles_window(app: &mut AppState, ctx: &egui::Context) {
     let mut remove = None;
     let mut add = false;
     let mut io: Option<&'static str> = None;
-    egui::Window::new("Line Styles")
+    crate::i18n::window("Line Styles")
         .open(&mut open)
         .default_width(360.0)
         .show(ctx, |ui| {

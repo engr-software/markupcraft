@@ -130,7 +130,7 @@ pub fn section(ui: &mut egui::Ui, page: &str, u: &mut UiPrefs) -> Option<&'stati
             ui.label(RichText::new("PDF/A").strong());
             ui.checkbox(&mut x.pdfa_locked, "Open PDF/A documents locked for page edits");
             ui.label(
-                RichText::new("Document JavaScript never runs in MarkupCraft.")
+                RichText::new("Document JavaScript runs sandboxed, only when allowed below.")
                     .weak()
                     .size(11.0),
             );

@@ -23,6 +23,7 @@ pub mod fill;
 pub mod flatten_ui;
 pub mod forms;
 pub mod forms_more;
+pub mod jobs;
 pub mod links;
 pub mod more6;
 pub mod ocr;
@@ -155,6 +156,7 @@ pub static COMMANDS: &[Command] = &[
     c("batch.split", "Split...", "Batch", 22, None, ""),
     c("batch.script", "Run Script...", "Batch", 22, None, ""),
     c("batch.apply_stamp", "Apply Stamp...", "Batch", 22, None, ""),
+    c("window.jobs", "Jobs...", "Window", 20, None, "list-checks"),
 ];
 
 /// Panels these features add (for the Window menu keys see the panel rows).
@@ -197,7 +199,8 @@ pub fn enabled(app: &AppState, id: &str) -> bool {
         | "tools.digital_ids"
         | "batch.script"
         | "batch.apply_stamp"
-        | "file.email_templates" => true,
+        | "file.email_templates"
+        | "window.jobs" => true,
         _ => app.has_doc(),
     }
 }
@@ -284,6 +287,7 @@ pub fn run(app: &mut AppState, id: &str, _ctx: &egui::Context) {
             start_pick(app, Pick::Redact, "Drag boxes over what to redact; Esc when done");
         }
         "document.apply_redactions" => f.redact.confirm = true,
+        "window.jobs" => f.jobs.open = true,
         _ => {}
     }
 }
@@ -652,6 +656,7 @@ pub struct FeatureState {
     pub more6: more6::More6State,
     pub partials: partials::PartialsState,
     pub docs7: docs7::Docs7State,
+    pub jobs: jobs::JobsState,
 }
 
 /// Ask the user to pick on the active document's canvas.
@@ -688,6 +693,7 @@ pub fn frame(app: &mut AppState, ctx: &egui::Context) {
         picked(app, what, p.page, p.pts);
     }
     docs7::frame(app, ctx);
+    jobs::frame(app, ctx);
     // While the user picks on the page, dialogs step aside (they come back after the pick).
     if app.features.pick.is_some() {
         fill::window(app, ctx);
@@ -762,7 +768,7 @@ pub(crate) fn color_edit(ui: &mut egui::Ui, c: &mut markupcraft_model::Color) ->
 
 /// A modal-like feature window, centred, closable.
 pub(crate) fn window(title: &str) -> egui::Window<'_> {
-    egui::Window::new(title)
+    crate::i18n::window(title)
         .collapsible(false)
         .resizable(true)
         .default_width(420.0)

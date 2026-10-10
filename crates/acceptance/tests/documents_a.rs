@@ -1137,6 +1137,114 @@ fn a_document_tab_dragged_onto_the_second_pane_shows_there() {
     assert_eq!(split(&h).unwrap().pane.uid, ua, "{}", h.state().state.status);
 }
 
+/// D-050: up to 16 panes, each with its own tabs; any pane shows any open document, and each
+/// tab keeps its place in its pane.
+#[test]
+fn split_panes_have_their_own_tab_bars() {
+    let dir = temp_dir("doca-pane-tabs");
+    let pa = sample_pdf(&dir, "alpha.pdf");
+    let pb = sample_pdf(&dir, "bravo.pdf");
+    let pc = sample_pdf(&dir, "charlie.pdf");
+    let mut h = empty_app();
+    open(&mut h, &pa);
+    open(&mut h, &pb);
+    open(&mut h, &pc);
+    run(&mut h, "view.split_vertical");
+    h.run_steps(4);
+    let uid = |h: &Harness<'_, MarkupCraftApp>, n: &str| h.state().state.docs.iter().find(|d| d.name == n).unwrap().uid;
+    let (ua, uc) = (uid(&h, "alpha.pdf"), uid(&h, "charlie.pdf"));
+    assert_eq!(
+        split(&h).unwrap().pane.tabs,
+        vec![uc],
+        "the new pane starts with one tab"
+    );
+    // A second document joins the pane's own tabs (as a dropped tab does).
+    shell::split::show_in_pane(&mut h.state_mut().state, ua);
+    h.run_steps(4);
+    assert_eq!(split(&h).unwrap().pane.tabs, vec![uc, ua]);
+    assert_eq!(split(&h).unwrap().pane.uid, ua);
+    h.state_mut()
+        .state
+        .shell
+        .split
+        .as_mut()
+        .unwrap()
+        .pane
+        .view
+        .go_to_page(1, 2);
+    h.run_steps(2);
+    // The pane's tab bar: click its charlie.pdf tab (the one inside the pane, not the main bar).
+    let pane = h.state().state.shell.extra.pane_rect.expect("the second pane");
+    let tab = h
+        .query_all_by_label("charlie.pdf")
+        .map(|n| n.rect())
+        .find(|r| pane.contains(r.center()))
+        .expect("the pane has its own charlie.pdf tab");
+    h.hover_at(tab.center());
+    h.step();
+    button(&mut h, tab.center(), true, Modifiers::NONE);
+    button(&mut h, tab.center(), false, Modifiers::NONE);
+    h.run_steps(4);
+    let s = split(&h).unwrap();
+    assert_eq!(s.pane.uid, uc, "the pane's tab shows its document");
+    assert_eq!(s.pane.tabs, vec![uc, ua], "both tabs stay in the pane");
+    // Back to alpha in the pane: the page it was left at comes back.
+    h.state_mut().state.shell.split.as_mut().unwrap().pane.show(ua);
+    h.run_steps(3);
+    assert_eq!(
+        split(&h).unwrap().pane.view.current,
+        1,
+        "alpha kept its page in the pane"
+    );
+    // Closing a tab in the pane leaves the pane with its other tab.
+    let s = h.state_mut().state.shell.split.as_mut().unwrap();
+    assert!(s.pane.close_tab(ua));
+    assert_eq!((s.pane.tabs.clone(), s.pane.uid), (vec![uc], uc));
+    assert!(!s.pane.close_tab(uc), "the last tab closes the pane instead");
+    // Up to 16 panes.
+    for _ in 0..20 {
+        run(&mut h, "view.split_vertical");
+    }
+    assert_eq!(split(&h).unwrap().panes(), shell::split::MAX_PANES, "at most 16 panes");
+    h.run_steps(4);
+    assert!(
+        split(&h).unwrap().more.iter().all(|p| p.tabs.len() == 1),
+        "each new pane has its own tab bar"
+    );
+}
+
+/// D-050: a pane's tab keeps its own place (page) when the pane shows another tab and back.
+#[test]
+fn a_pane_tab_keeps_its_place() {
+    let dir = temp_dir("doca-pane-place");
+    let pa = sample_pdf(&dir, "one.pdf");
+    let pb = sample_pdf(&dir, "two.pdf");
+    let mut h = empty_app();
+    open(&mut h, &pa);
+    open(&mut h, &pb);
+    run(&mut h, "view.split_vertical");
+    h.run_steps(4);
+    let ua = h.state().state.docs[0].uid;
+    let ub = h.state().state.docs[1].uid;
+    shell::split::show_in_pane(&mut h.state_mut().state, ua);
+    h.run_steps(3);
+    h.state_mut()
+        .state
+        .shell
+        .split
+        .as_mut()
+        .unwrap()
+        .pane
+        .view
+        .go_to_page(1, 2);
+    h.run_steps(3);
+    let pane = &mut h.state_mut().state.shell.split.as_mut().unwrap().pane;
+    pane.show(ub);
+    assert_eq!(pane.view.current, 0, "a fresh tab starts at the top");
+    pane.show(ua);
+    assert_eq!(pane.view.current, 1, "the tab came back where it was left");
+}
+
 /// D-056 Detach a tab into its own window; Reattach puts it back.
 #[test]
 fn detach_a_tab_into_its_own_window_and_reattach() {
@@ -2698,6 +2806,113 @@ fn create_pdfs_from_files_one_or_many() {
     run(&mut h, "file.create_from_files");
     h.run_steps(4);
     assert!(shows(&h, "Create PDF"), "the Create from Files dialog");
+}
+
+/// D-105: the Stapler's jobs are queued and run in the background, one after another, with
+/// progress and cancel (headless through job_start / job_list / job_wait / job_cancel, and in
+/// the app through Window > Jobs while the interface stays live).
+#[test]
+fn stapler_jobs_run_in_a_background_queue() {
+    let dir = temp_dir("doca-jobs");
+    let mut names = Vec::new();
+    for i in 0..6 {
+        let n = format!("note{i}.txt");
+        std::fs::write(dir.join(&n), format!("Note {i}\nSecond line")).unwrap();
+        names.push(n);
+    }
+    let mut a = automation(&dir);
+    std::fs::create_dir_all(dir.join("out")).unwrap();
+    let id = call(
+        &mut a,
+        "job_start",
+        json!({ "kind": "create_each", "files": names, "out_dir": "out" }),
+    )["job"]
+        .as_u64()
+        .unwrap();
+    let combined = call(
+        &mut a,
+        "job_start",
+        json!({ "kind": "create", "files": ["note0.txt", "note1.txt"], "out": "all.pdf" }),
+    )["job"]
+        .as_u64()
+        .unwrap();
+    let listed = call(&mut a, "job_list", json!({}));
+    assert_eq!(listed["jobs"].as_array().unwrap().len(), 2, "{listed}");
+    let j = call(&mut a, "job_wait", json!({ "job": id, "timeout_secs": 60 }));
+    assert_eq!(j["state"], "done", "{j}");
+    assert_eq!(
+        (j["done"].as_u64(), j["total"].as_u64()),
+        (Some(6), Some(6)),
+        "progress by file"
+    );
+    assert_eq!(j["outputs"].as_array().unwrap().len(), 6);
+    assert!(dir.join("out").join("note5.pdf").is_file());
+    let j = call(&mut a, "job_wait", json!({ "job": combined, "timeout_secs": 60 }));
+    assert_eq!(j["state"], "done", "{j}");
+    call(&mut a, "doc_open", json!({ "path": "all.pdf" }));
+    assert_eq!(
+        page_texts(&mut a).len(),
+        2,
+        "the queue ran the second job after the first"
+    );
+    // Cancel: a queued job never runs.
+    let many: Vec<String> = names.iter().cycle().take(30).cloned().collect();
+    let long = call(
+        &mut a,
+        "job_start",
+        json!({ "kind": "create_each", "files": many, "out_dir": "out" }),
+    )["job"]
+        .as_u64()
+        .unwrap();
+    let queued = call(
+        &mut a,
+        "job_start",
+        json!({ "kind": "create", "files": ["note2.txt"], "out": "never.pdf" }),
+    )["job"]
+        .as_u64()
+        .unwrap();
+    assert_eq!(call(&mut a, "job_cancel", json!({ "job": queued }))["cancelled"], true);
+    call(&mut a, "job_wait", json!({ "job": long, "timeout_secs": 60 }));
+    let j = call(&mut a, "job_wait", json!({ "job": queued, "timeout_secs": 5 }));
+    assert_eq!(j["state"], "cancelled", "{j}");
+    assert!(!dir.join("never.pdf").exists(), "a cancelled job writes nothing");
+    assert!(
+        a.call("job_start", &json!({ "kind": "nope", "files": ["note0.txt"] }))
+            .is_err()
+    );
+
+    // The app: the Stapler queues its job and the interface keeps running.
+    let mut h = app();
+    h.state_mut().state.features.jobs.background = Some(true);
+    run(&mut h, "file.create_from_files");
+    {
+        let s = &mut h.state_mut().state;
+        s.features.batch.files = names.iter().map(|n| dir.join(n)).collect();
+        s.features.batch.more.each = true;
+        s.features.batch.more.beside_source = true;
+        markupcraft_ui_egui::features::batch::run(s);
+    }
+    assert!(h.state().state.status.contains("queued"), "{}", h.state().state.status);
+    run(&mut h, "window.jobs");
+    h.run_steps(3);
+    assert!(shows(&h, "Jobs"), "Window > Jobs");
+    assert!(shows(&h, "Create PDF from Files (one per file)"), "the job is listed");
+    let q = h.state().state.features.jobs.queue.clone();
+    let id = q.list().last().unwrap().id;
+    let j = q.wait(id, std::time::Duration::from_secs(60)).unwrap();
+    assert_eq!(j.state, markupcraft_engine::jobs::JobState::Done, "{}", j.message);
+    h.run_steps(3);
+    assert!(
+        h.state().state.status.contains("Created 6 PDFs beside their sources"),
+        "the finished job reports: {}",
+        h.state().state.status
+    );
+    assert!(dir.join("note3.pdf").is_file());
+    assert!(shows(&h, "6 of 6"), "its progress in the dialog");
+    // The dialog's Clear Finished empties the list.
+    h.get_by_label("Clear Finished").click();
+    h.run_steps(3);
+    assert!(h.state().state.features.jobs.queue.list().is_empty());
 }
 
 /// D-106 Explorer right-click Combine / Convert entries.

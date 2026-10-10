@@ -33,10 +33,12 @@ pub mod dock;
 pub mod editing;
 pub mod features;
 pub mod gestures;
+pub mod i18n;
 pub mod icon_data;
 pub mod icons;
 pub mod interact;
 pub mod keyprefs;
+pub mod markup_prefs;
 pub mod markups_more;
 pub mod modkeys;
 pub mod more;
@@ -50,6 +52,7 @@ pub mod sketch;
 pub mod snapping;
 pub mod snapping_more;
 pub mod spell_prefs;
+pub mod tablet_prefs;
 pub mod theme;
 pub mod tools;
 pub mod viewports;
@@ -359,6 +362,8 @@ impl AppState {
         self.docs.push(tab);
         self.active = self.docs.len() - 1;
         self.status = format!("Opened {name}");
+        // Preferences > Advanced: its JavaScript runs on opening when allowed.
+        features::more6::script::on_open(self);
         Ok(())
     }
 
@@ -1058,7 +1063,19 @@ impl AppState {
                     } else {
                         text
                     });
+                    // Preferences > Tablet: pen strokes also go out as a picture.
+                    let picture = tablet_prefs::opts()
+                        .ink_copy_picture
+                        .then(|| tablet_prefs::ink_picture(d.session.clipboard(), 1024))
+                        .flatten();
                     self.status = actions::report(r, |s| s);
+                    if let Some(img) = picture {
+                        self.status = format!(
+                            "{}; pen strokes copied as a {} x {} picture",
+                            self.status, img.size[0], img.size[1]
+                        );
+                        ctx.copy_image(img);
+                    }
                 }
             }
             _ if markupcraft_engine::commands::find(id).is_some() => {
@@ -1177,6 +1194,8 @@ impl Default for MarkupCraftApp {
 impl MarkupCraftApp {
     /// An app with an in-memory Tool Chest (tests, screenshots).
     pub fn new() -> Self {
+        // The log file of Preferences > Admin (written once a folder is set).
+        shell::admin_prefs::install();
         Self {
             state: AppState::default(),
             dock: dock::default_layout(),
@@ -1308,6 +1327,10 @@ impl MarkupCraftApp {
 impl eframe::App for MarkupCraftApp {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
+        i18n::set_language(&self.state.shell.prefs.language);
+        markup_prefs::frame(&mut self.state);
+        tablet_prefs::frame(&self.state);
+        shell::admin_prefs::apply(&mut self.state);
         if !self.styled {
             egui_extras::install_image_loaders(&ctx);
             theme::apply(&ctx);

@@ -224,7 +224,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
 fn dialogs(app: &mut AppState, ui: &mut egui::Ui, view: &mut View) {
     if let Some(p) = view.confirm_delete.clone() {
         let mut answer = None;
-        egui::Window::new("Delete File")
+        crate::i18n::window("Delete File")
             .collapsible(false)
             .resizable(false)
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
@@ -256,7 +256,7 @@ fn dialogs(app: &mut AppState, ui: &mut egui::Ui, view: &mut View) {
     if let Some(p) = view.properties.clone() {
         let mut open = true;
         let meta = std::fs::metadata(&p).ok();
-        egui::Window::new("File Properties")
+        crate::i18n::window("File Properties")
             .open(&mut open)
             .collapsible(false)
             .resizable(false)

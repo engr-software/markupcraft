@@ -55,6 +55,7 @@ pub mod forms;
 pub mod geometry;
 pub mod hatch;
 pub mod hf_tokens;
+pub mod jobs;
 pub mod labels;
 pub mod layers;
 pub mod layers_more;
@@ -209,9 +210,22 @@ pub struct Session {
     last_merge: Option<String>,
     /// Page text read for search, kept while the bytes it came from are current.
     text_cache: std::sync::Mutex<search::TextCache>,
+    /// Pictures placed as markups are stored as JPEG at this quality (else losslessly).
+    image_jpeg: Option<u8>,
 }
 
 impl Session {
+    /// How pictures placed as markups (Image, image stamps) are stored: JPEG at quality (1 to
+    /// 100, lossy and small) or, with `None`, losslessly (Preferences > Tools > Markup).
+    pub fn set_image_encoding(&mut self, quality: Option<u8>) {
+        self.image_jpeg = quality.map(|q| q.clamp(1, 100));
+    }
+
+    /// The JPEG quality pictures are stored at, if not losslessly.
+    pub fn image_jpeg_quality(&self) -> Option<u8> {
+        self.image_jpeg
+    }
+
     /// Open a PDF file.
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let (file, doc) = markupcraft_revu::open(path)?;
@@ -251,6 +265,7 @@ impl Session {
             merge: None,
             last_merge: None,
             text_cache: search::TextCache::new(),
+            image_jpeg: None,
         }
     }
 

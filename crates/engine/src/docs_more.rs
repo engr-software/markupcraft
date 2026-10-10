@@ -799,6 +799,30 @@ type SourcePage = (f64, f64, String, Option<(Vec<u8>, u32, u32, bool)>);
 /// The pages of a PDF made from images (PNG, JPEG) and text files (`.txt`, `.csv`, `.md`):
 /// an image page is the image at 72 ppi (up to letter size, scaled down); text is set in
 /// Helvetica on letter pages.
+/// A picture as a page: its size from the picture resolution (at most 17 x 22 in), in colour
+/// or grey (a JPEG file is kept as it is when in colour).
+fn picture_page(rgb: Vec<u8>, w: u32, h: u32, jpeg: Option<Vec<u8>>) -> SourcePage {
+    let o = IMAGE_TO_PDF.with(std::cell::Cell::get);
+    let k = (72.0 / o.dpi.clamp(36.0, 1200.0))
+        .min(1224.0 / f64::from(w.max(1)))
+        .min(1584.0 / f64::from(h.max(1)));
+    let data = match (o.grayscale, jpeg) {
+        (false, Some(j)) => (j, w, h, true),
+        (false, None) => (rgb, w, h, false),
+        (true, _) => {
+            // Rec. 601 luma; a page of grey is a third the size.
+            let grey = rgb
+                .as_chunks::<3>()
+                .0
+                .iter()
+                .map(|p| ((u32::from(p[0]) * 299 + u32::from(p[1]) * 587 + u32::from(p[2]) * 114) / 1000) as u8)
+                .collect();
+            (grey, w, h, false)
+        }
+    };
+    (f64::from(w) * k, f64::from(h) * k, String::new(), Some(data))
+}
+
 fn source_pages(path: &Path) -> Result<Vec<SourcePage>> {
     let ext = path
         .extension()
@@ -817,18 +841,7 @@ fn source_pages(path: &Path) -> Result<Vec<SourcePage>> {
     // every page of a TIFF, a GIF's first frame, PNG and BMP
     if matches!(ext.as_str(), "png" | "bmp" | "tif" | "tiff" | "gif") {
         let pics = crate::finish::imaging::pictures(&bytes).map_err(|e| invalid(format!("{}: {e}", path.display())))?;
-        return Ok(pics
-            .into_iter()
-            .map(|p| {
-                let k = (1224.0 / f64::from(p.w)).min(1584.0 / f64::from(p.h)).min(1.0);
-                (
-                    f64::from(p.w) * k,
-                    f64::from(p.h) * k,
-                    String::new(),
-                    Some((p.rgb, p.w, p.h, false)),
-                )
-            })
-            .collect());
+        return Ok(pics.into_iter().map(|p| picture_page(p.rgb, p.w, p.h, None)).collect());
     }
     match ext.as_str() {
         "png" | "jpg" | "jpeg" | "bmp" | "tif" | "tiff" => {
@@ -837,16 +850,8 @@ fn source_pages(path: &Path) -> Result<Vec<SourcePage>> {
             if w == 0 || h == 0 || w > 20_000 || h > 20_000 {
                 return Err(invalid(format!("{}: the image size is not usable", path.display())));
             }
-            let jpeg = matches!(ext.as_str(), "jpg" | "jpeg");
-            let data = if jpeg { bytes } else { img.to_rgb8().into_raw() };
-            // 72 ppi, but at most 17 x 22 in.
-            let k = (1224.0 / w as f64).min(1584.0 / h as f64).min(1.0);
-            Ok(vec![(
-                w as f64 * k,
-                h as f64 * k,
-                String::new(),
-                Some((data, w, h, jpeg)),
-            )])
+            let jpeg = matches!(ext.as_str(), "jpg" | "jpeg").then_some(bytes);
+            Ok(vec![picture_page(img.to_rgb8().into_raw(), w, h, jpeg)])
         }
         "txt" | "csv" | "md" | "log" => {
             let text = String::from_utf8_lossy(&bytes).into_owned();
@@ -894,6 +899,45 @@ fn is_pdf(p: &Path) -> bool {
 /// (many, in order). Images and text files become pages; PDFs are appended as they are.
 /// Returns the page count.
 pub fn create_pdf_from_files(files: &[PathBuf], out: &Path) -> Result<usize> {
+    create_pdf_from_files_with(files, out, &ImageToPdf::default())
+}
+
+/// How pictures become pages (Preferences > Import/Export): the resolution that sets their
+/// page size, and colour or grey.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ImageToPdf {
+    /// Pixels per inch of the picture on the page (36 to 1200): 72 = a pixel a point.
+    pub dpi: f64,
+    /// Store the picture in grey (DeviceGray) instead of colour.
+    pub grayscale: bool,
+}
+
+impl Default for ImageToPdf {
+    fn default() -> Self {
+        Self {
+            dpi: 72.0,
+            grayscale: false,
+        }
+    }
+}
+
+thread_local! {
+    /// The picture options of the conversion running on this thread.
+    static IMAGE_TO_PDF: std::cell::Cell<ImageToPdf> = std::cell::Cell::new(ImageToPdf::default());
+}
+
+/// [`create_pdf_from_files`] with picture options.
+pub fn create_pdf_from_files_with(files: &[PathBuf], out: &Path, o: &ImageToPdf) -> Result<usize> {
+    if !(o.dpi.is_finite() && (36.0..=1200.0).contains(&o.dpi)) {
+        return Err(invalid("picture resolution: 36 to 1200 dpi"));
+    }
+    let before = IMAGE_TO_PDF.with(|c| c.replace(*o));
+    let r = create_pdf_inner(files, out);
+    IMAGE_TO_PDF.with(|c| c.set(before));
+    r
+}
+
+fn create_pdf_inner(files: &[PathBuf], out: &Path) -> Result<usize> {
     if files.is_empty() || files.len() > crate::batch::MAX_FILES {
         return Err(invalid("give 1 to 2000 files"));
     }
@@ -965,7 +1009,12 @@ fn create_from_sources(files: &[PathBuf], out: &Path) -> Result<usize> {
                 d.set(b"Subtype".to_vec(), Object::name("Image"));
                 d.set(b"Width".to_vec(), Object::Int(i64::from(*w)));
                 d.set(b"Height".to_vec(), Object::Int(i64::from(*h)));
-                d.set(b"ColorSpace".to_vec(), Object::name("DeviceRGB"));
+                // Grey pictures (Preferences > Import/Export) have one byte a pixel.
+                let grey = !*jpeg && data.len() == (*w as usize).saturating_mul(*h as usize);
+                d.set(
+                    b"ColorSpace".to_vec(),
+                    Object::name(if grey { "DeviceGray" } else { "DeviceRGB" }),
+                );
                 d.set(b"BitsPerComponent".to_vec(), Object::Int(8));
                 let stream = if *jpeg {
                     d.set(b"Filter".to_vec(), Object::name("DCTDecode"));

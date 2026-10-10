@@ -7,6 +7,7 @@
 //! Commands with ids in [`COMMAND_PREFIXES`] land in [`run`]; `AppState::run`, `enabled` and
 //! `checked` ask this module first, so the shell adds commands without touching their bodies.
 
+pub mod admin_prefs;
 pub mod deskew;
 pub mod detach;
 pub mod edges;
@@ -22,6 +23,7 @@ pub mod panelbars;
 pub mod prefs_more;
 pub mod proptoolbar;
 pub mod recent;
+pub mod render_prefs;
 pub mod shortcutref;
 pub mod split;
 pub mod tabs;
@@ -141,6 +143,12 @@ pub struct UiPrefs {
     pub extra: extra::ExtraPrefs,
     /// Preferences of `extra2`.
     pub extra2: extra2::Prefs2,
+    /// Advanced > 2D Rendering (`render_prefs`).
+    pub render: render_prefs::RenderPrefs,
+    /// Tools > Markup behaviour (`markup_prefs`).
+    pub markup: crate::markup_prefs::MarkupPrefs,
+    /// Admin: log folder, shared folders (`admin_prefs`).
+    pub admin: admin_prefs::AdminPrefs,
 }
 
 impl Default for UiPrefs {
@@ -175,6 +183,9 @@ impl Default for UiPrefs {
             layout: None,
             extra: extra::ExtraPrefs::default(),
             extra2: extra2::Prefs2::default(),
+            render: render_prefs::RenderPrefs::default(),
+            markup: crate::markup_prefs::MarkupPrefs::default(),
+            admin: admin_prefs::AdminPrefs::default(),
         }
     }
 }
@@ -198,6 +209,9 @@ impl UiPrefs {
         self.toolbars.sanitize();
         self.extra.sanitize();
         self.extra2.sanitize();
+        self.render.sanitize();
+        self.markup.sanitize();
+        self.admin.sanitize();
     }
 
     /// The page layout a newly opened document takes (`auto`: drawings one page at a time).
@@ -320,6 +334,10 @@ impl Shell {
             dim: if self.dimmer { self.ui.dimmer_pct / 100.0 } else { 0.0 },
             dark: self.ui.extra.dark_workspace,
             tilt_pans: self.ui.extra2.tilt_pans,
+            progressive: self.ui.render.progressive,
+            low_res_preview: self.ui.render.low_res_preview,
+            resolution: self.ui.render.resolution_pct.clamp(25.0, 200.0) / 100.0,
+            pinch_zoom: self.prefs.more.tablet.pinch_zoom,
             background: (self.screen == Screen::Presentation).then(|| {
                 let [r, g, b] = self.ui.extra2.presentation_background;
                 egui::Color32::from_rgb(r, g, b)

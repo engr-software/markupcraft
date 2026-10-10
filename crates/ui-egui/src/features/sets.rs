@@ -3,7 +3,7 @@
 
 use std::path::{Path, PathBuf};
 
-use markupcraft_engine::batch::{DrawingSet, SetSheet, SetSort, load_set, save_set as write_set, set_sheets};
+use markupcraft_engine::batch::{DrawingSet, SetSheet, SetSort, load_set, save_set_with, set_sheets};
 
 use crate::{AppState, actions};
 
@@ -91,23 +91,52 @@ pub fn open_set(app: &mut AppState, path: &Path) {
 }
 
 pub fn save_set(app: &mut AppState, path: &Path) {
+    // Preferences > Sets: relative paths (or full ones).
+    let relative = app.shell.prefs.more.sets.relative_paths;
     let s = &mut app.features.sets;
-    s.message = actions::report(save_set_file(path, &s.set), |_| format!("Saved {}", path.display()));
+    s.message = actions::report(save_set_file(path, &s.set, relative), |_| {
+        format!("Saved {}", path.display())
+    });
     s.path = Some(path.to_path_buf());
 }
 
-fn save_set_file(path: &Path, set: &DrawingSet) -> markupcraft_engine::Result<()> {
-    write_set(path, set)
+fn save_set_file(path: &Path, set: &DrawingSet, relative: bool) -> markupcraft_engine::Result<()> {
+    save_set_with(path, set, relative)
 }
 
 pub fn add_files(app: &mut AppState, paths: &[PathBuf]) {
     let s = &mut app.features.sets;
+    let had_files = !s.set.files.is_empty();
+    let mut added = Vec::new();
     for p in paths {
         if !s.set.files.contains(p) {
             s.set.files.push(p.clone());
+            added.push(p.clone());
         }
     }
     s.stale = true;
+    // Preferences > Sets: new revisions take the previous one's markups, and the previous one
+    // is stamped SUPERSEDED.
+    let prefs = app.shell.prefs.more.sets.clone();
+    if had_files && !added.is_empty() && (prefs.copy_markups_to_revision || prefs.stamp_superseded) {
+        let s = &mut app.features.sets;
+        let r = markupcraft_engine::sets_more::carry_forward(
+            &s.set,
+            &s.revision_filter,
+            &added,
+            prefs.copy_markups_to_revision,
+            prefs.stamp_superseded,
+        );
+        s.message = actions::report(r, |r| {
+            format!(
+                "{} with a new revision: {} copied, {} stamped SUPERSEDED",
+                actions::plural(r.sheets, "sheet"),
+                actions::plural(r.markups, "markup"),
+                actions::plural(r.stamped, "old revision")
+            )
+        });
+        app.status = app.features.sets.message.clone();
+    }
 }
 
 /// Open a sheet: its file (or its tab) at its page.

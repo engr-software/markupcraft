@@ -2632,14 +2632,62 @@ fn ui_preferences_dialog_and_user_name() {
     );
 }
 
-/// ui-141: the theme is on General > Options; there is no UI language choice.
+/// ui-141: theme and interface language on General > Options. Choosing Spanish turns the menus,
+/// tools, panels and dialogs Spanish at once; English is the default and comes back.
 #[test]
 fn ui_language_and_theme() {
     let _serial = serial();
     let mut h = app();
     prefs_on(&mut h, "General");
     assert!(has(&h, "Theme") && has(&h, "Dark") && has(&h, "Light"));
-    assert!(!has(&h, "Language"), "no language option (English only)");
+    assert!(
+        has(&h, "Language") && has(&h, "English"),
+        "a language option, English by default"
+    );
+    assert_eq!(st(&h).shell.prefs.language, "en");
+    assert!(has(&h, "File") && !has(&h, "Archivo"), "English menus");
+    click_contains(&mut h, "Espa\u{f1}ol");
+    h.run_steps(3);
+    assert_eq!(st(&h).shell.prefs.language, "es", "the choice is a preference");
+    assert!(
+        has(&h, "Archivo") && has(&h, "Edici\u{f3}n") && has(&h, "Ventana"),
+        "Spanish menu bar"
+    );
+    assert!(has(&h, "Preferencias"), "the dialog's title");
+    assert!(has(&h, "Idioma") && has(&h, "Tema"), "the dialog's labels");
+    assert!(has(&h, "Herramientas"), "the Preferences pages");
+    assert_eq!(
+        markupcraft_ui_egui::commands::describe("panel.properties").unwrap().0,
+        "Propiedades",
+        "panel titles (the dock tabs and the Window menu)"
+    );
+    assert_eq!(
+        markupcraft_ui_egui::commands::describe("tool.rectangle").map(|d| d.0),
+        Some("Rect\u{e1}ngulo".to_string()),
+        "tool names (menus and tooltips)"
+    );
+    // A menu's commands.
+    click_contains(&mut h, "Archivo");
+    h.run_steps(3);
+    assert!(
+        has(&h, "Guardar como...") && has(&h, "Abrir..."),
+        "File menu in Spanish"
+    );
+    h.key_press(Key::Escape);
+    h.run_steps(2);
+    // Headless: the same preference through the tool table.
+    let dir = temp_dir("ui-lang");
+    let mut a = automation(&dir);
+    call(&mut a, "prefs_set", json!({ "values": { "language": "es" } }));
+    assert_eq!(call(&mut a, "prefs_get", json!({}))["preferences"]["language"], "es");
+    assert!(
+        a.call("prefs_set", &json!({ "values": { "language": "xx" } })).is_err(),
+        "only the languages shipped"
+    );
+    // Back to English.
+    h.state_mut().state.shell.prefs.language = "en".into();
+    h.run_steps(3);
+    assert!(has(&h, "File") && !has(&h, "Archivo"), "English again");
 }
 
 /// ui-142: startup options: start mode, a PDF to open, reopen last session, recents, full screen.
@@ -3037,6 +3085,8 @@ fn ui_preference_pages() {
                     "Edge sensitivity",
                     "Hide markups while filling",
                     "Fill cursor",
+                    "Fill speed",
+                    "keep the last subject and label",
                 ],
             ),
         ),
@@ -3168,6 +3218,1096 @@ fn ui_presentation_loop() {
     press(&mut h, mods(false, false, false), Key::Escape);
     h.run_steps(2);
     assert_eq!(view(&h).opts.background, None, "the workspace colour again");
+}
+
+/// ui-138, ui-166: Advanced > 2D Rendering: Enhance Thin Lines (a minimum line width), the
+/// display mode, the low-resolution preview, the screen resolution and the highest print
+/// resolution, each taking effect.
+#[test]
+fn ui_rendering_options_take_effect() {
+    use markupcraft_ui_egui::shell::{render_prefs, workspace};
+    let _serial = serial();
+    let mut h = app();
+    prefs_on(&mut h, "Advanced");
+    for o in [
+        "Enhance thin lines",
+        "Progressive",
+        "Wait for the whole view",
+        "Low-resolution preview",
+        "Screen resolution",
+        "Highest print resolution",
+        "Draw blend modes",
+        "CMYK",
+    ] {
+        assert!(has(&h, o), "Advanced has {o}");
+    }
+    // ui-138: Enhance Thin Lines: the renderer reads a copy with linework at least 1 pt wide.
+    click_contains(&mut h, "Enhance thin lines");
+    assert!(st(&h).shell.ui.render.enhance_thin_lines, "the option is on");
+    h.state_mut().state.shell.show_prefs = false;
+    h.run_steps(3);
+    let uid = st(&h).doc().unwrap().uid;
+    h.state_mut().state.shell.ui.render.min_line_pt = 1.0;
+    h.run_steps(4);
+    assert_eq!(workspace::line_mode(st(&h), uid), workspace::LineMode::AtLeast(100));
+    // Disable Line Weights wins; off again, the document itself.
+    h.state_mut().state.shell.ui.extra.thin_lines = true;
+    h.run_steps(3);
+    assert_eq!(workspace::line_mode(st(&h), uid), workspace::LineMode::Thin);
+    h.state_mut().state.shell.ui.extra.thin_lines = false;
+    h.state_mut().state.shell.ui.render.enhance_thin_lines = false;
+    h.run_steps(3);
+    assert_eq!(workspace::line_mode(st(&h), uid), workspace::LineMode::Normal);
+    // ui-166: blend modes off: the renderer reads a copy that composites everything as Normal.
+    h.state_mut().state.shell.ui.render.blend_modes = false;
+    h.run_steps(3);
+    assert!(workspace::normal_blend(st(&h), uid));
+    h.state_mut().state.shell.ui.render.blend_modes = true;
+    h.run_steps(3);
+    assert!(!workspace::normal_blend(st(&h), uid));
+    // ui-166: screen resolution: pages render at twice the scale at 200%.
+    h.run_steps(6);
+    let before = view(&h).raster_scale(0).expect("page 1 rendered");
+    h.state_mut().state.shell.ui.render.resolution_pct = 200.0;
+    h.run_steps(8);
+    let after = view(&h).raster_scale(0).unwrap();
+    assert!(
+        (after / before - 2.0).abs() < 0.05,
+        "rendered at twice the resolution: {before} -> {after}"
+    );
+    // Display mode and preview reach the view.
+    h.state_mut().state.shell.ui.render.progressive = false;
+    h.state_mut().state.shell.ui.render.low_res_preview = false;
+    h.run_steps(2);
+    let o = view(&h).opts;
+    assert!(!o.progressive && !o.low_res_preview && (o.resolution - 2.0).abs() < 1e-6);
+    // Print as Image is capped at the highest print resolution.
+    let r = render_prefs::RenderPrefs {
+        max_print_dpi: 300.0,
+        ..Default::default()
+    };
+    assert_eq!(render_prefs::print_dpi(1200.0, &r), 300.0);
+    assert_eq!(render_prefs::print_dpi(150.0, &r), 150.0);
+    let dir = temp_dir("print-dpi");
+    let out = dir.join("print.pdf");
+    {
+        let s = &mut h.state_mut().state;
+        s.shell.ui.render.max_print_dpi = 72.0;
+        s.features.print.advanced.as_image = Some(1200.0);
+    }
+    assert!(markupcraft_ui_egui::features::print::write(
+        &mut h.state_mut().state,
+        &out
+    ));
+    let printed = std::fs::metadata(&out).unwrap().len();
+    h.state_mut().state.shell.ui.render.max_print_dpi = 200.0;
+    assert!(markupcraft_ui_egui::features::print::write(
+        &mut h.state_mut().state,
+        &out
+    ));
+    assert!(
+        std::fs::metadata(&out).unwrap().len() > printed,
+        "a higher cap prints a finer image"
+    );
+}
+
+/// ui-155: Tools > Markup: every option takes effect.
+#[test]
+fn ui_markup_tool_options_take_effect() {
+    let _serial = serial();
+    let mut h = app();
+    prefs_on(&mut h, "Tools");
+    for o in [
+        "Autosize text boxes",
+        "Remember last properties",
+        "Scale line width and text size",
+        "author and date in pop-ups",
+        "Print open pop-ups",
+        "Copy the highlighted text into the comment",
+        "Pictures are stored",
+        "Shapes are drawn from",
+        "Snapshots include the markups",
+    ] {
+        assert!(has(&h, o), "Tools has {o}");
+    }
+    h.state_mut().state.shell.show_prefs = false;
+    h.run_steps(2);
+    fn mp(h: &mut H) -> &mut markupcraft_ui_egui::markup_prefs::MarkupPrefs {
+        &mut h.state_mut().state.shell.ui.markup
+    }
+
+    // Remember last properties: a rectangle given a 6 pt line makes the next one 6 pt.
+    run(&mut h, "tool.rectangle");
+    drag(&mut h, (100.0, 600.0), (160.0, 650.0));
+    let first = markups(&h).last().unwrap().clone();
+    let default_width = first.line_width;
+    {
+        let d = h.state_mut().state.doc_mut().unwrap();
+        let patch = markupcraft_engine::MarkupPatch {
+            line_width: Some(6.0),
+            ..Default::default()
+        };
+        d.session
+            .set_properties(std::slice::from_ref(&first.id), &patch)
+            .unwrap();
+        d.session.select(std::slice::from_ref(&first.id)).unwrap();
+    }
+    h.run_steps(2);
+    run(&mut h, "tool.rectangle");
+    drag(&mut h, (200.0, 600.0), (260.0, 650.0));
+    assert_eq!(
+        markups(&h).last().unwrap().line_width,
+        default_width,
+        "off: the tool's own look"
+    );
+    mp(&mut h).remember_last = true;
+    h.state_mut()
+        .state
+        .doc_mut()
+        .unwrap()
+        .session
+        .select(std::slice::from_ref(&first.id))
+        .unwrap();
+    h.run_steps(2);
+    run(&mut h, "tool.rectangle");
+    drag(&mut h, (300.0, 600.0), (360.0, 650.0));
+    assert_eq!(markups(&h).last().unwrap().line_width, 6.0, "on: like the last one");
+    mp(&mut h).remember_last = false;
+    h.run_steps(1);
+
+    // Shapes drawn from the centre: the drag's start is the middle.
+    mp(&mut h).draw_from_center = true;
+    h.run_steps(1);
+    run(&mut h, "tool.rectangle");
+    drag(&mut h, (400.0, 600.0), (420.0, 620.0));
+    let b = markupcraft_ui_egui::actions::markup_bbox(markups(&h).last().unwrap());
+    assert!(
+        (b.x0 - 380.0).abs() < 1.5 && (b.x1 - 420.0).abs() < 1.5,
+        "from the centre: {b:?}"
+    );
+    mp(&mut h).draw_from_center = false;
+    h.run_steps(1);
+
+    // Autosize off: a text box keeps the box it was drawn with (its text may overflow).
+    let long = "A long comment that wraps over several lines in a narrow box";
+    for (autosize, x) in [(true, 80.0), (false, 300.0)] {
+        mp(&mut h).autosize_text = autosize;
+        run(&mut h, "tool.text");
+        drag(&mut h, (x, 400.0), (x + 90.0, 420.0));
+        h.event(egui::Event::Text(long.into()));
+        h.run_steps(3);
+        h.key_press(Key::Escape);
+        h.run_steps(3);
+        let t = markups(&h).last().unwrap().clone();
+        assert_eq!(t.contents, long);
+        let ht = markupcraft_ui_egui::actions::markup_bbox(&t).height();
+        if autosize {
+            assert!(ht > 30.0, "grown to fit its text: {ht}");
+        } else {
+            assert!((ht - 20.0).abs() < 2.0, "kept as drawn: {ht}");
+        }
+    }
+    mp(&mut h).autosize_text = true;
+
+    // Copy the highlighted text into the comment.
+    mp(&mut h).copy_text_to_comment = true;
+    h.run_steps(1);
+    let word = h.state().state.doc().unwrap().session.page_words(0).unwrap()[0].clone();
+    run(&mut h, "tool.texthighlight");
+    let r = word.rect;
+    let y = (r.y0 + r.y1) / 2.0;
+    drag(&mut h, (r.x0 + 0.5, y), (r.x1 - 0.5, y));
+    let hl = markups(&h).last().unwrap().clone();
+    assert_eq!(hl.kind, Kind::TextHighlight);
+    assert!(
+        hl.contents.contains(word.text.trim()),
+        "{:?} has {:?}",
+        hl.contents,
+        word.text
+    );
+
+    // Scale appearance: a polyline resized from a corner doubles its line width.
+    mp(&mut h).scale_appearance = true;
+    run(&mut h, "tool.select");
+    let id = {
+        let d = h.state_mut().state.doc_mut().unwrap();
+        let mut m = markupcraft_model::Markup::new(
+            Kind::Polyline,
+            0,
+            vec![
+                Point::new(100.0, 100.0),
+                Point::new(200.0, 150.0),
+                Point::new(300.0, 100.0),
+            ],
+        );
+        m.line_width = 2.0;
+        let id = d.session.add_markup(m).unwrap();
+        d.session.select(std::slice::from_ref(&id)).unwrap();
+        id
+    };
+    h.run_steps(3);
+    let m = markups(&h).into_iter().find(|m| m.id == id).unwrap();
+    let corners = markupcraft_ui_egui::modkeys::corner_handles(&m);
+    let top_right = corners
+        .iter()
+        .copied()
+        .max_by(|a, b| (a.x + a.y).total_cmp(&(b.x + b.y)))
+        .unwrap();
+    drag(
+        &mut h,
+        (top_right.x, top_right.y),
+        (top_right.x + 200.0, top_right.y + 50.0),
+    );
+    let m = markups(&h).into_iter().find(|m| m.id == id).unwrap();
+    assert!(
+        (m.line_width - 4.0).abs() < 0.2,
+        "twice the size, twice the line: {}",
+        m.line_width
+    );
+    mp(&mut h).scale_appearance = false;
+
+    // Pop-ups: the author and date over the comment, or the subject.
+    let mut note = markupcraft_model::Markup::new(Kind::Note, 0, vec![Point::new(500.0, 700.0)]);
+    note.author = "Pat".into();
+    note.subject = "Note".into();
+    note.modified = "D:20261009143000".into();
+    note.contents = "Check the door swing".into();
+    note.popup_open = true;
+    let t = markupcraft_engine::printing::popup_text(&note, true);
+    assert!(
+        t.starts_with("Pat  2026-10-09 14:30") && t.ends_with("Check the door swing"),
+        "{t}"
+    );
+    assert!(markupcraft_engine::printing::popup_text(&note, false).starts_with("Note\n"));
+
+    // Print open pop-ups: printed as a box holding the comment.
+    let dir = temp_dir("popups");
+    let out = dir.join("print.pdf");
+    // The printed sheets' text (markups are drawn into the sheets).
+    let comments = |p: &std::path::Path| -> Vec<String> {
+        let s = markupcraft_engine::Session::open(p).unwrap();
+        let mut v: Vec<String> = s.doc().markups.iter().map(|m| m.contents.clone()).collect();
+        for page in 0..s.page_count() {
+            let words: Vec<String> = s.page_words(page).unwrap().into_iter().map(|w| w.text).collect();
+            v.push(words.join(" "));
+        }
+        v
+    };
+    h.state_mut().state.doc_mut().unwrap().session.add_markup(note).unwrap();
+    h.run_steps(2);
+    assert!(markupcraft_ui_egui::features::print::write(
+        &mut h.state_mut().state,
+        &out
+    ));
+    assert!(
+        !comments(&out).iter().any(|c| c.contains("door swing")),
+        "off: no pop-ups printed"
+    );
+    mp(&mut h).print_popups = true;
+    h.run_steps(2);
+    assert!(markupcraft_ui_egui::features::print::write(
+        &mut h.state_mut().state,
+        &out
+    ));
+    assert!(comments(&out).iter().any(|c| c.contains("door swing")), "on: printed");
+
+    // Snapshots include the markups inside them.
+    mp(&mut h).snapshot_markups = true;
+    run(&mut h, "tool.snapshot");
+    drag(&mut h, (90.0, 590.0), (170.0, 660.0));
+    let clip = h.state().state.doc().unwrap().session.clipboard().to_vec();
+    assert_eq!(clip.first().map(|m| m.kind), Some(Kind::Snapshot));
+    assert!(
+        clip.iter().any(|m| m.id == first.id),
+        "the rectangle inside goes along: {}",
+        clip.len()
+    );
+
+    // Pictures stored as JPEG at the chosen quality.
+    mp(&mut h).jpeg_images = true;
+    mp(&mut h).jpeg_quality = 60;
+    h.run_steps(2);
+    assert_eq!(
+        h.state().state.doc().unwrap().session.image_jpeg_quality(),
+        Some(60),
+        "the documents store pictures as JPEG"
+    );
+    let dir = temp_dir("jpeg-image");
+    sample_pdf(&dir, "p.pdf");
+    let mut a = automation(&dir);
+    call(&mut a, "doc_open", json!({ "path": "p.pdf" }));
+    call(
+        &mut a,
+        "export_images",
+        json!({ "dir": ".", "pages": [1], "dpi": 36, "format": "png" }),
+    );
+    let png = std::fs::read_dir(&dir)
+        .unwrap()
+        .filter_map(|e| e.ok())
+        .map(|e| e.file_name().to_string_lossy().into_owned())
+        .find(|n| n.ends_with(".png"))
+        .unwrap();
+    call(
+        &mut a,
+        "stamp_add",
+        json!({ "page": 1, "rect": [50, 50, 250, 250], "image": png, "jpeg_quality": 60 }),
+    );
+    call(&mut a, "doc_save", json!({ "path": "jpeg.pdf", "full": true }));
+    let bytes = std::fs::read(dir.join("jpeg.pdf")).unwrap();
+    assert!(
+        bytes.windows(9).any(|w| w == b"DCTDecode"),
+        "the picture is stored as JPEG"
+    );
+}
+
+/// ui-165: Import/Export: OCR during export, open after export, Excel and PowerPoint
+/// reconstruction, number separators, picture resolution and colour space, TIFF compression
+/// and multi-page TIFF, each taking effect.
+#[test]
+fn ui_import_export_options_take_effect() {
+    let _serial = serial();
+    let mut h = app();
+    prefs_on(&mut h, "Import/Export");
+    for o in [
+        "OCR pages without text before exporting",
+        "Open the exported file",
+        "Excel: all pages in one sheet",
+        "Word: a picture of each page",
+        "Word: a page break between pages",
+        "decimal comma",
+        "PowerPoint slides at",
+        "TIFF compression",
+        "all pages in one multi-page file",
+        "Picture resolution",
+        "Grayscale",
+    ] {
+        assert!(has(&h, o), "Import/Export has {o}");
+    }
+    h.state_mut().state.shell.show_prefs = false;
+    h.run_steps(2);
+    fn ie(h: &mut H) -> &mut markupcraft_engine::prefs_pages::ImportExportPrefs {
+        &mut h.state_mut().state.shell.prefs.more.import_export
+    }
+    use markupcraft_ui_egui::features::{batch, export};
+    let dir = temp_dir("import-export");
+    let names = |d: &std::path::Path| -> Vec<String> {
+        let mut v: Vec<String> = std::fs::read_dir(d)
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .collect();
+        v.sort();
+        v
+    };
+    // TIFF: a file per page, uncompressed; LZW is smaller; multi-page is one file.
+    h.state_mut().state.features.export.image_format = 2;
+    h.state_mut().state.features.export.dpi = 72.0;
+    let (plain, lzw, multi) = (dir.join("plain"), dir.join("lzw"), dir.join("multi"));
+    for d in [&plain, &lzw, &multi] {
+        std::fs::create_dir_all(d).unwrap();
+    }
+    export::images_to(&mut h.state_mut().state, &plain);
+    ie(&mut h).tiff_compression = "lzw".into();
+    export::images_to(&mut h.state_mut().state, &lzw);
+    ie(&mut h).multi_page_tiff = true;
+    export::images_to(&mut h.state_mut().state, &multi);
+    let size = |d: &std::path::Path| -> u64 {
+        names(d)
+            .iter()
+            .map(|n| std::fs::metadata(d.join(n)).unwrap().len())
+            .sum()
+    };
+    assert_eq!(names(&plain).len(), 2, "a TIFF per page: {:?}", names(&plain));
+    assert!(
+        size(&lzw) < size(&plain),
+        "LZW compresses: {} < {}",
+        size(&lzw),
+        size(&plain)
+    );
+    assert_eq!(names(&multi).len(), 1, "one multi-page TIFF: {:?}", names(&multi));
+    let one = std::fs::read(multi.join(&names(&multi)[0])).unwrap();
+    assert!(one.len() as u64 > size(&lzw) / 2, "it holds both pages");
+
+    // Excel: one sheet for every page; numbers with a decimal comma.
+    let xl = dir.join("one.xlsx");
+    ie(&mut h).excel_one_sheet = true;
+    ie(&mut h).open_after_export = true;
+    export::document_to(&mut h.state_mut().state, &xl);
+    let bytes = std::fs::read(&xl).unwrap();
+    let has_part = |b: &[u8], p: &str| b.windows(p.len()).any(|w| w == p.as_bytes());
+    assert!(has_part(&bytes, "xl/worksheets/sheet1.xml") && !has_part(&bytes, "xl/worksheets/sheet2.xml"));
+    assert_eq!(
+        st(&h).features.export.opened.as_deref(),
+        Some(xl.as_path()),
+        "Open After Export opens it"
+    );
+    assert_eq!(
+        markupcraft_engine::convert::cell_number_with("1.234,5", true),
+        Some(1234.5)
+    );
+    assert_eq!(
+        markupcraft_engine::convert::cell_number_with("1,234.5", false),
+        Some(1234.5)
+    );
+    // PowerPoint at a lower resolution is smaller.
+    let (lo, hi) = (dir.join("lo.pptx"), dir.join("hi.pptx"));
+    ie(&mut h).slide_dpi = 36;
+    export::document_to(&mut h.state_mut().state, &lo);
+    ie(&mut h).slide_dpi = 200;
+    export::document_to(&mut h.state_mut().state, &hi);
+    assert!(
+        std::fs::metadata(&lo).unwrap().len() < std::fs::metadata(&hi).unwrap().len(),
+        "slides at 36 dpi are smaller than at 200"
+    );
+
+    // OCR during export: a page without text exports the text OCR reads.
+    markupcraft_engine::ocr::install_recognizer(std::sync::Arc::new(markupcraft_engine::ocr::InkWord {
+        text: "SCANNED".into(),
+    }));
+    let scan = dir.join("scan.pdf");
+    std::fs::write(
+        &scan,
+        markupcraft_engine::synthetic::pdf(&[markupcraft_engine::synthetic::SyntheticPage::new(
+            612.0,
+            792.0,
+            markupcraft_engine::synthetic::rect(100.0, 600.0, 200.0, 40.0),
+        )]),
+    )
+    .unwrap();
+    let mut a = automation(&dir);
+    call(&mut a, "doc_open", json!({ "path": "scan.pdf" }));
+    call(&mut a, "export_document", json!({ "out": "plain.txt" }));
+    call(&mut a, "export_document", json!({ "out": "ocr.txt", "ocr": true }));
+    let txt = |n: &str| std::fs::read_to_string(dir.join(n)).unwrap();
+    assert!(!txt("plain.txt").contains("SCANNED") && txt("ocr.txt").contains("SCANNED"));
+
+    // Pictures to PDF: the resolution sets the page size; grey pictures are DeviceGray.
+    call(
+        &mut a,
+        "export_images",
+        json!({ "dir": "pics", "pages": [1], "dpi": 72, "format": "png" }),
+    );
+    let pic = dir.join("pics").join(&names(&dir.join("pics"))[0]);
+    {
+        let s = &mut h.state_mut().state;
+        s.shell.prefs.more.import_export.picture_dpi = 144;
+        s.shell.prefs.more.import_export.picture_grayscale = true;
+        s.features.batch.open(batch::Kind::Create);
+        s.features.batch.files = vec![pic.clone()];
+        s.features.batch.more.each = false;
+    }
+    let made = dir.join("picture.pdf");
+    batch::output(&mut h.state_mut().state, &made);
+    h.run_steps(3);
+    let s = markupcraft_engine::Session::open(&made).unwrap();
+    let w = s.page(0).unwrap().media.width();
+    assert!((w - 306.0).abs() < 1.5, "612 px at 144 dpi is 306 pt wide: {w}");
+    let bytes = std::fs::read(&made).unwrap();
+    assert!(bytes.windows(10).any(|x| x == b"DeviceGray"), "stored in grey");
+    // Word: a picture of each page, or text only.
+    call(&mut a, "doc_open", json!({ "path": "picture.pdf" }));
+    call(
+        &mut a,
+        "export_document",
+        json!({ "out": "with.docx", "word_page_pictures": true }),
+    );
+    call(
+        &mut a,
+        "export_document",
+        json!({ "out": "without.docx", "word_page_breaks": false }),
+    );
+    let docx = |n: &str| std::fs::read(dir.join(n)).unwrap();
+    assert!(has_part(&docx("with.docx"), "word/media/") && !has_part(&docx("without.docx"), "word/media/"));
+}
+
+/// ui-169: Admin: the log folder and extended debugging, the shared stamp and email template
+/// folders, and the default PDF viewer files.
+#[test]
+fn ui_admin_options_take_effect() {
+    use markupcraft_ui_egui::shell::admin_prefs;
+    let _serial = serial();
+    let mut h = app();
+    prefs_on(&mut h, "Admin");
+    click_contains(&mut h, "Folders, logging and the default PDF viewer");
+    for o in [
+        "Shared stamp folder",
+        "Email template folder",
+        "Log folder",
+        "Extended debugging",
+        "Make MarkupCraft the Default PDF Viewer...",
+    ] {
+        assert!(has(&h, o), "Admin has {o}");
+    }
+    h.state_mut().state.shell.show_prefs = false;
+    h.run_steps(2);
+    let dir = temp_dir("admin");
+    // The log file: warnings, and debugging detail with extended debugging.
+    let logs = dir.join("logs");
+    std::fs::create_dir_all(&logs).unwrap();
+    h.state_mut().state.shell.ui.admin.log_folder = logs.display().to_string();
+    h.run_steps(2);
+    admin_prefs::note(false, "a warning for the log");
+    admin_prefs::note(true, "a debugging detail");
+    let text = || std::fs::read_to_string(admin_prefs::log_path(&logs)).unwrap_or_default();
+    assert!(text().contains("a warning for the log") && !text().contains("a debugging detail"));
+    h.state_mut().state.shell.ui.admin.extended_logging = true;
+    h.run_steps(2);
+    admin_prefs::note(true, "a second detail");
+    assert!(text().contains("a second detail"), "extended debugging records detail");
+    h.state_mut().state.shell.ui.admin.log_folder.clear();
+    h.run_steps(2);
+    admin_prefs::note(false, "not written");
+    assert!(!text().contains("not written"), "no folder, no log");
+
+    // A shared stamp folder: the library is read from it.
+    let shared = dir.join("shared stamps");
+    std::fs::create_dir_all(&shared).unwrap();
+    let id = markupcraft_engine::stamps::StampLibrary::new(&shared)
+        .add_text("Team Approved", "TEAM OK", markupcraft_model::Color::rgb(0.0, 0.5, 0.0))
+        .unwrap();
+    h.state_mut().state.shell.ui.admin.stamp_folder = shared.display().to_string();
+    h.run_steps(2);
+    let lib = st(&h).features.stamps.library().unwrap();
+    assert_eq!(lib.dir, shared);
+    assert!(
+        lib.all().unwrap().iter().any(|e| e.id == id),
+        "the shared stamp is in the library"
+    );
+
+    // The email template folder.
+    let mail = dir.join("mail");
+    h.state_mut().state.shell.ui.admin.email_template_folder = mail.display().to_string();
+    assert_eq!(
+        admin_prefs::email_templates_file(st(&h)),
+        Some(mail.join("email_templates.json"))
+    );
+
+    // Default PDF viewer: the files a user applies, never a system change.
+    let viewer = dir.join("viewer");
+    std::fs::create_dir_all(&viewer).unwrap();
+    admin_prefs::write_default_viewer(&mut h.state_mut().state, &viewer);
+    assert!(viewer.join("README.txt").is_file(), "{}", st(&h).status);
+    let mut a = automation(&dir);
+    for (os, file, needle) in [
+        (
+            "windows",
+            "markupcraft-default-pdf.reg",
+            "HKEY_CURRENT_USER\\Software\\Classes\\.pdf",
+        ),
+        (
+            "linux",
+            "set-default-pdf-viewer.sh",
+            "xdg-mime default markupcraft.desktop application/pdf",
+        ),
+        ("macos", "set-default-pdf-viewer.sh", "duti -s"),
+    ] {
+        let out = format!("viewer-{os}");
+        std::fs::create_dir_all(dir.join(&out)).unwrap();
+        call(
+            &mut a,
+            "shell_integration",
+            json!({ "action": "default_viewer", "dir": out, "os": os, "cli": "/opt/MarkupCraft/markupcraft" }),
+        );
+        let body = std::fs::read_to_string(dir.join(&out).join(file)).unwrap();
+        assert!(body.contains(needle), "{os}: {body}");
+    }
+}
+
+/// ui-163: Sets: relative paths, display and stacking, categories and their templates, sort,
+/// revision filter, copying markups to a new revision, stamping the old one SUPERSEDED and
+/// auto-tagging, each taking effect.
+#[test]
+fn ui_sets_options_take_effect() {
+    use markupcraft_ui_egui::features::sets;
+    let _serial = serial();
+    let mut h = app();
+    prefs_on(&mut h, "Sets");
+    for o in [
+        "Store the files relative",
+        "Earlier revisions are",
+        "Stack earlier revisions under the latest",
+        "by sheet number",
+        "file, then sheet",
+        "Revision filter",
+        "Category templates",
+        "Copy markups to a new revision",
+        "Stamp the previous revision SUPERSEDED",
+        "Tag discipline and sheet type",
+    ] {
+        assert!(has(&h, o), "Sets has {o}");
+    }
+    h.state_mut().state.shell.show_prefs = false;
+    h.run_steps(2);
+    let dir = temp_dir("sets-prefs");
+    let page = || {
+        markupcraft_engine::synthetic::pdf(&[markupcraft_engine::synthetic::SyntheticPage::new(
+            612.0,
+            792.0,
+            markupcraft_engine::synthetic::rect(100.0, 600.0, 200.0, 40.0),
+        )])
+    };
+    let (r1, r2) = (dir.join("A-101 rev 1.pdf"), dir.join("A-101 rev 2.pdf"));
+    std::fs::write(&r1, page()).unwrap();
+    std::fs::write(&r2, page()).unwrap();
+    // Revision 1 carries a markup.
+    {
+        let mut s = markupcraft_engine::Session::open(&r1).unwrap();
+        let m = markupcraft_model::Markup::new(
+            Kind::Rectangle,
+            0,
+            vec![
+                Point::new(100.0, 100.0),
+                Point::new(200.0, 100.0),
+                Point::new(200.0, 200.0),
+                Point::new(100.0, 200.0),
+            ],
+        );
+        s.add_markup(m).unwrap();
+        s.save(false).unwrap();
+    }
+    // Defaults reach the panel.
+    {
+        let s = &mut h.state_mut().state;
+        let st = &mut s.shell.prefs.more.sets;
+        st.sort = "sheet".into();
+        st.categories = "sheet_number".into();
+        st.earlier_revisions = 3;
+        st.revision_filter = "*".into();
+        markupcraft_ui_egui::prefs_ui::apply_live(s);
+        let p = &s.features.sets;
+        assert_eq!(p.sort, markupcraft_engine::batch::SetSort::Label);
+        assert_eq!(p.categories, markupcraft_engine::sets_more::CategoryMode::SheetNumber);
+        assert_eq!((p.previous, p.revision_filter.as_str()), (3, "*"));
+        let st = &mut s.shell.prefs.more.sets;
+        st.revision_filter.clear();
+        st.categories = "off".into();
+        st.copy_markups_to_revision = true;
+        st.stamp_superseded = true;
+        markupcraft_ui_egui::prefs_ui::apply_live(s);
+    }
+    // A new revision added to the Set takes the markups; the old one is stamped SUPERSEDED.
+    sets::add_files(&mut h.state_mut().state, std::slice::from_ref(&r1));
+    sets::add_files(&mut h.state_mut().state, std::slice::from_ref(&r2));
+    let new = markupcraft_engine::Session::open(&r2).unwrap();
+    assert_eq!(new.doc().markups.len(), 1, "{}", st(&h).features.sets.message);
+    let old = markupcraft_engine::Session::open(&r1).unwrap();
+    assert!(
+        old.doc()
+            .markups
+            .iter()
+            .any(|m| m.kind == Kind::Stamp && m.contents.contains("SUPERSEDED")),
+        "the old revision is stamped"
+    );
+    // Relative or full paths in the set file.
+    let set_file = dir.join("job.pcset");
+    sets::save_set(&mut h.state_mut().state, &set_file);
+    let text = std::fs::read_to_string(&set_file).unwrap();
+    assert!(text.contains("\"A-101 rev 1.pdf\""), "relative: {text}");
+    h.state_mut().state.shell.prefs.more.sets.relative_paths = false;
+    sets::save_set(&mut h.state_mut().state, &set_file);
+    let text = std::fs::read_to_string(&set_file).unwrap();
+    assert!(!text.contains("\"A-101 rev 1.pdf\""), "full paths: {text}");
+    // The panel: tags from the sheet number, stacked revisions, category templates.
+    {
+        let s = &mut h.state_mut().state;
+        s.features.sets.show_tags = true;
+        s.features.sets.previous = 0;
+        s.show_panel("sets");
+    }
+    h.run_steps(4);
+    assert!(has(&h, "Discipline: Architectural"), "auto-tagged");
+    h.state_mut().state.shell.prefs.more.sets.auto_tags = false;
+    h.run_steps(3);
+    assert!(!has(&h, "Discipline: Architectural"), "no auto tags");
+    h.state_mut().state.shell.prefs.more.sets.stack_revisions = true;
+    h.run_steps(3);
+    assert!(has(&h, "1 earlier revision"), "stacked under the latest");
+    {
+        let s = &mut h.state_mut().state;
+        s.shell.prefs.more.sets.category_rules =
+            markupcraft_ui_egui::features::more6::prefs::parse_rules("A = Arch Custom");
+        s.features.sets.categories = markupcraft_engine::sets_more::CategoryMode::SheetNumber;
+    }
+    h.run_steps(3);
+    assert!(has(&h, "Arch Custom"), "the category template names the group");
+}
+
+/// ui-160: Window > Tablet: pinch zoom, the pen cursor, the Highlight pen over text, the pen
+/// commit delay, copying ink as a picture, the right-button lasso, pen pressure and the touch
+/// input mode, each taking effect.
+#[test]
+fn ui_tablet_options_take_effect() {
+    let _serial = serial();
+    let mut h = app();
+    prefs_on(&mut h, "Tablet");
+    for o in [
+        "Pinch to zoom",
+        "Pen cursor",
+        "A dot as wide as the pen",
+        "The Highlight pen over page text highlights the text",
+        "Pen commit delay",
+        "Copy pen strokes as a picture too",
+        "Right-button drag lassoes markups",
+        "Pen pressure sets the stroke width",
+        "Touch input mode",
+    ] {
+        assert!(has(&h, o), "Tablet has {o}");
+    }
+    h.state_mut().state.shell.show_prefs = false;
+    h.run_steps(2);
+    fn tab(h: &mut H) -> &mut markupcraft_engine::prefs_pages::TabletPrefs {
+        &mut h.state_mut().state.shell.prefs.more.tablet
+    }
+    let centre = screen(&h, 300.0, 400.0);
+    // Pinch zoom, and with it off nothing.
+    let pinch = |h: &mut H| {
+        let z = view(h).zoom;
+        h.hover_at(centre);
+        h.step();
+        h.event(egui::Event::Zoom(1.5));
+        h.run_steps(3);
+        view(h).zoom / z
+    };
+    assert!(pinch(&mut h) > 1.2, "pinching zooms");
+    tab(&mut h).pinch_zoom = false;
+    h.run_steps(2);
+    assert!((pinch(&mut h) - 1.0).abs() < 1e-3, "pinch zoom off");
+    run(&mut h, "view.fit_page");
+    h.run_steps(3);
+
+    // The pen's dot cursor.
+    tab(&mut h).pen_cursor = "dot".into();
+    run(&mut h, "tool.pen");
+    h.hover_at(screen(&h, 300.0, 400.0));
+    h.run_steps(2);
+    assert_eq!(
+        h.output().platform_output.cursor_icon,
+        egui::CursorIcon::None,
+        "the dot replaces the pointer"
+    );
+    tab(&mut h).pen_cursor = "crosshair".into();
+    h.run_steps(2);
+    assert_eq!(h.output().platform_output.cursor_icon, egui::CursorIcon::Crosshair);
+
+    // Pen commit delay: two quick strokes make one markup.
+    h.state_mut().state.shell.ui.reuse_tools = true;
+    h.state_mut().state.tool_locked = true;
+    tab(&mut h).pen_commit_ms = 5_000;
+    let before = markups(&h).len();
+    run(&mut h, "tool.pen");
+    drag(&mut h, (100.0, 300.0), (160.0, 330.0));
+    drag(&mut h, (100.0, 340.0), (160.0, 370.0));
+    let after = markups(&h);
+    assert_eq!(after.len(), before + 1, "the second stroke joined the first");
+    let ink = after.last().unwrap().clone();
+    assert_eq!(
+        (ink.kind, ink.strokes.len()),
+        (Kind::Ink, 1),
+        "two strokes in one markup"
+    );
+    tab(&mut h).pen_commit_ms = 0;
+    h.run_steps(2);
+    drag(&mut h, (200.0, 300.0), (260.0, 330.0));
+    assert_eq!(
+        markups(&h).len(),
+        before + 2,
+        "without the delay each stroke is a markup"
+    );
+
+    // Pen pressure: a hard stroke is wider.
+    tab(&mut h).pressure = true;
+    h.run_steps(1);
+    let width = markups(&h).last().unwrap().line_width;
+    let (a, b) = (screen(&h, 300.0, 300.0), screen(&h, 360.0, 330.0));
+    h.hover_at(a);
+    h.step();
+    button(&mut h, a, true, Modifiers::NONE);
+    for i in 1..=8 {
+        let p = a + (b - a) * (i as f32 / 8.0);
+        h.event(egui::Event::Touch {
+            device_id: egui::TouchDeviceId(1),
+            id: egui::TouchId(1),
+            phase: egui::TouchPhase::Move,
+            pos: p,
+            force: Some(1.0),
+        });
+        h.hover_at(p);
+        h.step();
+    }
+    button(&mut h, b, false, Modifiers::NONE);
+    h.run_steps(3);
+    let pressed = markups(&h).last().unwrap().line_width;
+    assert!(
+        (pressed - width * 2.0).abs() < 1e-6,
+        "full pressure doubles the width: {width} -> {pressed}"
+    );
+    tab(&mut h).pressure = false;
+
+    // Copy pen strokes as a picture.
+    tab(&mut h).ink_copy_picture = true;
+    let id = markups(&h).last().unwrap().id.clone();
+    h.state_mut()
+        .state
+        .doc_mut()
+        .unwrap()
+        .session
+        .select(std::slice::from_ref(&id))
+        .unwrap();
+    run(&mut h, "edit.copy");
+    assert!(st(&h).status.contains("copied as a"), "{}", st(&h).status);
+
+    // The Highlight pen over page text makes a text highlight.
+    tab(&mut h).pen_text_highlight = true;
+    h.state_mut().state.doc_mut().unwrap().session.select(&[]).unwrap();
+    let word = h
+        .state()
+        .state
+        .doc()
+        .unwrap()
+        .session
+        .page_words(0)
+        .unwrap()
+        .into_iter()
+        .find(|w| w.rect.width() > 40.0)
+        .expect("a long word");
+    run(&mut h, "tool.highlight");
+    let r = word.rect;
+    let y = (r.y0 + r.y1) / 2.0;
+    let n = markups(&h).len();
+    drag(&mut h, (r.x0 + 0.5, y), (r.x1 - 0.5, y));
+    assert_eq!(
+        markups(&h).last().unwrap().kind,
+        Kind::TextHighlight,
+        "{n} -> {} {:?} tool {} status {}",
+        markups(&h).len(),
+        word,
+        st(&h).tool,
+        st(&h).status
+    );
+    h.state_mut().state.tool_locked = false;
+    h.state_mut().state.shell.ui.reuse_tools = false;
+
+    // Right-button lasso around a rectangle selects it.
+    tab(&mut h).right_click_lasso = true;
+    run(&mut h, "tool.select");
+    let rect_id = {
+        let d = h.state_mut().state.doc_mut().unwrap();
+        let m = markupcraft_model::Markup::new(
+            Kind::Rectangle,
+            0,
+            vec![
+                Point::new(400.0, 600.0),
+                Point::new(440.0, 600.0),
+                Point::new(440.0, 640.0),
+                Point::new(400.0, 640.0),
+            ],
+        );
+        let id = d.session.add_markup(m).unwrap();
+        d.session.select(&[]).unwrap();
+        id
+    };
+    h.run_steps(2);
+    let ring = [
+        (380.0, 580.0),
+        (460.0, 580.0),
+        (460.0, 660.0),
+        (380.0, 660.0),
+        (380.0, 585.0),
+    ];
+    let first = screen(&h, ring[0].0, ring[0].1);
+    h.hover_at(first);
+    h.step();
+    h.event(egui::Event::PointerButton {
+        pos: first,
+        button: egui::PointerButton::Secondary,
+        pressed: true,
+        modifiers: Modifiers::NONE,
+    });
+    h.step();
+    let mut at = first;
+    for (x, y) in ring.iter().skip(1) {
+        let to = screen(&h, *x, *y);
+        for k in 1..=4 {
+            h.hover_at(at + (to - at) * (k as f32 / 4.0));
+            h.step();
+        }
+        at = to;
+    }
+    let last = screen(&h, ring[4].0, ring[4].1);
+    h.event(egui::Event::PointerButton {
+        pos: last,
+        button: egui::PointerButton::Secondary,
+        pressed: false,
+        modifiers: Modifiers::NONE,
+    });
+    h.run_steps(3);
+    assert!(
+        st(&h).doc().unwrap().session.selection().contains(&rect_id),
+        "lassoed: {}",
+        st(&h).status
+    );
+    tab(&mut h).right_click_lasso = false;
+
+    // Touch input mode: a tap 8 px off a markup's edge picks it.
+    h.state_mut().state.doc_mut().unwrap().session.select(&[]).unwrap();
+    h.run_steps(2);
+    let px_per_pt = (screen(&h, 401.0, 600.0).x - screen(&h, 400.0, 600.0).x).abs();
+    let off = 8.0 / f64::from(px_per_pt.max(0.01));
+    let tap = |h: &mut H| {
+        click(h, 440.0 + off, 620.0);
+        st(h).doc().unwrap().session.selection().contains(&rect_id)
+    };
+    assert!(!tap(&mut h), "8 px off is a miss with a mouse");
+    tab(&mut h).touch_mode = true;
+    h.run_steps(2);
+    assert!(tap(&mut h), "and a hit in touch mode");
+}
+
+/// A one-page PDF whose open action runs `js`.
+fn js_pdf(js: &str) -> Vec<u8> {
+    let objs = [
+        "<< /Type /Catalog /Pages 2 0 R /OpenAction 4 0 R >>".to_string(),
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_string(),
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>".to_string(),
+        format!("<< /S /JavaScript /JS ({js}) >>"),
+    ];
+    let mut out = b"%PDF-1.7\n".to_vec();
+    let mut offsets = Vec::new();
+    for (i, o) in objs.iter().enumerate() {
+        offsets.push(out.len());
+        out.extend(format!("{} 0 obj\n{o}\nendobj\n", i + 1).as_bytes());
+    }
+    let xref = out.len();
+    out.extend(format!("xref\n0 {}\n0000000000 65535 f \n", objs.len() + 1).as_bytes());
+    for o in offsets {
+        out.extend(format!("{o:010} 00000 n \n").as_bytes());
+    }
+    out.extend(
+        format!(
+            "trailer\n<< /Size {} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n",
+            objs.len() + 1
+        )
+        .as_bytes(),
+    );
+    out
+}
+
+/// ui-168: Advanced > JavaScript / PDF/A: document JavaScript runs on opening only when enabled
+/// and (by default) only for documents in a trusted location; PDF/A conversion flattens
+/// markups, removes attachments and makes markups opaque first when asked.
+#[test]
+fn ui_javascript_and_pdfa_options_take_effect() {
+    let _serial = serial();
+    let mut h = app();
+    prefs_on(&mut h, "Advanced");
+    click_contains(&mut h, "JavaScript and PDF/A conversion");
+    for o in [
+        "Run a document's JavaScript when it opens",
+        "Only documents in a trusted location",
+        "Trusted locations",
+        "Flatten the markups into the pages",
+        "Remove embedded files",
+        "Make transparent markups opaque",
+    ] {
+        assert!(has(&h, o), "Advanced has {o}");
+    }
+    h.state_mut().state.shell.show_prefs = false;
+    h.run_steps(2);
+    let dir = temp_dir("js-open");
+    let (trusted, other) = (dir.join("trusted"), dir.join("other"));
+    std::fs::create_dir_all(&trusted).unwrap();
+    std::fs::create_dir_all(&other).unwrap();
+    let js = js_pdf("console.println\\(\"HELLO FROM THE DOCUMENT\"\\);");
+    let (t_pdf, o_pdf) = (trusted.join("t.pdf"), other.join("o.pdf"));
+    std::fs::write(&t_pdf, &js).unwrap();
+    std::fs::write(&o_pdf, &js).unwrap();
+    let ran = |h: &H| {
+        st(h)
+            .features
+            .more6
+            .script
+            .log
+            .iter()
+            .any(|l| l.contains("HELLO FROM THE DOCUMENT"))
+    };
+    let open = |h: &mut H, p: &std::path::Path| {
+        h.state_mut().state.open_path(p);
+        h.run_steps(2);
+    };
+    // Off by default: nothing runs.
+    open(&mut h, &t_pdf);
+    assert!(!ran(&h), "JavaScript is off by default");
+    {
+        let a = &mut h.state_mut().state.shell.prefs.more.advanced;
+        a.js_enabled = true;
+        a.trusted_locations = vec![trusted.display().to_string()];
+    }
+    open(&mut h, &o_pdf);
+    assert!(!ran(&h), "a document outside the trusted locations does not run");
+    let i = st(&h)
+        .docs
+        .iter()
+        .position(|d| d.path.as_deref() == Some(t_pdf.as_path()))
+        .unwrap();
+    let uid = st(&h).docs[i].uid;
+    h.state_mut().state.force_close(uid);
+    open(&mut h, &t_pdf);
+    assert!(ran(&h), "a trusted document runs its script on opening");
+    h.state_mut().state.features.more6.script.log.clear();
+    h.state_mut().state.shell.prefs.more.advanced.js_trusted_only = false;
+    let i = st(&h)
+        .docs
+        .iter()
+        .position(|d| d.path.as_deref() == Some(o_pdf.as_path()))
+        .unwrap();
+    let uid = st(&h).docs[i].uid;
+    h.state_mut().state.force_close(uid);
+    open(&mut h, &o_pdf);
+    assert!(ran(&h), "any document runs once trust is not required");
+
+    // PDF/A conversion steps.
+    let pdfa = temp_dir("pdfa-conv");
+    sample_pdf(&pdfa, "p.pdf");
+    let mut a = automation(&pdfa);
+    call(&mut a, "doc_open", json!({ "path": "p.pdf" }));
+    let before = call(&mut a, "markup_list", json!({}));
+    let n_before = before["markups"].as_array().map_or(0, Vec::len);
+    assert!(n_before > 0, "the sample has markups");
+    call(
+        &mut a,
+        "doc_pdfa",
+        json!({ "action": "archive", "level": "2b", "flatten_markups": true }),
+    );
+    let after = call(&mut a, "markup_list", json!({}));
+    assert_eq!(
+        after["markups"].as_array().map_or(0, Vec::len),
+        0,
+        "flattened before archiving"
+    );
+    // The same steps from the interface's preferences.
+    {
+        let s = &mut h.state_mut().state;
+        s.open_bytes("sample.pdf", None, markupcraft_render::synthetic::sample_pdf())
+            .unwrap();
+        let d = s.doc_mut().unwrap();
+        let ids: Vec<String> = d.session.doc().markups.iter().map(|m| m.id.clone()).collect();
+        let patch = markupcraft_engine::MarkupPatch {
+            opacity: Some(0.4),
+            ..Default::default()
+        };
+        d.session.set_properties(&ids, &patch).unwrap();
+        s.shell.prefs.more.advanced.pdfa_opaque_markups = true;
+        s.features.export.pdfa_1b = true;
+    }
+    run(&mut h, "document.pdfa");
+    h.run_steps(2);
+    click_label(&mut h, "Archive");
+    let d = st(&h).doc().unwrap();
+    assert!(
+        d.session.doc().markups.iter().all(|m| m.opacity >= 1.0),
+        "markups made opaque before archiving: {:?}",
+        st(&h).features.export.pdfa_report
+    );
 }
 
 /// ui-170: back up all settings, change them, restore.
@@ -3857,6 +4997,21 @@ fn ui_preference_options_take_effect() {
     }
     let fm = &st(&h).features.fill.more;
     assert!(fm.raster && fm.dpi == 200.0 && fm.cursor_size == 30.0);
+    // ui-156: the fill speed trades resolution for time; Keep Last Subject and Label.
+    {
+        let s = &mut h.state_mut().state;
+        s.shell.prefs.more.measure.fill_speed = "fast".into();
+        s.shell.prefs.more.measure.keep_subject_label = true;
+        markupcraft_ui_egui::prefs_ui::apply_live(s);
+    }
+    assert_eq!(st(&h).features.fill.more.dpi, 100.0, "fast: half the resolution");
+    assert!(st(&h).edit.more.keep_subject, "new measurements keep the last subject");
+    {
+        let s = &mut h.state_mut().state;
+        s.shell.prefs.more.measure.fill_speed = "accurate".into();
+        markupcraft_ui_egui::prefs_ui::apply_live(s);
+    }
+    assert_eq!(st(&h).features.fill.more.dpi, 300.0, "accurate: twice, at most 300 dpi");
 
     // ui-159: the digital ID password is forgotten at once unless the preference keeps it.
     h.state_mut().state.features.signatures.password = "secret".into();

@@ -715,7 +715,7 @@ fn ui(app: &mut AppState, ui: &mut egui::Ui) {
     if let Some(cols) = list.columns_editor.as_mut() {
         let mut open = true;
         let mut apply = false;
-        egui::Window::new("Manage Columns")
+        crate::i18n::window("Manage Columns")
             .open(&mut open)
             .default_width(520.0)
             .show(ui.ctx(), |ui| {

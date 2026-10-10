@@ -245,7 +245,11 @@ pub fn closing(app: &mut AppState, uid: u64) {
         f.mode = mode.to_string();
     }
     app.shell.history.remove(&uid);
-    if app.shell.split.as_ref().is_some_and(|s| s.pane.uid == uid) {
+    if let Some(s) = &mut app.shell.split
+        && s.pane.uid == uid
+        && !s.pane.close_tab(uid)
+    {
+        // The pane's last tab closed: the pane goes too.
         app.shell.split = None;
     }
     persist(app);
