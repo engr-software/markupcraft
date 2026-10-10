@@ -2917,7 +2917,7 @@ dependencies = [
 
 [[package]]
 name = "markupcraft"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "eframe",
  "log",
@@ -2927,7 +2927,7 @@ dependencies = [
 
 [[package]]
 name = "markupcraft-acceptance"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "egui",
  "egui_kittest",
@@ -2944,7 +2944,7 @@ dependencies = [
 
 [[package]]
 name = "markupcraft-automation"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "image",
  "markupcraft-engine",
@@ -2959,7 +2959,7 @@ dependencies = [
 
 [[package]]
 name = "markupcraft-cli"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "markupcraft-automation",
  "markupcraft-engine",
@@ -2971,7 +2971,7 @@ dependencies = [
 
 [[package]]
 name = "markupcraft-engine"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "flate2",
  "image",
@@ -3009,14 +3009,14 @@ dependencies = [
 
 [[package]]
 name = "markupcraft-geom"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "markupcraft-measure"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "markupcraft-geom",
  "serde",
@@ -3024,7 +3024,7 @@ dependencies = [
 
 [[package]]
 name = "markupcraft-model"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "markupcraft-geom",
  "markupcraft-measure",
@@ -3033,7 +3033,7 @@ dependencies = [
 
 [[package]]
 name = "markupcraft-render"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "log",
  "markupcraft-geom",
@@ -3045,7 +3045,7 @@ dependencies = [
 
 [[package]]
 name = "markupcraft-revu"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "log",
  "markupcraft-geom",
@@ -3058,7 +3058,7 @@ dependencies = [
 
 [[package]]
 name = "markupcraft-ui-egui"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "eframe",
  "egui",
@@ -3088,7 +3088,7 @@ dependencies = [
 
 [[package]]
 name = "markupcraft-web"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "eframe",
  "js-sys",
@@ -6972,7 +6972,7 @@ checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
 
 [[package]]
 name = "xtask"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "serde",

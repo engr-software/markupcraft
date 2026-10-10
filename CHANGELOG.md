@@ -6,7 +6,7 @@ each version is published as three releases, one per operating system
 [Releases page](https://github.com/engr-software/markupcraft/releases).
 Feature status per row is in [FEATURES.md](FEATURES.md).
 
-## Unreleased
+## 0.5.0
 
 ### Interface
 
